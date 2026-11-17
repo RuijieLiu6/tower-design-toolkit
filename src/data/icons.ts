@@ -148,7 +148,6 @@ export const NODE_ICONS: Record<string, LucideIcon> = {
   'built.sw-form': FormBox,
   'built.sw-glazing': Blinds,
   'built.sw-daylight': DaylightGrid,
-  'built.sw-daylight-factor': WindowSky,
   'built.sw-light-hour': CalendarClock,
   'built.sw-natvent': AirVent,
   'built.sw-airflow': Spline,

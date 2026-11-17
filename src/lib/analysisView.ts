@@ -33,7 +33,6 @@ const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
   'built.sw-energy': { kind: 'sw', plan: false, about: 'The façade zones that set the envelope of the energy model.' },
   'built.sw-form': { kind: 'sw', plan: false, about: 'The tower\'s form and its façade zones.' },
   'built.sw-daylight': { kind: 'sw', plan: true, about: 'Daylight autonomy on the floor plan of the level studied.' },
-  'built.sw-daylight-factor': { kind: 'sw', plan: true, about: 'Daylight factor on the floor plan of the level studied.' },
   'built.sw-light-hour': { kind: 'sw', plan: true, about: 'Light on the floor at the hour chosen.' },
   'built.sw-natvent': { kind: 'sw', plan: true, about: 'Reach of the openable windows on the level studied.' },
   'built.sw-airflow': { kind: 'sw', plan: true, about: 'Air moving across the level studied with the windows open.' },

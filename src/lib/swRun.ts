@@ -21,7 +21,7 @@ import type { SwInputs } from './swInputs'
 import { doyOf, studyLevel, type SwStudySettings } from './swStudy'
 
 export const SW_IDS = ['built.sw-shadow', 'built.sw-sun-faces', 'built.sw-pv', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form',
-  'built.sw-glazing', 'built.sw-daylight', 'built.sw-daylight-factor', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-energy', 'built.sw-indoor-temp'] as const
+  'built.sw-glazing', 'built.sw-daylight', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-energy', 'built.sw-indoor-temp'] as const
 export type SwId = (typeof SW_IDS)[number]
 export const isSw = (id: string | null | undefined): id is SwId => !!id && (SW_IDS as readonly string[]).includes(id)
 
@@ -259,8 +259,13 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const sda = aw((p) => p.dl.sda), ase = aw((p) => p.ase.pct)
     const pts = sda >= 0.75 ? 3 : sda >= 0.55 ? 2 : sda >= 0.4 ? 1 : 0
     const D0 = per[0]?.dl
+    // What the façade does (17 Nov, Sinnie: "make sure the results reflect changes done to the facade"): the same towers
+    // with the same glass and no shading devices, so the results show the devices' share of sDA and ASE.
+    const bare = allFloors(inp).map(({ t, floors }) => ({ dl: daylightTower(floors, zonesOf(t), C, { target: s.dlTarget, blinds: s.blinds, ctx: inp.ctxBlocks, noDev: true }), ase: aseTower(floors, zonesOf(t), C, undefined, { ctx: inp.ctxBlocks, noDev: true }) }))
+    const awB = (g: (p: { dl: DaylightTower; ase: AseTower }) => number) => bare.reduce((a, p) => a + g(p) * p.dl.rows.reduce((q, r) => q + r.area, 0), 0) / A
+    const facade = { sdaBare: awB((p) => p.dl.sda), aseBare: awB((p) => p.ase.pct), zones: inp.towers[0] ? zonesOf(inp.towers[0]) : [] }
     return {
-      data: { per, sda, ase, pts },
+      data: { per, sda, ase, pts, facade },
       keys: [
         key('sw-sda', 'Daylight autonomy', 'LEED', pc(sda), pts >= 2 ? 'pass' : pts === 1 ? 'warn' : 'fail', `LEED v4.1 EQ Daylight, option 1: sDA${s.dlTarget}/50%, the share of the floor that reaches ${s.dlTarget} lux from daylight for at least half the occupied hours. 40 / 55 / 75% earn 1 / 2 / 3 points (${pts} now). Blinds ${s.blinds ? 'come down as in IES LM-83' : 'are taken as up all year'}.`, { badge: `${pts} pt${pts === 1 ? '' : 's'}`, bar: { max: 1, v: sda, zone: [0.4, 1], ticks: [[0.4, '40'], [0.55, '55'], [0.75, '75%']] } }),
         key('sw-ase', 'Sunlight exposure', 'LEED', pc(ase), ase <= 0.1 ? 'pass' : 'warn', 'ASE1000/250h: the share of the floor in direct sun over 1,000 lux for more than 250 hours a year. At most 10%, or show glare control.', { badge: ase <= 0.1 ? 'meets' : 'glare', bar: { max: 0.3, v: Math.min(0.3, ase), zone: [0, 0.1], ticks: [[0.1, '10% max']] } }),
@@ -269,26 +274,6 @@ const RUNS: Partial<Record<SwId, Run>> = {
       rules: [
         rule('sw-sda', `Daylight autonomy (sDA${s.dlTarget}/50%, LEED)`, pc(sda), '40 / 55 / 75% for 1 / 2 / 3 points', pts >= 2 ? 'pass' : pts === 1 ? 'warn' : 'fail', `${pts} LEED point${pts === 1 ? '' : 's'}; blinds ${s.blinds ? 'operated as LM-83' : 'up'}.`, { label: 'LEED v4.1 EQ Daylight option 1; IES LM-83' }),
         rule('sw-ase', 'Annual sun exposure (ASE1000/250h)', pc(ase), 'at most 10%, or show glare control', ase <= 0.1 ? 'pass' : 'warn', undefined, { label: 'LEED v4.1 EQ Daylight; IES LM-83' }),
-      ],
-    }
-  },
-  'built.sw-daylight-factor': (inp, s) => {
-    const C = inp.C
-    const per = allFloors(inp).map(({ t, floors }) => ({ t, dl: daylightTower(floors, zonesOf(t), C, { target: s.dlTarget, blinds: s.blinds, ctx: inp.ctxBlocks }) }))
-    const A = per.reduce((a, p) => a + p.dl.rows.reduce((q, r) => q + r.area, 0), 0) || 1
-    const aw = (g: (d: DaylightTower) => number | null) => per.reduce((a, p) => a + (g(p.dl) ?? 0) * p.dl.rows.reduce((q, r) => q + r.area, 0), 0) / A
-    const mean = aw((d) => d.mean), enMin = per.some((p) => p.dl.enMin != null) ? aw((d) => d.enMin) : null, enMed = per.some((p) => p.dl.enMed != null) ? aw((d) => d.enMed) : null
-    const udi = (['udiS', 'udiU', 'udiE'] as const).map((k) => aw((d) => d[k]))
-    return {
-      data: { per, mean, enMin, enMed },
-      keys: [
-        key('sw-df', 'Daylight factor', 'mean', `${(mean * 100).toFixed(1)}%`, mean >= 0.02 ? 'pass' : mean >= 0.01 ? 'warn' : 'fail', 'Mean daylight factor under an overcast sky. 2% reads as well daylit; under 1% needs electric light most of the day.', { badge: mean >= 0.02 ? 'well daylit' : mean >= 0.01 ? 'fair' : 'dim', bar: { max: 0.05, v: Math.min(0.05, mean), zone: [0.02, 0.05], ticks: [[0.01, '1'], [0.02, '2%']] } }),
-        ...(enMin != null ? [key('sw-en17037', 'Daylight provision', 'EN 17037', pc(enMin), enMin >= 0.75 ? 'pass' : enMin >= 0.5 ? 'warn' : 'fail', `Share of floor area that meets the EN 17037 minimum level${enMed != null ? `; ${pc(enMed)} reach the medium level` : ''}.`, { badge: (enMed ?? 0) >= 0.5 ? 'medium' : enMin >= 0.5 ? 'minimum' : 'not met', bar: { max: 1, v: enMin, zone: [0.75, 1], ticks: [[0.5, '50'], [0.75, '75%']] } })] : []),
-        key('sw-udi', 'Useful daylight', 'UDI', pc(udi[1]), 'unknown', 'Share of occupied hours, averaged over the floors: too dark for daylight alone, useful, or so bright that blinds come down.', { stack: { parts: udi, colors: ['#cfd4da', '#E09A2C', '#B8362B'], names: ['under 100 lux', 'useful 100–3,000', 'over 3,000 lux'] } }),
-      ],
-      rules: [
-        rule('sw-df', 'Mean daylight factor', `${(mean * 100).toFixed(1)}%`, '2% reads as well daylit', mean >= 0.02 ? 'pass' : mean >= 0.01 ? 'warn' : 'fail', undefined, { label: 'CIE overcast sky; BRE split-flux' }),
-        ...(enMin != null ? [rule('sw-en17037', 'Floors meeting EN 17037 minimum', pc(enMin), 'all floors', enMin >= 0.75 ? 'pass' : enMin >= 0.5 ? 'warn' : 'fail', enMed != null ? `${pc(enMed)} reach the medium level.` : undefined, { label: 'EN 17037:2018 daylight provision' })] : []),
       ],
     }
   },

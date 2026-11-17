@@ -3,6 +3,8 @@
 // figures in folded sections. Sinnie finds the Studio text-heavy, so captions stay to one line.
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AseTower, DaylightTower } from '../../engine/sw/daylight'
+import { STRATS, type Face, type FacadeZone } from '../../engine/sw/plate'
+import { StratGlyph } from './FacadeZonesTool'
 import { temporalMaps } from '../../engine/sw/detail'
 import type { RuleResult } from '../../engine/types'
 import { svgImage } from '../../lib/sheetAdd'
@@ -122,6 +124,39 @@ function DaylightYear() {
 
 const EN_COL = ['#cfd4da', '#f2cd78', SUN_C, '#7a2e8e'], EN_NAME = ['not met', 'minimum', 'medium', 'high']
 type DlPer = { dl: DaylightTower; ase?: AseTower }[]
+type FacadeRead = { sdaBare: number; aseBare: number; zones: FacadeZone[] }
+
+/**
+ * What the façade does to sDA and ASE: with the façade zones as set against the same glass with no shading devices, and
+ * the façade itself, face by face (17 Nov, Sinnie: the LEED results should show the façade's changes).
+ */
+function FacadeEffect({ sda, ase, f }: { sda: number; ase: number; f: FacadeRead }) {
+  const pc = (v: number) => `${Math.round(v * 100)}%`
+  const W = 300, L = 92, pw = W - L - 64, row = (y: number, label: string, v: number, max: number, c: string, txt: string) => (
+    <g transform={`translate(0 ${y})`}><Tx x={L - 4} y={9} anchor="end" k>{label}</Tx><rect x={L} y={1} width={pw} height={10} rx={1.5} fill={GRID} /><rect x={L} y={1} width={pw * Math.min(1, v / max)} height={10} rx={1.5} fill={c} /><Tx x={W - 2} y={9} anchor="end">{txt}</Tx></g>)
+  const dS = sda - f.sdaBare, dA = ase - f.aseBare
+  const per = (['N', 'E', 'S', 'W'] as Face[]).map((o) => { let z: FacadeZone | null = null; for (const q of f.zones) if (q.face === 'all' || q.face === o) z = q; return { o, z } })
+  return (
+    <SwFig explain title="What the façade does" caption={`Devices ${dA <= -0.005 ? `cut ASE by ${Math.round(-dA * 100)} pts` : 'barely change ASE'}, ${dS <= -0.005 ? `cost ${Math.round(-dS * 100)} pts of sDA` : dS >= 0.005 ? `add ${Math.round(dS * 100)} pts of sDA` : 'leave sDA as it is'}.`}
+      tip="Both readings with your façade zones (glass, SHGC, shading device and depth per face and level) and with the same glass and no shading devices. A deep overhang, louvres, fins or an egg-crate hold back the direct sun that drives ASE, at some cost to daylight autonomy; on shallow plates sDA often stays at 100% either way. Change the zones in the Façade tool and the study runs again.">
+      <svg viewBox={`0 0 ${W} 58`} width="100%" role="img" aria-label="sDA and ASE with the façade and with bare glass">
+        {row(0, 'sDA · façade', sda, 1, '#d9a400', pc(sda))}
+        {row(14, 'sDA · bare glass', f.sdaBare, 1, '#ecd58a', pc(f.sdaBare))}
+        {row(30, 'ASE · façade', ase, Math.max(0.3, f.aseBare, ase), '#B8362B', pc(ase))}
+        {row(44, 'ASE · bare glass', f.aseBare, Math.max(0.3, f.aseBare, ase), '#e6a39b', pc(f.aseBare))}
+      </svg>
+      <div className="grid grid-cols-4 gap-1" data-testid="facade-faces">
+        {per.map(({ o, z }) => (
+          <div key={o} className="grid min-w-0 justify-items-center gap-0.5 rounded border border-line bg-white px-1 py-1 text-[10px] leading-tight" title={z ? `${o}: ${STRATS[z.strat].name}, ${Math.round(z.wwr * 100)}% glass, SHGC ${z.shgc.toFixed(2)}${STRATS[z.strat].depthLabel ? `, ${z.depth.toFixed(1)} m` : ''}` : o}>
+            <svg viewBox="0 0 30 16" className="h-4 w-8 rounded-sm" aria-hidden>{z && <StratGlyph strat={z.strat} wwr={z.wwr} w={30} h={16} />}</svg>
+            <b className="text-ink">{o} · {z ? Math.round(z.wwr * 100) : '–'}%</b>
+            <span className="w-full truncate text-center text-muted">{z ? STRATS[z.strat].name.replace('Horizontal ', '').replace('Vertical ', '') : ''}</span>
+          </div>
+        ))}
+      </div>
+    </SwFig>
+  )
+}
 
 /** EN 17037 level of each floor, and the share of floor area at each level. */
 function EnLevels({ dl }: { dl: DaylightTower }) {
@@ -172,6 +207,7 @@ function DaylightBody({ id }: { id: SwId }) {
   if (id === 'built.sw-daylight') return (
     <>
       <LeedPoints sda={out!.data.sda as number} ase={out!.data.ase as number} pts={(out!.data.pts as number) ?? 0} target={s.dlTarget} />
+      {out!.data.facade != null && <FacadeEffect sda={out!.data.sda as number} ase={out!.data.ase as number} f={out!.data.facade as FacadeRead} />}
       <SwFig title="Daylight autonomy by floor" caption="Share of each floor. Dashed: LEED 55%." tip="Share of each floor over the target half the occupied hours; dashed: LEED 55%.">
         <FloorBars label="sDA by floor" rows={dl.rows.map((r) => ({ level: r.level, v: r.pctLit }))} mark={0.55} color="#d9a400" fmt={(v) => `${Math.round(v * 100)}%`} />
       </SwFig>
@@ -263,10 +299,10 @@ export default function SwResults() {
       <h3 className="flex items-center justify-between text-control font-semibold text-ink">Key results {busy && <span className="text-meta font-normal text-muted" role="status">Running…</span>}</h3>
       {!towers ? <p className="text-meta text-muted">Place or draw a tower first.</p>
         : err ? <p className="text-meta text-red-700">This study stopped: {err}</p>
-          : out ? (keys.length ? <div data-testid="sw-key">{node === 'built.sw-daylight' || node === 'built.sw-daylight-factor' || node === 'built.sw-light-hour' ? <BigKeyList keys={keys} /> : <KeyList keys={keys.map((k) => ({ ...k, reading: true }))} />}</div> : <p className="text-meta text-muted">Nothing to read yet.</p>)
+          : out ? (keys.length ? <div data-testid="sw-key">{node === 'built.sw-daylight' || node === 'built.sw-light-hour' ? <BigKeyList keys={keys} /> : <KeyList keys={keys.map((k) => ({ ...k, reading: true }))} />}</div> : <p className="text-meta text-muted">Nothing to read yet.</p>)
             : <p className="text-meta text-muted" role="status">Working…</p>}
       {out && !err && towers > 0 && <>
-        {(node === 'built.sw-daylight' || node === 'built.sw-daylight-factor') && <DaylightBody id={node} />}
+        {node === 'built.sw-daylight' && <DaylightBody id={node} />}
         {node === 'built.sw-light-hour' && <><LightHourBody /><Fold title="Through the day"><LightDay /></Fold></>}
         <ExteriorDrawings id={node} />
         <InteriorDrawings id={node} />

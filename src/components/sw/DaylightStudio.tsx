@@ -14,7 +14,7 @@ import { hourRaster, useAnnualLayer, useHourLight, usePlanFloor, useSize } from 
 
 type Layer = LayerId | 'off'
 const LAYERS: [Layer, string][] = [['lux', 'Light at this hour'], ['da', 'Daylight autonomy'], ['df', 'Daylight factor'], ['ase', 'Annual sun exposure'], ['off', 'Off']]
-const DEFAULT_LAYER: Partial<Record<SwId, Layer>> = { 'built.sw-light-hour': 'lux', 'built.sw-daylight': 'da', 'built.sw-daylight-factor': 'df' }
+const DEFAULT_LAYER: Partial<Record<SwId, Layer>> = { 'built.sw-light-hour': 'lux', 'built.sw-daylight': 'da' }
 export const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const btn = 'flex h-8 items-center justify-center rounded-md border border-line bg-panel px-2.5 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
 

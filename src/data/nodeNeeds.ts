@@ -47,7 +47,6 @@ export const NODE_NEEDS: Record<string, NodeNeeds> = {
   'built.sw-form': { reads: ['the floor plates and heights'], asks: [] },
   'built.sw-glazing': { reads: ['the facade zones by face and level'], asks: ['each zone\'s glazing, glass and device'] },
   'built.sw-daylight': { reads: ['the floor plates, the core and the facade zones', 'the context buildings'], asks: ['the lux target and blinds'] },
-  'built.sw-daylight-factor': { reads: ['the floor plates, the core and the facade zones', 'the context buildings'], asks: [] },
   'built.sw-light-hour': { reads: ['the floor plates and the facade zones'], asks: ['the month, day, hour and floor'] },
   'built.sw-natvent': { reads: ['the floor plates and the operable windows'], asks: ['the ventilation mode and comfort band'] },
   'built.sw-airflow': { reads: ['the floor plates and the operable windows'], asks: ['the floor'] },

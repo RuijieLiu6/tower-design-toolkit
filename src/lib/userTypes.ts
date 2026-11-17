@@ -92,7 +92,7 @@ export const USER_TYPES: UserType[] = [
         nodes: ['built.viewcones',
           'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form',
           'built.fsr',
-          'built.sw-glazing', 'built.sw-daylight', 'built.sw-daylight-factor', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-indoor-temp', 'built.sw-energy', 'built.sw-pv',
+          'built.sw-glazing', 'built.sw-daylight', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-indoor-temp', 'built.sw-energy', 'built.sw-pv',
           'built.provenance'],
         says: ['demo', 'show the whole tool', 'walk through the toolkit from site to boards'],
       },
@@ -216,7 +216,7 @@ export const SW_REPLACES: Record<string, string[]> = {
   'built.wind-screen': ['built.sw-wind-comfort'],
   'built.wind-study': ['built.sw-wind-height'],
   'built.energy-carbon': ['built.sw-energy', 'built.sw-pv'],
-  'built.daylight-depth': ['built.sw-daylight', 'built.sw-daylight-factor'],
+  'built.daylight-depth': ['built.sw-daylight'],
 }
 // …and every merged tool's part by its lead (data/registry.ts MERGES).
 for (const t of USER_TYPES) for (const p of t.presets) p.nodes = canonicalNodes(p.nodes.flatMap((n) => SW_REPLACES[n] ?? [n]))

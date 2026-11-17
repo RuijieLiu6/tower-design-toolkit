@@ -14,7 +14,7 @@ export const NODE_WORDS: Record<string, string> = {
   'built.energy-carbon': 'Energy',
   // design nodes (lib/workflow/designNodes.ts)
   'design.site': 'Site', 'design.massing': 'Massing', 'design.program': 'Program', 'design.plates': 'Core & plates', 'design.frame': 'Frame',
-  'built.sw-shadow': 'Shadow', 'built.sw-sun-faces': 'Facade sun', 'built.sw-pv': 'PV', 'built.sw-wind-comfort': 'Ped. wind', 'built.sw-wind-height': 'Terrace wind', 'built.sw-rain-faces': 'Driving rain', 'built.sw-rain-water': 'Rain', 'built.sw-form': 'Form', 'built.sw-glazing': 'Façade', 'built.sw-daylight': 'sDA', 'built.sw-daylight-factor': 'DF', 'built.sw-light-hour': 'Light now', 'built.sw-natvent': 'Ventilation', 'built.sw-airflow': 'Air flow', 'built.sw-energy': 'Energy', 'built.sw-indoor-temp': 'Indoor temp',
+  'built.sw-shadow': 'Shadow', 'built.sw-sun-faces': 'Facade sun', 'built.sw-pv': 'PV', 'built.sw-wind-comfort': 'Ped. wind', 'built.sw-wind-height': 'Terrace wind', 'built.sw-rain-faces': 'Driving rain', 'built.sw-rain-water': 'Rain', 'built.sw-form': 'Form', 'built.sw-glazing': 'Façade', 'built.sw-daylight': 'sDA', 'built.sw-light-hour': 'Light now', 'built.sw-natvent': 'Ventilation', 'built.sw-airflow': 'Air flow', 'built.sw-energy': 'Energy', 'built.sw-indoor-temp': 'Indoor temp',
 }
 /** A node without a word of its own (a community node): the first word of its name. */
 export const nodeWord = (n: { id: string; name: string }) => NODE_WORDS[n.id] ?? n.name.split(/[\s:&,(]+/).filter(Boolean)[0] ?? n.name

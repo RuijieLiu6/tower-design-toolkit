@@ -20,7 +20,7 @@ export const SW_VIEW: Partial<Record<SwId, SwView>> = {
   'built.sw-shadow': 'ground', 'built.sw-wind-comfort': 'ground', 'built.sw-rain-water': 'ground',
   'built.sw-sun-faces': 'faces', 'built.sw-rain-faces': 'faces',
   'built.sw-glazing': 'zones', 'built.sw-pv': 'zones', 'built.sw-energy': 'zones', 'built.sw-form': 'zones',
-  'built.sw-daylight': 'plan', 'built.sw-daylight-factor': 'plan', 'built.sw-light-hour': 'plan', 'built.sw-natvent': 'plan', 'built.sw-airflow': 'plan', 'built.sw-indoor-temp': 'plan',
+  'built.sw-daylight': 'plan', 'built.sw-light-hour': 'plan', 'built.sw-natvent': 'plan', 'built.sw-airflow': 'plan', 'built.sw-indoor-temp': 'plan',
 }
 
 const bandOf = (bands: LegendBand[], v: number) => bands.find((b) => v <= b.to) ?? bands[bands.length - 1]
@@ -143,7 +143,7 @@ export function SwKey({ id, towers }: { id: SwId; towers: Tower[] }) {
 export function SwPlanView({ id }: { id: SwId }) {
   const out = useSwOut((s) => s.out[id])
   // The daylight tools share one viewer: the plan of the level with one layer at a time, as Sun & Wind Studio's plan view.
-  if (id === 'built.sw-daylight' || id === 'built.sw-daylight-factor' || id === 'built.sw-light-hour') return <DaylightStudio id={id} />
+  if (id === 'built.sw-daylight' || id === 'built.sw-light-hour') return <DaylightStudio id={id} />
   if (!out) return <p className="p-4 text-meta text-muted" role="status">Working…</p>
   return (
     <div className="h-full overflow-auto p-4" data-testid="sw-plan-view">

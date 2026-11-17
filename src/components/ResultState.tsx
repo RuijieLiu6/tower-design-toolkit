@@ -3,6 +3,7 @@
 // model) use circle symbols; execution status (Complete, Waiting for input, Blocked, Off, Error) uses square ones, so
 // "Complete" never looks like "Pass". The results panel's three states live here too: a check that waits for an input
 // (NeedsInput), a check whose engine stopped (ResultError, ResultBoundary); complete results are the panels themselves.
+import { designOf, usePhaseTools } from '../lib/workflow/phaseTools'
 import { Component, type ReactNode } from 'react'
 import { Ban, CircleAlert, CircleCheck, CircleDashed, CircleHelp, CircleX, Hourglass, PowerOff, Square, SquareDashed, TriangleAlert } from './icons'
 import type { RuleState } from '../engine/types'
@@ -50,7 +51,9 @@ export function RunBadge({ status, detail, className = '' }: { status: RunStatus
   )
 }
 
-const STEP_LABEL: Record<string, string> = { site: 'Go to the Site step', volume: 'Go to the Form step' }
+// 17 Nov (Sinnie: "it shouldn't go to the form step, it should go to the massing step"): the model's way on opens Massing itself.
+const STEP_LABEL: Record<string, string> = { site: 'Go to the Site step', volume: 'Go to Massing' }
+const goTo = (step: InputGap['step']) => { goToStep(step); if (step === 'volume') usePhaseTools.getState().setActive('form', designOf('form').id) }
 
 /** Results panel, missing input: what the check waits for and what to do next. Never a pass, never a zero. */
 export function NeedsInput({ gap, name }: { gap: InputGap; name?: string }) {
@@ -61,7 +64,7 @@ export function NeedsInput({ gap, name }: { gap: InputGap; name?: string }) {
         <p className={`flex items-center gap-1.5 text-xs font-semibold ${c.fg}`}><CircleDashed size={18} aria-hidden />{gap.word}</p>
         <p className="mt-1 text-meta text-muted">{gap.reason}</p>
         <p className="mt-1 text-meta font-medium text-ink">{gap.next}</p>
-        <button type="button" onClick={() => goToStep(gap.step)}
+        <button type="button" onClick={() => goTo(gap.step)}
           className="mt-2 rounded-md bg-accent px-2.5 py-1.5 text-meta font-semibold text-white outline-none hover:bg-accent-hover focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
           {STEP_LABEL[gap.step] ?? 'Go there'}
         </button>
