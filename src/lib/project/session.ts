@@ -146,6 +146,7 @@ function restoreOnce(): Promise<void> {
         if (r.ok && r.file) {
           if (r.file.importedMeshes) restoreImports(r.file.importedMeshes)
           applyDesign(toDesign(r.file))
+          ;(await import('../workflow/projectWorkflow')).applyPendingChecks()
           loadTrace(r.file.trace)
           useProjectMeta.setState({ name: rec.name === 'Untitled project' ? null : rec.name, autosavedAt: rec.savedAt })
           if (r.file.communityNodes) await mergeCommunity(r.file.communityNodes)

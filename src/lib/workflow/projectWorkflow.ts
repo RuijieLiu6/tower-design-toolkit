@@ -16,7 +16,7 @@ import { loadCoverWorkflow, restoreCoverWorkflow, saveCoverWorkflow, type CoverR
 import { WORKFLOW_KEY } from '../startPreset'
 import { breakStep, withoutHistory } from '../project/history'
 import { presetById } from '../userTypes'
-import { addLoop, clean, edgeKey, insertAfter, insertOn, linear, returnEdges, takeOff, walk, type Board, type Edge } from '../workflowGraph'
+import { addLoop, clean, edgeKey, insertAfter, insertByPhase, insertOn, linear, returnEdges, takeOff, walk, type Board, type Edge } from '../workflowGraph'
 import { BUILT_NODES, withParts } from '../../data/registry'
 import { analysisOnly, isDesignNode } from './designNodes'
 import { goToStep, useStep, type StepId } from '../step'
@@ -70,7 +70,32 @@ const EMPTY: ProjectWorkflow = { role: 'custom', presetId: null, customName: nul
 /** The workflow as the landing page last saved it (or the running one), cleaned of unknown nodes. */
 export function readWorkflow(): ProjectWorkflow {
   const r = restoreCoverWorkflow(knownNode)
-  return r ? { role: r.role, presetId: r.presetId, customName: r.customName, ...clean({ nodes: r.nodes, edges: r.edges }) } : EMPTY
+  return r ? upgradeDemo({ role: r.role, presetId: r.presetId, customName: r.customName, ...clean({ nodes: r.nodes, edges: r.edges }) }) : EMPTY
+}
+
+/**
+ * A Demo workflow started before 17 Nov gains the tools added to the preset since (view cones, the building code), once:
+ * each goes in by phase, and a tool taken out afterwards stays out.
+ */
+const DEMO_ADDED = ['built.viewcones', 'built.life-safety'], DEMO_KEY = 'tdt.demoAdded.v1'
+let pendingOn: string[] = []
+/** Switches on the checks a Demo upgrade added; the saved session restores after the workflow, so it calls this again. */
+export function applyPendingChecks() {
+  if (!pendingOn.length) return
+  const ids = pendingOn
+  withoutHistory(() => useStore.setState((s) => ({ enabled: { ...s.enabled, ...Object.fromEntries(ids.map((id) => [id, true])) } })))
+}
+function upgradeDemo(wf: ProjectWorkflow): ProjectWorkflow {
+  if (wf.presetId !== 'designer.demo') return wf
+  try { if (localStorage.getItem(DEMO_KEY)) return wf; localStorage.setItem(DEMO_KEY, '1') } catch { return wf }
+  let b: Board = { nodes: wf.nodes, edges: wf.edges }
+  for (const id of DEMO_ADDED) if (!b.nodes.includes(id)) b = insertByPhase(b, id)
+  if (b.nodes.length === wf.nodes.length) return wf
+  const next = { ...wf, ...clean(b) }
+  save(next)
+  pendingOn = withParts(DEMO_ADDED.filter((id) => !wf.nodes.includes(id)))
+  applyPendingChecks()
+  return next
 }
 
 /** Saves to the landing page's record (keeping its node positions) and to the running workflow the process rail reads. */

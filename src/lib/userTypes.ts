@@ -81,7 +81,7 @@ export const USER_TYPES: UserType[] = [
         // Sinnie, 13 Nov: "a preset workflow named demo: site, massing, program, sun/wind/rain/energy related nodes, and
         // view cone, and final presentation sheet". Real Vancouver, since the view-cone check runs only there.
         id: 'designer.demo', type: 'designer', name: 'Demo',
-        goal: 'The whole run in one go: site and view cones, massing with sun, wind and rain, program, then facade, daylight, air and energy, and the presentation sheet.',
+        goal: 'The whole run in one go: site and view cones, massing with sun, wind and rain, program, the building code, then facade, daylight, air and energy, and the presentation sheet.',
         project: 'city', step: 'site',
         // Checks only: the Site, Massing, Program, Core and Frame steps go in front of each phase's first check by themselves
         // (lib/workflow/designNodes.ts withDesignSteps). Floor area brings the Program step, the board record the Frame step
@@ -92,6 +92,9 @@ export const USER_TYPES: UserType[] = [
         nodes: ['built.viewcones',
           'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form',
           'built.fsr',
+          // 17 Nov (Sinnie: "include view cone and building code as a node tool for the demo workflow"): the building code
+          // check (VBBL high-building and life-safety requirements) at the head of the Schematic checks; view cones lead the run.
+          'built.life-safety',
           'built.sw-glazing', 'built.sw-daylight', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-indoor-temp', 'built.sw-energy', 'built.sw-pv',
           'built.provenance'],
         says: ['demo', 'show the whole tool', 'walk through the toolkit from site to boards'],
