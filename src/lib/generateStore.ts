@@ -50,7 +50,7 @@ export function useSiteRect(): SiteRect | null {
 
 /** The generated result for the current inputs (null without a site). */
 export function runGenerator(f: SiteRect, project: ProjectKind, s: Pick<GenState, 'key' | 'params' | 'brief' | 'frontage'>, seed: number): GenResult {
-  return generate({ w: f.w, d: f.d, frontage: s.frontage[project], area: f.area }, s.brief[project], s.key, s.params[s.key], seed, { plateLimit: project === 'city' ? 605 : null })
+  return generate({ w: f.w, d: f.d, frontage: s.frontage[project], area: f.area }, s.brief[project], s.key, s.params[s.key], seed, { plateLimit: project === 'city' ? 605 : null, fillPodium: true })
 }
 
 /** Replaces the project's towers with the generated massing (one undo step); the courtyard's mesh goes to the import store. */

@@ -143,6 +143,13 @@ interface Seg { use: GenUse; rect: Rect; floors: number; f2f: number; ring?: boo
 export interface GenOptions {
   /** Tower floorplate the floor-plate bulletin allows (m²); null for no note (her default 605, downtown residential). */
   plateLimit?: number | null
+  /**
+   * Toolkit only (16 Nov, Sinnie: "when i select a podium it doesnt actually give me a podium"): podium storeys that
+   * office and amenity do not fill are given to the largest tower use on the podium footprint (podium homes, for
+   * instance), so the podium is as tall as asked; the tower keeps its storeys and the extra area is noted. Off by
+   * default: her generator leaves them out.
+   */
+  fillPodium?: boolean
 }
 
 /** Her Gen.generate(project, key, P, seed). */
@@ -257,6 +264,17 @@ export function generate(site: GenSite, brief: GenBrief, key: GenKey, P: GenPara
     }
     const rem = alloc[u] - n * per
     if (rem > 0) { overflow[u] = rem; if (n > 0 && rem >= towerPlate * 0.5) notes.push(`${GEN_LABEL[u]} needs ${fmt(alloc[u])} m²${alloc[u] < target[u] ? ' above the ground floor' : ''}; ${n} podium storey${n === 1 ? '' : 's'} hold ${fmt(n * per)} m² and the remaining ${fmt(rem)} m² go into the tower.`) }
+  }
+  if (opts.fillPodium && podLeft > 0 && podStoreys > 0 && !court) {
+    const per = areaOf(podiumRect)
+    const main = towerUses.filter((u) => alloc[u] > 0).sort((a, b) => alloc[b] - alloc[a])[0]
+    if (main) {
+      // All the storeys asked for; the tower keeps its own storeys, so the area over the brief is said, not hidden.
+      const n = podLeft
+      segs.push({ use: main, rect: { ...podiumRect }, floors: n, f2f: f2f(main), role: 'podium', tower: null })
+      podLeft = 0
+      notes.push(`${n} podium storey${n === 1 ? '' : 's'} of ${GEN_LABEL[main].toLowerCase()} fill${n === 1 ? 's' : ''} the podium to the storeys asked for (${fmt(n * per)} m² above the brief's target; fewer podium storeys bring it back).`)
+    }
   }
   if (podLeft > 0 && podStoreys > 0 && podiumUses.length) notes.push(`The podium needs only ${podStoreys - podLeft} storey${podStoreys - podLeft === 1 ? '' : 's'} for its program; ${podLeft} requested podium storey${podLeft === 1 ? ' is' : 's are'} not drawn rather than padded with tower uses.`)
   // Tower storeys per use, split across towers by share; podium overflow (office, amenity) sits at the base of the tower.
