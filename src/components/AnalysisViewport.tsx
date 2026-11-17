@@ -8,6 +8,7 @@
 //   - every other check: the towers floor by floor, coloured by use.
 // The towers are drawn as plain prisms (the solar engine's own casters, engine/solarRules.ts towerOccluders), so drawn,
 // imported and parametric towers all read the same.
+import { MOUSE_BUTTONS } from './Viewport'
 import { SW_VIEW, SwFaces, SwGround, SwKey, SwPlanView, SwZones } from './sw/SwAnalysis'
 import { isSw } from '../lib/swRun'
 import { OrbitControls } from '@react-three/drei'
@@ -360,7 +361,7 @@ export default function AnalysisViewport() {
               {isSw(node) && swView === 'faces' && <SwFaces id={node} base={base} />}
               {isSw(node) && swView === 'zones' && <SwZones towers={towers} base={base} north={north} />}
             </group>
-            <OrbitControls makeDefault enableDamping={false} enableRotate={!plan} screenSpacePanning />
+            <OrbitControls makeDefault enableDamping={false} enableRotate={!plan} screenSpacePanning mouseButtons={MOUSE_BUTTONS} />
             <Frame centre={centre} extent={plan ? extent : Math.max(extent, tall * 0.75)} base={base} lift={tall * 0.45} plan={plan} frameKey={`${node}:${plan}:${project}`} />
           </ForcedLayer.Provider>
         </Canvas>}

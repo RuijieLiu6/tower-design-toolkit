@@ -75,6 +75,9 @@ import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
 import { faceNorth, northView, orientReq, upNorthDeg, useNorthMode } from '../lib/northView'
 
+// Right-drag orbits, left-drag pans (17 Nov, Sinnie: "right click hold and move around should be orbit"); the wheel zooms.
+export const MOUSE_BUTTONS = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE } as const
+
 // Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
 installFastRaycast()
 
@@ -708,7 +711,7 @@ export default function Viewport() {
               <BelowGrade />
               <FloorPicker3D />
             </group>
-            <OrbitControls makeDefault target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
+            <OrbitControls makeDefault mouseButtons={MOUSE_BUTTONS} target={project === 'vtc' ? [0, 60, 0] : toThree(...VISTA_OVERVIEW.target).toArray()} maxPolarAngle={MAX_POLAR} minDistance={MIN_DISTANCE} maxDistance={project === 'vtc' ? 20000 : 40000} enableDamping
               onStart={() => useDock.setState({ orbiting: true })} onEnd={() => useDock.setState({ orbiting: false })} />
             <CameraRig />
             <NorthTurnRig />

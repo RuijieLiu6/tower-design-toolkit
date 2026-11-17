@@ -28,7 +28,7 @@ export const TOOLS: (ToolDef | 0)[] = [
 export const toolDef = (id: ToolId) => TOOLS.find((t): t is ToolDef => !!t && t.id === id)
 
 export const HINTS: Record<ToolId, string> = {
-  select: '<b>Select</b> Click to select · drag empty space to orbit · right-drag pans · wheel zooms · Del deletes · Shift+F frames',
+  select: '<b>Select</b> Click to select · right-drag orbits · drag empty space pans · wheel zooms · Del deletes · Shift+F frames',
   line: '<b>Line</b> Click each corner · click the first corner or press Enter to close · Esc cancels',
   rect: '<b>Rectangle</b> Drag a footprint on the ground. Start on a roof to stack the new mass on it',
   circle: '<b>Circle</b> Drag from the centre',
