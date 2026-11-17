@@ -64,6 +64,14 @@ export interface Tower {
   stairPlacement?: StairPlacement
   /** Imported massing (research P14-M02/M04): floors come from slicing the model instead of the parametric box. */
   imported?: ImportedMass
+  /**
+   * A mass drawn in the Toolkit (lib/draw, after Sinnie Choi's Tower Workspace): its outline, base, floors and floor-to-floor.
+   * The tower then also carries an imported-style storey stack sliced from the outline, so every engine reads it as an
+   * imported tower. `part` groups the masses of one building; `core` is a placed core (plan rectangle, project frame).
+   */
+  drawn?: DrawnMass
+  /** The typology preset the tower's blocks were made from (components/draw/TowerForms.tsx), so its sliders read back. */
+  form?: { type: string; p: Record<string, number>; base: { w: number; d: number; h: number; f2f: number } }
   /** Basement levels dug under the podium or the tower (engine/basement.ts); never floor area above grade. */
   basement?: import('./basement').Basement
   /** Schematic: interior layout (unit mix, hotel keys, activities). When set, lifts, egress and economics use its counts (engine/interior.ts). */
@@ -79,6 +87,19 @@ export interface Tower {
    * onto the blocks; with no snapshot, the blocks win (engine/blocks.ts `blocksOf`).
    */
   boxFromBlocks?: Pick<Tower, 'height' | 'width' | 'depth' | 'podiumHeight' | 'podiumWidth' | 'podiumDepth'>
+}
+
+/** A drawn mass (lib/draw/mass.ts): outline rings in the project frame (metres), base above grade, storeys and their height. */
+export interface DrawnMass {
+  pts: [number, number][]
+  base: number
+  floors: number
+  f2f: number
+  holes?: [number, number][][]
+  /** The building this mass is a part of (a Boolean union, a Split); parts move together and keep their own heights. */
+  part?: string
+  /** A placed core: a plan rectangle (project frame). */
+  core?: { x: number; y: number; w: number; d: number }
 }
 
 /** One stacked block of a parametric tower: a rectangle in plan, sitting on the block below. */

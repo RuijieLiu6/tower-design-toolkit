@@ -8,6 +8,8 @@ import WorkflowOverview from './components/workflow/WorkflowOverview'
 import WorkflowBuilder from './components/builder/WorkflowBuilder'
 import { useRoute } from './lib/route'
 import { toggleMode } from './lib/mode'
+import { DRAW_KEY, setDrawTool, useDraw } from './lib/draw/drawStore'
+import { useStep } from './lib/step'
 import { whenRestored } from './lib/project/session'
 import { startOnSite, startStepFollow } from './lib/step'
 import { openBuilder, useProjectWorkflow } from './lib/workflow/projectWorkflow'
@@ -57,6 +59,9 @@ export default function App() {
       if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && route === 'guided') { toggleToolRail(); return }
       // V: Model / Presentation (the top bar's switch, lib/mode.ts); 1-3 still jump to Massing, Schematic and Presentation.
       if ((e.key === 'v' || e.key === 'V') && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleMode(); return }
+      // The drawing tools' keys (lib/draw/drawStore.ts DRAW_KEY), on the Form step in Model; M and R are the gizmo's (TowerGizmo.tsx).
+      const dk = DRAW_KEY[e.key.toLowerCase()]
+      if (dk && dk !== 'move' && dk !== 'rotate' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && route === 'guided' && s.phase === 'basic' && useStep.getState().step === 'volume' && s.towers[s.project].length > 0) { setDrawTool(useDraw.getState().tool === dk ? null : dk); return }
       // Present locks the model, so placing is off there.
       if ((e.key === 'p' || e.key === 'P') && s.phase !== 'present') set({ placing: !s.placing })
       if (e.key === '1') setPhase('basic')

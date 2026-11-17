@@ -52,6 +52,8 @@ function NothingToAnalyse() {
 
 import { setRightTab, useRightTab, type RightTab } from '../lib/rightTab'
 import { groupVisible, UiScopeContext, useUiItems, useUiVisibility } from '../lib/ui/registry'
+import { useDraw } from '../lib/draw/drawStore'
+import DrawPanel from './draw/DrawPanel'
 type Tab = RightTab
 
 /** Picks which node's results to read, without switching anything on or off (the bottom bar does that). */
@@ -111,11 +113,16 @@ export default function RightPanel() {
   // Tower position open (Form step): its Properties tab comes first and opens; closing the tool goes back to the results.
   const positioning = useTowerPosition((s) => s.on) && !present
   useEffect(() => { setTab((cur) => (positioning ? 'properties' : cur === 'properties' ? 'results' : cur)) }, [positioning])
+  // A drawing tool on (Form step): its Drawing tab comes first and opens; Done or Esc goes back to the results.
+  const drawTool = useDraw((s) => s.tool)
+  const drawing = !!drawTool && !present
+  // Every tool change brings the Drawing tab forward (the person may have looked at the results in between).
+  useEffect(() => { setTab((cur) => (drawing ? 'draw' : cur === 'draw' ? 'results' : cur)) }, [drawing, drawTool])
   const hiddenUi = useUiVisibility((s) => s.hidden)
   const uiItems = useUiItems()
   const tabsAll: { id: Tab; label: string }[] = present
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
-    : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
+    : [...(drawing ? [{ id: 'draw' as Tab, label: 'Drawing' }] : []), ...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
   // A tab hidden in the Interface drawer, or one whose every section is hidden, leaves the bar (lib/ui/registry.ts).
   const tabs = tabsAll.filter((t) => groupVisible(`right.tab.${t.id}`, hiddenUi, uiItems))
   const analysis = useStore((s) => s.analysis)
@@ -141,6 +148,7 @@ export default function RightPanel() {
       </div>
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
         <UiScopeContext.Provider value={`right.tab.${shown}`}>
+        {shown === 'draw' && <DrawPanel />}
         {shown === 'properties' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}

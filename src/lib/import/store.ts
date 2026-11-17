@@ -161,6 +161,12 @@ async function loadMesh(id: string) {
   req.onsuccess = () => { const e = req.result as MeshEntry | undefined; if (e) useImportStore.setState((s) => ({ meshes: { ...s.meshes, [id]: e } })) }
 }
 
+/** Keep a mesh made in the app (a drawn mass, lib/draw/mass.ts) like an uploaded one: in memory now, in this browser's storage for a reload. */
+export function putMesh(id: string, e: MeshEntry) {
+  useImportStore.setState((s) => ({ meshes: { ...s.meshes, [id]: e } }))
+  void saveMesh(id, e)
+}
+
 /** The stored mesh of an imported tower; fetched from this browser's storage after a reload. */
 export function useMeshEntry(id: string | undefined): MeshEntry | undefined {
   const e = useImportStore((s) => (id ? s.meshes[id] : undefined))

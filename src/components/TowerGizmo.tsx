@@ -4,6 +4,7 @@
 // clicks are proposals first (Vista v10.1 "confirm before placing"): a ghost shows the new footprint and volume, the
 // tower itself stays put until Confirm. Snapping, proposals and the undo step are in lib/towerEdit.ts.
 import { Line, PivotControls } from '@react-three/drei'
+import { setDrawTool, useDraw } from '../lib/draw/drawStore'
 import { hoverHandlers } from '../lib/hoverLabels'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
@@ -340,6 +341,7 @@ export default function TowerGizmo() {
           pickTower(sel)
         }
         if (k === 'l') { if (!s.drag) alignToLot(useTowerEdit.getState().picked!) }
+        else if (useStore.getState().towers[useStore.getState().project].find((t) => t.id === useTowerEdit.getState().picked)?.drawn) { const tool = k === 'm' ? 'move' : 'rotate'; setDrawTool(useDraw.getState().tool === tool ? null : tool) }
         else toggleMode(k === 'm' ? 'move' : 'rotate')
         return
       }

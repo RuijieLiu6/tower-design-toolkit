@@ -16,7 +16,8 @@ import type { DesignTool } from './registry'
 import { PROCESS } from '../../data/stages'
 import { useToolChoice } from './toolPick'
 import { useUiVisible } from '../../lib/ui/registry'
-import { NoTowerYet, PlaceFirstTower } from './NoTower'
+import { NoTowerYet } from './NoTower'
+import StartMassing from '../draw/StartMassing'
 
 /** The key words under a tool's icon. */
 export const shortName = (t: Pick<DesignTool, 'short' | 'label'>) => t.short ?? t.label
@@ -86,7 +87,7 @@ export default function ToolPanel({ embedded = false, only }: { embedded?: boole
         </div>
       )}
       <div className={embedded ? '' : 'flex-1 overflow-y-auto'}>
-        {empty === 'place' && <PlaceFirstTower onGenerate={shown.some((t) => t.id === 'generate') && activeId !== 'generate' ? () => pick('generate') : undefined} />}
+        {empty === 'place' && <StartMassing onGenerate={shown.some((t) => t.id === 'generate') && activeId !== 'generate' ? () => pick('generate') : undefined} />}
         {empty === 'none' && <NoTowerYet />}
         {active && Body && (
           <div id="tool-panel" role="tabpanel" aria-labelledby={`tool-${active.id}-head`} data-tool-body={active.id} className="pb-1">

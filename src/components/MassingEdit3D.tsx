@@ -22,6 +22,7 @@ import { useVistaLook } from '../lib/vistaLook'
 import { useStore, useTowers } from '../store'
 import { useEditorRoot } from './TowerGizmo'
 import { useDock } from './ViewportDock'
+import { useDraw } from '../lib/draw/drawStore'
 
 const ACCENT = '#1f5f8b'
 const HOVER = '#eda100'
@@ -48,8 +49,9 @@ export function useMassingEditLive(): Tower | null {
   const hidden = useDock((s) => s.hidden)
   const viewing = useViewFromStore((s) => s.looking || s.picking)
   const moving = useTowerEdit((s) => !!s.drag || !!s.proposal)
+  const drawing = useDraw((s) => !!s.tool && s.tool !== 'select')
   const t = towers.find((x) => x.id === selected) ?? null
-  return on && phase === 'basic' && !placing && !hidden && !viewing && !moving && t && !t.imported ? t : null
+  return on && phase === 'basic' && !placing && !hidden && !viewing && !moving && !drawing && t && !t.imported ? t : null
 }
 
 export default function MassingEdit3D() {
