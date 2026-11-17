@@ -15,6 +15,7 @@ import { VTC_SITE } from '../lib/siteGeometry'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { useVistaLook } from '../lib/vistaLook'
 import { useStore, useTowers } from '../store'
+import { useDraw } from '../lib/draw/drawStore'
 
 type Pt = [number, number]
 type Controls = THREE.EventDispatcher & { enabled: boolean; enableZoom: boolean; enablePan: boolean; target: THREE.Vector3; update: () => void }
@@ -29,7 +30,9 @@ export function useTowerPositionLive(): boolean {
   const on = useTowerPosition((s) => s.on)
   const phase = useStore((s) => s.phase)
   const viewing = useViewFromStore((s) => s.looking || s.picking)
-  return on && phase !== 'present' && !viewing
+  // A drawing tool (components/draw/DrawTools3D.tsx) owns the pointer while it is on: its clicks are not placements.
+  const drawing = useDraw((s) => !!s.tool && s.tool !== 'select')
+  return on && phase !== 'present' && !viewing && !drawing
 }
 
 export default function TowerPosition3D() {

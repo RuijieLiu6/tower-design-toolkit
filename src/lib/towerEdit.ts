@@ -12,6 +12,7 @@ import { useStore } from '../store'
 import { snapAngle, snapFootprint, type Pt, type SnapKind } from './edgeSnap'
 import { NEARBY_LOT_M, chooseRotation, footBox, inLot, lotAt, lotFrame, nearestLot, parallelEdges, placeOnLot, type Lots } from './lotAlign'
 import { MERGE_MS, breakStep } from './project/history'
+import { moveDrawn } from './draw/mass'
 import { setCityParcels, snapTargets, useSiteGeometry } from './siteGeometry'
 import { loadParcelLayer, parcelLabel } from './siteParcels'
 import { unitText } from './units'
@@ -252,6 +253,8 @@ function propose(p: Proposal, name: string) {
   const t = towerOf(p.id)
   if (p.via === 'place' && app().placing && !s.keepPlacing) app().set({ placing: false })
   if (!t || samePose(p.pose, poseOf(t))) return
+  // A drawn mass: its outline moves and turns (and its building's parts), one undo step (lib/draw/mass.ts).
+  if (t.drawn) { moveDrawn(p.id, p.pose.x - t.x, p.pose.y - t.y, p.pose.rotation - t.rotation); say(`${name} moved to ${where(p.pose)}. Ctrl+Z undoes it`); return }
   breakStep()
   app().updateTower(p.id, p.pose)
   breakStep()

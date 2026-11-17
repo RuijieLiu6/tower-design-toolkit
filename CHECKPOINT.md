@@ -1,3 +1,105 @@
+# CHECKPOINT: the review of the chain, fixed branch by branch (17 Nov 2026)
+
+An independent read of the whole chain (tool-rail → model-presentation → board-fonts → phase-dots → import-sync →
+ui-drawer → sinnie-modelling) listed fifteen findings and eight of Ruijie's intents. Each fix went on the branch where
+its bug began, then forward through the chain with plain merges (no rebase, no force-push); every branch is pushed.
+Decisions mine (approved in advance). Not merged to main, not deployed; `sinnie-modelling` still waits for Sinnie's OK.
+- **tool-rail** `e035cd0`: the user guide said H hides the overlays; it is O, and H is the rail.
+- **model-presentation** `8e5b6b9`: the guide's "Present" stage is Presentation (three places).
+- **board-fonts** `ec957e6`: a font file whose family is one of the built-in faces is refused by the check (two entries
+  of one name clashed in the list and in React keys), and stored ones are left out (`fontFile.ts`, `fontStore.ts`).
+  Right after a reload the export found the font cache empty and drew the fallback without a word: loading now reads
+  "Your fonts" first, every face is checked with the FontFace API, and the export line names the faces actually drawn,
+  with an amber note when one fell back to Inter (`boardRender.ts`, `SubmissionPanel.tsx`, `ExportRecord.missingFonts`).
+- **phase-dots** `932e7cb`: the guide's "phase list under Workflow" is the line's segments and arrows.
+- **import-sync**: nothing of its own (the sync dialog's finding began with the drawer); the merge only.
+- **ui-drawer** `aca988a`: hiding a tool reopened Generate on an empty Form step (`toolPick.ts afterHiding`: nothing
+  open stays closed); the phases line is locked, being the only phase navigation inside Model; the Sync model dialog's
+  arrow keys walk the platforms on show; what a hidden context layer was before is kept in this browser
+  (`ts.ui.layersWere`), so a reload still brings it back as it was.
+- **sinnie-modelling** (this commit), high: the drawn mass's mesh is keyed by a hash of its shape
+  (`lib/draw/drawnMesh.ts`), so every shape keeps its own mesh and Undo finds the old one; the view and the .3dm / OBJ
+  export rebuild it from the outline when the store has none, so nothing depends on the stored copy (this also ends the
+  Real Vancouver copy overwriting it). Push / pull on a wall moves on the plane of the wall's hit height (no jump on the
+  first move). The drawing keys count only on the canvas, the body and the rail's tiles (`lib/draw/keys.ts`): Enter on
+  a dialog's button presses it, Esc closes the drawer, 1 / 2 / 3 work again. Medium: a tool ends when the step or the
+  stage changes; Rotate turns holes, core and every part about one centroid, Offset refuses to cross a courtyard; the
+  tower tools (Place, Align to lot, the gizmo, the toolbar's x, y and angle) move a drawn mass's outline and its parts
+  through `moveDrawn`; a copy, a split part or a cut piece takes its settings from its source mass (basement, interior
+  and form cleared); the parts of one building are not a separation pair (`publicRealm.ts`) and share one core (the part
+  with a placed core, else the largest: `oneCorePerBuilding`); a mass drawn on a roof starts at its base (no empty
+  storeys up from the ground). Ruijie's intents: From scratch starts the Rectangle tool (the Toolkit's starting tower is
+  a link under the tiles, keeping `place-tower`); the drawing keys work before any tower exists; Face and Mass leave
+  the rail while a drawn mass is selected; the right panel's tab row fits five tabs (narrower, truncating, titled);
+  Erase and Del take only the clicked part; Subtract and Intersect measure their change and cut nothing under 4 m²
+  (`lib/draw/boolean.ts`; the second mass used to be deleted anyway); a typology slider drag is one undo step.
+- **Top bar overflow (browser check, later on 17 Nov):** with the switch, Presentation ran to 1,615 px at 1,440 and Model to
+  1,395 px at 1,280 (a horizontal scrollbar; Edit workflow cut off). Fixed on `model-presentation` (`d4eebd0`): under 1,500 px
+  Model locked, Capture, Auto-run checks and Edit workflow keep their icons and titles and drop their words (accessible
+  names kept); on `ui-drawer` the Interface button does the same. `e2e/no-overflow.e2e.ts` measures no horizontal
+  overflow in both modes, on both projects, at 1,440 × 900 and 1,280 × 800 (PASS on model-presentation, ui-drawer and
+  this tip, with layout, model-presentation, ui-drawer and drawing-tools).
+- **Case studies checked (later on 17 Nov):** the eight named towers' height and storeys were read on the CTBUH Skyscraper
+  Center (architectural height, floors above ground; URL and date on each row, `lib/draw/caseStudies.ts`) and are now
+  verified; corrected: Shangri-La 201 → 200.9 m, 62 → 59 storeys, 2008 → 2009; Trump 188 → 187.8 m; 30 St Mary Axe 180 →
+  179.8 m, 41 → 40; Vancouver House 150 → 155.6 m, 59 → 52; One Wall Centre 150 → 149.8 m; 432 Park 426 → 425.7 m; Aqua
+  262 → 261.8 m, 82 → 86; Leadenhall 225 → 224.5 m. The point tower is a type with no source and stays unverified; plates
+  and podiums stay approximate and unverified. `caseStudies.test.ts` holds every row to a source or the unverified flag.
+- **Judged not a bug:** FSR already reads the parts of one building as one (their floor areas add, they do not
+  overlap). The Boolean union's parts keeping their own heights is Sinnie's rule, kept.
+- **Tests:** `tsc -b` PASS on every branch touched · `vitest run` 1,282 pass, 3 skipped (+19 new: `lib/draw/keys.test.ts` where a key counts; `lib/draw/boolean.test.ts` cut pieces and the 4 m² rule; `lib/draw/drawStore.test.ts` the tool ends with the step and the stage, the key map; `lib/draw/mass.test.ts` a mesh per shape found again by Undo, a copy from its source, rotate with holes and core, offset into a courtyard refused, one core per building and a move through the tower tools, a stacked mass starting at its base; `engine/publicRealm.test.ts` parts are no pair; `components/tools/toolPick.test.ts` an empty step stays closed; `lib/ui/registry.test.ts` the phases line locked, a layer's state kept; `lib/fonts/fontFile.test.ts` a built-in name refused; the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e on the `sinnie-modelling` tip: `drawing-tools` (+ From scratch starts Rectangle; a wall taken near its top and let go after a pixel stays put) PASS · `tool-rail` PASS · `massing-edit` PASS · `model-presentation` PASS · `import-sync` PASS · `ui-drawer` PASS · `board-fonts` PASS · `journeys` PASS; `board-fonts` also on its own branch, `ui-drawer` and `import-sync` on the ui-drawer branch. Screenshots refreshed: `docs/evaluation/2026-11-17-drawing-tools/01-start-massing.png` (the tiles with the starting-tower link) and `02-drawing.png`.
+
+# CHECKPOINT: Sinnie Choi's modelling tools in the Toolkit (17 Nov 2026)
+
+Ruijie, 17 Nov: port Sinnie Choi's "Start your massing" and her drawing tools from her Toolkit build and
+github.com/xubynii/towerdesigntool into the main tool. Branch `sinnie-modelling` from the `ui-drawer` tip. Decisions
+mine (approved in advance). Not merged, not deployed. **This branch stays unmerged until Sinnie gives her written OK**
+(the ask is drafted in `04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1d); she is credited in every ported file's header,
+in the Drawing tab's note and on the Sources page (Credits).
+- **Start your massing** (`components/draw/StartMassing.tsx`, in the Form step's Massing tool while the project has no
+  tower): four icon tiles. *From scratch* places the Toolkit's own starting tower and starts placing it (the step the
+  twenty existing journeys take; its `place-tower` test id is kept). *Import* opens the model import in place. *Case
+  study* lists nine towers (`lib/draw/caseStudies.ts`: Shangri-La, Trump, 30 St Mary Axe, Vancouver House, One Wall
+  Centre, …) with Sinnie's published numbers, unverified; a click places the starting tower with that height, storey
+  count, floor-to-floor and footprint. *Typology* (`components/draw/TowerForms.tsx`): none, taper, twist, tiered,
+  stacked, each with its sliders, applied as the tower's blocks; the tower remembers its `form` so the sliders read back.
+- **Drawn masses are towers** (`lib/draw/mass.ts`, `engine/types.ts` `Tower.drawn`): the outline, base, storeys,
+  floor-to-floor, holes, part and core live in `drawn`; from them the tower carries an imported-style storey stack,
+  made by extruding the outline into a closed mesh and running the same slicer as an uploaded model, so every engine
+  (VTC rules, FSR, cones, lifts, egress, energy, boards) reads it unchanged and the 3D view draws it as an import.
+  Six storeys at 3.6 m to start, named "Mass n". `part` groups the masses of one building (a union of different
+  heights, a Split): they move together and keep their own heights. A placed core sets the core share by hand.
+- **The tools** (`components/draw/DrawTools3D.tsx` in the scene's z-up group, state in `lib/draw/drawStore.ts`,
+  geometry in `lib/draw/geometry.ts`): Select; Line (freeform corners, or an offset band of a set width, centre /
+  internal / external); Rectangle; Circle; Erase; Move; Copy / array (drag, then a typed count lays the row); Rotate in
+  5° steps; Offset (drag or typed metres); Push / pull (a roof changes storeys, a wall moves; click-move-click or drag;
+  typed value); Split (a chord with corner, middle and edge snaps; in a side view, at a floor); Boolean (union,
+  subtract, intersect, Sinnie's rules: each part keeps its height); Edit length (click a wall, type); Core (drag inside
+  a mass; click a core to remove it); Tape. A live dimension tag follows the pointer; typed digits commit on Enter,
+  Backspace edits, Esc clears, then Esc ends the tool; every edit is one undo step; no confirm dialogs; short toasts
+  (`DrawToast.tsx`). The Drawing tab (`DrawPanel.tsx`) shows the tool, its modes, what to do next, the typed value,
+  Done and the snapping panel: Grid and its size (0.25–5 m), and for Line and Split endpoints, midpoints, on edges, in
+  line with corners, parallel / perpendicular and the angle step; kept per browser as `ts.draw.snap`. Alt suspends
+  snapping while held, Shift locks 90°.
+- **Boolean geometry:** `polygon-clipping` 0.15.7 (MIT) vendored as ES modules in `src/vendor/polygon-clipping/` with
+  `splaytree` (MIT) and `robust-predicates` (public domain), licences beside them; no new npm dependency.
+- **The rail** (`ToolRail.tsx`): the drawing tools sit on the Form step in Model as filled-glyph groups (draw, change,
+  cut, measure). The rail's Move and Rotate are one tool each: M and R act on whatever is selected, a drawn mass through
+  the drawing tool, a parametric tower through its gizmo (`TowerGizmo.tsx`). Each drawing tool lists itself in the
+  Interface drawer under Design tools › Drawing tools.
+- **Keys** (clashes resolved in the Toolkit's favour: V, L, R, O, F, P, H, 1/2/3 stay): Select S · Line N · Rectangle B ·
+  Circle I · Erase E · Move M · Copy C · Rotate R · Offset G · Push / pull U · Split X · Boolean J · Tape T · Edit length
+  and Core from the rail only · Esc ends · Del deletes · Ctrl+Z undoes. Listed in the user guide and the onboarding.
+- **Found on the way:** the Tower position tool's placement click fired on an Erase click and wrote a second undo step,
+  so Ctrl+Z seemed to do nothing; it stands down while a drawing tool is on (`TowerPosition3D.tsx`). Switching to Real
+  Vancouver brings the competition design along (`lib/defaultSite.ts`) but moved only x, y and rotation: a drawn mass
+  kept its outline in competition coordinates. The outline, holes and core now go the same way and the storeys are
+  sliced again (`defaultSite.test.ts`); the core stays axis-aligned, its centre moved, its size kept.
+- **Not done / limits:** the case-study numbers are Sinnie's and unverified; Sinnie's own `R` (Rectangle) and `L`
+  (Line) became B and N; a drawn mass has no gizmo of its own (the drawing tools are its handles); Rotate turns the
+  outline in plan only.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,263 pass, 3 skipped (+10 `lib/draw/geometry.test.ts`: area and winding, offset, path band, clip union / difference, split, push wall, set wall length, array copies, prism mesh; +3 `lib/draw/mass.test.ts`: tower-from-drawn, add and update as one undo step, update-many; +1 `lib/defaultSite.test.ts`: a drawn mass brought along; the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e: `e2e/drawing-tools.e2e.ts` (new: the four start tiles; a rectangle drawn on the ground; Push / pull typed to 36 m and the VTC height band reading Mass 1; Offset typed; Copy ×3 typed; Split; Boolean union; Erase; Ctrl+Z; Real Vancouver: Vancouver House placed from the case list, a mass drawn on the city) PASS · `tool-rail` PASS (its order check now allows the drawing groups) · `massing-edit` PASS · `model-presentation` PASS · `journeys` PASS. Screenshots: `docs/evaluation/2026-11-17-drawing-tools/01-start-massing.png` (the tiles and the case list) and `02-drawing.png` (Mass 1 pulled to 36 m, the toast, the rail's drawing tools).
+
 # CHECKPOINT: the Interface drawer, what the app shows as a table of contents (17 Nov 2026)
 
 Ruijie, 17 Nov: "another button whose drop-down is about personalising the interface … a drawer holding everything that

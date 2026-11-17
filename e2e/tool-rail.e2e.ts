@@ -45,8 +45,9 @@ test('Tool rail: the step\'s tools beside the model, the same as the panel; H hi
   expect(panelTools.length).toBeGreaterThan(1)
   await expect.poll(() => ids(rail(p).locator('[data-tool]'), 'tool')).toEqual(panelTools)
   expect(await ids(rail(p).locator('[data-mode]'), 'mode')).toEqual(['place', 'move', 'rotate', 'face', 'mass'])
-  const order = await rail(p).locator('[data-mode], [role="separator"], [data-tool]').evaluateAll((els) => els.map((e) => (e.hasAttribute('data-mode') ? 'mode' : e.hasAttribute('data-tool') ? 'tool' : 'sep')).join(' '))
-  expect(order).toMatch(/^(mode )+sep( tool)+$/)
+  // Since 17 Nov the drawing tools (Sinnie Choi's) sit between them on the Form step, in their own divided groups.
+  const order = await rail(p).locator('[data-mode], [role="separator"], [data-draw], [data-tool]').evaluateAll((els) => els.map((e) => (e.hasAttribute('data-mode') ? 'mode' : e.hasAttribute('data-tool') ? 'tool' : e.hasAttribute('data-draw') ? 'draw' : 'sep')).join(' '))
+  expect(order).toMatch(/^(mode )+(sep (draw )+)*sep( tool)+$/)
 
   // A tool picked in the rail opens in the panel, and the rail shows it open.
   await rail(p).locator('[data-tool="massing"]').click()

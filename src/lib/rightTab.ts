@@ -3,6 +3,6 @@
 // step, a picked node or a new tower ask.
 import { create } from 'zustand'
 
-export type RightTab = 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
+export type RightTab = 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace' | 'draw'
 export const useRightTab = create<{ tab: RightTab }>(() => ({ tab: 'results' }))
 export const setRightTab = (tab: RightTab | ((cur: RightTab) => RightTab)) => useRightTab.setState((s) => ({ tab: typeof tab === 'function' ? tab(s.tab) : tab }))

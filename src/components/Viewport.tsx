@@ -37,6 +37,8 @@ import RelaxationMasks from './RelaxationMasks'
 import TowerGizmo, { TowerMover, outlineSegments } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
 import UiShow from './ui/UiShow'
+import DrawTools3D from './draw/DrawTools3D'
+import DrawToast from './draw/DrawToast'
 import { useUiVisible } from '../lib/ui/registry'
 import MassingEdit3D from './MassingEdit3D'
 import TowerPosition3D from './TowerPosition3D'
@@ -690,6 +692,7 @@ export default function Viewport() {
               {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} /> : <CityScene onPick={onPick} look={look} xray={xray} />}
               <TowerGizmo />
               <MassingEdit3D />
+              <DrawTools3D />
               <TowerPosition3D />
               <BelowGrade />
             </group>
@@ -725,6 +728,7 @@ export default function Viewport() {
       {!present && <ShowOverlaysButton />}
       <UiShow id="viewport.tower-toolbar"><TowerToolbar /></UiShow>
       <UiShow id="viewport.edit-readout"><MassingEditReadout /></UiShow>
+      <DrawToast />
     </div>
   )
 }

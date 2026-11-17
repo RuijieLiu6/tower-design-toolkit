@@ -6,6 +6,7 @@
 import { coreSide, towerFloors, floorRing } from '../../engine/massing'
 import { USES, type Tower, type UseId } from '../../engine/types'
 import { basementLevels, basementRing } from '../../engine/basement'
+import { drawnMesh } from '../draw/drawnMesh'
 
 export type RGB = [number, number, number]
 export interface ExportSolid { name: string; layer: string; color: RGB; positions: number[]; indices: number[]; strings: Record<string, string> }
@@ -56,7 +57,8 @@ export function buildScene(towers: Tower[], o: SceneOptions): ExportScene {
   const add = (s: ExportSolid) => { solids.push(s); if (!layers.has(s.layer)) layers.set(s.layer, s.color) }
   for (const t of towers) {
     if (t.imported) {
-      const m = o.meshOf(t.imported.meshId)
+      // A drawn mass is rebuilt from its outline when the store has no copy of its mesh (lib/draw/drawnMesh.ts).
+      const m = o.meshOf(t.imported.meshId) ?? (t.drawn ? drawnMesh(t.drawn) : undefined)
       if (!m) continue
       const a = (t.rotation * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a)
       const positions: number[] = []

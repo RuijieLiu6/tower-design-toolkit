@@ -2,11 +2,12 @@
 // as the parametric towers: the neutral proposal with its edges, or (Program) the real mesh coloured by the program of
 // each storey band (drawn once per band, clipped to it). Schematic: ghosted like the parametric towers, with the sliced
 // plate outlines and an assumed central core. Open edges show red, flipped faces magenta.
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { coreSide, towerFloors } from '../engine/massing'
 import { USES, type ImportedStorey, type Tower, type UseId } from '../engine/types'
-import { useImportStore, useMeshEntry, type MeshEntry } from '../lib/import/store'
+import { putMesh, useImportStore, useMeshEntry, type MeshEntry } from '../lib/import/store'
+import { drawnMesh } from '../lib/draw/drawnMesh'
 import { useStore } from '../store'
 import Label from './Label'
 import { NEUTRAL_TOWER } from '../lib/displayMode'
@@ -22,6 +23,8 @@ interface Band { use: UseId | 'void'; z0: number; z1: number }
 export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: number; xray: boolean }) {
   const m = t.imported!
   const entry = useMeshEntry(m.meshId)
+  // A drawn mass needs no stored copy: its mesh comes from its outline when the store has none (lib/draw/drawnMesh.ts).
+  useEffect(() => { if (!entry && t.drawn) putMesh(m.meshId, drawnMesh(t.drawn)) }, [entry, t.drawn, m.meshId])
   const showProblems = useImportStore((s) => s.showProblems)
   const selected = useStore((s) => s.selectedTower) === t.id
   const selectTower = useStore((s) => s.selectTower)

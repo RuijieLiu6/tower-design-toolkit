@@ -81,6 +81,7 @@ export const STATIC_ITEMS: UiItem[] = [
   S('right.tab.site', 'Your site tab', 'right', { mode: 'model' }),
   S('right.tab.results', 'Results tab', 'right'),
   S('right.tab.trace', 'Trace tab', 'right'),
+  S('right.tab.draw', 'Drawing tab (while a drawing tool is on)', 'right', { mode: 'model' }),
   S('right.tab.present', 'Present tab', 'right', { mode: 'presentation' }),
   S('right.tab.render', 'Render tab', 'right', { mode: 'presentation' }),
 

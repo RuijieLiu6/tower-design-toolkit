@@ -19,7 +19,8 @@
 // instead (camera, capture, drawings, boards, render) and no edit modes, since the model is locked there.
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronLeft, ChevronRight, Crosshair, Cuboid, GripVertical, Move, RotateCw, type LucideIcon } from './icons'
+import { Box, ChevronLeft, ChevronRight, Combine, Crosshair, Cuboid, Expand, Grid2x2, GripVertical, Minus, MousePointerClick, Move, RotateCw, Ruler, Scissors, Shapes, Spline, Square, Trash2, type LucideIcon } from './icons'
+import { DRAW_TOOLS, setDrawTool, useDraw, type DrawTool } from '../lib/draw/drawStore'
 import GlassIcon, { hueFor, ICON } from './GlassIcon'
 import IconTile from './IconTile'
 import { EDIT_MODES } from './MassingEditPanel'
@@ -64,6 +65,8 @@ interface Drag {
 
 const SLIDE_MS = 160
 const railId = (key: string) => `tool-rail-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+/** The drawing tools' glyphs (lib/draw/drawStore.ts), in the rail's own filled style; Move and Rotate are the modes' own tiles. */
+const DRAW_ICONS: Record<DrawTool, LucideIcon> = { select: MousePointerClick, line: Spline, rect: Square, circle: Shapes, erase: Trash2, move: Move, copy: Grid2x2, rotate: RotateCw, offset: Expand, pull: Box, split: Scissors, bool: Combine, length: Minus, core: Cuboid, tape: Ruler }
 const nearer = (d: Pick<Drag, 'box'>, x: number): RailSide => (x < (d.box.left + d.box.right) / 2 ? 'left' : 'right')
 
 /** Presentation's own tools (17 Nov): the rail's list in that mode, where the model is locked and the design tools rest. */
@@ -97,6 +100,8 @@ export default function ToolRail() {
   const blockOn = useBlockEdit((s) => s.on)
   const blockMode = useBlockEdit((s) => s.mode)
   const rightTab = useRightTab((s) => s.tab)
+  const drawTool = useDraw((s) => s.tool)
+  const selectedDrawn = useStore((s) => !!s.towers[s.project].find((t) => t.id === s.selectedTower)?.drawn)
   const presentation = phase === 'present'
   const [focusAt, setFocusAt] = useState<string | null>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
@@ -126,14 +131,16 @@ export default function ToolRail() {
     { key: 'mode:place', icon: Crosshair, word: 'Place', label: noTower ? 'Place a tower' : 'Place the tower', active: placing, data: { 'data-mode': 'place' },
       hint: noTower ? 'A starting tower on the site; then click the ground where it should stand.' : 'Then click the ground in the 3D view where it should stand; it moves there at once. Key: P.',
       onPick: () => { if (noTower) placeFirstTower(); else useStore.getState().set({ placing: !placing }) } },
-    { key: 'mode:move', icon: Move, word: 'Move', label: 'Move the tower', active: move, disabled: noTower, data: { 'data-mode': 'move' },
-      hint: 'Drag the arrows or the square in the 3D view, or type x and y in the tower\'s toolbar. A move applies at once; Ctrl+Z undoes it. Key: M.',
-      onPick: withPick(() => toggleMode('move')) },
-    { key: 'mode:rotate', icon: RotateCw, word: 'Rotate', label: 'Rotate the tower', active: rotate, disabled: noTower, data: { 'data-mode': 'rotate' },
-      hint: 'Drag the arc in the 3D view, or type the angle (counter-clockwise, about the tower\'s centre). Key: R.',
-      onPick: withPick(() => toggleMode('rotate')) },
+    // One Move and one Rotate (17 Nov): a drawn mass is dragged with the drawing tool, a parametric tower with its gizmo.
+    { key: 'mode:move', icon: Move, word: 'Move', label: 'Move the selected mass or tower', active: move || drawTool === 'move', disabled: noTower, data: { 'data-mode': 'move' },
+      hint: 'A drawn mass: drag it (its building\'s parts move together). A tower: drag the arrows or the square, or type x and y in its toolbar. One undo step each. Key: M.',
+      onPick: () => { if (selectedDrawn) { setDrawTool(drawTool === 'move' ? null : 'move'); return } if (drawTool) setDrawTool(null); withPick(() => toggleMode('move'))() } },
+    { key: 'mode:rotate', icon: RotateCw, word: 'Rotate', label: 'Rotate the selected mass or tower', active: rotate || drawTool === 'rotate', disabled: noTower, data: { 'data-mode': 'rotate' },
+      hint: 'A drawn mass: drag left or right, in 5° steps. A tower: drag the arc, or type the angle. Key: R.',
+      onPick: () => { if (selectedDrawn) { setDrawTool(drawTool === 'rotate' ? null : 'rotate'); return } if (drawTool) setDrawTool(null); withPick(() => toggleMode('rotate'))() } },
     // Face and Mass belong to the Massing tool (Form step): picking one opens Massing when it is not open.
-    ...(phase === 'basic' && !noTower && shown.some((t) => t.id === 'massing') ? EDIT_MODES.map((m): RailItem => ({
+    // A drawn mass has the drawing tools for that (Push / pull, Move): the two tiles leave while one is selected.
+    ...(phase === 'basic' && !noTower && !selectedDrawn && shown.some((t) => t.id === 'massing') ? EDIT_MODES.map((m): RailItem => ({
       key: `mode:${m.id}`, icon: m.id === 'face' ? Crosshair : Cuboid, word: m.label, label: `${m.label}: ${m.id === 'face' ? 'push or pull a face' : 'move a block'}`,
       hint: `${m.hint} Key: F.`, active: blockOn && blockMode === m.id, data: { 'data-mode': m.id },
       onPick: () => { useBlockEdit.setState({ mode: m.id, hover: null }); if (activeId !== 'massing') open('massing') },
@@ -147,7 +154,13 @@ export default function ToolRail() {
     : shown.map((t) => ({
       key: `tool:${t.id}`, icon: t.icon, word: shortName(t), label: t.label, hint: t.hint, active: t.id === activeId, data: { 'data-tool': t.id }, onPick: () => open(t.id),
     }))
-  const groups = [modes.filter((m) => isVisible(`tools.modes.${m.data['data-mode']}`, hiddenUi, uiItems)), tools].filter((g) => g.length)
+  // The drawing tools (Sinnie Choi's, lib/draw) on the Form step in Model, grouped as in her column; Move and Rotate are the modes' tiles.
+  const drawing = phase === 'basic' && step === 'volume' && !presentation
+  const drawGroups: RailItem[][] = drawing ? [1, 3, 4].map((g) => DRAW_TOOLS.filter((d) => (d.group === g || (g === 1 && d.group === 0) || (g === 3 && d.group === 2)) && d.id !== 'move' && d.id !== 'rotate').map((d): RailItem => ({
+    key: `draw:${d.id}`, icon: DRAW_ICONS[d.id], word: d.word, label: d.label, hint: `${d.hint}${d.key ? ` Key: ${d.key}.` : ''}`, active: drawTool === d.id, data: { 'data-draw': d.id },
+    onPick: () => setDrawTool(drawTool === d.id ? null : d.id),
+  }))) : []
+  const groups = [modes.filter((m) => isVisible(`tools.modes.${m.data['data-mode']}`, hiddenUi, uiItems)), ...drawGroups.map((g) => g.filter((d) => isVisible(`tools.draw.${d.data['data-draw']}`, hiddenUi, uiItems))), tools].filter((g) => g.length)
   const items = groups.flat()
   // Roving tabindex: the control last focused, else the open tool, else the grip; Up and Down (Home, End) move along the rail.
   const keys = ['grip', ...items.map((i) => i.key), 'hide']
