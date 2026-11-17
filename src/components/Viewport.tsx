@@ -665,7 +665,7 @@ export default function Viewport() {
   // The display mode and the older switches it absorbed stay in step (components/DisplayMode.tsx).
   useDisplaySync()
   return (
-    <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'present-wall p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
+    <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
       <div className="flex h-full w-full items-center justify-center" style={{ containerType: 'size' }}>
         <div data-viewport onPointerEnter={() => useHoverLabels.getState().setInView(true)} onPointerLeave={() => useHoverLabels.getState().setInView(false)} className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
           style={present ? { width: 'min(100cqw, 141.4cqh)', aspectRatio: '1.414 / 1' } : { width: '100%', height: '100%' }}>
@@ -698,6 +698,8 @@ export default function Viewport() {
             <CameraClamp />
           </Canvas>
           </ViewGuard>
+          {/* Under the board's lower right corner, close to it (Ruijie, 17 Nov). */}
+          {present && <div data-testid="board-size-caption" className="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap text-meta text-muted">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
           {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && !(project === 'city' && !present) && <NorthCompass north={north} />}
           {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
           {project === 'city' && !present && !hidden && <><SitePlaceLabels /><VistaChrome /></>}
@@ -715,7 +717,6 @@ export default function Viewport() {
       {project === 'vtc' && !present && !hidden && <UiShow id="viewport.context-card"><VtcContextCard /></UiShow>}
       {project === 'vtc' && !present && !hidden && <UiShow id="viewport.strip"><VtcLookBar /></UiShow>}
       {project === 'city' && !present && !hidden && <UiShow id="viewport.vista-inset"><VistaInset /></UiShow>}
-      {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-meta text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}
       {placing && !hidden && !picked && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
       {!present && <ShowOverlaysButton />}

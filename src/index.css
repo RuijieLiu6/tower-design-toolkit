@@ -423,16 +423,7 @@ body {
     radial-gradient(38% 60% at 106% 56%, var(--present-sage), rgb(159 211 198 / 0) 70%),
     radial-gradient(50% 26% at 40% -8%, var(--present-butter), rgb(255 240 196 / 0) 72%);
 }
-/* The wall behind the A2 board: the same golden-hour light, a shade deeper so the white board still reads as a print. */
-.present-wall {
-  background-color: #efe3d2;
-  background-image:
-    radial-gradient(55% 60% at -8% 108%, rgb(255 190 107 / 0.75), rgb(255 190 107 / 0) 70%),
-    radial-gradient(50% 40% at 55% 116%, rgb(238 154 134 / 0.7), rgb(238 154 134 / 0) 70%),
-    radial-gradient(40% 70% at 108% 50%, rgb(159 211 198 / 0.8), rgb(159 211 198 / 0) 70%),
-    radial-gradient(60% 30% at 35% -10%, rgb(255 240 196 / 0.9), rgb(255 240 196 / 0) 72%);
-}
-@media (prefers-contrast: more) { .workspace-shell { background-image: none; } .present-wall { background-image: none; } }
+@media (prefers-contrast: more) { .workspace-shell { background-image: none; } }
 
 /* The top bar in Presentation (Ruijie, 17 Nov: the dark bar was too heavy; keep the sense of switching). Three looks for
    review, chosen with html[data-bar]; A is the default.
