@@ -2,7 +2,7 @@
 // what is uploaded) and encodes it as JPEG under the size limit (research P13-M06b, browser route).
 import { BOARD_H, BOARD_W, CAPTION_BAND, CAPTION_MM, TARGET_BYTES, familiesUsed, imagePlacement, printedCaption, pxForDpi, searchQuality, type Board, type BoardFonts, type BoardImage, type Frame } from '../engine/boards'
 import type { Flag, RuleResult, RuleState } from '../engine/types'
-import { DEFAULT_FONTS, fontStack } from './fonts/catalog'
+import { DEFAULT_FAMILY, DEFAULT_FONTS, fontStack } from './fonts/catalog'
 import { ensureFontsLoaded } from './fonts/fontStore'
 import { unitText } from './units'
 
@@ -181,8 +181,11 @@ export async function exportBoardJpeg(board: Board, o: Omit<DrawOptions, 'pxPerM
   const loaded = await loadBoardImages([board], o.images)
   // The chosen faces must be in the document before the canvas draws, or it would fall back silently.
   const resolve = o.resolve ?? ((f: string) => f)
-  await ensureFontsLoaded(familiesUsed(board, o.fonts ?? DEFAULT_FONTS).map(resolve))
+  const asked = familiesUsed(board, o.fonts ?? DEFAULT_FONTS).map(resolve)
+  const missing = await ensureFontsLoaded(asked)
   try { await document.fonts.ready } catch { /* no font API: the system face draws */ }
+  // What the JPEG is drawn with: a face that did not load draws as the fallback, and the record says so.
+  const fonts = [...new Set(asked.map((f) => (missing.includes(f) ? DEFAULT_FAMILY : f)))]
   let scale = 1
   for (let tries = 0; tries < 6; tries++) {
     const { w, h } = pxForDpi(dpi * scale)
@@ -196,7 +199,7 @@ export async function exportBoardJpeg(board: Board, o: Omit<DrawOptions, 'pxPerM
     const r = await searchQuality(async (q) => { const b = await toBlob(canvas, q); blobs.set(q, b); return b.size }, target, 0.7, 1)
     if (r.fits) {
       const blob = blobs.get(r.q) ?? (await toBlob(canvas, r.q))
-      return { blob, bytes: new Uint8Array(await blob.arrayBuffer()), quality: r.q, dpi: Math.round(dpi * scale) }
+      return { blob, bytes: new Uint8Array(await blob.arrayBuffer()), quality: r.q, dpi: Math.round(dpi * scale), fonts, missingFonts: missing }
     }
     scale *= 0.9
   }

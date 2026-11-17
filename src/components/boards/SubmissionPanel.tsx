@@ -80,7 +80,7 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
         const r = await exportBoardJpeg(b, { images, evidence, index: i, total: boards.length, fonts, resolve }, dpi)
         const name = `board-${i + 1}.jpg`
         const v = validateJpeg(name, r.bytes, { denyList, profile: 'board' })
-        setExport(b.id, { at: new Date().toISOString(), name, bytes: r.bytes.length, quality: r.quality, dpi: r.dpi, manifest: v.manifest, rules: v.rules, fonts: familiesUsed(b, fonts).map(resolve) })
+        setExport(b.id, { at: new Date().toISOString(), name, bytes: r.bytes.length, quality: r.quality, dpi: r.dpi, manifest: v.manifest, rules: v.rules, fonts: r.fonts, missingFonts: r.missingFonts })
         download(r.blob, name)
       } catch (e) { setError(`Board ${i + 1}: ${(e as Error).message}`) }
     }
@@ -130,7 +130,7 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
             {perBoard[i].map((r) => <RuleRow key={r.id} r={r} />)}
             {exports[b.id] && (
               <div className="rounded border border-sky-400/30 p-1.5">
-                <div className="mb-1 text-meta text-sky-200" data-testid="export-line" data-export-fonts={exports[b.id].fonts?.join(', ')}>Exported {exports[b.id].name}: {(exports[b.id].bytes / 1e6).toFixed(2)} MB at {exports[b.id].dpi} dpi, quality {Math.round(exports[b.id].quality * 100)}{exports[b.id].fonts ? ` · ${exports[b.id].fonts!.map((f) => f.replace(' Variable', '')).join(', ')}` : ''}</div>
+                <div className="mb-1 text-meta text-sky-200" data-testid="export-line" data-export-fonts={exports[b.id].fonts?.join(', ')}>Exported {exports[b.id].name}: {(exports[b.id].bytes / 1e6).toFixed(2)} MB at {exports[b.id].dpi} dpi, quality {Math.round(exports[b.id].quality * 100)}{exports[b.id].fonts ? ` · ${exports[b.id].fonts!.map((f) => f.replace(' Variable', '')).join(', ')}` : ''}{exports[b.id].missingFonts?.length ? <span className="ml-1 text-amber-300" data-testid="export-font-fallback"> · {exports[b.id].missingFonts!.join(', ')} did not load: drawn with Inter</span> : null}</div>
                 <div className="grid gap-1">{exports[b.id].rules.map((r) => <RuleRow key={r.id} r={r} />)}</div>
               </div>
             )}
