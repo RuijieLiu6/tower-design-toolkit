@@ -22,7 +22,7 @@ import Filmstrip from '../Filmstrip'
 import { HidePanelButton } from '../PanelToggle'
 import ToolPanel from '../tools/ToolPanel'
 import { MassingStart } from '../tools/NoTower'
-import { BUILT_NODES } from '../../data/registry'
+import { BUILT_NODES, nodeById } from '../../data/registry'
 import { useCommunityStore } from '../../lib/communityStore'
 import { PHASE_COLOR, UI } from '../../lib/design/tokens'
 import { PHASES, type PhaseId } from '../../lib/phases'
@@ -72,6 +72,9 @@ export function foldMerged(ids: string[], lead?: string): string[] {
   const has = new Set([...ids, ...(lead ? [lead] : [])])
   return ids.filter((id) => !(MERGED_INTO[id] && has.has(MERGED_INTO[id])))
 }
+/** A tool that runs on this project (17 Nov, Sinnie: "VTC shouldnt show up on the real vancouver site"): a check made for
+ *  the other project only (the VTC hard rules on Real Vancouver) leaves the lists; it stays in the workflow. */
+export const runsOn = (id: string, project: string) => { const n = nodeById(id); return !n?.projects || n.projects.includes(project as never) }
 /** The name shown for a row: a design tool with its merged check reads as both. */
 const MERGED_NAME: Record<string, string> = { 'design.program': 'Program & FSR' }
 
@@ -97,7 +100,8 @@ export function usePhaseActive() {
   // A custom tool hidden in the Interface drawer leaves the lists (it stays installed and in the workflow).
   const hiddenUi = useUiVisibility((s) => s.hidden)
   const uiItems = useUiItems()
-  const rows = useMemo(() => foldMerged((inFlow ? portion.nodes : [design, ...portion.nodes]).filter((id) => !id.startsWith('community.') || isVisible(`addons.tools.${id}`, hiddenUi, uiItems)), design), [inFlow, portion.nodes, design, hiddenUi, uiItems])
+  const project = useStore((s) => s.project)
+  const rows = useMemo(() => foldMerged((inFlow ? portion.nodes : [design, ...portion.nodes]).filter((id) => !id.startsWith('community.') || isVisible(`addons.tools.${id}`, hiddenUi, uiItems)), design).filter((id) => runsOn(id, project)), [inFlow, portion.nodes, design, hiddenUi, uiItems, project])
   const showWorkflow = useUiGroupVisible('left.workflow'), showTool = useUiVisible('left.tool')
   const picked = usePhaseTools((s) => s.active[phase])
   const pick = picked && MERGED_INTO[picked] && rows.includes(MERGED_INTO[picked]) ? MERGED_INTO[picked] : picked
@@ -186,7 +190,8 @@ function PhaseWorkflow({ phase, mode, counts, rows, design, active, open, info, 
   const summary = rows.map((id) => info(id).word).join(' › ')
   // Back and Next (12 Nov, back again 17 Nov after the merge: "bring back the next and back buttons"): every tool of the
   // workflow in working order, into the next phase when a phase's tools end.
-  const tools = useMemo(() => foldMerged(runOrder(board)), [board])
+  const project = useStore((s) => s.project)
+  const tools = useMemo(() => foldMerged(runOrder(board)).filter((id) => runsOn(id, project)), [board, project])
   const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
   const ti = tools.indexOf(active)
   const pi = PHASE_IDS.indexOf(phase)
@@ -278,7 +283,8 @@ function PhaseLine({ board, phase, mode, active, info, home, counts }: { board: 
   const phases = phasesOf(mode)
   const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
   // Only this mode's phases: Presentation's tools stay out of the Model line, and the other way round.
-  const order = useMemo(() => foldMerged(runOrder(board)).filter((id) => phases.includes(designNode(id)?.phase ?? home(id))), [board, phases, home])
+  const project = useStore((s) => s.project)
+  const order = useMemo(() => foldMerged(runOrder(board)).filter((id) => runsOn(id, project) && phases.includes(designNode(id)?.phase ?? home(id))), [board, phases, home, project])
   const back = useMemo(() => returnEdges(board.edges), [board.edges])
   const summaries = useNodeSummaries()
   const segs = phases.map((p) => ({ p, nodes: order.filter((id) => phaseOf(id) === p) }))
