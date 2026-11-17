@@ -85,6 +85,8 @@ interface Rope { pts: Pt[]; slack: number }
 /** Tiles in a lane's shelf are this much of their size on the board. */
 const SHELF_S = 0.62
 const SEG = 14 // points per rope
+/** The board's layout version: saved positions from an older one are laid out afresh (17 Nov: the scattered meander). */
+const COVER_LAYOUT = 2
 /** The travelling dots: a wave every 10 s (longer when the route is longer); each step of the route takes 0.9 s and
  *  starts 0.3 s after the one before it. The route goes round each loop twice before moving on (lib/coverRun.ts). */
 const WAVE_EVERY = 10_000, WAVE_STEP = 300, WAVE_WIRE = 900, WAVE_REST = 2_000
@@ -210,8 +212,15 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     if (!n) return
     const Lw = lane.x1 - lane.x0 - 12, L = lane.x0 + 6, T = lane.y0 - size / 2, E = lane.y1 + 2 - T, lab = 20
     if (Lw / n >= 92 && E >= size + lab) {
-      const room = (E - size - lab) / 2
-      mine.forEach((id, j) => place(id, L + ((j + 0.5) * Lw) / n, T + size / 2 + room + Math.sin(idx(id) * 1.3) * Math.min(room, 30)))
+      // Not a line (17 Nov, Sinnie: "no linear and more fun"): each tile takes a playful height across the whole lane,
+      // high and low in turn with a little chance in it, and a nudge sideways inside its own slot (so names never touch).
+      const room = E - size - lab, slot = Lw / n, give = Math.max(0, (slot - 92) / 2)
+      const rnd = (id: string, k: number) => { let h = k * 7919; for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 100003; return (h % 1000) / 1000 }
+      mine.forEach((id, j) => {
+        const hi = (j + lane.ph.id.length) % 2 === 0
+        const v = hi ? 0.05 + rnd(id, 1) * 0.35 : 0.6 + rnd(id, 2) * 0.35
+        place(id, L + (j + 0.5) * slot + (rnd(id, 3) - 0.5) * 2 * give, T + size / 2 + v * room)
+      })
       return
     }
     if ((2 * Lw) / n >= 96 && E >= 2 * (size + lab) + 4) {
@@ -421,6 +430,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     const pos = (id: string) => { if (k) return k.at.get(id); const b = bodies.current[idx(id)]; return b ? { x: b.tx, y: b.ty } : undefined }
     const at: Record<string, [number, number]> = {}
     for (const id of nodes) { const q = pos(id); if (q && W > 0 && H > 0) at[id] = [q.x / W, q.y / H] }
+    at.__layout = [COVER_LAYOUT, 0]
     saveCoverWorkflow({ role: k ? k.role : roleRef.current, presetId: k ? k.presetId : presetIdRef.current, customName: k ? k.customName : customNameRef.current, nodes, edges: k ? k.edges : edgesRef.current, at })
   }
   const persistRef = useRef(persistNow); persistRef.current = persistNow
@@ -541,7 +551,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       return { x: sl.x, y: sl.y, tx: sl.x, ty: sl.y, s: shelfK.current, vx: 0, vy: 0, r, held: false, on: false, pop: false, k: 1 }
     })
     // The board as it was left (restored positions), else laid out along the lanes; no gliding on arrival.
-    const at = init?.at ?? {}, area = nodeArea()
+    // Positions saved under an older layout are dropped once, so the new scatter shows (17 Nov); moves are kept after.
+    const at = init?.at?.__layout?.[0] === COVER_LAYOUT ? init.at : {}, area = nodeArea()
     if (onRef.current.length && onRef.current.every((id) => at[id])) {
       for (const id of onRef.current) { const [fx, fy] = at[id]; place(id, Math.max(30, Math.min(W - 30, fx * W)), Math.max(area.y0 - 20, Math.min(area.y1, fy * H)), false) }
     } else layout([...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))])
@@ -566,7 +577,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         }
         // A loop runs back from its later node to its earlier one and bulges to the right of that way (on screen), so with
         // the run it closes a counterclockwise circle (Ruijie, 7 Nov): back from right to left, it arcs above the run.
-        const span = Math.max(1, Math.hypot(B.x - A.x, B.y - A.y)), sag = l.loop ? 70 : Math.min(26, span * 0.22)
+        const span = Math.max(1, Math.hypot(B.x - A.x, B.y - A.y)), sag = l.loop ? 70 : Math.min(42, span * 0.3)
         const side = l.loop && span > 1 ? { x: -(B.y - A.y) / span, y: (B.x - A.x) / span } : { x: 0, y: 1 }
         const p = rope.pts, g = still ? 0 : 900 * dt * dt
         rope.slack = 1 + (8 / 3) * (sag / span) ** 2
@@ -581,7 +592,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           if (k > 0) { a.x += dx * diff; a.y += dy * diff }
           if (k + 1 < SEG) { b.x -= dx * diff; b.y -= dy * diff }
         }
-        if (still) for (let k = 1; k < SEG; k++) { const u = k / SEG, bow = Math.sin(Math.PI * u) * (l.loop ? 60 : 14); p[k].x = A.x + (B.x - A.x) * u + side.x * bow; p[k].y = A.y + (B.y - A.y) * u + side.y * bow }
+        if (still) for (let k = 1; k < SEG; k++) { const u = k / SEG, bow = Math.sin(Math.PI * u) * (l.loop ? 60 : 24); p[k].x = A.x + (B.x - A.x) * u + side.x * bow; p[k].y = A.y + (B.y - A.y) * u + side.y * bow }
         // draw: a smooth line through the points
         let d = `M${p[0].x.toFixed(1)},${p[0].y.toFixed(1)}`
         for (let k = 1; k < SEG; k++) { const mx = (p[k].x + p[k + 1].x) / 2, my = (p[k].y + p[k + 1].y) / 2; d += ` Q${p[k].x.toFixed(1)},${p[k].y.toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}` }
@@ -1078,7 +1089,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           className="node-hit group absolute left-0 top-0 cursor-grab touch-none rounded-xl outline-none will-change-transform active:cursor-grabbing data-[link-target]:ring-4 data-[link-target]:ring-accent/60 data-[unwired]:outline-2 data-[unwired]:outline-dashed data-[unwired]:outline-offset-4 data-[unwired]:outline-ink/40 data-[proposed=add]:outline-2 data-[proposed=add]:outline-offset-4 data-[proposed=add]:outline-ai data-[proposed=remove]:opacity-50 data-[proposed=remove]:outline-2 data-[proposed=remove]:outline-dashed data-[proposed=remove]:outline-offset-4 data-[proposed=remove]:outline-ai data-[valid]:outline-2 data-[valid]:outline-offset-4 data-[valid]:outline-accent/45"
           onPointerEnter={() => setHoverNode(n.id)} onPointerLeave={() => setHoverNode((h) => (h === n.id ? null : h))} onFocus={() => setHoverNode(n.id)} onBlur={() => setHoverNode((h) => (h === n.id ? null : h))}
           style={{ width: size, height: size, transformOrigin: '50% 50%', transform: 'translate3d(-999px,-999px,0)' }}>
-          <NodeTile id={n.id} size={size} state={chain.includes(n.id) ? 'on' : 'soft'} />
+          <span className="cover-float block" style={{ animationDelay: `${-((i * 0.83) % 4.2).toFixed(2)}s`, ['--tilt' as string]: `${((i * 37) % 7) - 3}deg` }}><NodeTile id={n.id} size={size} state={chain.includes(n.id) ? 'on' : 'soft'} /></span>
           {onBoard.includes(n.id) && !bare.current.has(n.id) && <span aria-hidden data-node-name className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-meta font-medium text-ink/80">{nodeWord(n)}</span>}
           {onBoard.includes(n.id) && (['n', 'e', 's', 'w'] as const).map((side) => (
             <span key={side} aria-hidden data-handle={side} onPointerDown={(e) => startLink(n.id, side, e)}

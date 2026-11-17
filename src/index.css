@@ -451,3 +451,15 @@ body {
 :is([data-testid="phase-controls"], [data-panel="right"]) :is(input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, textarea) {
   font-size: var(--text-control); line-height: var(--text-control--line-height);
 }
+
+/* The home screen's workflow tiles float a little on their strings (17 Nov, Sinnie: "more fun"); only those on the
+   string, never in the shelves, and not at all for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-cover-node][data-on="1"] .cover-float { animation: cover-float 4.2s ease-in-out infinite; }
+  [data-cover-node][data-on="1"]:hover .cover-float, [data-cover-node][data-on="1"]:active .cover-float { animation-play-state: paused; }
+}
+[data-reduced="true"] .cover-float { animation: none !important; }
+@keyframes cover-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(var(--tilt, 0deg)); }
+}
