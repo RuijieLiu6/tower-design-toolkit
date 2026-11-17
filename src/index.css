@@ -425,38 +425,19 @@ body {
 }
 @media (prefers-contrast: more) { .workspace-shell { background-image: none; } }
 
-/* The top bar in Presentation (Ruijie, 17 Nov: the dark bar was too heavy; keep the sense of switching). Three looks for
-   review, chosen with html[data-bar]; A is the default.
-   A, golden glass (after Arc, whose toolbar takes the space's colour): the bar takes the mode's golden-hour light.
-   B, light grey (Ruijie's grey / white): Model white, Presentation a warm light grey (after Keynote, Notion).
-   C, white with a coloured switch (after Figma's Dev Mode toggle): the bar stays white; the chosen Presentation pill and
-   a thin line along the bar's foot carry the mode's gradient. */
+/* The top bar in Presentation (Ruijie, 17 Nov: the dark bar was too heavy; keep the sense of switching). Golden glass,
+   chosen from three looks: the bar takes the mode's golden-hour light (after Arc, whose toolbar takes the space's colour). */
 [data-stage="present"] {
   --bar-bg: linear-gradient(100deg, #fff3df 0%, #fde7dc 52%, #e4f2ec 100%);
   --bar-line: rgb(214 160 110 / 0.4); --bar-ink: #2e2620; --bar-off-ink: #6a5546;
   --bar-track: rgb(255 255 255 / 0.6); --bar-on-bg: #fff; --bar-on-shadow: 0 1px 2px rgb(120 70 30 / 0.18);
   --bar-view-on-bg: rgb(255 255 255 / 0.9); --bar-view-on-ink: #a1501f; --bar-hover: rgb(255 255 255 / 0.55);
-  --bar-ghost-bg: rgb(255 255 255 / 0.5); --bar-cta: #3a2a20; --bar-cta-ink: #fff7ec; --bar-pill: #fff;
-}
-html[data-bar="grey"] [data-stage="present"] {
-  --bar-bg: #e9e7e3; --bar-line: rgb(32 38 48 / 0.08); --bar-ink: #262b33; --bar-off-ink: #565c64;
-  --bar-track: rgb(32 38 48 / 0.07); --bar-on-shadow: 0 1px 2px rgb(32 38 48 / 0.14);
-  --bar-view-on-bg: #fff; --bar-view-on-ink: #262b33; --bar-hover: rgb(255 255 255 / 0.6);
-  --bar-ghost-bg: rgb(255 255 255 / 0.55); --bar-cta: #262b33; --bar-cta-ink: #fff;
-}
-html[data-bar="white"] [data-stage="present"] {
-  --bar-bg: linear-gradient(90deg, #ffbe6b, #ee9a86 55%, #9fd3c6) bottom / 100% 3px no-repeat, #fff;
-  --bar-line: var(--color-line); --bar-ink: #202630; --bar-off-ink: var(--color-muted);
-  --bar-track: var(--color-subtle); --bar-on-shadow: 0 1px 2px rgb(32 38 48 / 0.14);
-  --bar-view-on-bg: #fdf0e1; --bar-view-on-ink: #a1501f; --bar-hover: var(--color-subtle);
-  --bar-ghost-bg: #fff; --bar-cta: linear-gradient(135deg, #ffbe6b, #ee9a86); --bar-cta-ink: #3a1f12;
-  --bar-pill: linear-gradient(135deg, #ffd08a, #f4a892);
+  --bar-ghost-bg: rgb(255 255 255 / 0.5); --bar-cta: #3a2a20; --bar-cta-ink: #fff7ec;
 }
 .bar-present { background: var(--bar-bg); color: var(--bar-ink); border-color: var(--bar-line) !important; }
 .bar-present, .bar-present :is(button, a, span, div) { transition: background-color 300ms var(--ease-standard), color 300ms var(--ease-standard), border-color 300ms; }
 .bar-track { background: var(--bar-track); }
 .bar-on { background: var(--bar-on-bg); color: var(--bar-ink); box-shadow: var(--bar-on-shadow); }
-.bar-on[data-mode-option="presentation"] { background: var(--bar-pill); }
 .bar-off { color: var(--bar-off-ink); }
 .bar-off:hover { color: var(--bar-ink); background: var(--bar-hover); }
 .bar-view-on { background: var(--bar-view-on-bg); color: var(--bar-view-on-ink); }
