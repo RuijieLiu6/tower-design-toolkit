@@ -5,9 +5,12 @@
 // the proposal card lists what the new position would mean as status rows (✓ ✕ ! ?, StatusRow.tsx: site, land, view
 // cones with their fixes, base), details behind "?", then Confirm and Cancel. Present locks the model, so there the
 // toolbar only says so. Top left of the viewport, clear of the dock on the right and the placing hint in the middle.
-import { Building2, Check, Expand, LandPlot, LockKeyhole, Magnet, Move, RotateCw, X } from './icons'
+import { Building2, Check, Expand, LandPlot, Layers2, LockKeyhole, Magnet, Move, RotateCw, X } from './icons'
 import { canScale, planSize, scaleTower } from '../lib/towerScale'
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
+
+// Basement in the tower bar (16 Nov, Sinnie: "i want basement to show up here"): the Basement tool under the tools.
+const BasementPanel = lazy(() => import('./basement/BasementTool'))
 import type { Tower } from '../engine/types'
 import { STATE_LABEL } from '../engine/viewCones'
 import { useLivePose, useProposalReport } from '../hooks/useProposal'
@@ -48,6 +51,7 @@ export default function TowerToolbar({ docked = false }: { docked?: boolean } = 
   const unit = useUnits((s) => s.unit)
   // Scale (16 Nov): its own fields under the tools, like Move and Rotate.
   const [scaling, setScaling] = useState(false)
+  const [digging, setDigging] = useState(false)
   const t = towers.find((x) => x.id === picked)
   if (!t || hidden || viewing) return null
   // Lengths follow the viewer's unit (m / ft / mm); the store and the snap steps stay in metres.
@@ -99,6 +103,8 @@ export default function TowerToolbar({ docked = false }: { docked?: boolean } = 
           <IconTile size="sm" icon={LandPlot} word="Align" label="Align to the lot" aria-keyshortcuts="L" onClick={() => alignToLot(t.id)}
             hint={`Turn and place the tower to ${project === 'city' ? 'the lot lines under it' : 'the competition block'}. A proposal to confirm. Key: L.`} />
           <IconTile size="sm" icon={Magnet} word="Snap" label="Snap to edges and steps" active={snap} aria-pressed={snap} onClick={() => useTowerEdit.setState({ snap: !snap })} hint={snapHint} />
+          <IconTile size="sm" className="w-auto! min-w-[3.75rem] px-1.5" icon={Layers2} word="Basement" label="Basement levels under the tower" active={digging} aria-pressed={digging} onClick={() => setDigging((v) => !v)}
+            hint="Basement levels dug under the podium or the tower: how many, their storey height and use (parking and loading, plant, amenity), and the ramp." />
         </div>
       )}
       {!locked && tools && (
@@ -118,6 +124,7 @@ export default function TowerToolbar({ docked = false }: { docked?: boolean } = 
         </div>
       )}
       {!locked && scaling && canScale(t) && <ScaleFields t={t} unitSym={UNITS[unit].symbol} unitName={UNITS[unit].name} shown={shown} stored={stored} />}
+      {!locked && digging && <div data-testid="tower-basement" className="max-h-[50vh] overflow-y-auto border-t border-line/70"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><BasementPanel /></Suspense></div>}
       {!locked && live && <ProposalCard t={t} pose={live} start={proposal?.start ?? null} dragging={dragging} />}
       {!locked && !live && <AppliedNote id={t.id} />}
     </div>

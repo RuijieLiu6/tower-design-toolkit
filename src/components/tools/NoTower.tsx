@@ -3,7 +3,7 @@
 // (the study site's centre in Real Vancouver, the competition block otherwise), then the usual placing follows: click
 // the ground where it goes, Confirm in the toolbar, or Esc to keep it where it stands. Other steps say where to start.
 import { lazy, Suspense, useState } from 'react'
-import { ArrowLeft, BookOpen, Building2, Crosshair, FileUp, Layers2, LayoutGrid, MapPin, Wand2 } from '../icons'
+import { ArrowLeft, BookOpen, Building2, Crosshair, FileUp, LayoutGrid, MapPin, Wand2 } from '../icons'
 import { setTool, toast } from '../../lib/drawTools'
 import { CASE_STUDIES, type CaseStudy } from '../../data/caseStudies'
 import { useTransfer } from '../../lib/porting/transfer'
@@ -92,7 +92,6 @@ export function startFromCaseStudy(c: CaseStudy) {
 const ImportPanel = lazy(() => import('../import/RhinoImportPanel'))
 const TypologyPanel = lazy(() => import('../generate/GenerateTool'))
 const FormsPanel = lazy(() => import('./TowerForms'))
-const BasementPanel = lazy(() => import('../basement/BasementTool'))
 
 /** From scratch: the drawing rail's Rectangle, ready to drag a footprint on the cleared site. */
 export function startFromScratch() {
@@ -101,7 +100,7 @@ export function startFromScratch() {
   toast('Drag a footprint on the ground, then Push / pull (P) to raise it')
 }
 
-type StartWay = 'case' | 'import' | 'type' | 'basement'
+type StartWay = 'case' | 'import' | 'type'
 
 /**
  * The Massing tool before any tower (13 Nov, Sinnie: "massing tool should give three options before showing any other
@@ -119,14 +118,11 @@ export function MassingStart() {
   const opt = 'flex min-w-0 flex-col items-center gap-1.5 rounded-lg border px-0.5 py-2 text-center outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
   const tile = (on: boolean) => `${opt} ${on ? 'border-accent bg-accent/[0.08] text-ink' : 'border-line bg-panel text-ink hover:border-accent'}`
   const toggle = (w: StartWay) => setWay((v) => (v === w ? null : w))
-  const hasMass = useStore((s) => s.towers[s.project].length > 0)
   const tiles: { id: 'scratch' | StartWay; word: string; icon: typeof Crosshair; bg: string; go: () => void }[] = [
     { id: 'scratch', word: 'From scratch', icon: Crosshair, bg: 'bg-accent', go: () => { setWay(null); startFromScratch() } },
     { id: 'import', word: 'Import', icon: FileUp, bg: 'bg-orange-500', go: () => toggle('import') },
     { id: 'case', word: 'Case study', icon: BookOpen, bg: 'bg-violet-600', go: () => toggle('case') },
     { id: 'type', word: 'Typology', icon: LayoutGrid, bg: 'bg-emerald-600', go: () => toggle('type') },
-    // Basement (16 Nov, Sinnie: "add the basement function into the left panel as part of a design tool").
-    { id: 'basement', word: 'Basement', icon: Layers2, bg: 'bg-slate-600', go: () => toggle('basement') },
   ]
   return (
     <section data-testid="place-first-tower" data-massing-start aria-labelledby="massing-start-head" className="min-w-0">
@@ -134,12 +130,11 @@ export function MassingStart() {
         <h3 id="massing-start-head" className="flex items-center gap-1.5 text-sm font-semibold text-ink">Start your massing
           <Help label="About starting the massing">From scratch: draw with the design tools on the right (Rectangle, then Push / pull). Import: a model from Rhino, Revit, Archicad, AutoCAD or SketchUp, uploaded or linked live (Rhino through the tdt_link.py script). Case study: a known tower to edit from (height and storeys as published; plan and podium approximate). Typology: the Downtown Massing Tool&apos;s four typologies, shaped with their sliders and placed as blocks you can edit.</Help>
         </h3>
-        <div role="group" aria-label="How to start" className="mt-2 grid grid-cols-5 gap-1">
+        <div role="group" aria-label="How to start" className="mt-2 grid grid-cols-4 gap-1">
           {tiles.map((t) => (
-            <button key={t.id} type="button" data-start={t.id} data-testid={t.id === 'scratch' ? 'place-tower' : undefined} aria-expanded={t.id === 'scratch' ? undefined : way === t.id} onClick={t.go} className={tile(way === t.id)}
-              disabled={t.id === 'basement' && !hasMass} title={t.id === 'basement' && !hasMass ? 'Basement: place a mass first' : undefined}>
+            <button key={t.id} type="button" data-start={t.id} data-testid={t.id === 'scratch' ? 'place-tower' : undefined} aria-expanded={t.id === 'scratch' ? undefined : way === t.id} onClick={t.go} className={tile(way === t.id)}>
               <span className={`flex h-9 w-9 items-center justify-center rounded-lg text-white ${t.bg}`}><t.icon size={18} aria-hidden /></span>
-              <span className="max-w-full break-words text-[10px] font-semibold leading-tight">{t.word}</span>
+              <span className="text-meta font-semibold leading-tight">{t.word}</span>
             </button>
           ))}
         </div>
@@ -163,7 +158,6 @@ export function MassingStart() {
         </ul>
       )}
       {way === 'import' && <div data-testid="start-import" className="mt-2 border-t border-line"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><ImportPanel /></Suspense></div>}
-      {way === 'basement' && hasMass && <div data-testid="start-basement" className="mt-2 border-t border-line"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><BasementPanel /></Suspense></div>}
       {way === 'type' && <div data-testid="start-typology" className="mt-2 border-t border-line"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><FormsPanel /><div className="border-t border-line"><TypologyPanel /></div></Suspense></div>}
       {needSite && (
         <button type="button" onClick={() => goToStep('site')} className="m-3 flex w-[calc(100%-1.5rem)] items-center justify-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
