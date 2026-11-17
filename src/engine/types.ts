@@ -87,6 +87,8 @@ export interface Tower {
    * onto the blocks; with no snapshot, the blocks win (engine/blocks.ts `blocksOf`).
    */
   boxFromBlocks?: Pick<Tower, 'height' | 'width' | 'depth' | 'podiumHeight' | 'podiumWidth' | 'podiumDepth'>
+  /** The tower form shaping the shaft (engine/towerForms.ts, after dtmass): its type, parameters and the base it starts from. */
+  form?: { type: import('./towerForms').FormType; p: Record<string, number>; base: import('./towerForms').FormBase }
 }
 
 /** One stacked block of a parametric tower: a rectangle in plan, sitting on the block below. */

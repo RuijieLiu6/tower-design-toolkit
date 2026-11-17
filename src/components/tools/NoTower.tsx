@@ -91,6 +91,7 @@ export function startFromCaseStudy(c: CaseStudy) {
 
 const ImportPanel = lazy(() => import('../import/RhinoImportPanel'))
 const TypologyPanel = lazy(() => import('../generate/GenerateTool'))
+const FormsPanel = lazy(() => import('./TowerForms'))
 
 /** From scratch: the drawing rail's Rectangle, ready to drag a footprint on the cleared site. */
 export function startFromScratch() {
@@ -157,7 +158,7 @@ export function MassingStart() {
         </ul>
       )}
       {way === 'import' && <div data-testid="start-import" className="mt-2 border-t border-line"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><ImportPanel /></Suspense></div>}
-      {way === 'type' && <div data-testid="start-typology" className="mt-2 border-t border-line"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><TypologyPanel /></Suspense></div>}
+      {way === 'type' && <div data-testid="start-typology" className="mt-2 border-t border-line"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><FormsPanel /><div className="border-t border-line"><TypologyPanel /></div></Suspense></div>}
       {needSite && (
         <button type="button" onClick={() => goToStep('site')} className="m-3 flex w-[calc(100%-1.5rem)] items-center justify-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
           <MapPin size={13} />No site yet: choose one first

@@ -21,6 +21,7 @@ import Help from '../Help'
 import Filmstrip from '../Filmstrip'
 import { HidePanelButton } from '../PanelToggle'
 import ToolPanel from '../tools/ToolPanel'
+import { MassingStart } from '../tools/NoTower'
 import { BUILT_NODES } from '../../data/registry'
 import { useCommunityStore } from '../../lib/communityStore'
 import { PHASE_COLOR, UI } from '../../lib/design/tokens'
@@ -345,7 +346,9 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
         {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
       {/* With a mass, a design node's editing tools are in the right panel's Design tab (useDesignOnRight). */}
-      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : onRight ? null : <ToolPanel embedded />)
+      {/* Massing keeps its four ways to start here at all times (16 Nov, Sinnie: "on the left, i should always see the 4
+          massing options"), also once there is a mass and its editing tools are on the right. */}
+      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : onRight ? (phase === 'form' && id === designOf('form').id ? <MassingStart /> : null) : <ToolPanel embedded />)
         : controls ? <ToolPanel embedded only={controls} />
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}
