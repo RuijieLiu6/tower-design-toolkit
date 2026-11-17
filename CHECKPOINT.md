@@ -1,3 +1,29 @@
+# CHECKPOINT: the tool rail beside the model (16 Nov 2026)
+
+Brief (Ruijie, 16 Nov): Sinnie Choi's build of the Toolkit put the design tools in one vertical column of icons beside
+the view; bring that layout into the main tool. Branch `tool-rail` from `main`, in its own worktree. Not merged, not deployed.
+- **What it is:** a 48 px column on the model's left edge, between the left panel and the 3D view
+  (`src/components/ToolRail.tsx`), in Massing and Schematic on the guided route (`App.tsx`). Icon tiles only
+  (`IconTile.tsx` gains `layout="icon"` and a `tipSide="right"` hover panel): the full name and what the tool does show
+  on hover or focus, nothing is written beside the icons. On top, the ways of editing on the model: Place (`store.placing`,
+  P), Move and Rotate (`lib/towerEdit.ts`, M and R; the selected tower is picked first) and, while the Massing tool is on
+  the Form step, Face and Mass (`lib/blockEdit.ts`, F; `MassingEditPanel.tsx` exports `EDIT_MODES`); a hairline; then the
+  step's design tools. The open tool and a mode that is on wear a ring in the interaction colour. A `role="toolbar"`
+  named "Design tools", vertical, with a roving tabindex: the arrow keys walk it, Enter or Space acts.
+- **One source for the panel and the rail:** the step's tools and the open one moved out of `tools/ToolPanel.tsx` into
+  `tools/toolPick.ts` (`resolveTools`, pure, and `useToolChoice`; the pick is still `ts.tools.active`), so a click in the
+  rail opens the tool in the panel and the two never list different tools. A rail click also puts the phase panel on
+  its design node when a check's settings were open (`usePhaseTools.setActive`). The left panel is unchanged otherwise.
+- **H hides and shows the rail** (`lib/toolRail.ts`, remembered as `ts.toolRail.hidden`); hidden, a 20 px Show button
+  stays at the model's edge; the rail's own Hide button is the pointer's way. H used to hide the viewport overlays
+  (`ViewportDock.tsx`): that moved to **O** (its two buttons and `e2e/rhino-import.e2e.ts` say so).
+- **Tests:** `tsc -b` PASS · `vitest run` 1,228 pass, 3 skipped (+3 in `tools/toolPick.test.ts`; the same 2 CRLF
+  data-file checks, heightPolicy and registry, fail in this worktree only) · Edge e2e: `e2e/tool-rail.e2e.ts` (new:
+  rail geometry, tiles = the panel's tools, modes first then a divider, Massing from the rail opens in the panel and
+  back, Mass / Face / Move from the rail, hover name, arrow keys and one tab stop, H and the Show button with a reload,
+  no rail in Present) PASS · `e2e/phase-panel.e2e.ts` PASS · `e2e/massing-edit.e2e.ts` PASS. Screenshots:
+  `docs/evaluation/2026-11-16-tool-rail/01-tool-rail.png` and `02-tool-rail-hidden.png`.
+
 # CHECKPOINT: Result B step 1, the transfer centre's entry and registry (9 Nov 2026)
 
 Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-import-export.md`. Same branch as Result A

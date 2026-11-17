@@ -13,6 +13,8 @@ import ProcessRail from './components/ProcessRail'
 import RightPanel from './components/RightPanel'
 import StatusBar from './components/StatusBar'
 import TopBar from './components/TopBar'
+import ToolRail from './components/ToolRail'
+import { toggleToolRail } from './lib/toolRail'
 import { stageDef } from './data/stages'
 import { useStore } from './store'
 
@@ -47,6 +49,8 @@ export default function App() {
       if (useProjectWorkflow.getState().mode === 'builder') return
       if (e.key === 'Escape') set({ placing: false, showOnboarding: false })
       if ((e.key === '[' || e.key === ']') && !e.ctrlKey && !e.metaKey && !e.altKey) { togglePanel(e.key === '[' ? 'left' : 'right'); return }
+      // H hides and shows the tool rail beside the model (components/ToolRail.tsx), where the rail is offered.
+      if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && route === 'guided' && s.phase !== 'present') { toggleToolRail(); return }
       // Present locks the model, so placing is off there.
       if ((e.key === 'p' || e.key === 'P') && s.phase !== 'present') set({ placing: !s.placing })
       if (e.key === '1') setPhase('basic')
@@ -55,7 +59,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [set, setPhase])
+  }, [set, setPhase, route])
 
   return (
     // One hierarchy in every phase (overnight brief, 8 Nov; DESIGN_SYSTEM.md §5.1): the project bar, the one phase row,
@@ -72,6 +76,8 @@ export default function App() {
         {/* Left: the phase panel (8 Nov): the phase's own workflow, then the open tool's controls. */}
         {panels.left ? <><PhasePanel /><PanelResizer side="left" /></> : <PanelRail side="left" label="Phase tools" />}
         <main className="relative flex min-w-0 flex-1 gap-2">
+          {/* The tool rail (16 Nov): the step's tools as icons beside the model, in Massing and Schematic on the guided route. */}
+          {route === 'guided' && !present && <ToolRail />}
           {(view === '3d' || view === 'split') && (
             <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`} data-model-region>
               <Suspense fallback={<Loading what="3D view" />}><Viewport /></Suspense>

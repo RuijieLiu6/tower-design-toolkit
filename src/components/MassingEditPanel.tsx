@@ -23,7 +23,8 @@ export function useMassingEditSession() {
   }, [])
 }
 
-const MODES: { id: EditMode; label: string; hint: string }[] = [
+/** Face and Mass, as the Massing tool and the tool rail beside the model (ToolRail.tsx) offer them. */
+export const EDIT_MODES: { id: EditMode; label: string; hint: string }[] = [
   { id: 'face', label: 'Face', hint: 'Drag a side face to push or pull it (the opposite face stays put), or the roof to add or take away whole storeys; the blocks above ride on it.' },
   { id: 'mass', label: 'Mass', hint: 'Drag a block to move it on its floor; the blocks resting on it go with it (hold Shift to move it alone).' },
 ]
@@ -61,7 +62,7 @@ export function MassingEditCard({ t }: { t: Tower }) {
       </h4>
       <div className="flex flex-wrap items-start gap-0.5">
         <div role="radiogroup" aria-label="What a drag on the model does" className="flex gap-0.5">
-          {MODES.map((x) => (
+          {EDIT_MODES.map((x) => (
             <IconTile key={x.id} size="sm" role="radio" aria-checked={mode === x.id} active={mode === x.id} icon={x.id === 'face' ? Crosshair : Move}
               word={x.label} label={`${x.label}: ${x.id === 'face' ? 'push or pull a face' : 'move a block'}`} hint={`${x.hint} Key: F.`}
               onClick={() => useBlockEdit.setState({ mode: x.id, hover: null })} />

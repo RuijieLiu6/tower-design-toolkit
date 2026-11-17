@@ -30,7 +30,7 @@ export function writeDockPrefs(storage: Pick<Storage, 'setItem'> | null, p: Dock
 const storage = () => { try { return typeof localStorage === 'undefined' ? null : localStorage } catch { return null } }
 
 interface DockState extends DockPrefs {
-  /** Every viewport overlay hidden (H): a clean view. Not remembered across reloads. */
+  /** Every viewport overlay hidden (O): a clean view. Not remembered across reloads. */
   hidden: boolean
   /** The camera is being dragged: the dock fades so the city shows through. */
   orbiting: boolean
@@ -44,14 +44,14 @@ useDock.subscribe((s, prev) => {
 
 export const toggleOverlays = () => useDock.setState((s) => ({ hidden: !s.hidden }))
 
-/** H toggles every viewport overlay (not while typing, and not with a modifier, so it never clashes with 1/2/3/P/Esc). */
+/** O toggles every viewport overlay (not while typing, and not with a modifier, so it never clashes with 1/2/3/P/H/Esc; H is the tool rail, ToolRail.tsx). */
 export function useOverlayShortcut() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
       if (e.ctrlKey || e.metaKey || e.altKey) return
-      if (e.key === 'h' || e.key === 'H') toggleOverlays()
+      if (e.key === 'o' || e.key === 'O') toggleOverlays()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -119,9 +119,9 @@ export function ViewportDock({ sections, hint, label = 'Layers & context', ancho
       <div className="flex shrink-0 items-center gap-1.5 border-b border-line/80 px-2.5 py-1.5">
         <Layers size={14} aria-hidden className="text-ink" />
         <b className="text-ink">{label}</b>
-        <button type="button" onClick={toggleOverlays} title="Hide every overlay for a clean view (H)"
+        <button type="button" onClick={toggleOverlays} title="Hide every overlay for a clean view (O)"
           className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-meta text-slate-700 hover:bg-black/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-          <EyeOff size={12} aria-hidden />Hide overlays <kbd className="rounded border border-line px-1 font-sans">H</kbd>
+          <EyeOff size={12} aria-hidden />Hide overlays <kbd className="rounded border border-line px-1 font-sans">O</kbd>
         </button>
         <button type="button" aria-expanded={true} aria-controls="vp-dock" aria-label="Collapse the layers panel" title="Collapse"
           onClick={() => useDock.setState(anchored ? { menu: false } : { open: false })}
@@ -151,9 +151,9 @@ export function ShowOverlaysButton() {
   const hidden = useDock((s) => s.hidden)
   if (!hidden) return null
   return (
-    <button type="button" onClick={toggleOverlays} title="Show the overlays again (H)"
+    <button type="button" onClick={toggleOverlays} title="Show the overlays again (O)"
       className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full border border-line bg-white/70 px-2 py-1 text-meta text-slate-700 opacity-70 backdrop-blur-md hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-      <Eye size={12} aria-hidden />Show overlays <kbd className="rounded border border-line px-1 font-sans">H</kbd>
+      <Eye size={12} aria-hidden />Show overlays <kbd className="rounded border border-line px-1 font-sans">O</kbd>
     </button>
   )
 }

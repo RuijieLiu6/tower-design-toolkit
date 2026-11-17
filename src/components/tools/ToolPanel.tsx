@@ -2,27 +2,20 @@
 // or two key words under it (Ruijie, 6 Nov: "only leave the icon shown and one or two key words … once the user hover
 // their mouse over the icon, then reveal the functions in whole"). Hovering or focusing an icon shows the tool's full
 // name and what it does; clicking it opens its controls below the row (one tool at a time, remembered per step).
-// Tools come from the registry (registry.ts). Massing shows only the current step's tools (Site = site and Rhino
+// Tools come from the registry (registry.ts); the open one is kept in toolPick.ts, shared with the tool rail beside the
+// model (ToolRail.tsx). Massing shows only the current step's tools (Site = site and Rhino
 // import; past Site they leave the panel). A project with no tower leads Volume with "Place your tower"
 // (tools/NoTower.tsx), keeping only the tools that make towers (Generate) beside it, and points Program and Schematic
 // there.
 import { TriangleAlert } from '../icons'
-import { Component, Suspense, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { useStore, useTowers } from '../../store'
+import { Component, Suspense, type KeyboardEvent, type ReactNode } from 'react'
+import { useStore } from '../../store'
 import { HidePanelButton } from '../PanelToggle'
 import IconTile from '../IconTile'
-import { DESIGN_TOOLS, toolsFor, type DesignTool } from './registry'
+import type { DesignTool } from './registry'
 import { PROCESS } from '../../data/stages'
-import { toolsForStep, useStep } from '../../lib/step'
+import { useToolChoice } from './toolPick'
 import { NoTowerYet, PlaceFirstTower } from './NoTower'
-
-const KEY = 'ts.tools.active'
-/** Steps whose tools work without a tower (choosing the site, importing a model). */
-const NO_TOWER_STEPS = new Set(['site'])
-function readActive(): Record<string, string> {
-  try { const v = JSON.parse(localStorage.getItem(KEY) ?? '{}'); return v && typeof v === 'object' ? v : {} } catch { return {} }
-}
-function writeActive(v: Record<string, string>) { try { localStorage.setItem(KEY, JSON.stringify(v)) } catch { /* storage blocked: the panel still works */ } }
 
 /** The key words under a tool's icon. */
 export const shortName = (t: Pick<DesignTool, 'short' | 'label'>) => t.short ?? t.label
@@ -57,26 +50,9 @@ function ToolTile({ tool, active, tabStop, panelOpen, onPick, onKey }: { tool: D
  * controls an analysis tool opens with (lib/workflow/phaseTools.ts NODE_CONTROLS), whatever their step.
  */
 export default function ToolPanel({ embedded = false, only }: { embedded?: boolean; only?: string[] } = {}) {
-  const phase = useStore((s) => s.phase)
-  const project = useStore((s) => s.project)
-  const step = useStep((s) => s.step)
-  // `when` conditions read the store; the list follows the stage and the project.
-  const tools = useMemo(() => toolsFor(DESIGN_TOOLS, phase, useStore.getState()), [phase, project])
-  const noTower = useTowers().length === 0
-  // Massing has three steps (Site, Form, Program), each with only its own tools.
-  const stepTools = useMemo(() => (only ? DESIGN_TOOLS.filter((t) => only.includes(t.id)) : phase === 'basic' ? toolsForStep(tools, step) : tools), [tools, phase, step, only])
-  // No tower yet: Volume offers to place one; Program and Schematic point there (their tools shape a tower).
-  const empty: 'place' | 'none' | null = !noTower || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'
-  // No tower on Volume: only the tools that make towers stay (Generate), and none opens until it is picked.
-  // With a tower, a tool that only leads an empty site (Generate) moves inside another one (Massing).
-  const shown = empty === 'place' ? stepTools.filter((t) => t.worksWithoutTower) : empty ? [] : stepTools.filter((t) => !t.emptyOnly)
-  // The open tool, per step (Massing) or stage: the one picked here before, else the first that opens by default.
-  const where = only ? `node:${only.join(',')}` : phase === 'basic' ? `basic:${step}` : phase
-  const [picked, setPicked] = useState<Record<string, string>>(readActive)
-  const heldIn = stepTools.find((t) => t.id === picked[where])?.opensIn
-  const activeId = shown.find((t) => t.id === picked[where] || t.id === heldIn)?.id ?? (empty ? undefined : (shown.find((t) => t.defaultOpen) ?? shown[0])?.id)
+  // The step's tools and the open one, shared with the tool rail beside the model (toolPick.ts, ToolRail.tsx).
+  const { phase, step, shown, empty, activeId, pick } = useToolChoice(only)
   const active = shown.find((t) => t.id === activeId)
-  const pick = (id: string) => setPicked((o) => { const next = { ...o, [where]: id }; writeActive(next); return next })
   const stepLabel = phase === 'basic' ? PROCESS.find((p) => p.id === step)?.label : null
   // Arrow keys, Home and End move along the icons (tabs pattern); the icon reached opens.
   const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {

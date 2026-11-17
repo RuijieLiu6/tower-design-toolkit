@@ -24,15 +24,20 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'aria-la
   primary?: boolean
   /** 'md' for the design tools, 'sm' for the actions inside a tool. */
   size?: 'md' | 'sm'
-  /** 'tile': the icon over its word (panels, menus); 'inline': the icon beside its word (toolbars over the 3D view). */
-  layout?: 'tile' | 'inline'
+  /**
+   * 'tile': the icon over its word (panels, menus); 'inline': the icon beside its word (toolbars over the 3D view);
+   * 'icon': the icon alone, its word only in the accessible name and the hover panel (the tool rail beside the model).
+   */
+  layout?: 'tile' | 'inline' | 'icon'
+  /** Where the hover panel opens: under the icon, or to its right (a vertical rail). */
+  tipSide?: 'below' | 'right'
   [data: `data-${string}`]: string | undefined
 }
 
 /** The accessible name: the full label, led by the visible word when the label does not already contain it. */
 export const tileName = (word: string, label: string) => (label.toLowerCase().includes(word.toLowerCase()) ? label : `${word}: ${label}`)
 
-export default function IconTile({ icon: Icon, word, label, hint, active = false, primary = false, size = 'md', layout = 'tile', className = '', onClick, onKeyDown, ...rest }: Props) {
+export default function IconTile({ icon: Icon, word, label, hint, active = false, primary = false, size = 'md', layout = 'tile', tipSide = 'below', className = '', onClick, onKeyDown, onFocus, onBlur, ...rest }: Props) {
   const tipId = `tip-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const btn = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -51,18 +56,19 @@ export default function IconTile({ icon: Icon, word, label, hint, active = false
     window.addEventListener('scroll', hide, true)
     return () => { window.removeEventListener('keydown', key); window.removeEventListener('scroll', hide, true) }
   }, [tip])
-  // Below the icon (above it near the bottom of the window), kept inside the window.
+  // Below the icon (above it near the bottom of the window), or beside it for a vertical rail; kept inside the window.
   useLayoutEffect(() => {
     if (!tip || !btn.current) { setAt(null); return }
     const r = btn.current.getBoundingClientRect(), h = panel.current?.offsetHeight ?? 72
+    if (tipSide === 'right') { setAt({ left: Math.min(r.right + 8, window.innerWidth - TIP_W - 8), top: Math.max(8, Math.min(r.top, window.innerHeight - h - 8)) }); return }
     const left = Math.min(Math.max(8, r.left + r.width / 2 - TIP_W / 2), window.innerWidth - TIP_W - 8)
     setAt({ left, top: r.bottom + 6 + h > window.innerHeight - 8 ? r.top - 6 - h : r.bottom + 6 })
-  }, [tip])
+  }, [tip, tipSide])
   const lit = active || primary
   const events = {
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => { quiet.current = true; hide(); onClick?.(e) }, onKeyDown,
     onMouseEnter: () => show(250), onMouseLeave: () => { quiet.current = false; hide() },
-    onFocus: (e: React.FocusEvent<HTMLButtonElement>) => { if (e.currentTarget.matches(':focus-visible')) show(0) }, onBlur: hide,
+    onFocus: (e: React.FocusEvent<HTMLButtonElement>) => { if (e.currentTarget.matches(':focus-visible')) show(0); onFocus?.(e) }, onBlur: (e: React.FocusEvent<HTMLButtonElement>) => { hide(); onBlur?.(e) },
   }
   return (
     <>
@@ -70,6 +76,12 @@ export default function IconTile({ icon: Icon, word, label, hint, active = false
         <button ref={btn} type="button" {...rest} aria-label={tileName(word, label)} aria-describedby={hint ? tipId : undefined} {...events}
           className={`flex items-center gap-1.5 rounded px-2 py-1 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 ${lit ? 'bg-accent text-white hover:opacity-90' : 'text-ink hover:bg-black/5'} ${className}`}>
           <Icon size={14} aria-hidden /><span aria-hidden>{word}</span>
+        </button>
+      ) : layout === 'icon' ? (
+        // The tile alone, 40 px in a 48 px rail; the open tool wears a ring in the interaction colour (design system: blue = interaction).
+        <button ref={btn} type="button" {...rest} aria-label={tileName(word, label)} aria-describedby={hint ? tipId : undefined} {...events}
+          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-ui)] outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 disabled:opacity-40 ${active ? 'shadow-[0_0_0_2px_var(--color-accent)]' : ''} ${className}`}>
+          <GlassIcon icon={Icon} hue={hueFor(word)} size={ICON.tool} level={lit ? 'on' : 'soft'} />
         </button>
       ) : (
         <button ref={btn} type="button" {...rest} aria-label={tileName(word, label)} aria-describedby={hint ? tipId : undefined} {...events}

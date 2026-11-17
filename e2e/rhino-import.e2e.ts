@@ -91,7 +91,7 @@ test('the uploaded lot line and context buildings are drawn in the 3D view', asy
     return m ? { site: m.elements.filter((e: { role: string }) => e.role === 'site').length, context: m.elements.filter((e: { role: string }) => e.role === 'context').length } : null
   })
   expect(roles).toEqual({ site: 1, context: 3 })
-  await page.keyboard.press('h')
+  await page.keyboard.press('o') // hide the overlays (O; H is the tool rail)
   await page.waitForTimeout(1500)
   await page.screenshot({ path: join(process.cwd(), 'test-results', 'rhino-overlay-vtc.png') })
 })
