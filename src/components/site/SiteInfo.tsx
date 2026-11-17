@@ -20,6 +20,7 @@ import { useCityData } from '../CityContext'
 import Help from '../Help'
 import SitePlan, { TowerGlyph } from './SitePlan'
 import LayersPanel from './LayersPanel'
+import SiteHeights from './SiteHeights'
 import SiteStreets, { planStreets } from './SiteStreets'
 import { useSiteStreets } from '../../lib/siteStreets'
 import { VTC_SITE } from '../../lib/siteGeometry'
@@ -72,6 +73,7 @@ export default function SiteInfo() {
   return (
     <>
       {project === 'city' ? <SiteNow /> : <VtcSite />}
+      <SiteHeights />
       <LayersPanel />
     </>
   )
