@@ -5,7 +5,8 @@
 // the proposal card lists what the new position would mean as status rows (✓ ✕ ! ?, StatusRow.tsx: site, land, view
 // cones with their fixes, base), details behind "?", then Confirm and Cancel. Present locks the model, so there the
 // toolbar only says so. Top left of the viewport, clear of the dock on the right and the placing hint in the middle.
-import { Building2, Check, LandPlot, LockKeyhole, Magnet, Move, RotateCw, X } from './icons'
+import { Building2, Check, Expand, LandPlot, LockKeyhole, Magnet, Move, RotateCw, X } from './icons'
+import { canScale, planSize, scaleTower } from '../lib/towerScale'
 import { useMemo, useState } from 'react'
 import type { Tower } from '../engine/types'
 import { STATE_LABEL } from '../engine/viewCones'
@@ -45,6 +46,8 @@ export default function TowerToolbar({ docked = false }: { docked?: boolean } = 
   const orbiting = useDock((s) => s.orbiting)
   const viewing = useViewFromStore((s) => s.looking || s.picking)
   const unit = useUnits((s) => s.unit)
+  // Scale (16 Nov): its own fields under the tools, like Move and Rotate.
+  const [scaling, setScaling] = useState(false)
   const t = towers.find((x) => x.id === picked)
   if (!t || hidden || viewing) return null
   // Lengths follow the viewer's unit (m / ft / mm); the store and the snap steps stay in metres.
@@ -91,6 +94,8 @@ export default function TowerToolbar({ docked = false }: { docked?: boolean } = 
             hint="Drag the arrows or the square in the 3D view, or type x and y. A move applies at once; Ctrl+Z undoes it. Key: M." />
           <IconTile size="sm" icon={RotateCw} word="Rotate" label="Rotate the tower" active={rotate} aria-pressed={rotate} aria-keyshortcuts="R" onClick={() => toggleMode('rotate')}
             hint="Drag the arc in the 3D view, or type the angle (counter-clockwise, about the tower's centre). Key: R." />
+          <IconTile size="sm" icon={Expand} word="Scale" label="Scale the tower" active={scaling} aria-pressed={scaling} disabled={!canScale(t)} onClick={() => setScaling((v) => !v)}
+            hint={canScale(t) ? 'Make the plan wider, deeper or smaller about its centre, or the tower taller: type the sizes or step the plan by 10%. Ctrl+Z undoes it.' : 'An imported model keeps the file\'s own size: scale it in the software it came from.'} />
           <IconTile size="sm" icon={LandPlot} word="Align" label="Align to the lot" aria-keyshortcuts="L" onClick={() => alignToLot(t.id)}
             hint={`Turn and place the tower to ${project === 'city' ? 'the lot lines under it' : 'the competition block'}. A proposal to confirm. Key: L.`} />
           <IconTile size="sm" icon={Magnet} word="Snap" label="Snap to edges and steps" active={snap} aria-pressed={snap} onClick={() => useTowerEdit.setState({ snap: !snap })} hint={snapHint} />
@@ -112,8 +117,30 @@ export default function TowerToolbar({ docked = false }: { docked?: boolean } = 
           {snap && rotate && <Steps label="Angle step" options={ROTATE_STEPS} value={rotateStep} unit="°" onPick={(v) => useTowerEdit.setState({ rotateStep: v })} />}
         </div>
       )}
+      {!locked && scaling && canScale(t) && <ScaleFields t={t} unitSym={UNITS[unit].symbol} unitName={UNITS[unit].name} shown={shown} stored={stored} />}
       {!locked && live && <ProposalCard t={t} pose={live} start={proposal?.start ?? null} dragging={dragging} />}
       {!locked && !live && <AppliedNote id={t.id} />}
+    </div>
+  )
+}
+
+/** Scale: width and depth of the plan (about its centre), the height, and the plan in 10% steps. */
+function ScaleFields({ t, unitSym, unitName, shown, stored }: { t: Tower; unitSym: string; unitName: string; shown: (m: number) => number; stored: (v: number) => number }) {
+  const { w, d } = planSize(t)
+  const step = (k: number) => scaleTower(t.id, k, k)
+  const btn = `rounded border border-line px-1.5 py-0.5 tabular-nums hover:bg-black/5 ${focusRing}`
+  return (
+    <div data-testid="tower-scale" className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line/70 px-1 pt-1">
+      <PoseField label="Plan width" short="W" unit={unitSym} unitName={unitName} value={shown(w)} step={shown(0.5)} title="East–west size of the plan, scaled about its centre"
+        onCommit={(v) => { const m = stored(v); if (m > 1 && w > 0) scaleTower(t.id, m / w, 1) }} />
+      <PoseField label="Plan depth" short="D" unit={unitSym} unitName={unitName} value={shown(d)} step={shown(0.5)} title="North–south size of the plan, scaled about its centre"
+        onCommit={(v) => { const m = stored(v); if (m > 1 && d > 0) scaleTower(t.id, 1, m / d) }} />
+      <PoseField label="Height" short="H" unit={unitSym} unitName={unitName} value={shown(t.height)} step={shown(1)} title={t.drawn ? 'Height to the top, kept to whole storeys' : 'Height to the top; every block grows in proportion'}
+        onCommit={(v) => { const m = stored(v); if (m > 2) scaleTower(t.id, 1, 1, m) }} />
+      <span className="flex items-center gap-1" role="group" aria-label="Scale the plan">
+        <button type="button" className={btn} onClick={() => step(0.9)} aria-label="Plan 10% smaller">−10%</button>
+        <button type="button" className={btn} onClick={() => step(1.1)} aria-label="Plan 10% larger">+10%</button>
+      </span>
     </div>
   )
 }

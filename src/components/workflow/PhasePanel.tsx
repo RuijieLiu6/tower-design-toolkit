@@ -331,7 +331,8 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
         {!d && canExpand(id) && <ExpandAnalysis id={id} name={n.name} className="h-8 w-8 shrink-0" />}
         {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
-      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : <ToolPanel embedded />)
+      {/* A design node's tools are in the right panel's Design tab (16 Nov, Sinnie: "move these to the right"). */}
+      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : null)
         : controls ? <ToolPanel embedded only={controls} />
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}

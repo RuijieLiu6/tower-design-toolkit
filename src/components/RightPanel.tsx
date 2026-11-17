@@ -16,6 +16,10 @@ import { useStore } from '../store'
 import { useDraw } from '../lib/drawTools'
 import { useSiteFocus, watchSiteFocus } from '../lib/siteFocus'
 import DrawToolPanel from './draw/ToolPanel'
+import ToolPanel from './tools/ToolPanel'
+import { usePhaseActive } from './workflow/PhasePanel'
+import { isDesignNode } from '../lib/workflow/designNodes'
+import { togglePanel, usePanels } from '../lib/panels'
 import { NEEDS_MODEL, NEEDS_MODEL_WORD, NEXT_MODEL } from '../lib/missingInput'
 import { CircleDashed } from './icons'
 import Inspector from './Inspector'
@@ -55,7 +59,7 @@ function NothingToAnalyse() {
   )
 }
 
-type Tab = 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
+type Tab = 'design' | 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
 
 /** Picks which node's results to read, without switching anything on or off (the bottom bar does that). */
 function ResultsPicker() {
@@ -99,10 +103,20 @@ export default function RightPanel() {
   const step = useStep((s) => s.step)
   const present = phase === 'present'
   const siteStep = phase === 'basic' && step === 'site'
-  const [tab, setTab] = useState<Tab>(present ? 'present' : siteStep ? 'site' : 'results')
-  useEffect(() => { setTab(phase === 'present' ? 'present' : phase === 'basic' && useStep.getState().step === 'site' ? 'site' : 'results') }, [phase])
-  // Entering the Site step shows the site; the other steps keep the tab the user chose.
-  useEffect(() => { if (siteStep) setTab('site') }, [siteStep])
+  // The open design tool's tools (Site, Massing, Program…) live here, in the Design tab (16 Nov, Sinnie: "move these to
+  // the right"): the phase panel on the left keeps the steps and the tool's name; its tool row and controls are here.
+  const { active } = usePhaseActive()
+  const designOpen = !present && isDesignNode(active)
+  const [tab, setTab] = useState<Tab>(present ? 'present' : designOpen ? 'design' : siteStep ? 'site' : 'results')
+  useEffect(() => { setTab(phase === 'present' ? 'present' : designOpen ? 'design' : phase === 'basic' && useStep.getState().step === 'site' ? 'site' : 'results') }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Entering the Site step shows its tools (or the site); the other steps keep the tab the user chose.
+  useEffect(() => { if (siteStep) setTab(designOpen ? 'design' : 'site') }, [siteStep]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Opening a design tool (or a step whose tool it is) shows its tools, opening the right panel if it was hidden.
+  useEffect(() => {
+    if (!designOpen) return
+    setTab('design')
+    if (!usePanels.getState().right) togglePanel('right')
+  }, [designOpen, active])
   // Picking a node (selectNode: the bottom bar, the library, the canvas, a role) shows its results; switching stage alone
   // does not, nor does opening Real Vancouver or restoring a project, which set the node directly (Your site stays in view).
   // A tower added in Massing (Form step, an upload, a Rhino link): Your site opens and marks it New (lib/towerAdds.ts).
@@ -113,8 +127,8 @@ export default function RightPanel() {
   useEffect(() => {
     if (addSeq === seenAdd.current) return
     seenAdd.current = addSeq
-    if (useStore.getState().phase === 'basic') setTab('site')
-  }, [addSeq])
+    if (useStore.getState().phase === 'basic' && !designOpen) setTab('site')
+  }, [addSeq]) // eslint-disable-line react-hooks/exhaustive-deps
   // Compared with the last count seen, not a first-run flag: React runs mount effects twice in development.
   const resultsSeq = useStore((s) => s.resultsSeq)
   const seen = useRef(resultsSeq)
@@ -128,13 +142,14 @@ export default function RightPanel() {
   // that is on (the rail beside this panel) shows its options in Properties, and a newly set site opens Your site.
   const drawing = useDraw((s) => s.tool !== 'select') && !present
   const positioning = (useTowerPosition((s) => s.on) || drawing) && !present
-  useEffect(() => { setTab((cur) => (positioning ? 'properties' : cur === 'properties' ? 'results' : cur)) }, [positioning])
+  // A drawing tool's options always come forward; Tower position's Properties only when no design tool's tab is open.
+  useEffect(() => { setTab((cur) => ((drawing || (positioning && !designOpen)) ? 'properties' : cur === 'properties' ? (designOpen ? 'design' : 'results') : cur)) }, [positioning, drawing]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => watchSiteFocus(), [])
   const siteSeq = useSiteFocus((s) => s.seq)
   useEffect(() => { if (siteSeq && !drawing) setTab('site') }, [siteSeq]) // eslint-disable-line react-hooks/exhaustive-deps
   const tabs: { id: Tab; label: string }[] = present
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
-    : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
+    : [...(designOpen ? [{ id: 'design' as Tab, label: 'Design' }] : []), ...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
   const analysis = useStore((s) => s.analysis)
   // No tower: the banner, unless the picked check already says it needs a model (no message twice).
   const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))
@@ -156,6 +171,7 @@ export default function RightPanel() {
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>
       </div>
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
+        {shown === 'design' && <div data-testid="design-tab"><ToolPanel embedded /></div>}
         {shown === 'properties' && (drawing ? <DrawToolPanel /> : <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>)}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><SwResults /><ClimateDrawings /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}

@@ -1,0 +1,5 @@
+
+# Published data files are checked byte for byte (engine/heightPolicy.ts): never convert their line endings.
+public/data/vista/*.json -text
+public/data/*.json -text
+public/registry/** -text
