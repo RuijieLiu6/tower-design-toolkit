@@ -27,9 +27,10 @@ export interface GroundUseArea { use: string; rings: [number, number][][] }
 export const isExtruded = (c: ContextItem): c is Extruded => 'footprint' in c
 
 /**
- * The competition model belongs to Buildner and is never published. It comes from the entrant's own copy, read and kept
- * in this browser (lib/vtcContextSource.ts), or on a developer's computer from public/local/ (git-ignored, made by
- * tools/build_vtc_context.py). Without it, the app still runs with the site alone.
+ * The competition model belongs to Buildner and is never published as a file. Its derived context is included with the
+ * app (public/context/vtc/), or comes from the entrant's own copy, read and kept in this browser (lib/vtcContextSource.ts),
+ * or on a developer's computer from public/local/ (git-ignored, made by tools/build_vtc_context.py). Without any of
+ * them, the app still runs with the site alone.
  */
 export function useVtcContext() {
   const ctx = useVtcSource((s) => s.ctx)

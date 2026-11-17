@@ -44,7 +44,7 @@ model = r.File3dm.Read(SRC)
 layers = {i: L.FullPath for i, L in enumerate(model.Layers)}
 out = {
     "meta": {
-        "source": "Vancouver Tall Challenge base model (Buildner). Not for redistribution.",
+        "source": "Derived from the Vancouver Tall Challenge base model (Buildner): outlines, heights and simplified meshes, not the model file.",
         "units": "m",
         "origin_note": "Origin = centre of the competition site block; axes follow the model grid.",
         "true_north_deg_clockwise_from_plus_y": 45.0,

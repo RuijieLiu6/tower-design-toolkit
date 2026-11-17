@@ -1,7 +1,13 @@
-// Where the competition context comes from. Buildner's base model is never published, so the live website has no copy:
-// each entrant adds the "Vancouver Tall Base Model.3dm" they downloaded with the brief, it is read in their browser
-// (lib/vtcContextBuild.ts) and kept in this browser's own storage (IndexedDB) on their computer. Nothing is uploaded.
-// On a developer's computer, public/local/vtc_context.json (tools/build_vtc_context.py, git-ignored) is used first.
+// Where the competition context comes from, in this order:
+//   1. public/local/vtc_context.json on a developer's computer (tools/build_vtc_context.py, git-ignored; never on the
+//      published site);
+//   2. the entrant's own copy of "Vancouver Tall Base Model.3dm", read in this browser (lib/vtcContextBuild.ts) and kept
+//      in its own storage (IndexedDB). Nothing is uploaded. It is kept as an option (Ruijie, 13 Nov): a newer download
+//      replaces the included context in this browser;
+//   3. the included context, public/context/vtc/context.json: the same derived outlines, heights and simplified meshes,
+//      shipped with the app so the competition site opens with its context without a download (Ruijie, 13 Nov). The
+//      brief (p.36) gives the materials "for the sole purpose of an academic exercise", to be used "at the participant's
+//      discretion", and Buildner's terms restrict only the paid template package; the model itself is not shipped.
 // Every reader of the context (context.ts, useSolarAccess, vtcNeighbours, vtcShadeContext) follows this store, so adding
 // or removing the model updates the view and the checks at once.
 
@@ -14,8 +20,9 @@ export type VtcStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'reading' | '
 interface VtcSourceState {
   ctx: VtcContext | null
   status: VtcStatus
-  /** 'dev-file': public/local on this computer; 'browser': the entrant's own copy, kept in this browser. */
-  source: 'dev-file' | 'browser' | null
+  /** 'dev-file': public/local on this computer; 'browser': the entrant's own copy, kept in this browser; 'included':
+   *  the context shipped with the app. */
+  source: 'dev-file' | 'browser' | 'included' | null
   /** Bumped on every change of `ctx`, for caches keyed by the context (the solar worker). */
   version: number
   fileName: string
@@ -88,6 +95,17 @@ async function devFile(): Promise<VtcContext | null> {
   } catch { return null }
 }
 
+/** The context shipped with the app (public/context/vtc/context.json); null when the file is missing or malformed. */
+export const INCLUDED_FILE = './context/vtc/context.json'
+async function includedFile(): Promise<VtcContext | null> {
+  try {
+    const r = await fetch(INCLUDED_FILE)
+    if (!r.ok) return null
+    const j: unknown = await r.json()
+    return looksLikeContext(j) ? j : null
+  } catch { return null }
+}
+
 /** Reads the model's bytes into a context (rhino3dm and the builder load only now). */
 async function build(bytes: Uint8Array): Promise<VtcContext> {
   const [{ loadRhino3dm }, { buildVtcContext }] = await Promise.all([import('./import/load'), import('./vtcContextBuild')])
@@ -97,7 +115,7 @@ async function build(bytes: Uint8Array): Promise<VtcContext> {
 
 const set = (p: Partial<VtcSourceState>, changed = true) => useVtcSource.setState((s) => ({ ...p, ...(changed ? { version: s.version + 1 } : {}) }))
 
-/** The competition context, loaded once: the dev file, else this browser's saved copy, else null ("missing"). */
+/** The competition context, loaded once: the dev file, else this browser's own copy, else the included one, else null ("missing"). */
 export function loadVtcContext(): Promise<VtcContext | null> {
   return (loading ??= (async () => {
     if (useVtcSource.getState().status === 'idle') set({ status: 'loading' }, false)
@@ -112,6 +130,8 @@ export function loadVtcContext(): Promise<VtcContext | null> {
       set({ ctx, status: 'ready', source: 'browser', fileName: saved.fileName, addedAt: saved.addedAt, error: '' })
       return ctx
     }
+    const included = await includedFile()
+    if (included) { set({ ctx: included, status: 'ready', source: 'included', fileName: INCLUDED_FILE, addedAt: '', error: '' }); return included }
     set({ status: 'missing' }, false)
     return null
   })())
@@ -141,10 +161,13 @@ export async function addVtcModel(file: File): Promise<boolean> {
   }
 }
 
-/** Forgets the copy kept in this browser (the dev file, if any, stays: it is not this browser's to remove). */
+/** Forgets the copy kept in this browser and goes back to the included context (the dev file, if any, stays: it is not
+ *  this browser's to remove). */
 export async function removeVtcModel(): Promise<void> {
   await idb('readwrite', (s) => { s.delete(KEY) }).catch(() => undefined)
   if (useVtcSource.getState().source !== 'browser') return
-  loading = Promise.resolve(null)
-  set({ ctx: null, status: 'missing', source: null, fileName: '', addedAt: '', error: '' })
+  const included = await includedFile()
+  loading = Promise.resolve(included)
+  if (included) set({ ctx: included, status: 'ready', source: 'included', fileName: INCLUDED_FILE, addedAt: '', error: '' })
+  else set({ ctx: null, status: 'missing', source: null, fileName: '', addedAt: '', error: '' })
 }
