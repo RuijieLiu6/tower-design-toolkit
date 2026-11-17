@@ -142,10 +142,11 @@ export default function TopBar() {
       {!building && <UiShow id="topbar.view-buttons"><div className="flex items-center gap-0.5" role="group" aria-label="Screen: model, data graph or both" title="Screen: what fills the middle (the model, the data graph, or both). The display of the model itself is the View bar under it.">
         {VIEWS.map(({ id, icon: Icon, label: base }) => {
           // An analysis open: 3D goes back to the model, split shows the model and the analysis side by side.
-          const label = analysisOn ? (id === '3d' ? 'Back to the 3D model' : id === 'split' ? 'Model and analysis side by side' : base) : base
+          // Split toggles both ways (17 Nov, Sinnie): on again, it goes back to one full screen.
+          const label = id === 'split' && view === 'split' ? (analysisOn ? 'Analysis full screen' : 'Model full screen') : analysisOn ? (id === '3d' ? 'Back to the 3D model' : id === 'split' ? 'Model and analysis side by side' : base) : base
           const on = analysisOn && id === '3d' ? false : view === id
           return (
-          <button key={id} title={label} aria-label={label} aria-pressed={on} data-view={id} onClick={() => { if (analysisOn && id !== 'split') closeAnalysis(); setView(id) }}
+          <button key={id} title={label} aria-label={label} aria-pressed={on} data-view={id} onClick={() => { if (analysisOn && id !== 'split') closeAnalysis(); setView(id === 'split' && view === 'split' ? '3d' : id) }}
             className={`${icon} ${on ? (present ? 'bar-view-on' : 'bg-selected text-accent-hover') : present ? 'bar-off' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
           )
         })}
