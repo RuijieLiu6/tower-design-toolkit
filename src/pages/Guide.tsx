@@ -84,7 +84,7 @@ export default function Guide() {
                   <span><b>{s.label}</b> <span className="text-muted">({s.subtitle}, key <Key>{s.key}</Key>)</span>: {s.purpose}</span></li>
               ) })}
             </ol>
-            <p>The top bar's <b>Model / Presentation</b> switch (key <Key>V</Key>) takes you from the design to the boards and back; within Model, the phase list under Workflow in the left panel moves between Site, Form, Program and Schematic. A stage changes how the model is drawn and which tools are offered; the checks keep running in every stage. In <b>Massing</b>, the <b>Design</b> tab sets height, footprint, podium and the program by floor band, and <b>Place on map</b> moves the tower. <b>Results &amp; evidence</b> shows every switched-on check; the <b>Trace</b> tab records how the results changed as you worked. <b>Presentation</b> locks the model, frames camera views and captures images for the boards.</p>
+            <p>The top bar's <b>Model / Presentation</b> switch (key <Key>V</Key>) takes you from the design to the boards and back; within Model, the Workflow block's coloured line in the left panel moves between Site, Form, Program and Schematic (click a segment, or the arrows beside it). A stage changes how the model is drawn and which tools are offered; the checks keep running in every stage. In <b>Massing</b>, the <b>Design</b> tab sets height, footprint, podium and the program by floor band, and <b>Place on map</b> moves the tower. <b>Results &amp; evidence</b> shows every switched-on check; the <b>Trace</b> tab records how the results changed as you worked. <b>Presentation</b> locks the model, frames camera views and captures images for the boards.</p>
           </Section>
 
           <Section id="nodes" title="Nodes">
