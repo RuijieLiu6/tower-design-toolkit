@@ -59,7 +59,7 @@ function FloorBars({ values, levels, color, label, threshold, max = 1, onPick, p
 }
 
 /** One floor's cells in the plate's own frame (her planSVG), with the core and a north arrow; true or model north as run. */
-function PlanView({ plate, row, field, step, layer, posX, posY, north }: { plate: DlFloor; row: DlRow; field: Float32Array; step: number; layer: 'da' | 'df' | 'ase'; posX: number; posY: number; north: number }) {
+function PlanView({ plate, row, field, step, layer, posX, posY, trueNorth, level }: { plate: DlFloor; row: DlRow; field: Float32Array; step: number; layer: 'da' | 'df' | 'ase'; posX: number; posY: number; trueNorth: boolean; level: number }) {
   const m = plate.mask, pad = 7
   const cells: ReactElement[] = []
   const ramp = layer === 'da' ? rampDA : layer === 'df' ? rampDF : rampASE
@@ -78,21 +78,21 @@ function PlanView({ plate, row, field, step, layer, posX, posY, north }: { plate
     <svg data-testid="daylight-sw-plan" viewBox={`${-W / 2} ${-H / 2} ${W} ${H}`} role="img" aria-label={`Level plan, ${layer === 'da' ? 'daylight autonomy' : layer === 'df' ? 'daylight factor' : 'hours of direct sun'} per ${step} m cell`} className="w-full max-h-64">
       {cells}
       <rect x={cc.x - ch} y={-(cc.y + ch)} width={2 * ch} height={2 * ch} fill="#e5e7eb" stroke="#6b7280" strokeWidth={0.2}><title>Core (left out of the study)</title></rect>
-      <g transform={`translate(${ax} ${ay})`}><line x1={-nx * 2.2} y1={ny * 2.2} x2={nx * 2.2} y2={-ny * 2.2} stroke="#111827" strokeWidth={0.35} /><circle cx={nx * 2.2} cy={-ny * 2.2} r={0.5} fill="#111827" /><text x={nx * 3.6} y={-ny * 3.6 + 0.6} fontSize={1.8} textAnchor="middle" className="fill-current">{north ? 'N' : 'N (grid)'}</text></g>
-      <title>{`L${row.i + 1}: sDA ${pc(row.pctLit)}, mean DF ${(row.mean * 100).toFixed(1)}%`}</title>
+      <g transform={`translate(${ax} ${ay})`}><line x1={-nx * 2.2} y1={ny * 2.2} x2={nx * 2.2} y2={-ny * 2.2} stroke="#111827" strokeWidth={0.35} /><circle cx={nx * 2.2} cy={-ny * 2.2} r={0.5} fill="#111827" /><text x={nx * 3.6} y={-ny * 3.6 + 0.6} fontSize={1.8} textAnchor="middle" className="fill-current">{trueNorth ? 'N' : 'N (grid)'}</text></g>
+      <title>{`L${level}: sDA ${pc(row.pctLit)}, mean DF ${(row.mean * 100).toFixed(1)}%`}</title>
     </svg>
   )
 }
 
 export default function DaylightSWResults() {
-  const { presets, layer, floor, status, progress, error, out, runRev, outRev, set, setLayer, setFloor, reset, on } = useDaylightSW()
+  const { presets, layer, floor, status, progress, error, out, empty, runRev, outRev, set, setLayer, setFloor, reset, on } = useDaylightSW()
   const project = useStore((s) => s.project)
   const sel = 'rounded border border-line bg-panel px-1.5 py-1 text-xs'
   const edited = JSON.stringify(presets) !== JSON.stringify(DEFAULT_DAYLIGHT_PRESETS)
   const stale = !!out && outRev !== runRev
   const rerun = () => { useDaylightSWStore.setState({ key: '' }); useDaylightSWStore.getState().set({}) }
   const statusWord = status === 'running' ? (stale ? `Model changed, rerunning · ${progress || 'working…'}` : progress || 'Working…')
-    : status === 'ready' ? (stale ? 'Model changed, rerunning' : 'Evaluated for the current model')
+    : status === 'ready' ? (!out && empty ? 'No occupied floors to analyse' : stale ? 'Model changed, rerunning' : 'Evaluated for the current model')
     : status === 'error' ? `Could not run: ${error}` : on ? 'Waiting for the model' : 'Off'
   const statusState = status === 'error' ? 'fail' : status === 'ready' && !stale ? 'pass' : 'unknown'
   const T = out?.tower, A = out?.ase
@@ -109,7 +109,7 @@ export default function DaylightSWResults() {
           <div className="min-w-0">
             <div className="text-meta text-muted">Run</div>
             <div className="truncate text-xs font-semibold" title={statusWord}>{statusWord}</div>
-            {out && <div className="text-meta text-muted">{out.towerName} · {T?.rows.length ?? 0} floors · {out.contextLoaded ? 'context loaded' : 'no context loaded'} · {out.north ? 'true north' : 'model grid as north'}</div>}
+            {out && <div className="text-meta text-muted">{out.towerName} · {T?.rows.length ?? 0} floors · {out.contextLoaded ? 'context loaded' : 'no context loaded'} · {out.presets.north === 'true' ? 'true north' : 'model grid as north'}</div>}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <StateChip state={statusState} value={status === 'running' ? 'Running' : status === 'idle' ? 'Idle' : undefined} />
@@ -142,7 +142,7 @@ export default function DaylightSWResults() {
                     ))}
                   </span>
                 </figcaption>
-                <PlanView plate={plate} row={row} field={field} step={layer === 'ase' ? A.plans[A.rows[pick].sig].step : T.plans[row.sig].step} layer={layer} posX={out.posX} posY={out.posY} north={out.north} />
+                <PlanView plate={plate} row={row} field={field} step={layer === 'ase' ? A.plans[A.rows[pick].sig].step : T.plans[row.sig].step} layer={layer} posX={out.posX} posY={out.posY} trueNorth={out.presets.north === 'true'} level={out.levels[pick]} />
                 <div className="flex items-center gap-1 text-meta text-muted">
                   <span>{layer === 'da' ? '0%' : layer === 'df' ? '0' : '0 h'}</span>
                   <span aria-hidden className="h-2.5 w-28 rounded-[2px]" style={{ background: `linear-gradient(90deg, ${[0, 0.25, 0.5, 0.75, 1].map((t) => (layer === 'da' ? rampDA(t) : layer === 'df' ? rampDF(t * 0.05) : rampASE(t * 500))).join(',')})` }} />
@@ -154,6 +154,9 @@ export default function DaylightSWResults() {
         )}
       </Section>
 
+      {!out && empty && status === 'ready' && (
+        <Section title="Rules"><div data-testid="daylight-sw-empty" className="grid gap-2">{empty.rules.map((x) => <Card key={x.id} r={x} />)}</div></Section>
+      )}
       {out && (
         <Section title="Rules">
           <div className="grid gap-2">{out.rules.map((x) => <Card key={x.id} r={x} />)}</div>

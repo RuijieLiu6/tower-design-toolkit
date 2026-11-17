@@ -183,6 +183,8 @@ export const FILLED_BODIES: Record<string, string> = {
   SunMedium: R('a', 2.5, 8.5, 13, 13, 1.8) + R('b', 4.5, 10.5, 9, 9, 1) + P('d m', 'M13.5 19.5H6l7.5-7.5z') + [0, 90, 180, 270].map((a) => R('c', 17.1, 0.4, 1.8, 2.4, .9, `rotate(${a} 18 6)`)).join('') + C('d', 18, 6, 3.4),
   // Natural ventilation (Sun & Wind Studio port): an open window, its panes, and the air passing through (17 Nov).
   WindowAir: R('a', 2.5, 3.5, 11, 17, 1.6) + R('w', 4.3, 5.3, 3, 5.8, .6) + R('w', 8.7, 5.3, 3, 5.8, .6) + R('b', 4.3, 12.9, 7.4, 5.8, .6) + S('sd', 'M15.5 8.5H21') + S('sd', 'M15.5 12h4') + S('sd', 'M15.5 15.5H21'),
+  // A kite (community pool, 17 Nov review): four panes in two tones and its tail.
+  Kite: POLY('a', [[12, 2.5], [18, 9], [12, 9]]) + POLY('b', [[12, 2.5], [6, 9], [12, 9]]) + POLY('c', [[6, 9], [12, 15.5], [12, 9]]) + POLY('a', [[18, 9], [12, 15.5], [12, 9]]) + S('sd', 'M12 15.5c-1 2 1 3 0 6'),
   Sunrise: [-90, -45, 0, 45, 90].map((a) => R('d', 11, 3.4, 2, 3.6, 1, `rotate(${a} 12 16)`)).join('') + P('a', 'M5 16.5a7 7 0 0 1 14 0z') + R('c', 2, 17.5, 20, 2.4, 1.2) + R('b', 6, 21, 12, 1.6, .8),
   ArrowUpDown: P('a', 'M7.5 2.5l5 5.5H9.2v13H5.8V8H2.5z') + P('d', 'M16.5 21.5l-5-5.5h3.3V3h3.4v13h3.3z'),
   DoorOpen: R('c', 5, 3, 12, 18.5, 1) + P('a', 'M5 3l8 2.5v16.5L5 21.5z') + C('w', 11, 13, 1) + R('d', 2, 20.5, 20, 2, 1),

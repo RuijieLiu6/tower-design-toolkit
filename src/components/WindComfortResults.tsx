@@ -81,7 +81,7 @@ export default function WindComfortResults() {
           <div className="min-w-0">
             <div className="text-meta text-muted">Run</div>
             <div className="truncate text-xs font-semibold" title={statusWord}>{statusWord}</div>
-            {out && <div className="text-meta text-muted">{out.towerName} · {out.obstacles.loaded ? 'context loaded' : 'no context loaded'}{out.obstacles.unknownHeights ? ` · ${out.obstacles.unknownHeights} without height left out` : ''}</div>}
+            {out && <div className="text-meta text-muted">{out.towerName} · {out.north ? 'true north' : 'grid north'} · {out.obstacles.loaded ? 'context loaded' : 'no context loaded'}{out.obstacles.unknownHeights ? ` · ${out.obstacles.unknownHeights} without height left out` : ''}</div>}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <StateChip state={statusState} value={status === 'running' ? 'Running' : status === 'idle' ? 'Idle' : undefined} />
@@ -156,7 +156,7 @@ export default function WindComfortResults() {
               </select></label>
           ) : (
             <>
-              <NumberField label={`Wind from (${compassName(presets.dir)})`} value={presets.dir} unit="°" step={5} min={0} max={355} onChange={(v) => set({ dir: Math.max(0, Math.min(355, Math.round(v / 5) * 5)) })} hint="Bearing the wind comes from, degrees clockwise from the model's north." />
+              <NumberField label={`Wind from (${compassName(presets.dir)})`} value={presets.dir} unit="°" step={5} min={0} max={355} onChange={(v) => set({ dir: Math.max(0, Math.min(355, Math.round(v / 5) * 5)) })} hint={`Bearing the wind comes from, degrees clockwise from ${presets.north === 'true' ? 'true north' : 'the model grid’s north (her frame)'}.`} />
               <NumberField label="Speed at 10 m" value={presets.speed} unit="m/s" step={0.5} min={1} max={15} onChange={(v) => set({ speed: Math.max(0.5, v) })} hint="Free wind at 10 m above open ground; the ratios of the flow are scaled by it." />
             </>
           )}
@@ -164,6 +164,10 @@ export default function WindComfortResults() {
           <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Corners</span>
             <select className={sel} value={presets.corners} onChange={(e) => set({ corners: e.target.value as WindPresets['corners'] })}>{(['sharp', 'rounded', 'chamfered'] as const).map((v) => <option key={v} value={v}>{v}</option>)}</select></label>
           <NumberField label="Plaza shelter" value={Math.round(presets.shelter * 100)} unit="%" step={5} min={0} max={100} onChange={(v) => set({ shelter: Math.max(0, Math.min(1, v / 100)) })} hint="Planting and screens on the plazas, as a share of their shelter; competition context only." />
+          <label className="flex flex-col gap-1 text-xs"><span className="text-muted">North</span>
+            <select data-testid="wind-comfort-north" className={sel} value={presets.north} onChange={(e) => set({ north: e.target.value as WindPresets['north'] })}>
+              <option value="true">True north{project === 'vtc' ? ' (45° from the grid)' : ''}</option><option value="model">Model grid as north (her frame)</option>
+            </select></label>
           {project === 'vtc' && (
             <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={presets.future} onChange={(e) => set({ future: e.target.checked })} className="accent-accent" /><span>Count the three future towers</span></label>
           )}

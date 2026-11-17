@@ -6,7 +6,7 @@ import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { lawsonBand, WIND_GRID, type WindField } from '../engine/windComfort'
 import { BAND_COLOURS } from '../engine/windComfortInput'
-import { useWindComfort, useWindComfortStore } from '../hooks/useWindComfort'
+import { useWindComfort, useWindComfortCurrent, useWindComfortStore } from '../hooks/useWindComfort'
 import { useAnalysisLayer } from '../lib/displayModeHooks'
 import { STATUS } from '../lib/design/tokens'
 import Label from './Label'
@@ -46,7 +46,9 @@ const W = WIND_GRID.xmax - WIND_GRID.xmin, H = WIND_GRID.ymax - WIND_GRID.ymin
 
 export default function WindComfortOverlay({ base = 0 }: { base?: number }) {
   const shown = useAnalysisLayer() === 'wind-comfort'
-  const { out } = useWindComfort()
+  useWindComfort()
+  // Only a result run for the project and model on screen is drawn (17 Nov review).
+  const out = useWindComfortCurrent()
   const view = useWindComfortStore((s) => s.view)
   const r = out?.result ?? null
   const tex = useMemo(() => (r ? fieldTexture(view, r.a, r.b, r.U) : null), [r, view])

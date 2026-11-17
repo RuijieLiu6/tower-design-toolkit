@@ -8,7 +8,7 @@ import {
   OctagonX, Orbit, Origami, Palette, PanelsTopLeft, Paperclip, Pentagon, PersonStanding, PlugZap, Presentation, Puzzle, Ratio, Rocket,
   Sailboat, Scale, Shapes, Shell, ShieldQuestionMark, ShoppingBag, Sigma, Snowflake, Sofa, Sparkles, Sprout, SquareParking, Star,
   Store, Sun, SunDim, SunMedium, Sunrise, Target, Telescope, Tent, TrainFront, TramFront, Trees, Triangle, Trophy, Umbrella, Users,
-  WandSparkles, Wind, Wrench, Eye, Plane, Zap,
+  WandSparkles, Wind, Wrench, Eye, Plane, Zap, Kite,
   type LucideIcon,
 } from '../components/icons'
 import {
@@ -150,7 +150,8 @@ export const COMMUNITY_ICON_POOL: LucideIcon[] = [
   Atom, FlaskRound, Brain, Cpu, Diamond, Dna, Droplet, Gem, Globe, Hexagon, Key, Magnet,
   Microscope, Moon, Octagon, Palette, Pentagon, Rocket, Shell, Snowflake, Star, Target, Tent, Triangle,
   Anchor, Award, Bell, Hourglass, Orbit, Clover, Origami, InfinityIcon,
-  Paperclip, Crown,
+  // Sailboat went to the wind comfort node (16 Nov); Kite keeps its slot so the pool stays 35 and community icons keep theirs.
+  Paperclip, Crown, Kite,
 ]
 
 function hash(s: string) {
