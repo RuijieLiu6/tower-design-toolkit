@@ -267,11 +267,15 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
               <div className="grid gap-2">
                 <label className={label}><span className="text-slate-400">Drawing</span>
                   <select value={c.vt} data-testid="drawing-kind" onChange={(e) => set({ content: { ...c, vt: e.target.value as typeof c.vt } })} className={input}>
-                    <option value="site">Site plan</option><option value="plan">Floor plan</option><option value="elev">Elevation</option><option value="section">Section</option>
+                    <option value="context">Context plan</option><option value="site">Site plan</option><option value="plan">Floor plan</option><option value="roof">Roof plan</option><option value="elev">Elevation</option><option value="section">Section</option><option value="axo">Axonometric</option><option value="program">Program diagram</option>
                   </select>
                 </label>
                 {c.vt === 'plan' && <label className={label}><span className="text-slate-400">Level (1 to {levels})</span>
                   <input type="number" min={1} max={levels} value={c.level ?? 1} onChange={(e) => set({ content: { ...c, level: Math.max(1, Math.min(levels, Math.round(Number(e.target.value) || 1))) } })} className={`${input} w-24`} /></label>}
+                {c.vt === 'section' && <label className={label}><span className="text-slate-400">Cut</span>
+                  <select value={c.axis ?? 'long'} onChange={(e) => set({ content: { ...c, axis: e.target.value as 'long' | 'cross' } })} className={input}>
+                    <option value="long">A–A, along the tower</option><option value="cross">B–B, across it</option>
+                  </select></label>}
                 {c.vt === 'elev' && <label className={label}><span className="text-slate-400">Seen from</span>
                   <select value={c.dir ?? 'N'} onChange={(e) => set({ content: { ...c, dir: e.target.value as 'N' | 'E' | 'S' | 'W' } })} className={input}>
                     <option value="N">North</option><option value="E">East</option><option value="S">South</option><option value="W">West</option>
@@ -387,6 +391,8 @@ function SheetsPanel({ levels, onPick, onCreate, msg, preset, setPreset, busy }:
   const ADD: [string, FrameContent][] = [
     ['Site plan', { kind: 'drawing', vt: 'site' }], ['Floor plan', { kind: 'drawing', vt: 'plan', level: Math.max(1, Math.round(levels / 2)) }],
     ['Elevation', { kind: 'drawing', vt: 'elev', dir: 'S' }], ['Section', { kind: 'drawing', vt: 'section' }],
+    ['Context plan', { kind: 'drawing', vt: 'context' }], ['Roof plan', { kind: 'drawing', vt: 'roof' }],
+    ['Axonometric', { kind: 'drawing', vt: 'axo' }], ['Program diagram', { kind: 'drawing', vt: 'program' }],
     ['Results table', { kind: 'table' }], ['Text', { kind: 'text', text: '', sizeMm: 4.5 }],
   ]
   return (
@@ -427,10 +433,10 @@ function SheetsPanel({ levels, onPick, onCreate, msg, preset, setPreset, busy }:
             <label className="grid gap-1 text-meta text-slate-400">Preset
               <select value={preset} onChange={(e) => setPreset(e.target.value as 'drawings' | 'arch')} data-testid="set-preset" className={sel}>
                 <option value="drawings">Drawing set · five sheets</option>
-                <option value="arch">Architectural set · drawings and every workflow tool</option>
+                <option value="arch">Architectural set · cover to renders, black and white</option>
               </select>
             </label>
-            <button type="button" onClick={onCreate} disabled={busy} data-testid="drawing-set" title="Site plan, floor plans, elevations, section, and a sheet for the axonometric and analysis: five sheets drawn from the model in this style"
+            <button type="button" onClick={onCreate} disabled={busy} data-testid="drawing-set" title={preset === 'arch' ? 'Cover, context plan, site plan, analysis drawings, program diagram, floor plans (ground, typical mid, typical high, roof), two sections, exterior axonometric and renders, in black and white with poché walls' : 'Site plan, floor plans, elevations, section, and a sheet for the axonometric and analysis: five sheets drawn from the model in this style'}
               className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/10 py-2 text-xs font-medium hover:bg-white/15"><LayoutPanelTop size={13} />{busy ? 'Working…' : preset === 'arch' ? 'Create architectural set' : 'Create drawing set'}</button>
           </div>
         </div>
@@ -481,9 +487,13 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
     await new Promise((r) => setTimeout(r, 300))
     try {
       const groups = host.current ? await captureWorkflowDrawings(host.current, (t) => setSetMsg(`Drawing ${t}`)) : []
-      useBoardStore.getState().makeArchSet(Math.max(2, Math.round(levels / 2)), levels, groups)
+      // Renders: the AI renders among the shots and the library, else the 3D views captured (never plans).
+      const shots = useStore.getState().shots
+      const ai = [...await Promise.all(shots.filter((x) => x.ai).map(importShot)), ...Object.values(useBoardStore.getState().images).filter((i) => i.ai || i.source === 'ai').map((i) => i.id)]
+      const renders = [...new Set(ai)].length ? [...new Set(ai)] : await Promise.all(shots.filter((x) => !x.ai && x.representation !== 'plan').slice(0, 4).map(importShot))
+      useBoardStore.getState().makeArchSet(Math.max(2, Math.round(levels / 2)), levels, groups, { title: `${draw.towers[0]?.name ?? 'Tower'}: architectural set`, renders })
       const n = groups.reduce((a, g) => a + g.items.length, 0)
-      setSetMsg(n ? `Architectural set: ${useBoardStore.getState().boards.length} sheets with ${n} analysis drawings from ${workflowChecks().length} tools.` : 'Architectural set: the four drawing sheets. No workflow tool has a drawing yet (place a tower and switch tools on).')
+      setSetMsg(`Architectural set: ${useBoardStore.getState().boards.length} sheets${n ? `, ${n} analysis drawings from ${workflowChecks().length} tools` : ''}${renders.length ? `, ${renders.length} render${renders.length > 1 ? 's' : ''}` : ', render frames left empty'}.`)
     } catch (e) { setSetMsg(`The set stopped: ${e instanceof Error ? e.message : String(e)}`) }
     setCapturing(false)
     setTimeout(() => setSetMsg(''), 9000)

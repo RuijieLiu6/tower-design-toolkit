@@ -3,7 +3,7 @@
 // (they are too large for localStorage). Nothing here is uploaded anywhere.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { BOARD_COUNT, DEFAULT_DENY, MAX_SHEETS, applyTemplate, newBoard, type SheetSize, type Board, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
+import { BOARD_COUNT, DEFAULT_DENY, MAX_SHEETS, applyTemplate, newBoard, sheetNumbers, type SheetSize, type Board, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
 import type { StyleId } from './boardDrawings'
 
@@ -36,7 +36,7 @@ interface BoardState {
   /** Makes the five sheets of the drawing set (site plan, floor plans, elevations, section, axonometric and analysis); what was on them is kept aside. */
   makeDrawingSet: (typicalLevel: number, topLevel: number) => void
   /** The Architectural set: the drawing set's sheets, then analysis sheets (six drawings each) for every workflow phase. */
-  makeArchSet: (typicalLevel: number, topLevel: number, groups: ArchGroup[]) => void
+  makeArchSet: (typicalLevel: number, topLevel: number, groups: ArchGroup[], o?: { title?: string; renders?: string[] }) => void
   setOpen: (open: boolean) => void
   select: (board: number, frame?: string | null) => void
   setTemplate: (board: number, t: TemplateId) => void
@@ -130,27 +130,54 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     fill(4, 'grid', 'Axonometric and analysis', [null, null, null, null])
     return { boards, parked: [...s.parked, ...kept], exports: {}, selected: { board: 0, frame: null } }
   }),
-  makeArchSet: (typ, top, groups) => {
-    get().makeDrawingSet(typ, top)
-    set((s) => {
-      // The fifth sheet of the drawing set (left for analysis) and any earlier analysis sheets give way to the new ones.
-      const base = s.boards.slice(0, 4)
-      const later = s.boards.slice(5).filter((b) => !b.id.startsWith('arch-'))
-      const M = 12, G = 6, TITLE_H = 20, W = 594, H = 420, y0 = M + TITLE_H + G, cols = 3, rows = 2
-      const fw = (W - 2 * M - (cols - 1) * G) / cols, fh = (H - y0 - M - (rows - 1) * G) / rows
-      const sheets: Board[] = []
-      for (const g of groups) {
-        const pages = Math.ceil(g.items.length / (cols * rows))
-        for (let p = 0; p < pages; p++) {
-          const name = `${g.title} analysis${pages > 1 ? ` ${p + 1} of ${pages}` : ''}`
-          const frames: Frame[] = [{ id: 'f0', x: M, y: M, w: W - 2 * M, h: TITLE_H, role: 'title', content: { kind: 'text', text: name, sizeMm: 9, bold: true }, tag: null }]
-          g.items.slice(p * cols * rows, (p + 1) * cols * rows).forEach((it, k) => frames.push({ id: `f${k + 1}`, x: M + (k % cols) * (fw + G), y: y0 + Math.floor(k / cols) * (fh + G), w: fw, h: fh, role: 'body', content: { kind: 'image', imageId: it.imageId, fit: 'contain' }, caption: it.caption, tag: null }))
-          sheets.push({ id: `arch-${sheets.length + 1}-${Date.now().toString(36)}`, template: 'grid', name, frames })
-        }
-      }
-      return { boards: [...base, ...sheets, ...later].slice(0, MAX_SHEETS), exports: {}, selected: { board: 0, frame: null } }
+  makeArchSet: (typ, top, groups, o = {}) => set((s) => {
+    // The Architectural set (17 Nov 2026, Sinnie): cover, context plan, site plan, the analysis drawings, the program
+    // diagram, floor plans (ground, typical mid, typical high, roof), two sections, the exterior axonometric and the
+    // renders, in the black-and-white poche style. It replaces the sheets; what was placed on them is kept aside.
+    const M = 12, G = 6, TITLE_H = 20, W = 594, H = 420, y0 = M + TITLE_H + G, BW = W - 2 * M, BH = H - y0 - M
+    const stamp = Date.now().toString(36)
+    const mk = (key: string, name: string, frames: Omit<Frame, 'id' | 'role' | 'tag'>[]): Board => ({
+      id: `arch-${key}-${stamp}`, template: 'grid', name,
+      frames: [{ id: 'f0', x: M, y: M, w: BW, h: TITLE_H, role: 'title', content: { kind: 'text', text: name, sizeMm: 9, bold: true }, tag: null },
+        ...frames.map((f, i) => ({ ...f, id: `f${i + 1}`, role: 'body' as const, tag: null }))],
     })
-  },
+    const one = (content: FrameContent) => [{ x: M, y: y0, w: BW, h: BH, content }]
+    const two = (a: FrameContent, b: FrameContent) => { const w = (BW - G) / 2; return [{ x: M, y: y0, w, h: BH, content: a }, { x: M + w + G, y: y0, w, h: BH, content: b }] }
+    const mid = Math.max(2, Math.min(top - 1, typ)), high = Math.max(mid + 1, Math.min(top, Math.round(top * 0.85)))
+    const sheets: Board[] = []
+    const coverW = Math.round(BW * 0.62)
+    sheets.push(mk('cover', o.title ?? 'Architectural set', [
+      { x: M, y: y0, w: coverW, h: BH, content: { kind: 'drawing', vt: 'axo' } },
+      { x: M + coverW + G, y: y0, w: BW - coverW - G, h: BH, content: { kind: 'text', text: '', sizeMm: 3.6 } },
+    ]))
+    sheets.push(mk('context', 'Context plan', one({ kind: 'drawing', vt: 'context' })))
+    sheets.push(mk('site', 'Site plan', one({ kind: 'drawing', vt: 'site' })))
+    const cols = 3, rows = 2, fw = (BW - (cols - 1) * G) / cols, fh = (BH - (rows - 1) * G) / rows
+    for (const g of groups) {
+      const pages = Math.ceil(g.items.length / (cols * rows))
+      for (let p = 0; p < pages; p++) {
+        const name = `${g.title} analysis${pages > 1 ? ` ${p + 1} of ${pages}` : ''}`
+        sheets.push(mk(`an${sheets.length}`, name, g.items.slice(p * cols * rows, (p + 1) * cols * rows).map((it, k) => ({ x: M + (k % cols) * (fw + G), y: y0 + Math.floor(k / cols) * (fh + G), w: fw, h: fh, content: { kind: 'image', imageId: it.imageId, fit: 'contain' } as FrameContent, caption: it.caption }))))
+      }
+    }
+    sheets.push(mk('program', 'Program diagram', one({ kind: 'drawing', vt: 'program' })))
+    sheets.push(mk('plans1', 'Floor plans: ground and typical mid level', two({ kind: 'drawing', vt: 'plan', level: 1 }, { kind: 'drawing', vt: 'plan', level: mid, label: 'Typical mid-level plan' })))
+    sheets.push(mk('plans2', 'Floor plans: typical high level and roof', two({ kind: 'drawing', vt: 'plan', level: high, label: 'Typical high-level plan' }, { kind: 'drawing', vt: 'roof' })))
+    sheets.push(mk('sections', 'Sections', two({ kind: 'drawing', vt: 'section', axis: 'long' }, { kind: 'drawing', vt: 'section', axis: 'cross' })))
+    sheets.push(mk('axo', 'Exterior axonometric', one({ kind: 'drawing', vt: 'axo' })))
+    const rs = (o.renders ?? []).slice(0, 4), rw = (BW - G) / 2, rh = (BH - G) / 2
+    sheets.push(mk('renders', 'Renders', (rs.length ? rs : [null, null, null, null]).map((id, k) => {
+      const big = rs.length === 1
+      return { x: big ? M : M + (k % 2) * (rw + G), y: big ? y0 : y0 + Math.floor(k / 2) * (rh + G), w: big ? BW : rw, h: big ? BH : rh, content: id ? ({ kind: 'image', imageId: id, fit: 'cover' } as FrameContent) : ({ kind: 'empty' } as FrameContent) }
+    })))
+    const all = sheets.slice(0, MAX_SHEETS)
+    // the cover's sheet index
+    const nos = sheetNumbers(all)
+    const index = ['SHEETS', '', ...all.map((b, i) => `${nos[i]}   ${b.name}`)].join(String.fromCharCode(10))
+    all[0] = { ...all[0], frames: all[0].frames.map((f) => (f.id === 'f2' ? { ...f, content: { kind: 'text', text: index, sizeMm: 3.6 } } : f)) }
+    const kept = s.boards.filter((b) => !b.id.startsWith('arch-')).flatMap((b) => b.frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty' && f.content.kind !== 'drawing'))
+    return { boards: all, parked: [...s.parked, ...kept], exports: {}, style: 'architectural' as StyleId, selected: { board: 0, frame: null } }
+  }),
   setOpen: (open) => set({ open }),
   select: (board, frame = null) => set({ selected: { board, frame } }),
   setTemplate: (i, t) => set((s) => {

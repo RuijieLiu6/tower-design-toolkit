@@ -5,12 +5,15 @@
 // floorPlates), the study site and the buildings around it. Vector, true scale: site plan, floor plan at any level,
 // elevation from any side, section; scale bar, north arrow, level marks, numbered captions.
 import { USES, type UseId } from '../engine/types'
+import { ARCH_KINDS, drawArch } from './archDrawings'
 
 type Pt = [number, number]
-export type StyleId = 'competition' | 'technical' | 'concept' | 'blueprint'
-export interface BoardStyle { name: string; paper: string; ink: string; soft: string; mass: string; cut: string; ctx: string; mono: boolean; shadow?: boolean; dims?: boolean; w: number }
+export type StyleId = 'architectural' | 'competition' | 'technical' | 'concept' | 'blueprint'
+export interface BoardStyle { name: string; paper: string; ink: string; soft: string; mass: string; cut: string; ctx: string; mono: boolean; shadow?: boolean; dims?: boolean; w: number; /** Plans and sections in black poché (lib/archDrawings.ts). */ poche?: boolean }
 /** The Workspace's four architectural styles ('use' = the use's colour, 'hatch' = a diagonal hatch). */
 export const BOARD_STYLES: Record<StyleId, BoardStyle> = {
+  // 17 Nov (Sinnie): simple black and white, black poché walls in plans and sections.
+  architectural: { name: 'Architectural, black and white', paper: '#ffffff', ink: '#111111', soft: '#8c8c8c', mass: '#ffffff', cut: '#111111', ctx: '#f1f1f1', mono: false, w: 1, poche: true },
   competition: { name: 'Competition board', paper: '#ffffff', ink: '#2b2b2e', soft: '#b4b4ba', mass: '#ffffff', cut: '#dcdce0', ctx: '#f2f2f0', mono: false, shadow: true, w: 1 },
   technical: { name: 'Technical set', paper: '#ffffff', ink: '#000000', soft: '#8a8a8a', mass: '#ffffff', cut: 'hatch', ctx: '#ffffff', mono: true, dims: true, w: 1 },
   concept: { name: 'Concept diagram', paper: '#fbfaf6', ink: '#3a3a3f', soft: '#cfcbc0', mass: 'use', cut: 'use', ctx: '#f0eee7', mono: false, w: 1.7 },
@@ -19,14 +22,14 @@ export const BOARD_STYLES: Record<StyleId, BoardStyle> = {
 export const styleFont = (st: BoardStyle) => (st.mono ? '"DM Mono", ui-monospace, "Cascadia Mono", monospace' : '"Inter", "Segoe UI", system-ui, sans-serif')
 export const SCALES = [100, 200, 250, 500, 750, 1000, 1250, 2000, 2500, 5000]
 
-export type DrawingKind = 'site' | 'plan' | 'elev' | 'section'
+export type DrawingKind = 'site' | 'plan' | 'elev' | 'section' | 'context' | 'roof' | 'axo' | 'program'
 export type Side = 'N' | 'E' | 'S' | 'W'
-export interface DrawingSpec { kind: 'drawing'; vt: DrawingKind; level?: number; dir?: Side; scale?: number }
+export interface DrawingSpec { kind: 'drawing'; vt: DrawingKind; level?: number; dir?: Side; scale?: number; /** Section: along the tower (A–A) or across it (B–B). */ axis?: 'long' | 'cross'; /** Plan title word: 'Typical mid-level plan'. */ label?: string }
 
 /** The model as the drawings read it (heights from the ground of the design). */
 export interface DrawData {
   site: Pt[] | null
-  towers: { id: string; name: string; prisms: { ring: Pt[]; z0: number; z1: number }[]; floors: { level: number; z0: number; z1: number; use: UseId; area: number; rings: Pt[][] }[] }[]
+  towers: { id: string; name: string; /** Indicative core ring (a square of the core share, centred on the plate). */ core?: Pt[] | null; prisms: { ring: Pt[]; z0: number; z1: number }[]; floors: { level: number; z0: number; z1: number; use: UseId; area: number; rings: Pt[][] }[] }[]
   context: { ring: Pt[]; z1: number }[]
   /** True north, degrees clockwise from the frame's +y. */
   north: number
@@ -64,6 +67,7 @@ export function drawDrawing(c: CanvasRenderingContext2D, k: number, f: { x: numb
   const mm = (v: number) => v * k
   const font = (sz: number, b?: boolean) => `${b ? '600 ' : ''}${mm(sz)}px ${styleFont(st)}`
   const W = st.w, lw = (v: number) => { c.lineWidth = mm(v * W) }
+  if (d && d.towers.length && (ARCH_KINDS.has(spec.vt) || (st.poche && spec.vt !== 'elev'))) { drawArch(c, k, f, spec, d, st, no); return }
   c.save(); c.beginPath(); c.rect(mm(f.x), mm(f.y), mm(f.w), mm(f.h)); c.clip()
   c.textBaseline = 'alphabetic'; c.lineJoin = 'round'
   if (!d || !d.towers.length) {

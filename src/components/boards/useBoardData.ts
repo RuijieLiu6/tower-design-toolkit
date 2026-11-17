@@ -63,6 +63,7 @@ export function useOverflow(boards: Board[], images: Record<string, BoardImage>,
 import { VTC_NORTH_DEG, useVtcContext } from '../../context'
 import { towerOccluders, vtcOccluders } from '../../engine/solarRules'
 import { floorPlates } from '../../lib/floorPick'
+import { coreSide } from '../../engine/massing'
 import { setDrawData, type DrawData } from '../../lib/boardDrawings'
 import { BRIEF_SITE } from '../../lib/vtcContextSource'
 import { cityDataLoaded } from '../CityContext'
@@ -70,6 +71,16 @@ import { useCityModel } from '../../lib/cityModel'
 import { useStore } from '../../store'
 
 type P2 = [number, number]
+/** The indicative core for the drawings: a square of the core share, centred on the top plate, along its longest side. */
+function coreRing(prisms: { ring: P2[]; z0: number; z1: number }[], side: number): P2[] | null {
+  if (!prisms.length || !(side > 2)) return null
+  const top = prisms.reduce((m, p) => (p.z1 > m.z1 ? p : m)).ring
+  const c: P2 = [top.reduce((a, p) => a + p[0], 0) / top.length, top.reduce((a, p) => a + p[1], 0) / top.length]
+  let u: P2 = [1, 0], L = 0
+  top.forEach((p, i) => { const q = top[(i + 1) % top.length], l = Math.hypot(q[0] - p[0], q[1] - p[1]); if (l > L) { L = l; u = [(q[0] - p[0]) / l, (q[1] - p[1]) / l] } })
+  const v: P2 = [-u[1], u[0]], h = side / 2
+  return ([[-h, -h], [h, -h], [h, h], [-h, h]] as P2[]).map(([a, b]) => [c[0] + u[0] * a + v[0] * b, c[1] + u[1] * a + v[1] * b])
+}
 const inside = (p: P2, r: P2[]) => { let o = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) o = !o } return o }
 /** Keeps the drawing data current while the composer is open; returns it so the previews redraw when it changes. */
 export function useDrawData(): DrawData {
@@ -84,11 +95,12 @@ export function useDrawData(): DrawData {
   useEffect(() => { let live = true; void cityDataLoaded(model)?.then((d) => live && setData(d)); return () => { live = false } }, [model, project])
   const d = useMemo<DrawData>(() => {
     const site = project === 'city' ? cityRing : (((ctx?.site ?? BRIEF_SITE)?.outline as P2[] | undefined) ?? null)
-    const ts = towers.map((t) => ({
-      id: t.id, name: t.name,
-      prisms: (towerOccluders([t]).prisms as { ring: P2[]; z0: number; z1: number }[]),
+    const ts = towers.map((t) => {
+      const prisms = towerOccluders([t]).prisms as { ring: P2[]; z0: number; z1: number }[]
+      return {
+      id: t.id, name: t.name, prisms, core: coreRing(prisms, coreSide(t)),
       floors: floorPlates(t).map(({ f, rings }) => ({ level: f.level, z0: f.z0, z1: f.z1, use: f.use, area: f.area, rings })),
-    }))
+    } })
     const pts = [...(site ?? []), ...ts.flatMap((t) => t.prisms.flatMap((p) => p.ring))]
     const c: P2 = pts.length ? [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length] : [0, 0]
     const near = (r: P2[]) => r.some(([x, y]) => Math.abs(x - c[0]) < 260 && Math.abs(y - c[1]) < 260)

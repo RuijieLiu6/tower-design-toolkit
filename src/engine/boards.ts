@@ -62,7 +62,7 @@ export type FrameContent =
   | { kind: 'text'; text: string; sizeMm: number; bold?: boolean }
   | { kind: 'evidence'; nodeId: string }
   /** A vector drawing of the design at true scale (lib/boardDrawings.ts, from the Tower Workspace's Presentation page). */
-  | { kind: 'drawing'; vt: 'site' | 'plan' | 'elev' | 'section'; level?: number; dir?: 'N' | 'E' | 'S' | 'W'; scale?: number }
+  | { kind: 'drawing'; vt: 'site' | 'plan' | 'elev' | 'section' | 'context' | 'roof' | 'axo' | 'program'; level?: number; dir?: 'N' | 'E' | 'S' | 'W'; scale?: number; axis?: 'long' | 'cross'; label?: string }
   /** The analysis summary table: one line per check. */
   | { kind: 'table' }
 
@@ -87,9 +87,10 @@ export function sheetName(b: Board, i: number): string {
 export function sheetNumbers(boards: Board[]): string[] {
   const seen: Record<number, number> = {}
   return boards.map((b) => {
+    if (b.id.startsWith('arch-cover')) return 'A-000'
     const d = b.frames.find((f) => f.content.kind === 'drawing')
     const vt = d && d.content.kind === 'drawing' ? d.content.vt : null
-    const series = vt === 'site' ? 0 : vt === 'plan' ? 1 : vt === 'elev' ? 2 : vt === 'section' ? 3 : 9
+    const series = vt === 'site' || vt === 'context' ? 0 : vt === 'plan' || vt === 'roof' ? 1 : vt === 'elev' ? 2 : vt === 'section' ? 3 : vt === 'axo' || vt === 'program' ? 4 : 9
     seen[series] = (seen[series] ?? 0) + 1
     return `A-${series}${String(seen[series]).padStart(2, '0')}`
   })
