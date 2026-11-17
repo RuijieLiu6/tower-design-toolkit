@@ -19,6 +19,7 @@ import { useStore, useTowers } from '../../store'
 import { useCityData } from '../CityContext'
 import Help from '../Help'
 import SitePlan, { TowerGlyph } from './SitePlan'
+import LayersPanel from './LayersPanel'
 import SiteStreets, { planStreets } from './SiteStreets'
 import { useSiteStreets } from '../../lib/siteStreets'
 import { VTC_SITE } from '../../lib/siteGeometry'
@@ -71,13 +72,13 @@ export default function SiteInfo() {
   return (
     <>
       {project === 'city' ? <SiteNow /> : <VtcSite />}
-      <TowerList />
+      <LayersPanel />
     </>
   )
 }
 
-/** The towers on the site: select one, see which are new, rename or delete them (Undo brings a deleted one back). */
-function TowerList() {
+/** The towers on the site (replaced by components/site/LayersPanel.tsx, 16 Nov; kept for reference). */
+export function TowerList() {
   const towers = useTowers()
   const selected = useStore((s) => s.selectedTower)
   const added = useTowerAdds((s) => s.added)
