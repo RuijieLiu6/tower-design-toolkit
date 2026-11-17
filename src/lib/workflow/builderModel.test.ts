@@ -159,7 +159,7 @@ describe('filterEntries', () => {
     expect(filterEntries(list, { query: '', phase: null })).toHaveLength(list.length)
   })
   it('combines the query and the phase', () => {
-    expect(filterEntries(list, { query: 'wind', phase: 'form' }).map((e) => e.id).sort()).toEqual(['built.wind-screen', 'built.wind-study'])
+    expect(filterEntries(list, { query: 'wind', phase: 'form' }).map((e) => e.id).sort()).toEqual(['built.wind-comfort', 'built.wind-screen', 'built.wind-study'])
     expect(filterEntries(list, { query: 'wind', phase: 'program' })).toEqual([])
   })
 })

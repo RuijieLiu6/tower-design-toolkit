@@ -8,14 +8,14 @@ import {
   OctagonX, Orbit, Origami, Palette, PanelsTopLeft, Paperclip, Pentagon, PersonStanding, PlugZap, Presentation, Puzzle, Ratio, Rocket,
   Sailboat, Scale, Shapes, Shell, ShieldQuestionMark, ShoppingBag, Sigma, Snowflake, Sofa, Sparkles, Sprout, SquareParking, Star,
   Store, Sun, SunDim, SunMedium, Sunrise, Target, Telescope, Tent, TrainFront, TramFront, Trees, Triangle, Trophy, Umbrella, Users,
-  WandSparkles, Wind, Wrench, Eye, Plane, Zap,
+  WandSparkles, Wind, Wrench, Eye, Plane, Zap, Kite,
   type LucideIcon,
 } from '../components/icons'
 import {
   Aperture, BelowGrade, Building as BuildingIcon, Camera, ChartColumn, ClipboardList, Cloud, Columns3, CorePlan, Cuboid, FileCheck2, FileImage,
   FileJson, FileUp, Footprints, GitCommitHorizontal, GraduationCap, Grid2x2, Hammer, HardHat, ImagePlus, LandPlot, Layers2, LayoutGrid,
   LayoutPanelTop, MapPinned, SquareDashed, ScrollText, CircleCheckBig, Ban, GitCompareArrows, Network, Package, Axis3d, MessageSquare, MessagesSquare, Image as ImageIcon, PencilLine, PenTool, Recycle, Rows3,
-  Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
+  Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, WindowAir, EnergyMeter, Workflow,
 } from '../components/icons'
 import type { Category } from './registry'
 import type { Flag, UseId } from '../engine/types'
@@ -135,6 +135,14 @@ export const NODE_ICONS: Record<string, LucideIcon> = {
   'built.structure': Activity,
   'built.wind-study': FlagIcon,
   'built.wind-screen': Wind,
+  // Sun & Wind Studio port (16 Nov): a sail in the wind, taken out of the community pool (no free filled glyph reads "pedestrian wind comfort").
+  'built.wind-comfort': Sailboat,
+  // Sun & Wind Studio port, engine 2 (17 Nov): a sun at full strength, beside the plate-depth screen's light bulb.
+  'built.daylight-sw': SunMedium,
+  // Engine 3 (17 Nov): an open window with air passing through it.
+  'built.ventilation-sw': WindowAir,
+  // Engine 4 (17 Nov): a tower beside a bolt.
+  'built.energy-sw': EnergyMeter,
   'built.trips': Waypoints,
   'built.energy-carbon': PlugZap,
 }
@@ -144,7 +152,8 @@ export const COMMUNITY_ICON_POOL: LucideIcon[] = [
   Atom, FlaskRound, Brain, Cpu, Diamond, Dna, Droplet, Gem, Globe, Hexagon, Key, Magnet,
   Microscope, Moon, Octagon, Palette, Pentagon, Rocket, Shell, Snowflake, Star, Target, Tent, Triangle,
   Anchor, Award, Bell, Hourglass, Orbit, Clover, Origami, InfinityIcon,
-  Paperclip, Crown, Sailboat,
+  // Sailboat went to the wind comfort node (16 Nov); Kite keeps its slot so the pool stays 35 and community icons keep theirs.
+  Paperclip, Crown, Kite,
 ]
 
 function hash(s: string) {

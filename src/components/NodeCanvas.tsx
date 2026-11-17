@@ -11,6 +11,11 @@ import { useMobility } from '../hooks/useMobility'
 import { useFacade } from '../hooks/useFacade'
 import { useEnergyCarbon } from '../hooks/useEnergyCarbon'
 import { useWindScreen } from '../hooks/useWindScreen'
+import { useWindComfort, useWindComfortCurrent } from '../hooks/useWindComfort'
+import { useDaylightSW, useDaylightSWCurrent } from '../hooks/useDaylightSW'
+import { useVentilationSW, useVentilationSWCurrent } from '../hooks/useVentilationSW'
+import { useEnergySW, useEnergySWCurrent } from '../hooks/useEnergySW'
+import { BAND_NAMES } from '../engine/windComfortInput'
 import { useTrips } from '../hooks/useTrips'
 import { useCultureGate } from './CultureResults'
 import { useProvenanceIssues } from './ProvenanceResults'
@@ -59,6 +64,14 @@ export default function NodeCanvas() {
   const facade = useFacade()
   const energy = useEnergyCarbon()
   const windScreen = useWindScreen()
+  const { status: windComfortStatus } = useWindComfort()
+  const windComfort = useWindComfortCurrent()
+  const { status: daylightSWStatus } = useDaylightSW()
+  const daylightSW = useDaylightSWCurrent()
+  const { status: ventilationSWStatus } = useVentilationSW()
+  const ventilationSW = useVentilationSWCurrent()
+  const { status: energySWStatus } = useEnergySW()
+  const energySW = useEnergySWCurrent()
   const trips = useTrips()
   const towers = useTowers()
   const selectedTower = useStore((s) => s.selectedTower)
@@ -138,6 +151,43 @@ export default function NodeCanvas() {
         const highs = windScreen ? windScreen.towers.flatMap((t) => t.sectors).filter((s) => s.base === 'high' || s.corner === 'high').length : 0
         status = windScreen ? `${windScreen.study.required ? 'Wind study required' : 'Study not triggered everywhere'} · ${highs ? `${highs} high-risk direction${highs > 1 ? 's' : ''}` : 'no high-risk direction'} · screening` : '—'
         tone = !windScreen ? 'muted' : highs || windScreen.study.required ? 'warn' : 'ok'
+      } else if (n.id === 'built.energy-sw') {
+        if (energySWStatus === 'running') { status = 'Running…'; tone = 'muted' }
+        else if (energySWStatus === 'error') { status = 'Could not run'; tone = 'bad' }
+        else if (energySWStatus === 'ready' && energySW) {
+          const r = energySW.result
+          const fails = energySW.rules.filter((x) => x.id.startsWith('sw-en-') && x.state === 'fail').length
+          status = `TEUI ${r.teui.toFixed(0)} · TEDI ${r.tedi.toFixed(0)} · GHGI ${r.ghgi.toFixed(1)}`
+          tone = fails ? 'bad' : 'ok'
+        } else { status = '—'; tone = 'muted' }
+      } else if (n.id === 'built.ventilation-sw') {
+        if (ventilationSWStatus === 'running') { status = 'Running…'; tone = 'muted' }
+        else if (ventilationSWStatus === 'error') { status = 'Could not run'; tone = 'bad' }
+        else if (ventilationSWStatus === 'ready' && ventilationSW) {
+          const rd = ventilationSW.readings
+          const ok = ventilationSW.rules.find((r) => r.id === 'sw-vt-openable')?.state
+          status = `${rd.operableFloors ? `${rd.freePct.toFixed(1)}% openable` : 'no operable windows'} · windows ${Math.round(rd.openShare * 100)}% of hours`
+          tone = ok === 'pass' ? 'ok' : 'bad'
+        } else { status = '—'; tone = 'muted' }
+      } else if (n.id === 'built.daylight-sw') {
+        if (daylightSWStatus === 'running') { status = 'Running…'; tone = 'muted' }
+        else if (daylightSWStatus === 'error') { status = 'Could not run'; tone = 'bad' }
+        else if (daylightSWStatus === 'ready' && daylightSW) {
+          const rd = daylightSW.readings
+          const sda = daylightSW.rules.find((r) => r.id === 'sw-dl-sda')?.state
+          status = `sDA ${Math.round(rd.sda * 100)}% (${rd.points} pt${rd.points === 1 ? '' : 's'}) · ASE ${Math.round(rd.ase * 100)}%`
+          tone = sda === 'pass' ? (rd.ase <= 0.1 ? 'ok' : 'warn') : sda === 'fail' ? 'bad' : 'warn'
+        } else { status = '—'; tone = 'muted' }
+      } else if (n.id === 'built.wind-comfort') {
+        if (windComfortStatus === 'running') { status = 'Solving…'; tone = 'muted' }
+        else if (windComfortStatus === 'error') { status = 'Could not run'; tone = 'bad' }
+        else if (windComfortStatus === 'ready' && windComfort) {
+          const rd = windComfort.readings, cats = windComfort.result.cats
+          const top = cats.indexOf(Math.max(...cats))
+          const calm = windComfort.rules.find((r) => r.id === 'calm-ground')?.state
+          status = `${Math.round(rd.calm * 100)}% calm · plaza ${rd.hasPlaza ? `${rd.plazaWorst.toFixed(1)} m/s` : '—'} · mostly ${BAND_NAMES[top]}`
+          tone = calm === 'pass' ? 'ok' : calm === 'fail' ? 'bad' : 'warn'
+        } else { status = '—'; tone = 'muted' }
       } else if (n.id === 'built.trips') {
         status = trips ? `${Math.round(trips.am.in).toLocaleString('en-CA')} AM arrivals · link ${trips.station.required.toFixed(1)} m needed (comfort only)` : '—'
         tone = !trips ? 'muted' : trips.station.ratio > 1 ? 'warn' : 'muted'
@@ -167,7 +217,7 @@ export default function NodeCanvas() {
     }
     const report: Node<CardData> = { id: 'report', type: 'card', position: { x: 640, y: Math.max(0, (slots - 1) * 60) }, data: { title: 'Evidence report', category: 'PRES', subtitle: 'Results + sources + flags', inputs: true } }
     return { nodes: [...l0, ...evals, report], edges: e }
-  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, trips, facade, towers, selectedTower, model])
+  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, windComfortStatus, windComfort, daylightSWStatus, daylightSW, ventilationSWStatus, ventilationSW, energySWStatus, energySW, trips, facade, towers, selectedTower, model])
 
   return (
     <div className="h-full w-full bg-paper" aria-label="Node canvas">

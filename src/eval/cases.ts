@@ -18,7 +18,16 @@ import { matchParcels, validateRing } from '../engine/site'
 import { fromCity, normalizeCrs, toCity } from '../engine/geoLocate'
 import { addressLabel, cityRecords, createLookup, suggest } from '../lib/addressSearch'
 import { HEIGHT_CASES } from './heightCases'
-import type { Flag, Tower } from '../engine/types'
+import { plazaMask, siteRaster, WIND_GRID, windStudy, type WindStudyResult } from '../engine/windComfort'
+import { DEFAULT_WIND_PRESETS, readingsOf, SRC as WIND_COMFORT_SRC, windRules } from '../engine/windComfortInput'
+import type { Flag, RuleResult, Tower } from '../engine/types'
+import { aseTower, daylightTower, maskFloor, newCache, prep, type Zone } from '../engine/daylightSW'
+import { DEFAULT_DAYLIGHT_PRESETS, daylightRules, readingsOf as daylightReadings } from '../engine/daylightSWInput'
+import { DEFAULT_ZONES as SW_DEFAULT_ZONES } from '../engine/daylightSW'
+import { ventStudy, ventTowerQuick, type VentSettings } from '../engine/ventilationSW'
+import { DEFAULT_VENT_PRESETS, readingsOf as ventReadings, ventRules } from '../engine/ventilationSWInput'
+import { energyHourly, zoneGlazing as swZoneGlazing, type EnergyFloor, type EnergySettings, type Prog } from '../engine/energySW'
+import { DEFAULT_ENERGY_PRESETS, energyRules } from '../engine/energySWInput'
 
 export type CaseType = 'typical' | 'boundary' | 'out-of-scope' | 'repeated' | 'definition'
 
@@ -42,6 +51,56 @@ export interface EvalCase {
 type Outcome = { observed: string; pass: boolean; flag?: Flag }
 
 const square = (x: number, y: number, h = 1): [number, number][] => [[x - h, y - h], [x + h, y - h], [x + h, y + h], [x - h, y + h]]
+
+// Pedestrian wind comfort (Sun & Wind Studio port): one wind case on an empty domain, solved once for both cases (about a second).
+let windRun: { result: WindStudyResult; plaza: Uint8Array } | null = null
+function windCase() {
+  if (!windRun) {
+    const plaza = plazaMask([])
+    windRun = { plaza, result: windStudy(siteRaster([], null), { w: 46, d: 46, cx: 0, cy: 0, rot: 0, height: 285, footprint: [[-23, -23], [23, -23], [23, 23], [-23, 23]] }, plaza,
+      { annual: false, dir: 270, speed: 4.5, period: { from: '01-01', to: '12-31' }, strat: null }) }
+  }
+  return windRun
+}
+// Daylight sDA / ASE (Sun & Wind Studio port, engine 2): her 'plain' fixture case, run once (well under a second). The hourly
+// year and her fixtures load only when a case runs, so the app's bundle does not carry them.
+let dlRun: Promise<{ lines: (loaded: boolean) => RuleResult[]; sda: number; ase: number; herSda: number; herAse: number }> | null = null
+function dlCase() {
+  dlRun ??= (async () => {
+    const [{ default: hourly }, { default: fx }] = await Promise.all([import('../data/sunWindHourly.json'), import('../engine/daylight.fixtures.json')])
+    const c = fx.cases.find((x) => x.id === 'plain')!, t = c.tower
+    const floors = Array.from({ length: t.n }, (_, i) => maskFloor({ i, z: t.z0 + i * t.h, h: t.h, w: t.w, d: t.d, cx: t.cx, cy: t.cy, rot: t.rot, core: t.core }))
+    const s = { zones: c.zones as Zone[], vt: c.vt, target: c.target, posX: c.pos[0], posY: c.pos[1], bld: [], period: { from: '01-01', to: '12-31' } }
+    const P = prep(hourly as never), cache = newCache()
+    const D = daylightTower(P, floors, s, cache), A = aseTower(P, floors, s, hourly.days, cache)
+    const readings = daylightReadings(D, A, floors.map((f) => f.i + 1))
+    const lines = (loaded: boolean) => daylightRules({ readings, contextLoaded: loaded, unknownHeights: 0, glazing: { from: 'studio', note: 'Her plain case: curtain wall, WWR 60%, VT 0.60' }, presets: DEFAULT_DAYLIGHT_PRESETS, towerName: 'T', period: A.period, left: 0 })
+    return { lines, sda: D.sda, ase: A.pct, herSda: c.expected.tower.sda, herAse: c.expected.ase.pct }
+  })()
+  return dlRun
+}
+// Natural ventilation (Sun & Wind Studio port, engine 3): her 'cross-default' and 'sealed' fixture cases, run on demand.
+async function ventCase(id: 'cross-default' | 'sealed') {
+  const [{ default: hourly }, { default: fx }] = await Promise.all([import('../data/sunWindHourly.json'), import('../engine/ventilation.fixtures.json')])
+  const c = fx.cases.find((x) => x.id === id)!, t = c.tower
+  const floors = Array.from({ length: t.n }, (_, i) => maskFloor({ i, z: t.z0 + i * t.h, h: t.h, w: t.w, d: t.d, cx: t.cx, cy: t.cy, rot: t.rot, core: t.core }))
+  const zones = c.zones === 'default' ? SW_DEFAULT_ZONES : (c.zones as Zone[]), V = c.vent as VentSettings
+  const v = ventStudy(prep(hourly as never), { temp: hourly.temp, months: hourly.months, days: hourly.days }, floors, zones, V, { from: '01-01', to: '12-31' }, c.height)
+  const q = ventTowerQuick(floors, zones, V.open, c.pos[0], c.pos[1])
+  const lines = ventRules({ readings: ventReadings(v, q), presets: { ...DEFAULT_VENT_PRESETS, ...V }, glazing: { from: 'studio', note: 'Her case ' + id }, towerName: 'T', period: 'whole year', levels: floors.map((f) => f.i + 1), left: 0 })
+  return { lines, total: v.total, herTotal: c.expected.vent.total, freePct: q.freePct, herFree: c.expected.quick.freePct }
+}
+// Energy use (Sun & Wind Studio port, engine 4): one of her fixture cases, run on demand (about a second).
+async function energyCase(id: 'office-hp' | 'mixed-gas-daylit') {
+  const [{ default: hourly }, { default: fx }] = await Promise.all([import('../data/sunWindHourly.json'), import('../engine/energy.fixtures.json')])
+  const c = fx.cases.find((x) => x.id === id)!
+  const zones = c.zones === 'default' ? SW_DEFAULT_ZONES : (c.zones as Zone[])
+  const floors: EnergyFloor[] = c.floors.map((f) => ({ ...f, prog: f.prog as Prog, glazing: { N: swZoneGlazing(zones, f.i + 1, 'N'), E: swZoneGlazing(zones, f.i + 1, 'E'), S: swZoneGlazing(zones, f.i + 1, 'S'), W: swZoneGlazing(zones, f.i + 1, 'W') } }))
+  const r = energyHourly(prep(hourly as never), { tz: hourly.tz, days: hourly.days }, floors, c.E as EnergySettings, c.dsf)
+  const lines = energyRules({ result: r, presets: { ...DEFAULT_ENERGY_PRESETS, ...(c.E as EnergySettings) }, glazing: { from: 'studio', note: 'Her case ' + id }, towerName: 'T', dimmed: !!c.dsf })
+  return { r, lines, her: c.expected }
+}
+const windLines = (loaded: boolean) => { const { result } = windCase(); return windRules({ readings: readingsOf(result, 0), result, obstacles: { loaded, unknownHeights: 0, source: WIND_COMFORT_SRC.vtc }, presets: DEFAULT_WIND_PRESETS, towerName: 'T' }) }
 const cone = (id: string) => CONES.find((c) => c.id === id)!
 const f2 = (v: number) => v.toFixed(2)
 
@@ -165,6 +224,105 @@ export const CASES: EvalCase[] = [
     input: '40 m building, 46 × 46 m plate', expected: 'Height rule passes (60 m or less); not a tall-building case',
     basis: 'NBC 2020 4.1.7.2(2)(b)', basisFlag: 'verified',
     run: () => { const w = windProcedure(box({ height: 40, podiumHeight: 0 })); const s = w.rules.find((r) => r.id === 'height-60')?.state; return { observed: `height rule: ${s}; procedure ${w.procedure}`, pass: s === 'pass', flag: 'verified' } },
+  },
+
+  // ---------- Pedestrian wind comfort (Sun & Wind Studio port, Sinnie Choi) ----------
+  {
+    id: 'WC-T', node: 'built.wind-comfort', type: 'typical', title: 'One wind case on an empty domain: a calm-ground line, and the bands add up to the open ground',
+    input: 'A 46 × 46 m tower of 285 m alone on the 680 × 440 m domain, wind from 270° at 4.5 m/s, context loaded (empty)',
+    expected: `The calm-ground line is judged (pass, warn or fail) and the five bands sum to the open ground: ${WIND_GRID.nx * WIND_GRID.ny} cells × 16 m² less the solid cells × 16 m²`,
+    basis: 'Sun & Wind Studio outputs recorded in src/engine/windComfort.fixtures.json', basisFlag: 'unverified',
+    run: () => {
+      const { result } = windCase()
+      const line = windLines(true).find((r) => r.id === 'calm-ground')
+      let solid = 0
+      for (let k = 0; k < result.a.solid.length; k++) if (result.a.solid[k]) solid++
+      const open = (WIND_GRID.nx * WIND_GRID.ny - solid) * WIND_GRID.cs * WIND_GRID.cs
+      const sum = result.cats.reduce((a, b) => a + b, 0)
+      const judged = !!line && ['pass', 'warn', 'fail'].includes(line.state)
+      return { observed: `calm-ground ${line?.state ?? 'missing'} (${line?.value ?? ''}); bands ${sum.toLocaleString('en-CA')} m² of ${open.toLocaleString('en-CA')} m² open ground (${solid} solid cells)`, pass: judged && Math.abs(sum - open) < 1e-6, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'WC-O', node: 'built.wind-comfort', type: 'out-of-scope', title: 'No context loaded: the calm-ground line stays open, never a pass',
+    input: 'The same run with obstacles.loaded = false (no competition context or City layers)',
+    expected: 'The calm-ground line has state "unknown": a tower alone on open ground is optimistic, so it is not judged',
+    basis: 'Team rule (engine/windComfortInput.ts windRules): a result without context is reported, not judged', basisFlag: 'team_assumption',
+    run: () => { const line = windLines(false).find((r) => r.id === 'calm-ground'); return { observed: `calm-ground ${line?.state ?? 'missing'}`, pass: line?.state === 'unknown', flag: 'team_assumption' } },
+  },
+
+  // ---------- Energy use: TEUI / TEDI / GHGI (Sun & Wind Studio port, Sinnie Choi) ----------
+  {
+    id: 'ES-T', node: 'built.energy-sw', type: 'typical', title: 'Her office tower on a heat pump: the port gives her TEUI, TEDI and GHGI, and the TEUI line is judged against the office target',
+    input: 'Twenty office floors of 46 × 46 m, her default facade, envelope and systems (heat pump, 70% heat recovery), no daylight dimming',
+    expected: 'TEUI, TEDI and GHGI equal what her own code recorded for this case (src/engine/energy.fixtures.json, "office-hp"); the target is her office row (100 / 20 / 3) and the TEUI line is pass or fail',
+    basis: 'Sun & Wind Studio outputs recorded in src/engine/energy.fixtures.json', basisFlag: 'unverified',
+    run: async () => {
+      const { r, lines, her } = await energyCase('office-hp')
+      const line = lines.find((x) => x.id === 'sw-en-teui')
+      const judged = !!line && (line.state === 'pass' || line.state === 'fail')
+      return { observed: `TEUI ${r.teui.toFixed(2)} (hers ${her.teui.toFixed(2)}), TEDI ${r.tedi.toFixed(2)}, GHGI ${r.ghgi.toFixed(3)}; target ${r.tgt.teui}; line ${line?.state ?? 'missing'}`, pass: judged && r.teui === her.teui && r.tedi === her.tedi && r.ghgi === her.ghgi && r.tgt.teui === 100, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'ES-B', node: 'built.energy-sw', type: 'boundary', title: 'A gas-heated mixed tower: GHGI fails her target while the heat pump would pass',
+    input: 'Her "mixed-gas-daylit" case: a retail podium, offices and homes, gas boiler for heating and hot water',
+    expected: 'The GHGI line fails (gas at 0.18 kg/kWh against BC electricity at 0.011), its fix names the heat pump',
+    basis: 'Her emission factors and targets (energy.js), recorded in src/engine/energy.fixtures.json', basisFlag: 'unverified',
+    run: async () => {
+      const { r, lines } = await energyCase('mixed-gas-daylit')
+      const line = lines.find((x) => x.id === 'sw-en-ghgi')
+      return { observed: `GHGI ${r.ghgi.toFixed(2)} against ${r.tgt.ghgi.toFixed(2)}: ${line?.state ?? 'missing'}`, pass: line?.state === 'fail', flag: 'unverified' }
+    },
+  },
+
+  // ---------- Natural ventilation potential (Sun & Wind Studio port, Sinnie Choi) ----------
+  {
+    id: 'VT-T', node: 'built.ventilation-sw', type: 'typical', title: 'Her default facade, cross ventilation: the port gives her hours and openable area, and the 62.1 line is judged',
+    input: 'Thirty floors of a 46 × 46 m tower with her default facade zones (all four faces operable), 10% of the glass opening, fixed 12–24 °C band, 8 m/s gust limit, the whole year',
+    expected: 'The open-window hours and the openable area equal what her own code recorded for this case (src/engine/ventilation.fixtures.json, "cross-default"), and the openable-area line is pass or fail',
+    basis: 'Sun & Wind Studio outputs recorded in src/engine/ventilation.fixtures.json', basisFlag: 'unverified',
+    run: async () => {
+      const r = await ventCase('cross-default')
+      const line = r.lines.find((x) => x.id === 'sw-vt-openable')
+      const judged = !!line && (line.state === 'pass' || line.state === 'fail')
+      return { observed: `open-window hour sum ${r.total.toFixed(2)} (hers ${r.herTotal.toFixed(2)}), openable ${r.freePct.toFixed(2)}% (hers ${r.herFree.toFixed(2)}%); line ${line?.state ?? 'missing'}: ${line?.value ?? ''}`, pass: judged && r.total === r.herTotal && r.freePct === r.herFree, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'VT-O', node: 'built.ventilation-sw', type: 'out-of-scope', title: 'A sealed facade: no operable window, so the 62.1 lines fail and no hour is counted',
+    input: 'Four floors of a 30 × 20 m tower, curtain wall with no operable zone (her case "sealed")',
+    expected: 'Openable area and 8 m reach read "none" and fail; the hours line counts 0% (natural ventilation is out of scope for a sealed facade)',
+    basis: 'Team rule (engine/ventilationSWInput.ts ventRules): no operable face is never a pass', basisFlag: 'team_assumption',
+    run: async () => {
+      const r = await ventCase('sealed')
+      const a = r.lines.find((x) => x.id === 'sw-vt-openable'), b = r.lines.find((x) => x.id === 'sw-vt-within8')
+      return { observed: `openable ${a?.state} (${a?.value}), within 8 m ${b?.state}, hour sum ${r.total}`, pass: a?.state === 'fail' && b?.state === 'fail' && r.total === 0, flag: 'team_assumption' }
+    },
+  },
+
+  // ---------- Daylight sDA / ASE (Sun & Wind Studio port, Sinnie Choi) ----------
+  {
+    id: 'DL-T', node: 'built.daylight-sw', type: 'typical', title: 'Her plain tower: the port gives her sDA and ASE, and the sDA line is judged',
+    input: 'Six floors of a 46 × 46 m curtain-wall tower (WWR 60%, VT 0.60, 16 m core, 4.2 m floors), no neighbours, context loaded (empty), the whole year',
+    expected: 'sDA and ASE equal to the values her own code recorded for this case (src/engine/daylight.fixtures.json, case "plain"), and the sDA line is pass or fail with its LEED points',
+    basis: 'Sun & Wind Studio outputs recorded in src/engine/daylight.fixtures.json', basisFlag: 'unverified',
+    run: async () => {
+      const r = await dlCase()
+      const line = r.lines(true).find((x) => x.id === 'sw-dl-sda')
+      const judged = !!line && (line.state === 'pass' || line.state === 'fail')
+      return { observed: `sDA ${(r.sda * 100).toFixed(2)}% (hers ${(r.herSda * 100).toFixed(2)}%), ASE ${(r.ase * 100).toFixed(2)}% (hers ${(r.herAse * 100).toFixed(2)}%); sDA line ${line?.state ?? 'missing'}: ${line?.value ?? ''}`, pass: judged && r.sda === r.herSda && r.ase === r.herAse, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'DL-O', node: 'built.daylight-sw', type: 'out-of-scope', title: 'No context loaded: sDA, ASE and the daylight factor stay open, never a pass',
+    input: 'The same run with the context not loaded (no competition context or City layers)',
+    expected: 'The sDA, ASE and daylight-factor lines have state "unknown": without neighbours nothing shades the windows, so they are not judged',
+    basis: 'Team rule (engine/daylightSWInput.ts daylightRules): a result without context is reported, not judged', basisFlag: 'team_assumption',
+    run: async () => {
+      const lines = (await dlCase()).lines(false).filter((x) => ['sw-dl-sda', 'sw-dl-ase', 'sw-dl-df'].includes(x.id))
+      return { observed: lines.map((x) => `${x.id} ${x.state}`).join(', '), pass: lines.length === 3 && lines.every((x) => x.state === 'unknown'), flag: 'team_assumption' }
+    },
   },
 
   // ---------- Energy & carbon ----------

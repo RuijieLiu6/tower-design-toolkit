@@ -35,6 +35,10 @@ export const NODE_NEEDS: Record<string, NodeNeeds> = {
   'built.structure': { reads: ['the tower height, floor areas and core'], asks: ['outrigger floors, if any'] },
   'built.wind-study': { reads: ['each tower’s height'], asks: [] },
   'built.wind-screen': { reads: ['the towers and the context buildings upwind', 'the wind record at the airport'], asks: [] },
+  'built.wind-comfort': { reads: ['the selected tower and its podium', 'the context buildings and future towers', 'the Vancouver wind rose'], asks: [] },
+  'built.daylight-sw': { reads: ['the selected tower’s occupied floor plates, core and floor heights', 'the facade node’s glazing when it is on', 'the context buildings and future towers', 'the Vancouver typical-year sky'], asks: [] },
+  'built.ventilation-sw': { reads: ['the selected tower’s occupied floor plates, core and floor heights', 'the facade node’s glazing when it is on', 'the Vancouver typical-year temperature, wind and rain'], asks: ['which faces have operable windows'] },
+  'built.energy-sw': { reads: ['every floor of the selected tower, its use, plate, core and height', 'the facade node’s glazing when it is on', 'the context (for daylight dimming)', 'the Vancouver typical-year weather'], asks: ['the envelope and systems (her defaults)'] },
   'built.trips': { reads: ['the people in each tower from the lift check', 'the retail and civic areas'], asks: ['the share arriving by the station link'] },
   'built.energy-carbon': { reads: ['the floor areas by use', 'the lift count', 'the roofs and facades for PV'], asks: ['the envelope and heating choices', 'the structure system for embodied carbon'] },
 }

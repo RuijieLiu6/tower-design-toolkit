@@ -5,6 +5,10 @@
 // (obligation, prohibition, permission); "recommendation" marks guidance documents that bind no one. Strength: strict,
 // or defeasible when the text admits exceptions or departures.
 import type { Flag, Source } from '../engine/types'
+import { SRC as WIND_COMFORT_SRC } from '../engine/windComfortInput'
+import { SRC as DAYLIGHT_SW_SRC } from '../engine/daylightSWInput'
+import { SRC as VENTILATION_SW_SRC } from '../engine/ventilationSWInput'
+import { SRC as ENERGY_SW_SRC } from '../engine/energySWInput'
 
 export type Deontic = 'obligation' | 'prohibition' | 'permission' | 'recommendation'
 export type Strength = 'strict' | 'defeasible'
@@ -143,6 +147,48 @@ export const RULE_CARDS: RuleCard[] = [
     usedBy: ['built.wind-procedure'], results: ['wind:height-60', 'wind:aspect', 'wind:f1'],
   },
   {
+    id: 'lawson.sunwind', title: 'Lawson pedestrian comfort bands (as applied in Sun & Wind Studio)', source: WIND_COMFORT_SRC.lawson,
+    summary: 'At pedestrian level a mean wind speed up to 2.5 m/s suits sitting, up to 4 m/s standing, up to 6 m/s strolling and up to 8 m/s walking; above that the ground is uncomfortable for any use.',
+    parameter: 'mean pedestrian-level wind speed', rule: 'band by mean speed', deontic: 'recommendation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.wind-comfort'], results: ['windComfort:calm-ground', 'windComfort:plaza-peak', 'windComfort:uncomfortable'],
+    note: 'No Lawson edition is cited in her code (study.js): the thresholds are taken as her app applies them, so the card stays unverified until a person reads the criteria she used.',
+  },
+  {
+    id: 'leed.daylight.sunwind', title: 'LEED v4.1 EQ Daylight, option 1 (as applied in Sun & Wind Studio)', source: DAYLIGHT_SW_SRC.leed,
+    summary: 'Spatial daylight autonomy: the share of regularly occupied floor that reaches 300 lux from daylight for at least half the occupied hours earns 1 point at 40%, 2 at 55% and 3 at 75%. Annual sunlight exposure: the floor in direct sun over 1,000 lux for more than 250 hours should stay at or under 10%, or glare control be shown.',
+    parameter: 'sDA300/50% and ASE1000/250h of the analysed floors', rule: 'sDA ≥ 40 / 55 / 75%; ASE ≤ 10%', deontic: 'recommendation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.daylight-sw'], results: ['daylightSW:sw-dl-sda', 'daylightSW:sw-dl-ase'],
+    note: 'Her code (study.js keyItems, leedCard) names LEED v4.1 EQ Daylight option 1 and these thresholds; the USGBC reference guide was not opened here, so the card stays unverified until a person checks it. A LEED credit is a voluntary rating, not a by-law.',
+  },
+  {
+    id: 'en17037.df.sunwind', title: 'Mean daylight factor (EN 17037 as labelled in Sun & Wind Studio)', source: DAYLIGHT_SW_SRC.df,
+    summary: 'Under an overcast sky a room with a mean daylight factor of 2% reads as well daylit; under 1% it needs electric light most of the day.',
+    parameter: 'mean daylight factor of the analysed floors', rule: '≥ 2% good, ≥ 1% fair', deontic: 'recommendation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.daylight-sw'], results: ['daylightSW:sw-dl-df'],
+    note: 'Her app labels this reading EN 17037 without an edition or clause, and EN 17037 itself sets targets as illuminance over half the daylight hours, not a mean DF: the card stays unverified until a person reads the standard she meant.',
+  },
+  {
+    id: 'ashrae621.natvent.sunwind', title: 'ASHRAE 62.1 natural ventilation: openable area and reach (as applied in Sun & Wind Studio)', source: VENTILATION_SW_SRC.ashrae621,
+    summary: 'A naturally ventilated space needs operable openings whose free area is at least 4% of the floor they serve, and every point of that floor within 8 m of one.',
+    parameter: 'free opening area over the floor served; floor within 8 m of an operable opening', rule: '≥ 4%; every point within 8 m', deontic: 'obligation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.ventilation-sw'], results: ['ventilationSW:sw-vt-openable', 'ventilationSW:sw-vt-within8'],
+    note: 'Her code (study.js keyItems, leedCard) states these two conditions and names ASHRAE 62.1 without an edition; the standard was not opened here, so the card stays unverified until a person checks the edition the project uses.',
+  },
+  {
+    id: 'ashrae55.adaptive.sunwind', title: 'ASHRAE 55 adaptive comfort band (as applied in Sun & Wind Studio)', source: VENTILATION_SW_SRC.ashrae55,
+    summary: 'In a naturally ventilated space the comfortable operative temperature follows the prevailing mean outdoor temperature: 0.31 times it plus 17.8 °C, give or take 3.5 K, while that mean lies between 10 and 33.5 °C.',
+    parameter: 'room air (outdoor + ΔT) against the band', rule: 'within 0.31 Tpma + 17.8 ± 3.5 °C', deontic: 'recommendation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.ventilation-sw'], results: ['ventilationSW:sw-vt-hours'],
+    note: 'Her code (study.js ventStudy) applies the adaptive band with the 3.5 K width and the 10–33.5 °C range, without naming an edition or the acceptability level; the standard was not opened here, so the card stays unverified.',
+  },
+  {
+    id: 'cov.rezoning-targets.sunwind', title: 'City of Vancouver rezoning energy targets by program (as stated in Sun & Wind Studio)', source: ENERGY_SW_SRC.targets,
+    summary: 'A rezoned building should keep its total energy use, its heating demand and its greenhouse gas emissions per square metre under limits that depend on its use (homes, offices, hotels, retail and others), here weighted by each use\u2019s floor area.',
+    parameter: 'TEUI, TEDI and GHGI of the modelled tower', rule: 'each ≤ the program-weighted target', deontic: 'obligation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.energy-sw'], results: ['energySW:sw-en-teui', 'energySW:sw-en-tedi', 'energySW:sw-en-ghgi'],
+    note: 'Her code (energy.js TARGETS) calls these "indicative City of Vancouver rezoning targets (Zero Emissions Building Plan, approximate)" and cites no document; the Energy & carbon node carries the limits research P04 read. Unverified until a person checks the City\u2019s current rezoning policy.',
+  },
+  {
     id: 'nbc.wall-continuity', title: 'Seismic walls continuous to the foundation', source: { ...NBC, page: 'Div B 4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
     summary: 'For long-period buildings in high-hazard areas, the walls that resist earthquakes must run unbroken down to the foundation: no transfers or offsets.',
     parameter: 'the core walls (SFRS)', rule: 'continuous top to foundation', deontic: 'prohibition', strength: 'strict', flag: 'verified',
@@ -222,4 +268,8 @@ export const NODE_GROUPS: Record<string, string[]> = {
   'built.vtc-rules': ['rules'], 'built.core-lifts': ['lifts'], 'built.egress': ['egress'], 'built.sky-room': ['skyRooms'],
   'built.pr-streetwall': ['streetwall'], 'built.pr-frontage': ['frontage'], 'built.pr-ground': ['groundPlane'], 'built.viewcones': ['cones'],
   'built.city-in-nature': ['nature'], 'built.wind-procedure': ['wind'], 'built.structure': ['structure'], 'built.wind-study': ['windStudy'], 'built.life-safety': ['lifeSafety'], 'built.relax-aviation': ['relaxAviation'],
+  'built.wind-comfort': ['windComfort'],
+  'built.daylight-sw': ['daylightSW'],
+  'built.ventilation-sw': ['ventilationSW'],
+  'built.energy-sw': ['energySW'],
 }

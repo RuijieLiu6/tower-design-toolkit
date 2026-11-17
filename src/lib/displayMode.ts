@@ -61,12 +61,13 @@ export function modeFromCityStyle(prev: DisplayMode, style: 'plain' | 'context',
 }
 
 // ---------------------------------------------------------------- analysis layers
-export type AnalysisLayerId = 'solar' | 'surface-sun' | 'wind'
+export type AnalysisLayerId = 'solar' | 'surface-sun' | 'wind' | 'wind-comfort'
 /** The analytical colour layers the model can carry, each owned by one check (node). */
 export const ANALYSIS_LAYERS: { id: AnalysisLayerId; node: string; word: string; hint: string }[] = [
   { id: 'solar', node: 'built.solar-access', word: 'Sun hours', hint: 'Hours of direct sun on the ground (or hours lost to the design), Solar access check' },
   { id: 'surface-sun', node: 'built.energy-carbon', word: 'Sun on surfaces', hint: 'Modelled annual sun on roofs and facades, kWh/m²·yr, Energy & carbon check' },
   { id: 'wind', node: 'built.wind-screen', word: 'Wind risk', hint: 'Indicative pedestrian wind risk zones (screening, not CFD), Wind screen check' },
+  { id: 'wind-comfort', node: 'built.wind-comfort', word: 'Wind comfort', hint: 'Lawson comfort bands on the ground with and without the tower (Sun & Wind Studio port, indicative)' },
 ]
 export const layerOfNode = (node: string | null): AnalysisLayerId | null => ANALYSIS_LAYERS.find((l) => l.node === node)?.id ?? null
 

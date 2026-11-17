@@ -257,6 +257,282 @@ the view; bring that layout into the main tool. Branch `tool-rail` from `main`, 
   no rail in Present) PASS · `e2e/phase-panel.e2e.ts` PASS · `e2e/massing-edit.e2e.ts` PASS. Screenshots:
   `docs/evaluation/2026-11-16-tool-rail/01-tool-rail.png` and `02-tool-rail-hidden.png`.
 
+---
+
+<!-- Merged 17 Nov 2026: the Sun & Wind Studio log (branches sun-wind-port … sun-wind-energy), with Sinnie's OK. -->
+
+# CHECKPOINT: Sun & Wind Studio merge, engine 4 of 4: energy use, TEUI / TEDI / GHGI (17 Nov 2026)
+
+Same brief as engines 1–3 (below). Branch `sun-wind-energy`, cut from `sun-wind-ventilation` 6d39d0a, worktree
+`tower-studio-sw`. Pushed for review, **not merged, not deployed**; her written OK (§1c, status line added) still pending.
+With this, all four engines of her agreed order are ported, each on its own stacked branch.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/energySW.ts`): energy.js `modelHourly`, the ISO 13790 simple hourly method
+  (5R1C) her app runs whenever the hourly weather is loaded (her monthly model is only its fallback and is not ported):
+  one zone per program, every hour of the CWEC2020 year, Perez solar gains per face at its true azimuth × 0.9 × her
+  context shading, outdoor air with heat recovery and setbacks (±4 K) on each program's schedule, her residential and
+  hotel profiles, lighting dimmed by each floor's monthly daylight share for programs not lived in around the clock,
+  heat-pump and chiller COP following the outdoor temperature, hot water, fans / pumps / lifts; TEUI, TEDI, GHGI (her
+  factors 0.18 gas / 0.011 electricity) against her indicative City targets weighted by program area; heat-loss paths,
+  peaks, overheating of unconditioned zones. Plus core.js `finishMask` (facade length by world orientation, area, sky
+  garden) and study.js `zoneGlazing` (her solar-study transmittance per zone is not available, so the strategy modifier).
+- **Fixtures from her own code**: `tools/sunwind-energy-fixtures.cjs` at **c24addb**, four cases: 20 office floors on a
+  heat pump; a retail podium with offices and homes above on gas, heavy mass, 50% recovery, daylight dimming; a turned
+  hotel and housing tower on electric resistance, light mass, 22/24 °C, U 2.0 glass, double skin and fins by level;
+  housing under a sky garden, an amenity and a plant floor (unconditioned). `src/engine/energy.fixtures.json` (38 KB).
+  **Bit for bit (tolerance 0)**: every program row, the monthly end uses, losses, glazing, envelope, people, peaks, the
+  hourly load sums, and her finishMask facade lengths and areas (`energySW.test.ts`, 5 tests).
+- **Mapping** (`src/engine/energySWInput.ts`): every floor of the selected tower in her frame (true north), the Toolkit
+  uses as her programs (residential → resi, civic and amenity → public, mechanical → her unconditioned plant zone), facade
+  lengths and area from her finishMask on each plate, the exposed top of each floor = what the floor above does not
+  cover, glazing from the facade node when on else her default zones, her envelope and systems as presets; daylight
+  dimming runs the daylight port (with the context) in the same worker first.
+- **Node `built.energy-sw`** "Energy use: TEUI / TEDI / GHGI (Sun & Wind Studio)", ENER, Schematic, both projects, off by
+  default: worker `src/workers/energyWorker.ts`, hook + store `src/hooks/useEnergySW.ts` (`ts.energySW`), card
+  `EnergySWResults.tsx` (TEUI / TEDI / GHGI tiles against target, end uses by month, per-program table, heat-loss paths,
+  lines, presets), canvas status, trace digest group `energySW`, rule card `cov.rezoning-targets.sunwind` (unverified),
+  FIXES `sw-en-*`, evidence lint, eval cases ES-T / ES-B, Sources hub, every list, a new `EnergyMeter` icon.
+- **Relation to "Energy & carbon"**: kept as it is. That node reads the VBBL / Higher Buildings Policy limits (research
+  P04), embodied carbon and PV with team end-use presets; this one models the hourly energy. Both report TEUI / TEDI /
+  GHGI; this one's targets are hers, flagged unverified, and its TEUI line says where the researched limits live.
+
+## Choices made (recommended options)
+- The hourly 5R1C model (what her app runs), not her monthly fallback.
+- Toolkit amenity → her conditioned "public" (her "amenity" is an open sky garden); mechanical → her plant zone.
+- Daylight dimming on by default (her page credits it once daylight has run); context for it as the daylight node's.
+- Exposed roofs from the plate above; no covered voids (the Toolkit's plates are solid).
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,283 pass; only the 2 CRLF data-file checks fail, in worktrees only |
+| `energySW.test.ts` (her fixtures) | 5/5, tolerance 0 |
+| `energySWInput.test.ts` | 3/3 |
+| `e2e/energy-sw.e2e.ts` (Edge, competition site, 67 floors) | 1/1: daylight for dimming then the hourly model in seconds, tiles, monthly, programs, losses, flagged lines, no "Verified"; a gas boiler raises GHGI |
+| e2e reruns: daylight, ventilation (rerun wait made robust), wind comfort, phase-panel, node-icons | 5/5 (Edge) |
+| Real Vancouver, her app side by side | NOT RUN |
+
+Screenshots: `test-results/energy-sw.png`, `test-results/energy-sw-card.png` (worktree, not committed).
+
+## Next
+Her written OK (§1c) before any merge. Then: the four stacked branches can merge in order (wind → daylight →
+ventilation → energy); open questions for her: north on the competition model, her solar-study transmittance per zone.
+
+---
+
+# CHECKPOINT: Sun & Wind Studio merge, engine 3 of 4: natural-ventilation potential (17 Nov 2026)
+
+Same brief as engines 1 and 2 (below). Branch `sun-wind-ventilation`, cut from `sun-wind-daylight` bdf5628, worktree
+`tower-studio-sw`. Pushed for review, **not merged, not deployed**; her written OK (§1c, status line added) still pending.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/ventilationSW.ts`): study.js `ventStudy` (hour by hour over the period: windows
+  open when the room air, outdoor + ΔT, is in her fixed band or the ASHRAE 55 adaptive band 0.31 Tpma + 17.8 ± 3.5 °C, the
+  gust 1.8 × the station wind carried to the floor height (`siteWind`, ASHRAE boundary layers) is under her limit, ×1.6 for
+  a double skin, and it is not raining over 1 mm/h), `ventFlow` (wind pressure by face angle, `cpFace`, and stack pressure
+  through each operable opening, balanced by 32-step bisection; cross, single-sided with BS 5925 turbulence, or a stack
+  shaft three storeys up), `ventOpenings`, and the ASHRAE 62.1 quick check `ventFloorQuick` / `ventTowerQuick` (free area
+  over the floor, every cell within 8 m of an operable opening). The shared physics (`daylightSW.ts` `prep`) now also
+  carries her hourly wind, direction, rain, daily means and the prevailing mean outdoor temperature.
+- **Data**: `src/data/sunWindHourly.json` gains `ws`, `wd`, `rain`, monthly `temp` and `months` (200 KB, worker and lazy eval only).
+- **Fixtures from her own code**: `tools/sunwind-ventilation-fixtures.cjs` at **c24addb**, six cases: her default facade
+  with cross flow (30 floors); single-sided with the adaptive band in summer; a 70-floor stack case with an operable
+  double skin to L25, sealed above, 6 m/s gust limit; a 40 × 28 m plate turned 30° with only north and south operable,
+  15% opening, ΔT 2 K, April–September; an L plate with one operable face across the year end; a sealed facade; plus
+  her prevailing-mean temperature, Cp and site-wind values, and `ventFlow` in all three modes on one floor.
+  `src/engine/ventilation.fixtures.json` (40 KB). **Bit for bit (tolerance 0)**: monthly rows, per-floor shares, median
+  ACH, the hourly grid, the limit floor, 62.1 per floor (`ventilationSW.test.ts`, 8 tests). The daylight fixtures still
+  match after the shared `prep` change (13/13).
+- **Mapping** (`src/engine/ventilationSWInput.ts`): the daylight port's plates (occupied floors, true north, core);
+  glazing from the facade node when on, else her default zones; which faces open and her settings (mode, band, gust
+  limit, opening share, ΔT, period, north) as node presets. Her model reads no context buildings.
+- **Node `built.ventilation-sw`** "Natural ventilation potential (Sun & Wind Studio)", CLIM, Schematic, both projects, off
+  by default: worker `src/workers/ventilationWorker.ts`, hook + store `src/hooks/useVentilationSW.ts` (`ts.ventilationSW`),
+  card `VentilationSWResults.tsx` (openable area, within 8 m and hours tiles; by month against comfortable hours; by
+  floor; her week × hour carpet; lines; presets), canvas status, trace digest group `ventilationSW`, rule cards
+  `ashrae621.natvent.sunwind` and `ashrae55.adaptive.sunwind` (unverified), FIXES `sw-vt-*`, evidence lint, eval cases
+  VT-T / VT-O, Sources hub, every list, and a new `WindowAir` icon (line + filled drawing).
+- **Evidence lines** (all unverified, sourced): openable area ≥ 4% (fail below or with no operable face), within 8 m
+  (≥ 95% pass, else warn, as her app), hours the windows do the work, highest floor that can open, open hours meeting
+  her 0.35 L/s·m² outdoor air, glazing and openings used (team assumption), method.
+
+## Choices made (recommended options)
+- Plates turned to true north as daylight (her wind direction and face pressures depend on it); preset for her frame.
+- Operable faces default to all four (her default facade opens all four); the facade node has no operable field.
+- Highest floor reported with the Toolkit level number.
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,273 pass; only the 2 CRLF data-file checks fail, in worktrees only |
+| `ventilationSW.test.ts` (her fixtures) | 8/8, tolerance 0 |
+| `ventilationSWInput.test.ts` | 2/2 |
+| `e2e/ventilation-sw.e2e.ts` (Edge, competition site, 67 floors) | 1/1: on in Schematic, runs in seconds, tiles, bars, carpet, flagged lines, no "Verified", single-sided adaptive rerun changes the readings |
+| `e2e/daylight-sw.e2e.ts`, `e2e/wind-comfort.e2e.ts` reruns | 2/2 |
+| Real Vancouver, her app side by side | NOT RUN |
+
+Screenshots: `test-results/ventilation-sw.png`, `test-results/ventilation-sw-card.png` (worktree, not committed).
+
+## Next
+Engine 4: the monthly energy model (`energy.js`, ISO 13790 5R1C, TEUI / TEDI / GHGI) on `sun-wind-energy` from this branch.
+
+---
+
+# CHECKPOINT: Sun & Wind Studio merge, engine 2 of 4: daylight sDA / ASE (17 Nov 2026)
+
+Same brief as engine 1 (below): Ruijie, 16 Nov, "start merging Sinnie's tool into the platform", in her order wind comfort →
+**daylight** → ventilation → energy. Branch `sun-wind-daylight`, cut from `sun-wind-port` b40e26a, worktree `tower-studio-sw`.
+Pushed for review, **not merged, not deployed**: her written OK (`04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1c, status
+line added for engine 2) is still pending. Ruijie was away overnight and approved the recommended option on every decision;
+the decisions taken are listed under "Choices made".
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/daylightSW.ts`): physics.js (NOAA sun for every hour of the CWEC year, Perez
+  1990 sky on each vertical face, Perez luminous efficacy, LM-83 occupied hours 8:00–18:00 clock time with her monthly
+  clock offsets) and the daylight half of study.js: per 1 m mask cell, sixteen sight lines to the glass under the CIE
+  overcast sky with the BRE externally reflected component (obstruction angle per cardinal face from the context
+  buildings 15–160 m away) and the BRE split-flux internally reflected component → daylight factor; each face's Perez sky
+  hour by hour → DA300, sDA300/50%, UDI 100–3000 lux, monthly daylight share; ASE1000/250h by 2° azimuth bins through the
+  window band after her shading devices (all twelve strategies of her catalogue); her floor signature memo
+  (`floorSig`, which groups floors whose obstruction rounds alike); her tower run at 2 m cells and every second day.
+- **Her data**: `src/data/sunWindHourly.json` (110 KB), the hourly CWEC2020 year (temperature, GHI, DNI, DHI) and the
+  monthly clock offsets exactly as her page holds them after climate.js applies weather.json (elevation falls back to
+  her 4 m, as on her page). Loaded only by the worker and, lazily, by the eval cases.
+- **Fixtures from her own code**: `tools/sunwind-daylight-fixtures.cjs` runs her climate.js (fetch stubbed), physics.js
+  and the daylight functions of study.js + core.js headless at **c24addb** (her main on 16 and 17 Nov), on nine cases:
+  plain tower, her site with future towers and her default facade zones, her site without future towers with WWR 0.35 /
+  VT 0.45 and every shading strategy by level, a deep 72 × 56 m plate, a shallow 30 × 17.5 m plate at 500 lux, a plate
+  turned 30° in context, turned 120° without, an L-shaped plate with the core off centre, and a winter ASE period; plus
+  her physics (sun, Perez state, six faces). `src/engine/daylight.fixtures.json` (159 KB). **The port reproduces every
+  number bit for bit (tolerance 0)**: tower sDA / ASE / DF / DA / UDI, every floor row and monthly share, obstruction
+  angles, facade edges, sampled cell fields, ASE hours per cell, and her full-resolution run (`daylightSW.test.ts`, 13 tests, ~2 s).
+- **The Toolkit's model into her frame** (`src/engine/daylightSWInput.ts`): the selected tower's floors (`towerFloors`;
+  plant floors left out), each floor's plate (`floorRing`: the block at mid-height, or the imported hull) turned along
+  its longest edge and rasterised into her 1 m mask, its core (`coreSide`) at the tower centre; context as in the wind
+  port (competition derived context + future towers, or the City buildings with heights; other design towers as roofs),
+  reduced by her `buildSiteRaster` to each building's centre and roof; glazing from the facade node when it is on
+  (system → her strategy, WWR by facing, VLT), otherwise her default zones and VT 0.60.
+- **Node `built.daylight-sw`** "Daylight sDA / ASE (Sun & Wind Studio)", CLIM, Schematic phase (`advanced`), both projects,
+  off by default: worker (`src/workers/daylightWorker.ts`), hook + store (`src/hooks/useDaylightSW.ts`, `ts.daylightSW`),
+  results card (`DaylightSWResults.tsx`: sDA / ASE / mean DF tiles, her per-floor sDA and ASE bars, a plan of any floor
+  in her DA / DF / direct-sun ramps with core and north arrow, the evidence lines, presets with Reset), canvas status,
+  trace digest group `daylightSW`, rule cards `leed.daylight.sunwind` and `en17037.df.sunwind` (both unverified), FIXES for
+  every line (`sw-dl-*`), evidence lint, eval cases DL-T / DL-O, Sources hub, every list (registry, icons + a filled
+  `SunMedium` drawing, art, words, needs, phases, roles, missing-input, assistant keywords and checks).
+- **Evidence lines** (all unverified, each with its source): sDA with LEED points (pass ≥ 40%, as her app marks it), ASE ≤
+  10% (warn above, her "address glare"), mean DF 2% / 1% (her "EN 17037" label, no edition), weakest floor, UDI, glazing
+  used (team assumption), method. Without context the three judged lines stay "unknown" (as wind).
+
+## How it relates to "Daylight screen (plate depth)"
+Kept as it is. That node is the geometric first pass (plate depth against 2 × window head, no glass, sky or neighbours,
+SPAC). This one is the climate-based check after it: same plates and cores, plus the glass, the neighbours and the
+Vancouver sky hour by hour. The new node's limits, method line and Rules section say so.
+
+## Choices made (recommended options, Ruijie away)
+- Fixtures pinned to c24addb (her current main; unchanged since engine 1).
+- **True north**: plates turned so +y is true north (45° on the competition site), because sun and sky depend on it; a
+  preset reads the model grid as north to compare with her app (which reads a sent tower as is). Wind kept her frame.
+- Plant (mechanical) floors left out of sDA / ASE; podium floors kept (occupied).
+- "Facade node exists" = the facade node is on; then its glazing, else her defaults.
+- No 3-D overlay: the "floor overlay" is the plan in the card (cheap, and each floor differs).
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,261 pass; only the 2 CRLF data-file checks fail, in worktrees only (heightPolicy, registry) |
+| `daylightSW.test.ts` (her fixtures) | 13/13, tolerance 0 |
+| `daylightSWInput.test.ts` | 5/5 |
+| `e2e/daylight-sw.e2e.ts` (Edge, competition site, 87 floors) | 1/1: on from the library in Schematic, runs in seconds, tiles + bars + plan + flagged lines, no "Verified", winter ASE rerun |
+| `e2e/wind-comfort.e2e.ts` rerun | 1/1 |
+| Regression e2e (phase-panel, journeys, node-icons) | 3/3 (Edge) |
+| With the competition base model loaded, Real Vancouver, her app side by side | NOT RUN (e2e has no base model, so the judged lines read "unknown") |
+
+Screenshot: `test-results/daylight-sw.png` and `test-results/daylight-sw-card.png` (worktree, not committed).
+
+## Known limits
+- Her OK pending; branch unmerged. Her model: four cardinal faces per floor, context as mean roofs within 160 m, no
+  partitions, direct sun left to blinds for sDA. Proxies for early design, as her own leedCard note says.
+- LEED v4.1 / EN 17037 / LM-83 read as her code states them; none of those documents was opened.
+- One tower at a time (the selected one).
+
+## Next
+Engine 3, natural-ventilation potential (`planStudy` / `ventStudy` / `ventFlow` in study.js; needs the hourly wind, so
+`sunWindHourly.json` gains ws / wd), on `sun-wind-ventilation` from this branch; then the ISO 13790 energy model.
+
+---
+
+# CHECKPOINT: Sun & Wind Studio merge, engine 1 of 4: pedestrian wind comfort (16 Nov 2026)
+
+Ruijie, 16 Nov: "start merging Sinnie's tool into the platform." Order agreed in the mid-review notes (P1, comment 3):
+wind comfort → daylight → ventilation → energy, each a Toolkit node checked against her app's numbers. Branch
+`sun-wind-port` from main 50cadfa, worktree `tower-studio-sw`. Pushed for review, **not merged**: her written OK on reusing
+`study.js` (`04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1c, status note added there) is still pending; only the dtmass
+generator reuse (6 Nov) is on file.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/windComfort.ts`): the 2-D D2Q9 lattice-Boltzmann pedestrian flow on 4 m
+  cells over her 680 × 440 m domain (tau 0.58, free-stream target 0.05, round(max(nx, ny) × 3.2) = 544 steps, periodic
+  edges, bounce-back), ratios to the free wind beyond 24 m of any building, Lawson bands on the mean speed (2.5 / 4 / 6 /
+  8 m/s), the downwash allowance 1 + 0.45 log2(H / h̄neighbours within 120 m) capped at 2.1 over 0.22 H upwind, podium
+  (dilation + 0.8 min(1, h/30) relief), canopy (0.35 min(1, d/6)), rounded 0.78 / chamfered 0.85 corners within 14 m,
+  plaza shelter 1 − 0.4 s, the annual blend of her eight sectors (frequency-weighted mean speed map, gusty cells where
+  1.8 × mean > 6 m/s in > 5% of hours), `roseFor` / `periodInfo` over her monthly roses, `windProfile` (z/10)^0.25.
+- **Her data**: `src/data/sunWindRose.json`, the monthly 8-sector rose she distilled from the CWEC2020 typical year
+  (Vancouver Intl AP), credited to her and to climate.onebuilding.org.
+- **Fixtures from her own code**: `tools/sunwind-fixtures.cjs` slices her functions out of `study.js` / `core.js` at
+  commit c24addb (her main, 16 Nov), runs them headless on her `site.json` + `weather.json`, and records seven cases
+  (five one-case runs including podium + canopy + rounded corners + plaza shelter, two annual: whole year and winter) into
+  `src/engine/windComfort.fixtures.json`. **The port reproduces every band area exactly and the ratio fields to four
+  decimals** (`windComfort.test.ts`, 9 tests, ~55 s).
+- **The Toolkit's model into her frame** (`src/engine/windComfortInput.ts`): competition site = her site.json layers from
+  our own derived context (buildings, heritage, plazas, mid-block links, the three future towers when shown); Real
+  Vancouver = the City buildings whose outline touches the domain around the selected tower at roof − project ground,
+  footprints without a height counted and left out (never guessed); the other design towers as roofs; the tower as its
+  turned plan outline; the Toolkit podium → her uniform podium reach = the smaller overhang (team mapping); canopy,
+  corners, plaza shelter and the future-towers switch as node presets.
+- **Node `built.wind-comfort`** "Pedestrian wind comfort (Sun & Wind Studio)", CLIM, form phase, both projects, defaults
+  off (a run takes seconds): worker (`src/workers/windWorker.ts`), hook + store (`src/hooks/useWindComfort.ts`,
+  `ts.windComfort`), results card (`WindComfortResults.tsx`: Lawson bars with / without the tower, key lines, downwash
+  sentence, sectors table, overlay switch, presets with Reset), ground overlay as the Analysis layer `wind-comfort`
+  (`WindComfortOverlay.tsx`, her band colours, with / without / change) with its legend, canvas status, trace digest
+  group `windComfort`, rule card `lawson.sunwind` (unverified: no Lawson edition cited in her code), FIXES for every
+  warn/fail, evidence lint, two eval cases (WC-T, WC-O), Sources hub, lists (icons, art, words, needs, phases, roles,
+  missing-input, assistant keywords).
+- **Evidence lines**: calm ground ≥ 80% good / ≥ 60% fair (her thresholds), plaza peak ≤ 4 / ≤ 6 m/s, uncomfortable
+  ground ≤ 1%, worse/better area, gusty share (annual), downwash allowance, strategies vs the bare tower, method. All
+  flagged **unverified** (her 2-D flow is indicative, not CFD, as her own note says), sources named per line.
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,240 pass; the 2 CRLF data-file checks fail in worktrees only (heightPolicy, registry); evidenceLint now has a 60 s budget for its flow solve |
+| `windComfort.test.ts` (her fixtures) | 9/9 |
+| `windComfortInput.test.ts` | 5/5 |
+| `e2e/wind-comfort.e2e.ts` (Edge, competition site) | 1/1: switch the node on, one case solves, bands + lines + "Sun & Wind Studio" credit, no "Verified"; seasonal rose runs eight sectors with progress, Gusty ground + sectors table |
+| Regression e2e (phase-panel, journeys, node-icons) | 3/3 (Edge) |
+| Real Vancouver run, the deployed site, her app side by side in a browser | NOT RUN |
+
+## Known limits
+- Her OK pending: the branch is not merged and the Pages site is unchanged.
+- North: her domain takes +y as north; on the competition site the Toolkit's true north is 45° from +y (open question
+  3 to Sinnie, 6 Nov). The port follows her frame exactly so the fixtures match; a sector named "W" is her "W".
+- Real Vancouver: no plaza layer yet (plaza lines unknown); heights relative to the project ground; no terrain.
+- The competition context must be loaded for a judged result (on main the entrant adds the base model; the
+  `competition-context-included` branch ships it); without it the calm-ground line is "unknown" and says so.
+- One worker, one tower at a time (the selected tower); an annual run is 16–24 flow solves (about 20–40 s).
+
+## Next
+Daylight (sDA / ASE / UDI per floor, `study.js` + `physics.js`) the same way: fixture recorder on her code, TS port,
+node. Then ventilation, then the ISO 13790 energy model. And the tool rail beside the viewport from Sinnie's artifact
+(separate session, waiting for the repository trust button).
+
+---
+
 # CHECKPOINT: Result B step 1, the transfer centre's entry and registry (9 Nov 2026)
 
 Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-import-export.md`. Same branch as Result A
