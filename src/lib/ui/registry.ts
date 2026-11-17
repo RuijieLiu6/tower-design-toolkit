@@ -216,6 +216,11 @@ function setHidden(next: Hidden) {
 }
 export const setUiVisible = (id: string, visible: boolean) => setHidden(withVisible(useUiVisibility.getState().hidden, id, visible))
 export const showAllUi = () => setHidden({})
+/** Hide exactly these parts (a workspace, lib/ui/workspaces.ts); locked parts never hide. */
+export function setUiHidden(ids: string[]) {
+  const items = allUiItems()
+  setHidden(Object.fromEntries(ids.filter((id) => !itemById(id, items)?.locked).map((id) => [id, true as const])))
+}
 export const resetUi = () => setHidden(defaultHidden())
 /** The layout as a small file a team can share; `loadUiLayout` reads one back (unknown ids are kept, for parts not open yet). */
 export const uiLayoutText = () => JSON.stringify({ format: UI_LAYOUT_FORMAT, hidden: Object.keys(useUiVisibility.getState().hidden) }, null, 2)

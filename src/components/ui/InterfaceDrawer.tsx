@@ -15,6 +15,8 @@ import { saveFile } from '../../lib/download'
 import { childrenOf, groupState, hiddenCount, isVisible, loadUiLayout, resetUi, setUiVisible, showAllUi, uiLayoutText, useUiItems, useUiVisibility, type UiItem } from '../../lib/ui/registry'
 import { startUiAddons } from '../../lib/ui/addons'
 import { useStore } from '../../store'
+import WorkspaceMenu from './WorkspaceMenu'
+import { useActiveWorkspace } from '../../lib/ui/workspaces'
 
 export const DRAWER_NAME = 'Interface'
 const btn = 'flex h-7 items-center gap-1 rounded-lg border border-line bg-panel px-2 text-meta text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40'
@@ -23,6 +25,7 @@ export default function InterfaceDrawer() {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const present = useStore((s) => s.phase === 'present')
+  const ws = useActiveWorkspace().workspace
   useEffect(() => startUiAddons(), [])
   useEffect(() => {
     if (!open) return
@@ -34,7 +37,7 @@ export default function InterfaceDrawer() {
   return (
     <div ref={box} className="relative">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="dialog" data-testid="interface-button" aria-label={DRAWER_NAME}
-        title="Interface: choose what the app shows: panels, tabs and their sections, design tools, viewport layers, add-ons"
+        title={`Interface: workspace (${ws.name}) and what the app shows: panels, tabs and their sections, design tools, viewport layers, add-ons`}
         className={`ml-0.5 flex h-8 items-center gap-1.5 rounded-lg border px-2 text-control font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/30 hover:bg-white/10' : 'border-line hover:border-accent hover:text-accent'}`}>
         <PanelsTopLeft size={14} aria-hidden /><span className="hidden whitespace-nowrap min-[1500px]:inline">{DRAWER_NAME}</span><ChevronDown size={12} aria-hidden />
       </button>
@@ -123,6 +126,8 @@ function Drawer({ onClose }: { onClose: () => void }) {
         <span className="text-meta text-muted">in {MODE_NAME[mode]}</span>
         <button type="button" onClick={onClose} aria-label="Close" className="ml-auto rounded p-1 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={14} aria-hidden /></button>
       </div>
+      {/* Workspaces (Ruijie, 17 Nov): Illustrator-style presets of the whole arrangement. */}
+      <WorkspaceMenu onNote={setNote} />
       <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-2">
         <label className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-line px-2 py-1"><Search size={13} className="shrink-0 text-muted" aria-hidden /><span className="sr-only">Search the parts</span>
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" data-testid="interface-search" className="min-w-0 flex-1 bg-transparent text-control outline-none" /></label>
