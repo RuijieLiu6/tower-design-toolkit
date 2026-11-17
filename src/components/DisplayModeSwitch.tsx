@@ -67,9 +67,8 @@ function PinView() {
 import { createPortal } from 'react-dom'
 import { create } from 'zustand'
 import { useRef, type ReactNode } from 'react'
-import { Camera, ChevronDown, ScanLine } from './icons'
+import { Camera, ChevronDown } from './icons'
 import { captureShot } from '../lib/capture'
-import { useTowerPosition } from '../lib/towerPosition'
 
 /** Where the View menu goes: the row with Working view (ContextPins) registers its slot here. */
 export const useViewMenuSlot = create<{ el: HTMLElement | null }>(() => ({ el: null }))
@@ -113,9 +112,6 @@ function ViewMenu({ project, angles, onFrame, children }: { project: ProjectKind
       <div role="toolbar" aria-label="View" data-testid="view-bar" className="flex items-center gap-0.5 rounded-2xl border border-line bg-panel p-1">
         <button type="button" onClick={() => { if (captureShot(false)) setShot(true) }} aria-label="Capture the view" title="Capture the view: it joins your shots (Present shows them)" data-testid="view-capture" className={barBtn}>
           <Camera size={18} aria-hidden />
-        </button>
-        <button type="button" onClick={() => (onFrame ? onFrame() : useTowerPosition.setState((s) => ({ frame: s.frame + 1 })))} aria-label="Frame the site and the tower" title="Frame the site and the tower" data-testid="view-frame" className={barBtn}>
-          <ScanLine size={18} aria-hidden />
         </button>
         {angles && <><span aria-hidden className="mx-0.5 h-5 w-px bg-line" /><div className="flex items-center gap-0.5" data-testid="view-angles">{angles}</div></>}
         <span aria-hidden className="mx-0.5 h-5 w-px bg-line" />
