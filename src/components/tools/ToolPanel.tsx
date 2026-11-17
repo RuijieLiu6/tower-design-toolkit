@@ -68,7 +68,9 @@ export default function ToolPanel({ embedded = false, only, step: forStep }: { e
   // Massing has three steps (Site, Form, Program), each with only its own tools.
   const stepTools = useMemo(() => (only ? DESIGN_TOOLS.filter((t) => only.includes(t.id)) : phase === 'basic' ? toolsForStep(tools, step) : tools), [tools, phase, step, only])
   // No tower yet: Volume offers to place one; Program and Schematic point there (their tools shape a tower).
-  const empty: 'place' | 'none' | null = !noTower || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'
+  // A check's own controls (`only`) show with or without a tower: "Start your massing" belongs to the Massing tool alone
+  // (16 Nov, Sinnie: "this start your massing should only exist when im on the massing tool").
+  const empty: 'place' | 'none' | null = !noTower || only || (phase === 'basic' && NO_TOWER_STEPS.has(step)) ? null : phase === 'basic' && step === 'volume' ? 'place' : 'none'
   // No tower on Volume: only the tools that make towers stay (Generate), and none opens until it is picked.
   // With a tower, a tool that only leads an empty site (Generate) moves inside another one (Massing).
   // 13 Nov (Sinnie): before any tower, the Massing tool offers only its three starts (MassingStart); no other tool shows.
