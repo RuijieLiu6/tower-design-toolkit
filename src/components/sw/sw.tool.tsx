@@ -2,11 +2,10 @@
 // study settings (the Studio's left panel). Registered as design tools that never show in a step's row; each check
 // opens with its own through lib/workflow/phaseTools.ts NODE_CONTROLS.
 import { Blinds, CalendarClock, Fan, Leaf, SunDim, Thermometer, SolarPanel, Droplets } from '../icons'
-import { DEFAULT_ZONES, FACE_NAME, ORI, STRATS, zonesOf, type FacadeZone, type StratId } from '../../engine/sw/plate'
 import { THERM_SYS, type ThermSys } from '../../engine/sw/thermal'
 import { useSwStudy, type VentMode } from '../../lib/swStudy'
-import { useStore, useTowers } from '../../store'
 import type { DesignTool } from '../tools/registry'
+import FacadeZonesTool from './FacadeZonesTool'
 import SunSet, { FormGuide, RainStudyPanel as RainSet, WindStudyPanel as WindSet } from './SunStudyPanel'
 
 const label = 'grid gap-1 text-meta text-muted'
@@ -25,51 +24,7 @@ function Num({ name, value, min, max, step = 1, onChange, unit }: { name: string
   )
 }
 
-// ------------------------------------------------------------------ façade zones
-function FacadeZonesTool() {
-  const towers = useTowers()
-  const selected = useStore((s) => s.selectedTower)
-  const update = useStore((s) => s.updateTower)
-  const t = towers.find((x) => x.id === selected) ?? towers[0]
-  if (!t) return <p className="px-3 pb-3 text-meta text-muted">Place or draw a tower first.</p>
-  const zones = zonesOf(t)
-  const set = (z: FacadeZone[]) => update(t.id, { facadeZones: z })
-  const patch = (i: number, p: Partial<FacadeZone>) => set(zones.map((z, k) => (k === i ? { ...z, ...p } : z)))
-  return (
-    <div className="grid gap-2 px-3 pb-3" data-testid="facade-zones">
-      <p className="text-meta text-muted">{t.name}: a strategy per face and range of levels. Later rows win where they overlap.</p>
-      {zones.map((z, i) => (
-        <fieldset key={i} className="grid gap-1.5 rounded-md border border-line p-2" data-zone={i}>
-          <legend className="sr-only">Zone {i + 1}</legend>
-          <div className="flex items-center gap-1.5">
-            <select value={z.face} onChange={(e) => patch(i, { face: e.target.value as FacadeZone['face'] })} className={`${input} w-20`} aria-label="Face">
-              <option value="all">All</option>{ORI.map((o) => <option key={o} value={o}>{FACE_NAME[o]}</option>)}
-            </select>
-            <select value={z.strat} onChange={(e) => { const st = e.target.value as StratId; patch(i, { strat: st, ...STRATS[st].d }) }} className={`${input} min-w-0 flex-1`} aria-label="Strategy" title={STRATS[z.strat].blurb}>
-              {(Object.keys(STRATS) as StratId[]).map((k) => <option key={k} value={k}>{STRATS[k].name}</option>)}
-            </select>
-            <button type="button" onClick={() => set(zones.filter((_, k) => k !== i))} disabled={zones.length <= 1} className="h-8 rounded-md px-2 text-meta text-muted hover:bg-panel disabled:opacity-40" aria-label={`Remove zone ${i + 1}`}>×</button>
-          </div>
-          <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-1.5 text-meta text-muted">
-            Levels <input type="number" min={1} value={z.from} onChange={(e) => patch(i, { from: Math.max(1, Number(e.target.value) || 1) })} className={`${input} w-full`} aria-label="From level" />
-            to <input type="number" min={1} value={z.to >= 999 ? '' : z.to} placeholder="top" onChange={(e) => patch(i, { to: e.target.value ? Math.max(1, Number(e.target.value)) : 999 })} className={`${input} w-full`} aria-label="To level" />
-          </div>
-          <Num name="Glazing (WWR)" value={Math.round(z.wwr * 100)} min={10} max={95} unit="%" onChange={(v) => patch(i, { wwr: v / 100 })} />
-          <div className={row}>
-            <Num name="SHGC" value={z.shgc} min={0.15} max={0.7} step={0.05} onChange={(v) => patch(i, { shgc: v })} />
-            {STRATS[z.strat].depthLabel ? <Num name={STRATS[z.strat].depthLabel!} value={z.depth} min={0} max={3} step={0.1} unit=" m" onChange={(v) => patch(i, { depth: v })} /> : <span />}
-          </div>
-          {z.strat === 'pvspandrel' && <Num name="PV on the spandrel" value={Math.round(z.pv * 100)} min={0} max={100} unit="%" onChange={(v) => patch(i, { pv: v / 100 })} />}
-          <label className="flex items-center gap-2 text-meta text-ink"><input type="checkbox" checked={z.operable} onChange={(e) => patch(i, { operable: e.target.checked })} />Windows open</label>
-        </fieldset>
-      ))}
-      <div className="flex gap-2">
-        <button type="button" onClick={() => set([...zones, { ...zones[zones.length - 1], face: 'all' }])} className="h-8 rounded-md border border-line px-2 text-control hover:border-accent" data-testid="zone-add">Add zone</button>
-        <button type="button" onClick={() => update(t.id, { facadeZones: undefined })} className="h-8 rounded-md px-2 text-control text-muted hover:bg-panel" disabled={zones === DEFAULT_ZONES}>Studio defaults</button>
-      </div>
-    </div>
-  )
-}
+// ------------------------------------------------------------------ façade zones: components/sw/FacadeZonesTool.tsx
 
 // ------------------------------------------------------------------ study settings
 function HourSet() {
