@@ -84,9 +84,10 @@ export default function StartMassing({ onGenerate }: { onGenerate?: () => void }
                     <span className="block truncate text-meta text-muted">{c.place} · {c.architect} · {c.year}</span>
                   </span>
                   <span className="shrink-0 text-right text-meta tabular-nums text-muted">{c.height} m<br />{c.storeys} fl</span>
-                  <FlagChip flag={c.flag} />
                 </button>
-                {c.source && <a href={c.source.url} target="_blank" rel="noopener noreferrer" data-case-source={c.id} className="-mt-1 block truncate px-2 pb-1 text-meta text-muted underline-offset-2 hover:text-accent hover:underline">Height and storeys: {c.source.what}, read {c.source.accessed}{c.changed ? ' · corrected' : ''}</a>}
+                <span className="-mt-1 flex items-center gap-1.5 px-2 pb-1 text-meta text-muted"><FlagChip flag={c.flag} />
+                  {c.source ? <a href={c.source.url} target="_blank" rel="noopener noreferrer" data-case-source={c.id} className="min-w-0 truncate underline-offset-2 hover:text-accent hover:underline">Height and storeys: {c.source.what}, read {c.source.accessed}{c.changed ? ' · corrected' : ''}</a> : <span className="min-w-0 truncate">A type, not a building: no source.</span>}
+                </span>
               </li>
             ))}
           </ol>
