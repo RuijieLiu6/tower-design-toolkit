@@ -27,7 +27,8 @@ export interface WindComfortOut {
   centre: P
   towerId: string
   towerName: string
-  obstacles: Pick<WindObstacles, 'loaded' | 'unknownHeights' | 'source'>
+  /** buildings: context buildings (with a height) that went into the run, other design towers excluded. */
+  obstacles: Pick<WindObstacles, 'loaded' | 'unknownHeights' | 'source'> & { buildings: number }
   presets: WindPresets
   /** The project and model revision the run was for: anything else on screen makes the result stale. */
   project: string
@@ -120,7 +121,7 @@ export function useWindComfort(force = false) {
       const north = windNorthOf(presets, project === 'vtc' ? VTC_NORTH_DEG : 0)
       const job: Omit<WindJob, 'id'> = { meshes, futures: obs.futures, plazaMeshes: obs.plazaMeshes, tower: windTowerOf(tower, centre),
         settings: { annual: presets.annual, dir: presets.dir, speed: presets.speed, period: presets.period, strat: strategyOf(tower, presets), north } }
-      pendingMeta = { centre, towerId: tower.id, towerName: tower.name, obstacles: { loaded: obs.loaded, unknownHeights: obs.unknownHeights, source: obs.source }, presets, project, rev, north }
+      pendingMeta = { centre, towerId: tower.id, towerName: tower.name, obstacles: { loaded: obs.loaded, unknownHeights: obs.unknownHeights, source: obs.source, buildings: obs.meshes.length }, presets, project, rev, north }
       useWindComfortStore.setState({ key, status: 'running', progress: presets.annual ? 'Sector 1 of 8…' : 'Solving the flow…', runRev: rev, out: null })
       runner.post(job)
     })
