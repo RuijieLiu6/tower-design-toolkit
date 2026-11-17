@@ -55,11 +55,11 @@ function ModeSwitch() {
     document.querySelector<HTMLElement>(`[data-testid="mode-switch"] [data-mode-option="${to}"]`)?.focus()
   }
   return (
-    <div role="radiogroup" aria-label="Model or Presentation" data-testid="mode-switch" data-mode={mode} className={`flex shrink-0 rounded-lg p-0.5 ${present ? 'bg-white/10' : 'bg-subtle'}`}>
+    <div role="radiogroup" aria-label="Model or Presentation" data-testid="mode-switch" data-mode={mode} className={`flex shrink-0 rounded-lg p-0.5 ${present ? 'bar-track' : 'bg-subtle'}`}>
       {(['model', 'presentation'] as const).map((m) => (
         <button key={m} type="button" role="radio" aria-checked={mode === m} tabIndex={mode === m ? 0 : -1} data-mode-option={m} aria-keyshortcuts="V" onClick={() => setMode(m)} onKeyDown={onKey}
           title={m === 'model' ? 'Model: design the site, form, program and schematic. V switches.' : 'Presentation: the model locked, the A2 board frame, boards, drawings and render. V switches.'}
-          className={`h-7 whitespace-nowrap rounded-md px-3 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${mode === m ? (present ? 'bg-white/90 text-ink' : 'bg-panel text-ink shadow-sm') : present ? 'text-chrome-ink hover:bg-white/10' : 'text-muted hover:text-ink'}`}>
+          className={`h-7 whitespace-nowrap rounded-md px-3 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${mode === m ? (present ? 'bar-on' : 'bg-panel text-ink shadow-sm') : present ? 'bar-off' : 'text-muted hover:text-ink'}`}>
           {MODE_NAME[m]}
         </button>
       ))}
@@ -138,15 +138,15 @@ export default function TopBar() {
   // its file menu, Export and Auto-run (the evaluation mode the builder must keep) stay (Result A brief §3).
   const building = useProjectWorkflow((s) => s.mode === 'builder')
   return (
-    <header className="glass-edge stage-fade flex h-[52px] shrink-0 items-center gap-2 rounded-2xl bg-chrome px-3 text-control text-chrome-ink">
+    <header data-testid="top-bar" className={`glass-edge stage-fade flex h-[52px] shrink-0 items-center gap-2 rounded-2xl px-3 text-control ${present ? 'bar-present' : 'bg-chrome text-chrome-ink'}`}>
       <button onClick={showIntro} aria-label="Tower Design Toolkit" title="Back to the start" className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-0.5 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
         <span className="hidden whitespace-nowrap font-semibold min-[1500px]:inline">Tower Design Toolkit</span>
       </button>
-      <div role="tablist" aria-label="Project" className={`flex shrink-0 rounded-lg p-0.5 ${present ? 'bg-white/10' : 'bg-subtle'}`}>
+      <div role="tablist" aria-label="Project" className={`flex shrink-0 rounded-lg p-0.5 ${present ? 'bar-track' : 'bg-subtle'}`}>
         {PROJECTS.map((p) => (
           <button key={p.id} role="tab" aria-selected={project === p.id} title={p.hint} onClick={() => (p.id === 'city' && project !== 'city' ? openCity() : setProject(p.id))}
-            className={`h-7 whitespace-nowrap rounded-md px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${project === p.id ? (present ? 'bg-white/90 text-ink' : 'bg-panel text-ink shadow-sm') : present ? 'text-chrome-ink hover:bg-white/10' : 'text-muted hover:text-ink'}`}>{p.label}</button>
+            className={`h-7 whitespace-nowrap rounded-md px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${project === p.id ? (present ? 'bar-on' : 'bg-panel text-ink shadow-sm') : present ? 'bar-off' : 'text-muted hover:text-ink'}`}>{p.label}</button>
         ))}
       </div>
       <ProjectMenu />
@@ -161,21 +161,21 @@ export default function TopBar() {
       {present && (
         <UiShow id="topbar.capture">
           {/* Under 1500 px the top bar keeps its words only where they are needed: the chips and buttons fall back to their icons (titles say the rest). */}
-          <span title="Model locked: go back to Form or Schematic to change it" aria-label="Model locked" data-testid="model-locked" className="flex items-center gap-1 whitespace-nowrap rounded-full bg-white/10 px-2 py-1 text-meta"><LockKeyhole size={13} aria-hidden /><span className="hidden min-[1500px]:inline">Model locked</span></span>
-          <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-2.5 font-medium text-ink hover:bg-white/90"><Aperture size={14} aria-hidden /><span className="hidden min-[1500px]:inline">Capture</span></button>
+          <span role="img" title="Model locked: go back to Form or Schematic to change it" aria-label="Model locked" data-testid="model-locked" className="flex items-center gap-1 whitespace-nowrap rounded-full bar-track px-2 py-1 text-meta"><LockKeyhole size={13} aria-hidden /><span className="hidden min-[1500px]:inline">Model locked</span></span>
+          <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bar-cta px-2.5 font-medium"><Aperture size={14} aria-hidden /><span className="hidden min-[1500px]:inline">Capture</span></button>
         </UiShow>
       )}
       {!building && <UiShow id="topbar.view-buttons"><div className="flex items-center gap-0.5" role="group" aria-label="View">
         {VIEWS.map(({ id, icon: Icon, label }) => (
           <button key={id} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}
-            className={`${icon} ${view === id ? (present ? 'bg-white/15' : 'bg-selected text-accent-hover') : present ? 'text-chrome-ink opacity-80 hover:opacity-100' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
+            className={`${icon} ${view === id ? (present ? 'bar-view-on' : 'bg-selected text-accent-hover') : present ? 'bar-off' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
         ))}
       </div></UiShow>}
       <UiShow id="topbar.autorun"><AutoRun /></UiShow>
       {/* Edit workflow (Ruijie, 9 Nov: "I didn't know what does assistant mean … this is more about editing the project
           workflow. So definitely rename it"): opens the workflow editor in the centre view; its Suggest field takes words. */}
       {!building && <UiShow id="topbar.edit-workflow"><button type="button" onClick={() => openBuilder()} data-testid="edit-workflow-button" aria-label="Edit workflow" title="Edit the project workflow: arrange the tools you will use, add return paths, open any tool"
-        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden /><span className="hidden min-[1500px]:inline">Edit workflow</span></button></UiShow>}
+        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'bar-ghost' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden /><span className="hidden min-[1500px]:inline">Edit workflow</span></button></UiShow>}
       <MoreMenu />
     </header>
   )
