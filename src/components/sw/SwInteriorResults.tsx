@@ -15,19 +15,40 @@ import { useSwStudy } from '../../lib/swStudy'
 import FloorPlan, { RAMPS, RampKey } from './FloorPlan'
 import { BarRows, Chips, FACE_C, fmtI, Fold, Gauge, HeatMap, MONTH_L, MONTH_N, MonthRange, MonthStack, PV_C, Radar, RAMP, StackRows, SUN_C, WIND_C, YearMap } from './SwCharts'
 import { FloorBars, LevelPick, SwFig } from './SwResults'
+import { ImpactHead, Tile } from './SwExterior'
 
 const FACE_W: Record<Face, string> = { N: 'North', E: 'East', S: 'South', W: 'West' }
 const SHORT: Record<string, string> = { 'Compactness vs square prism': 'Compactness', 'Exposed roofs and soffits': 'Roofs, soffits', 'Solar-facing façade': 'Solar-facing', 'North-facing façade': 'North-facing', 'Daylit floor area': 'Daylit area', 'Surface-to-volume': 'Surface / volume' }
 const short = (k: string) => SHORT[k] ?? k
 
+/** Massing efficiency, as the Studio reads it (energy.js formHTML): the rating, heat loss against a square shaft and
+ *  the envelope; the headline; the form profile beside the façade by orientation; the eight measures. */
 function FormBody({ F }: { F: FormStudy }) {
   return (
     <>
-      <SwFig title={`Form profile · rating ${F.letter}`} caption="Eight measures, A to E; the rim is an A." tip="Eight form measures rated A to E; the rim is an A.">
-        <Radar label="Form profile: eight measures rated A to E" color={RATE_COL[F.overall]} items={F.metrics.map((m) => ({ label: short(m.k), t: (4 - m.r) / 4, color: RATE_COL[m.r], text: `${m.fmt} · ${RATE_L[m.r]}` }))} />
-      </SwFig>
-      <SwFig title="Form measures" caption="Bar: rating, A longest. Hover: benchmark." tip="Bar length is the rating, A longest; the benchmark is in the hover text.">
-        <BarRows label="Form measures rated A to E" labelW={84} textW={96} max={4.3} rows={F.metrics.map((m) => ({ label: short(m.k), v: 4.3 - m.r, color: RATE_COL[m.r], text: `${m.fmt.split(' · ')[0]} · ${RATE_L[m.r]}`, tip: `${m.k}: ${m.fmt} (${RATE_L[m.r]}). Benchmark: ${m.bench}. ${m.why}` }))} />
+      <ImpactHead what="Massing efficiency" color="#B0568F" note="live from the massing" />
+      <div className="@container"><div className="grid grid-cols-1 gap-1.5 @[26rem]:grid-cols-3" data-testid="form-tiles">
+        <div className="min-w-0 rounded-lg border border-line bg-white p-2.5" data-tile="Overall">
+          <p className="text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-muted">Overall</p>
+          <p className="mt-1"><span className="inline-block rounded-md px-2.5 py-0.5 font-mono text-lg font-bold text-white" style={{ background: RATE_COL[F.overall] }}>{RATE_L[F.overall]}</span></p>
+          <p className="mt-0.5 text-meta leading-snug text-muted">form-only rating, A best</p>
+        </div>
+        <Tile name="Heat loss vs compact prism" value={`${Math.round(F.relHeat * 100)}%`} sub={`${F.relHeat > 1 ? '+' : ''}${Math.round((F.relHeat - 1) * 100)}% against a ${F.side.toFixed(0)} m square shaft`} over={F.relHeat > 1.15} />
+        <Tile name="Envelope" value={fmtI(F.env)} unit="m²" sub={`${fmtI(F.facTot)} façade · ${fmtI(F.roof + F.soffit)} roofs and soffits`} />
+      </div></div>
+      <p className="border-l-[3px] border-[#B0568F] bg-white py-1.5 pl-2.5 pr-2 text-xs leading-snug text-ink" data-testid="form-headline">
+        Overall form rating <b>{RATE_L[F.overall]}</b>: the massing would lose {Math.round(F.relHeat * 100)}% of the heat a {F.side.toFixed(0)} m square shaft of the same height and volume would, at the same construction.
+      </p>
+      <div className="@container"><div className="grid grid-cols-1 gap-3 @[34rem]:grid-cols-2">
+        <SwFig explain title={`Form profile · rating ${F.letter}`} caption="Eight measures, A to E; the rim is an A." tip="Eight form metrics rated A to E for supertall towers; the fuller the shape, the more efficient the form.">
+          <Radar label="Form profile: eight measures rated A to E" color={RATE_COL[F.overall]} items={F.metrics.map((m) => ({ label: short(m.k), t: (4 - m.r) / 4, color: RATE_COL[m.r], text: `${m.fmt} · ${RATE_L[m.r]}` }))} />
+        </SwFig>
+        <SwFig explain title="Façade by orientation" caption={`Solar-facing ${Math.round(F.south * 100)}%, north ${Math.round(F.north * 100)}%.`} tip="Façade area facing each way. Solar-facing is south plus half of east and west: 40–55% is balanced; north at most 25%.">
+          <BarRows label="Façade area by orientation" labelW={44} textW={84} rows={ORI.map((o) => ({ label: FACE_W[o], v: F.fac[o], color: FACE_C[o], text: `${fmtI(F.fac[o])} m² · ${Math.round((F.fac[o] / Math.max(1, F.facTot)) * 100)}%` }))} />
+        </SwFig>
+      </div></div>
+      <SwFig explain title="Form metrics" caption="Bar: rating, A longest. Hover: benchmark." tip="Benchmarks: form factor ≤ 0.30 compact; surface-to-volume ≤ 0.09 for towers; heat-loss index ≤ 0.25 W/m²K; daylit area ≥ 75% within 6 m of a façade; solar-facing 40–55%; north ≤ 25%; roofs and soffits ≤ 3% of floor area.">
+        <BarRows label="Form measures rated A to E" labelW={84} textW={96} max={4.3} rows={F.metrics.map((m) => ({ label: short(m.k), v: 4.3 - m.r, color: RATE_COL[m.r], text: `${m.fmt.split(' · ')[0]} · ${RATE_L[m.r]}`, tip: `${m.k}: ${m.fmt} (${RATE_L[m.r]}); benchmark ${m.bench}` }))} />
       </SwFig>
     </>
   )
@@ -43,10 +64,7 @@ function FormMore({ F }: { F: FormStudy }) {
           ]} />
         </SwFig>
       </Fold>
-      <Fold title="Façade by orientation">
-        <SwFig title="Façade by orientation · m²" caption={`Solar-facing ${Math.round(F.south * 100)}%, north ${Math.round(F.north * 100)}%.`} tip="Solar-facing: south plus half of east and west. 40–55% is balanced; north at most 25%.">
-          <BarRows label="Façade area by orientation" labelW={44} textW={84} rows={ORI.map((o) => ({ label: FACE_W[o], v: F.fac[o], color: FACE_C[o], text: `${fmtI(F.fac[o])} · ${Math.round((F.fac[o] / Math.max(1, F.facTot)) * 100)}%` }))} />
-        </SwFig>
+      <Fold title="Envelope by kind">
         <SwFig title="Envelope by kind · m²" caption="Area of each kind of envelope." tip="Walls, roofs and terraces, soffits, the ground slab.">
           <BarRows label="Envelope area by kind" labelW={84} rows={[{ label: 'Walls', v: F.facTot, color: '#A0857A', text: fmtI(F.facTot) }, { label: 'Roofs, terraces', v: F.roof, color: '#7C6A8E', text: fmtI(F.roof) }, { label: 'Soffits', v: F.soffit, color: '#B7C3CE', text: fmtI(F.soffit) }, { label: 'Ground slab', v: F.slab, color: '#cfd4da', text: fmtI(F.slab) }]} />
         </SwFig>

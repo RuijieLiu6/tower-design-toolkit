@@ -7,7 +7,7 @@ import { THERM_SYS, type ThermSys } from '../../engine/sw/thermal'
 import { useSwStudy, type VentMode } from '../../lib/swStudy'
 import { useStore, useTowers } from '../../store'
 import type { DesignTool } from '../tools/registry'
-import SunSet, { WindStudyPanel as WindSet } from './SunStudyPanel'
+import SunSet, { FormGuide, RainStudyPanel as RainSet, WindStudyPanel as WindSet } from './SunStudyPanel'
 
 const label = 'grid gap-1 text-meta text-muted'
 const input = 'h-8 rounded-md border border-line bg-white px-2 text-control text-ink'
@@ -118,10 +118,6 @@ function PvSet() {
     </div>
   )
 }
-function RainSet() {
-  const s = useSwStudy()
-  return <div className="grid gap-2 px-3 pb-3"><Num name="Roof run-off kept" value={Math.round(s.rainEff * 100)} min={40} max={95} unit="%" onChange={(x) => s.set({ rainEff: x / 100 })} /></div>
-}
 function TempSet() {
   const s = useSwStudy()
   return (
@@ -144,7 +140,8 @@ const tools: DesignTool[] = [
   tool('sw-dl-set', 'Daylight target', 'Target', SunDim, DaylightSet, 'Lux target and blinds'),
   tool('sw-vent-set', 'Ventilation settings', 'Settings', Leaf, VentSet, 'How air moves, the comfort band, the openings'),
   tool('sw-pv-set', 'PV settings', 'Settings', SolarPanel, PvSet, 'Roof covered, efficiency, performance'),
-  tool('sw-rain-set', 'Rainwater settings', 'Settings', Droplets, RainSet, 'How much roof run-off is kept'),
+  tool('sw-rain-set', 'Rain', 'Rain', Droplets, RainSet, 'Time period, design storm, rainfall and drainage'),
+  tool('sw-form-set', 'Form efficiency', 'Form', Blinds, FormGuide, 'How to read the A to E ratings'),
   tool('sw-temp-set', 'Temperature settings', 'Settings', Thermometer, TempSet, 'System, hour and blinds'),
 ]
 

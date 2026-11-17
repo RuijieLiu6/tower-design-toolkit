@@ -44,6 +44,15 @@ export interface SwStudySettings {
   system: ThermalSystem
   /** Rain: run-off efficiency of the roof catchment. */
   rainEff: number
+  /** Rain (the Studio's Rain tab): the design storm's direction and wind speed at 10 m (null = the record's wettest
+   *  sector at its 95th-percentile wet-hour wind), the rain type, the storm's duration (min) and intensity (mm/h). */
+  rainDir: number | null
+  rainSpeed: number | null
+  rainDrop: 'drizzle' | 'steady' | 'heavy'
+  rainDur: number
+  rainI: number
+  /** The design-storm chip last picked (two cases can share a direction and storm wind). */
+  rainCase: string | null
 }
 
 export const SW_DEFAULTS: SwStudySettings = {
@@ -54,7 +63,7 @@ export const SW_DEFAULTS: SwStudySettings = {
   vent: { mode: 'cross', band: 'fixed', tmin: 12, tmax: 24, umax: 8, open: 0.1, dT: 3 },
   pv: { roof: 0.5, eff: 0.2, pr: 0.8 },
   system: 'heatwin',
-  rainEff: 0.8,
+  rainEff: 0.8, rainDir: null, rainSpeed: null, rainDrop: 'steady', rainDur: 60, rainI: 80, rainCase: null,
 }
 
 const KEY = 'tdt.swStudy'

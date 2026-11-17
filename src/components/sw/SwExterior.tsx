@@ -20,6 +20,7 @@ import { BAD_C, BarRows, Chips, FACE_C, FloorMatrix, Fold, fmtI, GRID, INK, Line
 import { SwFig } from './SwResults'
 
 const FACE_W: Record<Face, string> = { N: 'North', E: 'East', S: 'South', W: 'West' }
+const oriOf = (az: number): Face => ORI[Math.round((((az % 360) + 360) % 360) / 90) % 4]
 const path = (r: Pt[], X: (v: number) => number, Y: (v: number) => number) => `M${r.map((p) => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('L')}Z`
 const USE_NAME: Record<EndUse, string> = { heat: 'Heating', cool: 'Cooling', light: 'Lighting', equip: 'Equipment', dhw: 'Hot water', aux: 'Fans, pumps' }
 const USE_COL: Record<EndUse, string> = { heat: '#c2410c', cool: '#2563eb', light: '#eab308', equip: '#64748b', dhw: '#db2777', aux: '#0d9488' }
@@ -66,7 +67,7 @@ function sunHeadline(H: SunImpact): ReactNode {
     : h === 'S' ? 'High sun there means an overhang, louvres or a light shelf work well and keep the view.' : 'North sun is low and brief; shading matters less than glazing area.'
   return <>The <b>{FACE_W[h].toLowerCase()}</b> face takes {Math.round(share * 100)}% of the direct sun ({H.intensity[h].toFixed(1)} kWh/m² on a clear day): the first face to shade. {how}</>
 }
-function Tile({ name, value, unit, sub, over }: { name: string; value: string; unit?: string; sub: string; over?: boolean }) {
+export function Tile({ name, value, unit, sub, over }: { name: string; value: string; unit?: string; sub: string; over?: boolean }) {
   return (
     <div className="min-w-0 rounded-lg border border-line bg-white p-2.5" data-tile={name}>
       <p className="text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-muted">{name}</p>
@@ -77,14 +78,14 @@ function Tile({ name, value, unit, sub, over }: { name: string; value: string; u
 }
 
 /** The Studio's report head: "Site impact · <study>", the tallest tower, its height and floors, and when it ran. */
-function ImpactHead({ what, at, color }: { what: string; at?: number; color: string }) {
+export function ImpactHead({ what, at, color, note }: { what: string; at?: number; color: string; note?: string }) {
   const towers = useSwInputs().towers
   const t = [...towers].sort((a, b) => b.height - a.height)[0]
   const run = at ? new Date(at).toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: false }) : null
   return (
     <div className="rounded-lg border border-line bg-white px-3 py-2.5" data-testid="impact-head">
       <h4 className="text-control font-semibold" style={{ color }}>Site impact · {what}</h4>
-      <p className="mt-0.5 text-meta text-muted">{t ? `${t.name} · ${Math.round(t.height)} m · ${towerFloors(t).length} floors` : 'No tower'}{run ? ` · run ${run}` : ''}</p>
+      <p className="mt-0.5 text-meta text-muted">{t ? `${t.name} · ${Math.round(t.height)} m · ${towerFloors(t).length} floors` : 'No tower'}{run ? ` · run ${run}` : ''}{note ? ` · ${note}` : ''}</p>
     </div>
   )
 }
@@ -421,22 +422,77 @@ function RainFacesBody() {
   )
 }
 
+const WORD16: Record<string, string> = { N: 'north', NNE: 'north-north-east', NE: 'north-east', ENE: 'east-north-east', E: 'east', ESE: 'east-south-east', SE: 'south-east', SSE: 'south-south-east', S: 'south', SSW: 'south-south-west', SW: 'south-west', WSW: 'west-south-west', W: 'west', WNW: 'west-north-west', NW: 'north-west', NNW: 'north-north-west' }
+
+/** Rain, as the Studio's Rain tab reads in the massing phase (rain.js html): where the rain comes from, the wettest
+ *  face, the storm, the ground kept dry, what the roofs collect, driving rain and wetting by face and height. */
 function RainWaterBody() {
   const out = useSwOut((s) => s.out['built.sw-rain-water'])
+  const faces = useSwOut((s) => s.out['built.sw-rain-faces'])
   const inp = useSwInputs()
-  const d = out?.data as { roof: RoofWater; sh: GroundShelter | null; RY: RoofYear; storm: { dir: number; speed: number } | null } | undefined
+  const setStudy = useSwStudy((s) => s.set)
+  const d = out?.data as { roof: RoofWater; sh: GroundShelter | null; RY: RoofYear; A: RainBySector | null; storm: { dir: number; speed: number } | null; drop?: string; alphaDeg?: number; period?: string; at?: number } | undefined
+  const f = faces?.data as { faces: FaceRain[]; by: Partial<Record<Face, number>>; SF: StormFaces | null; worst: FaceRain | null } | undefined
   if (!d?.RY) return null
-  const RY = d.RY, H = Math.max(0, ...inp.towers.map((t) => t.height))
-  // the flushing need is drawn on the months only when it is of the same order as the catch (else the bars vanish)
+  const RY = d.RY, A = d.A, storm = d.storm, H = Math.max(0, ...inp.towers.map((t) => t.height))
+  const SF = f?.SF ?? null, worst = f?.worst ?? null
+  const wo = worst ? oriOf(worst.az) : null, wetW = SF && wo ? SF.faces.find((x) => x.o === wo) : null
+  const dryF = SF ? SF.faces.reduce((a, x) => (x.wetShare < a.wetShare ? x : a), SF.faces[0]) : null
+  const period = d.period ?? 'the year', ofThe = period === 'Whole year' ? "the year's" : "the period's"
+  const top3 = A ? A.ranked.slice(0, 3) : []
+  const quarter = A && top3[0] ? A.sec.filter((x) => Math.abs(((x.dir - top3[0].dir + 540) % 360) - 180) <= 45).reduce((t, x) => t + x.f, 0) : 0
+  const off = A && storm && top3[0] ? Math.abs(((storm.dir - top3[0].dir + 540) % 360) - 180) : 0
   const needFits = RY.people > 0 && Math.max(...RY.months.map((m) => m.demand)) <= 3 * Math.max(1e-9, ...RY.months.map((m) => m.m3))
+  const perMm = d.roof.area * (useSwStudy.getState().rainEff ?? 0.8)
   return (
     <>
-      <SwFig title="Roof water by month · m³" caption={needFits ? 'Bars: collected. Line: flushing need.' : `Collected; ${RY.flushShare != null ? Math.round(RY.flushShare * 100) : 0}% of the flushing need.`} tip="Rain × roof and terrace area × run-off for each month, against non-potable toilet flushing at 25 L a person a day.">
-        <MonthStack label="Rain collected by month against flushing demand" unit="m³" series={[{ name: 'collected', color: RAIN_C, values: RY.months.map((m) => m.m3) }]} need={needFits ? { name: 'flushing need', color: '#5E8F5A', values: RY.months.map((m) => m.demand) } : undefined} />
-      </SwFig>
-      {d.roof.surfaces.length > 0 && <SwFig title="Each roof · m³ a year" caption="Rain × area × run-off, largest first.">
-        <BarRows label="Rain collected by roof surface" labelW={98} textW={84} rows={d.roof.surfaces.slice(0, 10).map((x) => ({ label: x.name.replace('Terrace at', 'Terrace').replace('Podium roof at', 'Podium'), v: x.m3, color: x.name === 'Main roof' ? RAIN_C : '#6FA3CF', text: `${fmtI(x.m3)} · ${fmtI(x.area)} m²` }))} />
+      <ImpactHead what="Rain" at={d.at} color="#2563eb" />
+      {A && top3[0] && <>
+        <p className="border-l-[3px] border-[#3B7DD8] bg-white py-1.5 pl-2.5 pr-2 text-xs leading-snug text-ink" data-testid="rain-from">
+          Mostly from the <b>{WORD16[top3[0].name] ?? top3[0].name}</b>: {Math.round(top3[0].f * 100)}% of {ofThe} rain arrives on {top3[0].name} winds, {Math.round(quarter * 100)}% from {top3[0].name} ± 45°.{top3[1] ? ` Next ${top3[1].name} ${Math.round(top3[1].f * 100)}%` : ''}{top3[2] ? `, ${top3[2].name} ${Math.round(top3[2].f * 100)}%` : ''}.
+          {off > 22.5 && storm && <button type="button" data-testid="rain-use-dir" onClick={() => setStudy({ rainDir: top3[0].dir, rainSpeed: storm.speed })} className="ml-1.5 rounded border border-line px-1.5 py-0.5 text-meta font-semibold text-[#2563eb] hover:border-[#2563eb]">Use {top3[0].dir}° ({top3[0].name})</button>}
+        </p>
+        <SwFig explain title={`Where the rain comes from · ${period}`} caption={`Petal: share of the rain. ${Math.round(A.tot)} mm.`} tip="Petal length: share of the period's rain arriving on winds from each direction. Colour: mean wind speed while it rains. Wind direction in the wet hours of the CWEC 2020 typical year at Vancouver Intl Airport.">
+          <div className="mx-auto w-full max-w-[14rem]"><Rose label="Rain by wind direction" color={RAIN_C} sectors={A.sec.map((x) => ({ name: x.dir % 45 ? '' : x.name, dir: x.dir, f: x.f, s: x.s, text: `${x.name}: ${Math.round(x.f * 100)}% of the rain` }))} /></div>
+        </SwFig>
+      </>}
+      {worst && wo && <p className="border-l-[3px] border-[#3B7DD8] bg-white py-1.5 pl-2.5 pr-2 text-xs leading-snug text-ink" data-testid="rain-headline">
+        The <b>{FACE_W[wo].toLowerCase()}</b> face carries the driving rain: {Math.round(worst.index)} on the annual index, {worst.band} on the BS 8104 scale{wetW ? <>, and {Math.round(wetW.wetShare * 100)}% of it is wetted in the design storm</> : null}. Upper floors catch two to three times the rain of the base, so copings, sealant joints and glazing at the top of that face are the first details to resolve.
+      </p>}
+      <div className="@container"><div className="grid grid-cols-1 gap-1.5 @[26rem]:grid-cols-3" data-testid="rain-tiles">
+        <Tile name="Design storm" value={storm ? `${Math.round(storm.dir)}° · ${storm.speed.toFixed(1)}` : '–'} unit={storm ? 'm/s' : undefined} sub={`${d.drop ?? 'steady'} · rain ${Math.round(d.alphaDeg ?? 0)}° from vertical`} />
+        <Tile name="Most exposed face" value={wo ? FACE_W[wo] : '–'} sub={worst ? `${worst.band} · index ${Math.round(worst.index)}${wetW ? ` · ${Math.round(wetW.wetShare * 100)}% wetted` : ''}` : 'run the study'} over={worst?.band === 'very severe'} />
+        <Tile name="Ground kept dry" value={d.sh ? fmtI(d.sh.dryStorm) : '–'} unit={d.sh ? 'm²' : undefined} sub={d.sh?.dryStormSite ? `${fmtI(d.sh.dryStormSite)} m² of it on the site` : 'rain shadow of the building'} />
+      </div></div>
+      {d.roof.area > 0 && <>
+        <h4 className="pt-1 text-xs font-semibold text-ink">How much the roof can collect</h4>
+        <div className="@container"><div className="grid grid-cols-1 gap-1.5 @[26rem]:grid-cols-3" data-testid="roof-tiles">
+          <Tile name="Collected a year" value={fmtI(d.roof.annual)} unit="m³" sub={`from ${fmtI(d.roof.area)} m² of roof and terraces`} />
+          <Tile name="In the design storm" value={fmtI(RY.storm)} unit="m³" sub={`${Math.round(RY.stormMM)} mm · peak ${Math.round(RY.peakLs)} L/s to the drains`} />
+          <Tile name="Per mm of rain" value={fmtI(perMm)} unit="L" sub={RY.flushShare != null ? `covers ${Math.round(RY.flushShare * 100)}% of toilet flushing for ${fmtI(RY.people)} people` : 'at the run-off kept'} />
+        </div></div>
+        <div className="@container"><div className="grid grid-cols-1 gap-3 @[34rem]:grid-cols-2">
+          <SwFig explain title="Roof water by month · m³" caption={needFits ? 'Bars: collected. Line: flushing need.' : 'Collected each month.'} tip="Rain × roof and terrace area × run-off kept, for each month of the typical year, against the non-potable toilet flushing of the people in the tower.">
+            <MonthStack label="Rain collected by month against flushing demand" unit="m³" series={[{ name: 'collected', color: RAIN_C, values: RY.months.map((m) => m.m3) }]} need={needFits ? { name: 'flushing need', color: '#5E8F5A', values: RY.months.map((m) => m.demand) } : undefined} />
+          </SwFig>
+          {d.roof.surfaces.length > 0 && <SwFig explain title="Each roof · m³ a year" caption="Rain × area × run-off, largest first." tip="What each roof and terrace collects in a year: its area × the year's rain × the run-off kept.">
+            <BarRows label="Rain collected by roof surface" labelW={98} textW={84} rows={d.roof.surfaces.slice(0, 10).map((x) => ({ label: x.name.replace('Terrace at', 'Terrace').replace('Podium roof at', 'Podium'), v: x.m3, color: x.name === 'Main roof' ? RAIN_C : '#6FA3CF', text: `${fmtI(x.m3)} · ${fmtI(x.area)} m²` }))} />
+          </SwFig>}
+        </div></div>
+      </>}
+      {f?.by && <div className="@container"><div className="grid grid-cols-1 gap-3 @[34rem]:grid-cols-2">
+        <SwFig explain title="Driving rain by face" caption="ISO 15927-3 index. Colour: BS 8104 band." tip="The annual driving-rain index on each face (ISO 15927-3, from the hourly wind and rain of the period), read against the BS 8104 exposure bands: sheltered, moderate, severe, very severe.">
+          <div className="mx-auto w-full max-w-[15rem]"><Compass label="Driving rain by face" faces={Object.fromEntries(ORI.filter((o) => f.by[o] != null).map((o) => [o, { v: f.by[o]!, color: RAIN_BAND_C[bandOf(f.by[o]!)], text: `${Math.round(f.by[o]!)}` }]))} /></div>
+          <Chips items={Object.entries(RAIN_BAND_C).map(([name, color]) => ({ name, color }))} />
+        </SwFig>
+        {SF && <SwFig explain title="Wetted face by height" caption="Share of each face the storm wets." tip="Share of each face the design storm wets, by height: upper floors catch two to three times the rain of the base; neighbours shelter the lower floors.">
+          <LineChart label="Wetted share of each face by height" xLabel="wetted %" yLabel="height m" series={SF.faces.map((x) => ({ name: x.o, color: FACE_C[x.o], pts: x.byHeight.map((b) => [Math.round(b.wet * 100), b.z] as [number, number]), read: (vx: number, vy: number) => `${FACE_W[x.o]}: ${Math.round(vx)}% wetted at ${Math.round(vy)} m` }))} />
+        </SwFig>}
+      </div></div>}
+      {SF && <SwFig explain title="Storm catch on each face" caption="L/m² an hour and the share wetted." tip="Wind-driven rain on the face in the design storm: catch ratio 0.222 · U · R^0.88 with wall factors rising with height.">
+        <BarRows label="Storm catch on each face" labelW={44} textW={104} rows={SF.faces.map((x) => ({ label: FACE_W[x.o], v: x.storm, color: FACE_C[x.o], text: `${x.storm.toFixed(1)} L/m²h · ${Math.round(x.wetShare * 100)}% wet` }))} />
       </SwFig>}
+      {dryF && <p className="text-meta leading-snug text-muted">The {FACE_W[dryF.o].toLowerCase()} face stays largely dry ({Math.round(dryF.wetShare * 100)}% wetted): the place for entrances, operable windows and anything that dislikes water.</p>}
       <Fold title="Storage and the design storm">
         <SwFig title="Roof water · m³" caption="Year, need, cistern, one storm." tip="A year's catch, the flushing need, the store to bridge dry months, one storm.">
           <BarRows label="Roof water: year, need, cistern, storm" labelW={98} rows={[
@@ -445,8 +501,8 @@ function RainWaterBody() {
             { label: 'Design storm', v: RY.storm, color: '#123F73', text: `${fmtI(RY.storm)} m³ · ${Math.round(RY.peakLs)} L/s` },
           ]} />
         </SwFig>
-        {d.storm && <SwFig title="Design storm" caption="The lee of the towers stays dry." tip="The towers keep the ground in their lee dry.">
-          <StormSection dir={d.storm.dir} speed={d.storm.speed} alphaDeg={d.sh?.stormAlphaDeg ?? (Math.atan(d.storm.speed / 5) * 180) / Math.PI} H={H} />
+        {storm && <SwFig title="Design storm" caption="The lee of the towers stays dry." tip="The towers keep the ground in their lee dry.">
+          <StormSection dir={storm.dir} speed={storm.speed} alphaDeg={d.sh?.stormAlphaDeg ?? d.alphaDeg ?? 0} H={H} />
         </SwFig>}
       </Fold>
       {inp.C && <Fold title="Rain climate"><RainClimate C={inp.C} /></Fold>}

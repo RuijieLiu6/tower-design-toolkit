@@ -8,7 +8,7 @@ import { aseTower, daylightTower, type DaylightTower, type AseTower } from '../e
 import { hourBase, hourLight, type HourLight } from '../engine/sw/hourLight'
 import { energyModel, ENERGY_DEFAULTS, type EnergyFloor, type EnergyResult } from '../engine/sw/energy'
 import { FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, band, STRATS, type Face, type SwFloor } from '../engine/sw/plate'
-import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainBySector, roofCollect, wdrBins, type FaceRain, type GroundShelter, type RainTower, type RoofWater } from '../engine/sw/rain'
+import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainAngle, rainBySector, roofCollect, wdrBins, type FaceRain, type GroundShelter, type RainBySector, type RainTower, type RoofWater } from '../engine/sw/rain'
 import { facadeIrradiance, sunGround, SUN_DATES, type SunGround } from '../engine/sw/sun'
 import { periodLabel, periodRange } from './sunPeriod'
 import { sunImpact } from '../engine/sw/sunImpact'
@@ -86,6 +86,19 @@ export function refWind(C: ClimatePayload, s: SwStudySettings): { U10: number; l
   const r = windRose(C, s.season, periodRange(s.periodFrom, s.periodTo))
   const U10 = r.sectors.reduce((a, x) => a + x.f * x.s, 0)
   return { U10, label: `${periodLabel(s.periodFrom, s.periodTo)} mean, ${U10.toFixed(1)} m/s` }
+}
+
+// ------------------------------------------------------------------ the rain (the Studio's Rain tab)
+/** The hours of the time period (day of year from the hour index; To before From wraps over the new year). */
+export function periodKeep(s: SwStudySettings): (i: number) => boolean {
+  const { d0, d1 } = periodRange(s.periodFrom, s.periodTo)
+  if (d0 === 1 && d1 === 365) return () => true
+  return (i) => { const d = Math.floor(i / 24) + 1; return d1 >= d0 ? d >= d0 && d <= d1 : d >= d0 || d <= d1 }
+}
+/** The design storm: as set, else the record's wettest sector at its 95th-percentile wet-hour wind. */
+export function stormOf(A: RainBySector, s: SwStudySettings): { dir: number; speed: number } {
+  const d = designStorm(A)
+  return { dir: s.rainDir ?? d.dir, speed: s.rainSpeed ?? d.speed }
 }
 
 // ------------------------------------------------------------------ one compute per tool
@@ -193,20 +206,20 @@ const RUNS: Partial<Record<SwId, Run>> = {
       ],
     }
   },
-  'built.sw-rain-faces': (inp) => {
+  'built.sw-rain-faces': (inp, s) => {
     const C = inp.C!
-    const keep = keepFor(C, 'year')
+    const keep = periodKeep(s)
     const rt = rainTowers(inp.towers)
     const faces: FaceRain[] = facadeRain(rt, inp.north, wdrBins(C, keep))
     const A = rainBySector(C, keep)
     const worst = faces.reduce<FaceRain | null>((a, f) => (!a || f.index > a.index ? f : a), null)
     const li = worst ? ['sheltered', 'moderate', 'severe', 'very severe'].indexOf(worst.band) : 0
     const mt = mainTower(inp)
-    const storm = A ? designStorm(A) : null
-    const SF = mt && storm ? stormOnFaces(mt.floors, blocksNorth(inp), storm, 'steady') : null
+    const storm = A ? stormOf(A, s) : null
+    const SF = mt && storm ? stormOnFaces(mt.floors, blocksNorth(inp), storm, s.rainDrop, s.rainI) : null
     const wetF = SF && worst ? SF.faces.find((f) => f.o === oriOf(worst.az)) : null
     return {
-      data: { faces, A, by: byFace(faces.map((f) => ({ az: f.az, area: f.area, value: f.index }))), SF },
+      data: { faces, A, by: byFace(faces.map((f) => ({ az: f.az, area: f.area, value: f.index }))), SF, worst, period: periodLabel(s.periodFrom, s.periodTo) },
       keys: worst ? [
         key('sw-rain-worst', `Wettest: ${FACE_WORD[oriOf(worst.az)].toLowerCase()}`, 'ISO 15927-3', worst.band, li <= 1 ? 'pass' : li === 3 ? 'fail' : 'warn', `The face most exposed to wind-driven rain: airfield index ${Math.round(worst.index)} L/m² a year. The scale runs sheltered, moderate, severe, very severe (BS 8104).`, { bar: { max: 4, v: li + 0.5, zone: [0, 2], ticks: [[1, ''], [2, ''], [3, '']] } }),
         ...(wetF ? [key('sw-rain-wet', 'Wetted in storm', `${FACE_WORD[wetF.o].toLowerCase()} face`, pc(wetF.wetShare), 'unknown', `Share of that face the design storm reaches (from ${Math.round(SF!.dir)}° at ${SF!.speed.toFixed(1)} m/s, rain ${Math.round(SF!.alphaDeg)}° from vertical), after the buildings around.`, { bar: { max: 1, v: wetF.wetShare } })] : []),
@@ -220,13 +233,13 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const rt = rainTowers(inp.towers)
     const mm = hourlyRain(C).reduce((a, b) => a + b, 0)
     const roof: RoofWater = roofCollect(rt, mm, s.rainEff)
-    const A = rainBySector(C, keepFor(C, 'year'))
+    const A = rainBySector(C, periodKeep(s))
+    const storm = A ? stormOf(A, s) : null
     let sh: GroundShelter | null = null
-    if (A) sh = groundShelter(inp.towers.flatMap(prismsOf), inp.context, inp.site, inp.north, A, { cell: 2, drop: 'steady', storm: designStorm(A) })
-    const RY = roofYear(C, roof.area, s.rainEff, allFloors(inp).reduce((a, x) => a + peopleOf(x.floors), 0))
-    const storm = A ? designStorm(A) : null
+    if (A && storm) sh = groundShelter(inp.towers.flatMap(prismsOf), inp.context, inp.site, inp.north, A, { cell: 2, drop: s.rainDrop, storm })
+    const RY = roofYear(C, roof.area, s.rainEff, allFloors(inp).reduce((a, x) => a + peopleOf(x.floors), 0), s.rainI, s.rainDur)
     return {
-      data: { roof, sh, mm, RY, A, storm },
+      data: { roof, sh, mm, RY, A, storm, drop: s.rainDrop, alphaDeg: storm ? (rainAngle(storm.speed, s.rainDrop).alpha * 180) / Math.PI : 0, period: periodLabel(s.periodFrom, s.periodTo), at: Date.now() },
       keys: [
         key('sw-rain-roof', 'Rain collected', 'LEED WE', fmt(roof.annual), 'unknown', `From ${fmt(roof.area)} m² of roof and terraces at ${pc(s.rainEff)} run-off${RY.flushShare != null ? `: ${pc(RY.flushShare)} of toilet flushing for ${fmt(RY.people)} people` : ''}.`, { unit: 'm³/yr', ...(RY.flushShare != null ? { bar: { max: 1, v: RY.flushShare, ticks: [[1, 'all flushing']] as [number, string][] } } : {}) }),
         key('sw-rain-storm', 'Storm run-off', `${Math.round(RY.stormMM)} mm`, fmt(RY.storm), 'unknown', `${Math.round(RY.stormMM)} mm in an hour on the roofs and terraces: peak ${Math.round(RY.peakLs)} L/s to the drains.`, { unit: 'm³' }),
@@ -352,7 +365,7 @@ export const useSwOut = create<SwState>(() => ({ out: {}, busy: {}, errors: {} }
 const TIME_TOOLS: SwId[] = ['built.sw-light-hour', 'built.sw-indoor-temp'], LEVEL_TOOLS: SwId[] = ['built.sw-light-hour', 'built.sw-indoor-temp', 'built.sw-airflow', 'built.sw-natvent']
 export function inputKey(inp: SwInputs, s: SwStudySettings, id: SwId): string {
   // Dragging the hour slider of the daylight viewer must not start the shadow, wind or energy studies again.
-  const mine = { ...s, windView: '', ...(TIME_TOOLS.includes(id) ? {} : { month: 0, day: 0, hour: 0 }), ...(LEVEL_TOOLS.includes(id) ? {} : { level: null }) }
+  const mine = { ...s, windView: '', rainCase: null, ...(TIME_TOOLS.includes(id) ? {} : { month: 0, day: 0, hour: 0 }), ...(LEVEL_TOOLS.includes(id) ? {} : { level: null }) }
   return JSON.stringify([id, inp.project, inp.north, inp.towers, inp.site?.length ?? 0, inp.context.length, !!inp.C, mine])
 }
 

@@ -17,7 +17,7 @@ import { WORKFLOW_KEY } from '../startPreset'
 import { breakStep, withoutHistory } from '../project/history'
 import { presetById } from '../userTypes'
 import { addLoop, clean, edgeKey, insertAfter, insertOn, linear, returnEdges, takeOff, walk, type Board, type Edge } from '../workflowGraph'
-import { BUILT_NODES } from '../../data/registry'
+import { BUILT_NODES, withParts } from '../../data/registry'
 import { analysisOnly, isDesignNode } from './designNodes'
 import { goToStep, useStep, type StepId } from '../step'
 import { usePhaseTools } from './phaseTools'
@@ -86,8 +86,9 @@ function save(wf: ProjectWorkflow) {
 
 /** A node joining the workflow switches its check on; one leaving switches it off (its results and inputs stay). */
 function syncChecks(before: string[], after: string[]) {
-  const on = analysisOnly(after.filter((id) => !before.includes(id)))
-  const off = analysisOnly(before.filter((id) => !after.includes(id)))
+  // A merged tool switches its parts with it (data/registry MERGES), as toggleNode does: adding Rain runs driving rain too.
+  const on = withParts(analysisOnly(after.filter((id) => !before.includes(id))))
+  const off = withParts(analysisOnly(before.filter((id) => !after.includes(id))))
   if (!on.length && !off.length) return
   // Not a design-undo step (8 Nov, F05): the workflow has its own Undo, which switches the check back; recorded in the
   // design history, a quick design edit after adding a tool merged with it and one design Undo switched the tool off.

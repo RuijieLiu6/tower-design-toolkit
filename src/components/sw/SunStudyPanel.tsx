@@ -9,7 +9,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { SUN_DATES, type SunDate } from '../../engine/sw/sun'
 import { compass16, windRose } from '../../engine/sw/wind'
 import { useSwInputs } from '../../lib/swInputs'
-import { runSw, useSwOut, type SwId } from '../../lib/swRun'
+import { periodKeep, runSw, useSwOut, type SwId } from '../../lib/swRun'
+import { designStorm, rainBySector, type DropType as RainDrop } from '../../engine/sw/rain'
+import { RATE_COL } from '../../engine/sw/form'
 import { useSwStudy } from '../../lib/swStudy'
 import { PERIOD_PRESETS, periodInfo, periodLabel, presetOf } from '../../lib/sunPeriod'
 import { useStore } from '../../store'
@@ -140,6 +142,53 @@ export function WindStudyPanel() {
           <option value="delta">change caused by the tower</option>
         </select></label>
       <RunButton ids={['built.sw-wind-comfort', 'built.sw-wind-height']} testid="wind-run" />
+    </div>
+  )
+}
+
+const DROPS: [RainDrop, string][] = [['drizzle', 'drizzle · 0.5 mm drops fall 2 m/s'], ['steady', 'steady rain · 1.5 mm drops fall 5 m/s'], ['heavy', 'heavy rain · 3 mm drops fall 8 m/s']]
+const sub = (t: string) => <div className="flex items-center gap-2 pt-1"><span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{t}</span><span aria-hidden className="h-px flex-1 bg-line" /></div>
+
+/** Rain (the Studio's Rain tab): the time period, the design storm (Vancouver's wind cases or the record's own storm,
+ *  direction, wind, rain type, duration), and the rainfall and drainage (storm intensity, roof run-off kept). */
+export function RainStudyPanel() {
+  const s = useSwStudy()
+  const C = useSwInputs().C
+  const cases = useWindCases()
+  const rec = useMemo(() => { if (!C) return null; const A = rainBySector(C, periodKeep(s)); return A ? designStorm(A) : null }, [C, s.periodFrom, s.periodTo]) // eslint-disable-line react-hooks/exhaustive-deps
+  const dir = s.rainDir ?? rec?.dir ?? 135, speed = s.rainSpeed ?? rec?.speed ?? 9
+  const fromRecord = s.rainDir == null && s.rainSpeed == null
+  return (
+    <div className="grid gap-3 px-3 pb-3" data-testid="rain-study-panel">
+      <PeriodPicker />
+      {sub('Design storm')}
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Design storm cases">
+        <button type="button" aria-pressed={fromRecord} data-rain-case="record" onClick={() => s.set({ rainDir: null, rainSpeed: null, rainCase: null })} className={chip(fromRecord)}>Wettest in the record{rec ? ` · ${compass16(rec.dir)} ${rec.speed.toFixed(1)} m/s` : ''}</button>
+        {cases.map((c) => { const on = !fromRecord && s.rainCase === c.id && s.rainDir === c.dir; return <button key={c.id} type="button" aria-pressed={on} data-rain-case={c.id} onClick={() => s.set({ rainDir: c.dir, rainSpeed: Math.max(rec?.speed ?? 6, c.speed), rainCase: c.id })} className={chip(on)}>{c.label}</button> })}
+      </div>
+      <Slider name="Design storm · wind from" testid="rain-dir" value={dir} min={0} max={355} step={5} fmt={(v) => `${v}° · ${compass16(v)}`} onChange={(v) => s.set({ rainDir: v, rainSpeed: speed, rainCase: null })} />
+      <Slider name="Storm wind at 10 m" testid="rain-speed" value={speed} min={2} max={20} step={0.5} fmt={(v) => `${v.toFixed(1)} m/s`} onChange={(v) => s.set({ rainSpeed: v, rainDir: dir, rainCase: null })} />
+      <label className="grid gap-1"><span className={label}>Rain type</span>
+        <select className={field} value={s.rainDrop} data-testid="rain-drop" onChange={(e) => s.set({ rainDrop: e.target.value as RainDrop })}>{DROPS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
+      <Slider name="Storm duration" testid="rain-dur" value={s.rainDur} min={10} max={180} step={10} fmt={(v) => `${v} min`} onChange={(v) => s.set({ rainDur: v })} />
+      {sub('Rainfall and drainage')}
+      <Slider name="Design storm intensity" testid="rain-i" value={s.rainI} min={20} max={200} step={5} fmt={(v) => `${v} mm/h`} onChange={(v) => s.set({ rainI: v })} />
+      <Slider name="Roof run-off kept" testid="rain-eff" value={Math.round(s.rainEff * 100)} min={40} max={95} step={5} fmt={(v) => `${v}%`} onChange={(v) => s.set({ rainEff: v / 100 })} />
+      <RunButton ids={['built.sw-rain-water', 'built.sw-rain-faces']} testid="rain-run" />
+    </div>
+  )
+}
+
+/** Form efficiency (the Studio's Massing efficiency tab has no settings, only how to read it): the A to E bands. */
+export function FormGuide() {
+  const rows: [string, string][] = [['A', 'form factor ≤ 0.30 · a compact shaft'], ['B', '≤ 0.40'], ['C', '≤ 0.50'], ['D', '≤ 0.60 · voids, steps, terraces'], ['E', 'over 0.60']]
+  return (
+    <div className="grid gap-2 px-3 pb-3" data-testid="form-guide">
+      {sub('How to read it')}
+      <ul className="grid gap-1" aria-label="Form ratings A to E">
+        {rows.map(([l, t], i) => <li key={l} className="flex items-center gap-2 text-xs"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-bold text-white" style={{ background: RATE_COL[i] }}>{l}</span><span className="text-muted">{t}</span></li>)}
+      </ul>
+      <p className="text-meta leading-snug text-muted">Read live from the massing, before any envelope or system: nothing to set or run.</p>
     </div>
   )
 }
