@@ -336,8 +336,8 @@ export default function AnalysisViewport() {
             </button>
           ))}
         </div>}
-        <button type="button" onClick={closeAnalysis} aria-label="Close the analysis view" title="Close the analysis view" data-testid="analysis-close"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={16} aria-hidden /></button>
+        <button type="button" onClick={closeAnalysis} aria-label="Back to the model" title="Close the analysis and go back to the 3D model (the top bar's split button shows both)" data-testid="analysis-close"
+          className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-line px-2 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent"><X size={14} aria-hidden />Back to model</button>
       </header>
       <div className="relative min-h-0 flex-1">
         {/* Plan is a true plan: an orthographic camera straight down, north up, pan and zoom only (the canvas is rebuilt with

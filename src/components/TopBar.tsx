@@ -26,6 +26,7 @@ import { UnitSelect } from './Units'
 import { RoleSelect } from './RolePicker'
 import { useStore, type ProjectKind, type ViewMode } from '../store'
 import { useShallow } from 'zustand/react/shallow'
+import { closeAnalysis, useAnalysisView } from '../lib/analysisView'
 
 const PROJECTS: { id: ProjectKind; label: string; hint: string }[] = [
   { id: 'vtc', label: 'Competition site', hint: 'Hypothetical VTC block with the supplied context model' },
@@ -109,6 +110,7 @@ export default function TopBar() {
   // While the workflow builder covers the workspace, the view switch and the editor button step aside; the project,
   // its file menu, Export and Auto-run (the evaluation mode the builder must keep) stay (Result A brief §3).
   const building = useProjectWorkflow((s) => s.mode === 'builder')
+  const analysisOn = useAnalysisView((s) => !!s.node) && !present
   return (
     <header data-testid="top-bar" className={`glass-edge stage-fade flex h-[52px] shrink-0 items-center gap-2 rounded-2xl px-3 text-control ${present ? 'bar-present' : 'bg-chrome text-chrome-ink'}`}>
       <button onClick={showIntro} aria-label="Tower Design Toolkit" title="Back to the start" className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-0.5 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
@@ -138,10 +140,15 @@ export default function TopBar() {
         </UiShow>
       )}
       {!building && <UiShow id="topbar.view-buttons"><div className="flex items-center gap-0.5" role="group" aria-label="Screen: model, data graph or both" title="Screen: what fills the middle (the model, the data graph, or both). The display of the model itself is the View bar under it.">
-        {VIEWS.map(({ id, icon: Icon, label }) => (
-          <button key={id} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}
-            className={`${icon} ${view === id ? (present ? 'bar-view-on' : 'bg-selected text-accent-hover') : present ? 'bar-off' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
-        ))}
+        {VIEWS.map(({ id, icon: Icon, label: base }) => {
+          // An analysis open: 3D goes back to the model, split shows the model and the analysis side by side.
+          const label = analysisOn ? (id === '3d' ? 'Back to the 3D model' : id === 'split' ? 'Model and analysis side by side' : base) : base
+          const on = analysisOn && id === '3d' ? false : view === id
+          return (
+          <button key={id} title={label} aria-label={label} aria-pressed={on} data-view={id} onClick={() => { if (analysisOn && id !== 'split') closeAnalysis(); setView(id) }}
+            className={`${icon} ${on ? (present ? 'bar-view-on' : 'bg-selected text-accent-hover') : present ? 'bar-off' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
+          )
+        })}
       </div></UiShow>}
       <UiShow id="topbar.autorun"><AutoRun /></UiShow>
       {/* Edit workflow (Ruijie, 9 Nov: "I didn't know what does assistant mean … this is more about editing the project

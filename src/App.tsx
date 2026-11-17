@@ -50,6 +50,8 @@ export default function App() {
   // A check's analysis view (lib/analysisView.ts) takes the second half of the centre, beside the model.
   const analysisNode = useAnalysisView((s) => s.node)
   const analysisOpen = !!analysisNode && !present && (view === '3d' || view === 'split')
+  // Full screen when the 3D screen is chosen; side by side with the model when the top bar's split is.
+  const analysisFull = analysisOpen && view === '3d'
   const half = view === 'split' || analysisOpen
   const railHidden = useToolRail((s) => s.hidden)
   const panels = usePanels()
@@ -107,12 +109,12 @@ export default function App() {
         {panels.left ? <><PhasePanel /><PanelResizer side="left" /></> : <PanelRail side="left" label="Phase tools" />}
         <main className="relative flex min-w-0 flex-1 gap-2">
           {(view === '3d' || view === 'split') && (
-            <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${half ? 'w-1/2' : 'w-full'}`} data-model-region>
+            <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${analysisFull ? 'hidden' : half ? 'w-1/2' : 'w-full'}`} data-model-region>
               {LoadedViewport ? <LoadedViewport /> : <Suspense fallback={<div aria-busy="true" aria-label="Loading the 3D view" className="h-full w-full" />}><Viewport /></Suspense>}
             </div>
           )}
           {analysisOpen && (
-            <div className="w-1/2 overflow-hidden rounded-2xl border border-line bg-panel" data-analysis-region>
+            <div className={`${analysisFull ? 'w-full' : 'w-1/2'} overflow-hidden rounded-2xl border border-line bg-panel`} data-analysis-region data-analysis-layout={analysisFull ? 'full' : 'split'}>
               <Suspense fallback={<Loading what="analysis view" />}><AnalysisViewport /></Suspense>
             </div>
           )}
@@ -127,7 +129,7 @@ export default function App() {
         </main>
         {/* Right: the analysis results (and Present's own tabs). */}
         {/* The design tool rail stands on its own beside the right panel (13 Nov, Sinnie: "should be on the side"). */}
-        {!present && (view === '3d' || view === 'split') && !railHidden && <TowerRail />}
+        {!present && (view === '3d' || view === 'split') && !railHidden && !analysisFull && <TowerRail />}
         {panels.right ? <><PanelResizer side="right" /><RightPanel /></> : <PanelRail side="right" label={present ? 'Present and results' : 'Results'} />}
         </>)}
       </div>

@@ -55,11 +55,12 @@ export const hasOwnAnalysis = (node: string) => node in VIEWS
 interface AnalysisViewState { node: string | null; plan: boolean }
 export const useAnalysisView = create<AnalysisViewState>(() => ({ node: null, plan: true }))
 
-/** Opens a check's analysis beside the model (the node view gives way to the model, which is what it compares with). */
+/** Opens a check's analysis full screen (17 Nov, Sinnie: "full screen instead of split screen"); the top bar's split
+ *  button puts it beside the model, Back to model (or the 3D button) closes it. */
 export function openAnalysis(node: string) {
   if (!canExpand(node)) return
   const s = useStore.getState()
-  if (s.view === 'canvas') s.set({ view: '3d' })
+  if (s.view !== '3d') s.set({ view: '3d' })
   useAnalysisView.setState({ node, plan: analysisFor(node).plan })
   // The results follow the analysis open (Sinnie, 13 Nov): the right panel shows this check's results and drawings.
   s.selectNode(node)
