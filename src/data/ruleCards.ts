@@ -7,6 +7,7 @@
 import type { Flag, Source } from '../engine/types'
 import { SRC as WIND_COMFORT_SRC } from '../engine/windComfortInput'
 import { SRC as DAYLIGHT_SW_SRC } from '../engine/daylightSWInput'
+import { SRC as VENTILATION_SW_SRC } from '../engine/ventilationSWInput'
 
 export type Deontic = 'obligation' | 'prohibition' | 'permission' | 'recommendation'
 export type Strength = 'strict' | 'defeasible'
@@ -166,6 +167,20 @@ export const RULE_CARDS: RuleCard[] = [
     note: 'Her app labels this reading EN 17037 without an edition or clause, and EN 17037 itself sets targets as illuminance over half the daylight hours, not a mean DF: the card stays unverified until a person reads the standard she meant.',
   },
   {
+    id: 'ashrae621.natvent.sunwind', title: 'ASHRAE 62.1 natural ventilation: openable area and reach (as applied in Sun & Wind Studio)', source: VENTILATION_SW_SRC.ashrae621,
+    summary: 'A naturally ventilated space needs operable openings whose free area is at least 4% of the floor they serve, and every point of that floor within 8 m of one.',
+    parameter: 'free opening area over the floor served; floor within 8 m of an operable opening', rule: '≥ 4%; every point within 8 m', deontic: 'obligation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.ventilation-sw'], results: ['ventilationSW:sw-vt-openable', 'ventilationSW:sw-vt-within8'],
+    note: 'Her code (study.js keyItems, leedCard) states these two conditions and names ASHRAE 62.1 without an edition; the standard was not opened here, so the card stays unverified until a person checks the edition the project uses.',
+  },
+  {
+    id: 'ashrae55.adaptive.sunwind', title: 'ASHRAE 55 adaptive comfort band (as applied in Sun & Wind Studio)', source: VENTILATION_SW_SRC.ashrae55,
+    summary: 'In a naturally ventilated space the comfortable operative temperature follows the prevailing mean outdoor temperature: 0.31 times it plus 17.8 °C, give or take 3.5 K, while that mean lies between 10 and 33.5 °C.',
+    parameter: 'room air (outdoor + ΔT) against the band', rule: 'within 0.31 Tpma + 17.8 ± 3.5 °C', deontic: 'recommendation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.ventilation-sw'], results: ['ventilationSW:sw-vt-hours'],
+    note: 'Her code (study.js ventStudy) applies the adaptive band with the 3.5 K width and the 10–33.5 °C range, without naming an edition or the acceptability level; the standard was not opened here, so the card stays unverified.',
+  },
+  {
     id: 'nbc.wall-continuity', title: 'Seismic walls continuous to the foundation', source: { ...NBC, page: 'Div B 4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
     summary: 'For long-period buildings in high-hazard areas, the walls that resist earthquakes must run unbroken down to the foundation: no transfers or offsets.',
     parameter: 'the core walls (SFRS)', rule: 'continuous top to foundation', deontic: 'prohibition', strength: 'strict', flag: 'verified',
@@ -247,4 +262,5 @@ export const NODE_GROUPS: Record<string, string[]> = {
   'built.city-in-nature': ['nature'], 'built.wind-procedure': ['wind'], 'built.structure': ['structure'], 'built.wind-study': ['windStudy'], 'built.life-safety': ['lifeSafety'], 'built.relax-aviation': ['relaxAviation'],
   'built.wind-comfort': ['windComfort'],
   'built.daylight-sw': ['daylightSW'],
+  'built.ventilation-sw': ['ventilationSW'],
 }

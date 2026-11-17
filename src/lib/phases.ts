@@ -38,7 +38,7 @@ export const PHASES: Phase[] = [
   {
     id: 'schematic', name: 'Schematic', step: 'plates', about: 'Core, lifts, stairs, structure, facade and energy: can it be built?',
     tools: ['core', 'anatomy', 'plan', 'section'],
-    nodes: ['built.core-lifts', 'built.egress', 'built.life-safety', 'built.structure', 'built.wind-procedure', 'built.interior', 'built.daylight-depth', 'built.daylight-sw', 'built.facade', 'built.energy-carbon'],
+    nodes: ['built.core-lifts', 'built.egress', 'built.life-safety', 'built.structure', 'built.wind-procedure', 'built.interior', 'built.daylight-depth', 'built.daylight-sw', 'built.ventilation-sw', 'built.facade', 'built.energy-carbon'],
   },
   {
     id: 'present', name: 'Present', step: 'frame', about: 'Frame views, capture and compose the boards, with the claims and AI use on record.',

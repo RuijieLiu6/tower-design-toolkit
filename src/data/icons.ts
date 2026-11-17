@@ -15,7 +15,7 @@ import {
   Aperture, BelowGrade, Building as BuildingIcon, Camera, ChartColumn, ClipboardList, Cloud, Columns3, CorePlan, Cuboid, FileCheck2, FileImage,
   FileJson, FileUp, Footprints, GitCommitHorizontal, GraduationCap, Grid2x2, Hammer, HardHat, ImagePlus, LandPlot, Layers2, LayoutGrid,
   LayoutPanelTop, MapPinned, SquareDashed, ScrollText, CircleCheckBig, Ban, GitCompareArrows, Network, Package, Axis3d, MessageSquare, MessagesSquare, Image as ImageIcon, PencilLine, PenTool, Recycle, Rows3,
-  Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
+  Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, WindowAir, Workflow,
 } from '../components/icons'
 import type { Category } from './registry'
 import type { Flag, UseId } from '../engine/types'
@@ -139,6 +139,8 @@ export const NODE_ICONS: Record<string, LucideIcon> = {
   'built.wind-comfort': Sailboat,
   // Sun & Wind Studio port, engine 2 (17 Nov): a sun at full strength, beside the plate-depth screen's light bulb.
   'built.daylight-sw': SunMedium,
+  // Engine 3 (17 Nov): an open window with air passing through it.
+  'built.ventilation-sw': WindowAir,
   'built.trips': Waypoints,
   'built.energy-carbon': PlugZap,
 }

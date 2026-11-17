@@ -140,6 +140,14 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^sw-dl-weakest$/, 'Reported, not judged: the floor with the least sDA; deepen the glass or thin the plate there first (often the low floors behind neighbours).'],
   [/^sw-dl-udi$/, 'Reported, not judged: hours of useful daylight; a large share over 3,000 lux asks for shading, a large share under 100 lux for more glass or shallower plates.'],
   [/^sw-dl-glazing$/, 'Reported, not judged: switch the facade node on and set its system, WWR by facing and VLT to study your own glass instead of her default facade.'],
+  // Natural ventilation potential (Sun & Wind Studio port, 17 Nov): her levers, each as the move to make.
+  [/^sw-vt-openable$/, 'Give the floor more free opening: make more faces operable (Presets), open a larger share of the glass, add glass on the operable faces (the facade node’s WWR), or a double skin so the windows can open higher up.'],
+  [/^sw-vt-within8$/, 'Bring every point within 8 m of an opening: a shallower plate or a smaller core (Massing, Schematic), operable windows on more faces, or a light well or atrium in a deep plate.'],
+  [/^sw-vt-hours$/, 'Reported, not judged: more hours come from cross-ventilated plates (two opposite operable faces), the adaptive band where the use allows it, a double skin that lets windows open in stronger wind, and a smaller indoor rise (shading, lower internal gains).'],
+  [/^sw-vt-height$/, 'Reported, not judged: above this floor the wind at height closes the windows more often; a double skin or sheltered openings (balconies, winter gardens) raise it.'],
+  [/^sw-vt-fresh$/, 'Reported, not judged: share of open hours whose airflow meets her outdoor-air rate; cross-flow or a stack shaft raises it on deep floors.'],
+  [/^sw-vt-glazing$/, 'Reported, not judged: switch the facade node on for your own glass, and set which faces open under Presets.'],
+  [/^sw-vt-method$/, 'Indicative (her note): one zone per floor; a mechanical engineer’s AirflowNetwork or CFD model with the real interior settles natural ventilation.'],
   [/^sw-dl-method$/, 'Indicative early-design proxy (her note): a LEED submission needs an hourly Radiance run with the real interior; a daylighting consultant settles it.'],
   [/^method$/, 'Indicative, not CFD: a two-dimensional flow shows where the massing accelerates or shelters the wind; a wind-tunnel study by a wind engineer settles the numbers.'],
   // Code & life safety (VBBL 2019 3.2.6, 3.2.7, 3.8): obligations a high building carries, each as the move to make.

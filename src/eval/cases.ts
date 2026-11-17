@@ -23,6 +23,9 @@ import { DEFAULT_WIND_PRESETS, readingsOf, SRC as WIND_COMFORT_SRC, windRules } 
 import type { Flag, RuleResult, Tower } from '../engine/types'
 import { aseTower, daylightTower, maskFloor, newCache, prep, type Zone } from '../engine/daylightSW'
 import { DEFAULT_DAYLIGHT_PRESETS, daylightRules, readingsOf as daylightReadings } from '../engine/daylightSWInput'
+import { DEFAULT_ZONES as SW_DEFAULT_ZONES } from '../engine/daylightSW'
+import { ventStudy, ventTowerQuick, type VentSettings } from '../engine/ventilationSW'
+import { DEFAULT_VENT_PRESETS, readingsOf as ventReadings, ventRules } from '../engine/ventilationSWInput'
 
 export type CaseType = 'typical' | 'boundary' | 'out-of-scope' | 'repeated' | 'definition'
 
@@ -73,6 +76,17 @@ function dlCase() {
     return { lines, sda: D.sda, ase: A.pct, herSda: c.expected.tower.sda, herAse: c.expected.ase.pct }
   })()
   return dlRun
+}
+// Natural ventilation (Sun & Wind Studio port, engine 3): her 'cross-default' and 'sealed' fixture cases, run on demand.
+async function ventCase(id: 'cross-default' | 'sealed') {
+  const [{ default: hourly }, { default: fx }] = await Promise.all([import('../data/sunWindHourly.json'), import('../engine/ventilation.fixtures.json')])
+  const c = fx.cases.find((x) => x.id === id)!, t = c.tower
+  const floors = Array.from({ length: t.n }, (_, i) => maskFloor({ i, z: t.z0 + i * t.h, h: t.h, w: t.w, d: t.d, cx: t.cx, cy: t.cy, rot: t.rot, core: t.core }))
+  const zones = c.zones === 'default' ? SW_DEFAULT_ZONES : (c.zones as Zone[]), V = c.vent as VentSettings
+  const v = ventStudy(prep(hourly as never), { temp: hourly.temp, months: hourly.months, days: hourly.days }, floors, zones, V, { from: '01-01', to: '12-31' }, c.height)
+  const q = ventTowerQuick(floors, zones, V.open, c.pos[0], c.pos[1])
+  const lines = ventRules({ readings: ventReadings(v, q), presets: { ...DEFAULT_VENT_PRESETS, ...V }, glazing: { from: 'studio', note: 'Her case ' + id }, towerName: 'T', period: 'whole year', levels: floors.map((f) => f.i + 1), left: 0 })
+  return { lines, total: v.total, herTotal: c.expected.vent.total, freePct: q.freePct, herFree: c.expected.quick.freePct }
 }
 const windLines = (loaded: boolean) => { const { result } = windCase(); return windRules({ readings: readingsOf(result, 0), result, obstacles: { loaded, unknownHeights: 0, source: WIND_COMFORT_SRC.vtc }, presets: DEFAULT_WIND_PRESETS, towerName: 'T' }) }
 const cone = (id: string) => CONES.find((c) => c.id === id)!
@@ -223,6 +237,31 @@ export const CASES: EvalCase[] = [
     expected: 'The calm-ground line has state "unknown": a tower alone on open ground is optimistic, so it is not judged',
     basis: 'Team rule (engine/windComfortInput.ts windRules): a result without context is reported, not judged', basisFlag: 'team_assumption',
     run: () => { const line = windLines(false).find((r) => r.id === 'calm-ground'); return { observed: `calm-ground ${line?.state ?? 'missing'}`, pass: line?.state === 'unknown', flag: 'team_assumption' } },
+  },
+
+  // ---------- Natural ventilation potential (Sun & Wind Studio port, Sinnie Choi) ----------
+  {
+    id: 'VT-T', node: 'built.ventilation-sw', type: 'typical', title: 'Her default facade, cross ventilation: the port gives her hours and openable area, and the 62.1 line is judged',
+    input: 'Thirty floors of a 46 × 46 m tower with her default facade zones (all four faces operable), 10% of the glass opening, fixed 12–24 °C band, 8 m/s gust limit, the whole year',
+    expected: 'The open-window hours and the openable area equal what her own code recorded for this case (src/engine/ventilation.fixtures.json, "cross-default"), and the openable-area line is pass or fail',
+    basis: 'Sun & Wind Studio outputs recorded in src/engine/ventilation.fixtures.json', basisFlag: 'unverified',
+    run: async () => {
+      const r = await ventCase('cross-default')
+      const line = r.lines.find((x) => x.id === 'sw-vt-openable')
+      const judged = !!line && (line.state === 'pass' || line.state === 'fail')
+      return { observed: `open-window hour sum ${r.total.toFixed(2)} (hers ${r.herTotal.toFixed(2)}), openable ${r.freePct.toFixed(2)}% (hers ${r.herFree.toFixed(2)}%); line ${line?.state ?? 'missing'}: ${line?.value ?? ''}`, pass: judged && r.total === r.herTotal && r.freePct === r.herFree, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'VT-O', node: 'built.ventilation-sw', type: 'out-of-scope', title: 'A sealed facade: no operable window, so the 62.1 lines fail and no hour is counted',
+    input: 'Four floors of a 30 × 20 m tower, curtain wall with no operable zone (her case "sealed")',
+    expected: 'Openable area and 8 m reach read "none" and fail; the hours line counts 0% (natural ventilation is out of scope for a sealed facade)',
+    basis: 'Team rule (engine/ventilationSWInput.ts ventRules): no operable face is never a pass', basisFlag: 'team_assumption',
+    run: async () => {
+      const r = await ventCase('sealed')
+      const a = r.lines.find((x) => x.id === 'sw-vt-openable'), b = r.lines.find((x) => x.id === 'sw-vt-within8')
+      return { observed: `openable ${a?.state} (${a?.value}), within 8 m ${b?.state}, hour sum ${r.total}`, pass: a?.state === 'fail' && b?.state === 'fail' && r.total === 0, flag: 'team_assumption' }
+    },
   },
 
   // ---------- Daylight sDA / ASE (Sun & Wind Studio port, Sinnie Choi) ----------

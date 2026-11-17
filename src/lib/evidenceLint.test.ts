@@ -18,6 +18,8 @@ import { DEFAULT_WIND_PRESETS, readingsOf, SRC as WIND_COMFORT_SRC, windRules } 
 import { aseTower, daylightTower, DEFAULT_ZONES, maskFloor, newCache, prep } from '../engine/daylightSW'
 import { DEFAULT_DAYLIGHT_PRESETS, daylightRules, readingsOf as daylightReadings } from '../engine/daylightSWInput'
 import hourly from '../data/sunWindHourly.json'
+import { ventStudy, ventTowerQuick, DEFAULT_VENT } from '../engine/ventilationSW'
+import { DEFAULT_VENT_PRESETS, readingsOf as ventReadings, ventRules } from '../engine/ventilationSWInput'
 import type { RuleResult, Tower } from '../engine/types'
 import { DEFAULT_SKY_ROOM, useStore } from '../store'
 import { lintRow, lintRule, lintRules as lintAll, type LintIssue } from './evidenceLint'
@@ -71,6 +73,10 @@ function allIssues(): LintIssue[] {
     const D = daylightTower(P, floors, s, cache), A = aseTower(P, floors, s, hourly.days, cache)
     const readings = daylightReadings(D, A, [1, 2])
     out.push(...lintRules('built.daylight-sw', daylightRules({ readings, contextLoaded: true, unknownHeights: 0, glazing: { from: 'studio', note: 'Her default facade' }, presets: DEFAULT_DAYLIGHT_PRESETS, towerName: 'T', period: A.period, left: 0 })))
+    // Natural ventilation (Sun & Wind Studio port): the same two floors, her default settings.
+    const v = ventStudy(P, { temp: hourly.temp, months: hourly.months, days: hourly.days }, floors, DEFAULT_ZONES, DEFAULT_VENT, { from: '01-01', to: '12-31' }, 8.4)
+    const q = ventTowerQuick(floors, DEFAULT_ZONES, DEFAULT_VENT.open, 0, 0)
+    out.push(...lintRules('built.ventilation-sw', ventRules({ readings: ventReadings(v, q), presets: DEFAULT_VENT_PRESETS, glazing: { from: 'studio', note: 'Her default facade' }, towerName: 'T', period: 'whole year', levels: [1, 2], left: 0 })))
   }
   for (const [k, row] of Object.entries(DEFAULT_ECON)) {
     if (k === 'research') {

@@ -1,3 +1,62 @@
+# CHECKPOINT: Sun & Wind Studio merge, engine 3 of 4: natural-ventilation potential (17 Nov 2026)
+
+Same brief as engines 1 and 2 (below). Branch `sun-wind-ventilation`, cut from `sun-wind-daylight` bdf5628, worktree
+`tower-studio-sw`. Pushed for review, **not merged, not deployed**; her written OK (§1c, status line added) still pending.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/ventilationSW.ts`): study.js `ventStudy` (hour by hour over the period: windows
+  open when the room air, outdoor + ΔT, is in her fixed band or the ASHRAE 55 adaptive band 0.31 Tpma + 17.8 ± 3.5 °C, the
+  gust 1.8 × the station wind carried to the floor height (`siteWind`, ASHRAE boundary layers) is under her limit, ×1.6 for
+  a double skin, and it is not raining over 1 mm/h), `ventFlow` (wind pressure by face angle, `cpFace`, and stack pressure
+  through each operable opening, balanced by 32-step bisection; cross, single-sided with BS 5925 turbulence, or a stack
+  shaft three storeys up), `ventOpenings`, and the ASHRAE 62.1 quick check `ventFloorQuick` / `ventTowerQuick` (free area
+  over the floor, every cell within 8 m of an operable opening). The shared physics (`daylightSW.ts` `prep`) now also
+  carries her hourly wind, direction, rain, daily means and the prevailing mean outdoor temperature.
+- **Data**: `src/data/sunWindHourly.json` gains `ws`, `wd`, `rain`, monthly `temp` and `months` (200 KB, worker and lazy eval only).
+- **Fixtures from her own code**: `tools/sunwind-ventilation-fixtures.cjs` at **c24addb**, six cases: her default facade
+  with cross flow (30 floors); single-sided with the adaptive band in summer; a 70-floor stack case with an operable
+  double skin to L25, sealed above, 6 m/s gust limit; a 40 × 28 m plate turned 30° with only north and south operable,
+  15% opening, ΔT 2 K, April–September; an L plate with one operable face across the year end; a sealed facade; plus
+  her prevailing-mean temperature, Cp and site-wind values, and `ventFlow` in all three modes on one floor.
+  `src/engine/ventilation.fixtures.json` (40 KB). **Bit for bit (tolerance 0)**: monthly rows, per-floor shares, median
+  ACH, the hourly grid, the limit floor, 62.1 per floor (`ventilationSW.test.ts`, 8 tests). The daylight fixtures still
+  match after the shared `prep` change (13/13).
+- **Mapping** (`src/engine/ventilationSWInput.ts`): the daylight port's plates (occupied floors, true north, core);
+  glazing from the facade node when on, else her default zones; which faces open and her settings (mode, band, gust
+  limit, opening share, ΔT, period, north) as node presets. Her model reads no context buildings.
+- **Node `built.ventilation-sw`** "Natural ventilation potential (Sun & Wind Studio)", CLIM, Schematic, both projects, off
+  by default: worker `src/workers/ventilationWorker.ts`, hook + store `src/hooks/useVentilationSW.ts` (`ts.ventilationSW`),
+  card `VentilationSWResults.tsx` (openable area, within 8 m and hours tiles; by month against comfortable hours; by
+  floor; her week × hour carpet; lines; presets), canvas status, trace digest group `ventilationSW`, rule cards
+  `ashrae621.natvent.sunwind` and `ashrae55.adaptive.sunwind` (unverified), FIXES `sw-vt-*`, evidence lint, eval cases
+  VT-T / VT-O, Sources hub, every list, and a new `WindowAir` icon (line + filled drawing).
+- **Evidence lines** (all unverified, sourced): openable area ≥ 4% (fail below or with no operable face), within 8 m
+  (≥ 95% pass, else warn, as her app), hours the windows do the work, highest floor that can open, open hours meeting
+  her 0.35 L/s·m² outdoor air, glazing and openings used (team assumption), method.
+
+## Choices made (recommended options)
+- Plates turned to true north as daylight (her wind direction and face pressures depend on it); preset for her frame.
+- Operable faces default to all four (her default facade opens all four); the facade node has no operable field.
+- Highest floor reported with the Toolkit level number.
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,273 pass; only the 2 CRLF data-file checks fail, in worktrees only |
+| `ventilationSW.test.ts` (her fixtures) | 8/8, tolerance 0 |
+| `ventilationSWInput.test.ts` | 2/2 |
+| `e2e/ventilation-sw.e2e.ts` (Edge, competition site, 67 floors) | 1/1: on in Schematic, runs in seconds, tiles, bars, carpet, flagged lines, no "Verified", single-sided adaptive rerun changes the readings |
+| `e2e/daylight-sw.e2e.ts`, `e2e/wind-comfort.e2e.ts` reruns | 2/2 |
+| Real Vancouver, her app side by side | NOT RUN |
+
+Screenshots: `test-results/ventilation-sw.png`, `test-results/ventilation-sw-card.png` (worktree, not committed).
+
+## Next
+Engine 4: the monthly energy model (`energy.js`, ISO 13790 5R1C, TEUI / TEDI / GHGI) on `sun-wind-energy` from this branch.
+
+---
+
 # CHECKPOINT: Sun & Wind Studio merge, engine 2 of 4: daylight sDA / ASE (17 Nov 2026)
 
 Same brief as engine 1 (below): Ruijie, 16 Nov, "start merging Sinnie's tool into the platform", in her order wind comfort →

@@ -26,6 +26,10 @@ function liveLines() {
     nature: nature.rules,
     wind: towers.map((t) => ({ tower: t, rules: windProcedure(t).rules })),
     structure: towers.map((t) => ({ tower: t, rules: structureCheck(t, windProcedure(t)).rules })),
+    // the ventilation port's lines likewise (engine/ventilationSWInput.ts ventRules)
+    ventilationSW: [{ id: 'sw-vt-openable', label: 'Openable area (Tower 1)', value: '4.2% of the floor served', threshold: '≥ 4%', state: 'pass', flag: 'unverified', source: { label: 'ASHRAE 62.1 natural ventilation procedure as Sun & Wind Studio states it' } },
+      { id: 'sw-vt-within8', label: 'Floor within 8 m of an operable opening', value: '97%', threshold: 'every point', state: 'pass', flag: 'unverified', source: { label: 'ASHRAE 62.1 natural ventilation procedure as Sun & Wind Studio states it' } },
+      { id: 'sw-vt-hours', label: 'Hours the windows can do the work', value: '35% of the hours', threshold: 'reported, not judged', state: 'unknown', flag: 'unverified', source: { label: 'ASHRAE 55 adaptive comfort as Sun & Wind Studio applies it' } }],
     // the daylight port's lines likewise (engine/daylightSWInput.ts daylightRules)
     daylightSW: [{ id: 'sw-dl-sda', label: 'Spatial daylight autonomy sDA300/50% (Tower 1)', value: '62% of the floor area (2 LEED points)', threshold: '≥ 40% for 1 point', state: 'pass', flag: 'unverified', source: { label: 'LEED v4.1 BD+C EQ Daylight, option 1, as Sun & Wind Studio states it' } },
       { id: 'sw-dl-ase', label: 'Annual sunlight exposure ASE1000/250h', value: '8% of the floor area', threshold: '≤ 10%', state: 'pass', flag: 'unverified', source: { label: 'LEED v4.1 BD+C EQ Daylight, option 1, as Sun & Wind Studio states it' } },
