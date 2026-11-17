@@ -3,7 +3,7 @@
 // (they are too large for localStorage). Nothing here is uploaded anywhere.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { BOARD_COUNT, DEFAULT_DENY, applyTemplate, newBoard, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
+import { BOARD_COUNT, DEFAULT_DENY, applyTemplate, moveBoard, newBoard, sortBoardsByName, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
 import { DEFAULT_FONTS } from './fonts/catalog'
 
@@ -35,6 +35,15 @@ interface BoardState {
   tick: (key: string) => void
   setExport: (boardId: string, rec: ExportRecord | null) => void
   unpark: (i: number, board: number, frame: string) => void
+  /** Name a board (Ruijie, 17 Nov); empty goes back to "Board n". */
+  renameBoard: (board: number, name: string) => void
+  /** Move a board to another place; the selection follows it. */
+  moveBoard: (from: number, to: number) => void
+  /** Order the boards by their names. */
+  sortByName: () => void
+  /** The export format chosen last: JPEG (the submission), PNG or PDF. */
+  format: 'jpeg' | 'png' | 'pdf'
+  setFormat: (f: 'jpeg' | 'png' | 'pdf') => void
   reset: () => void
 }
 
@@ -110,6 +119,26 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
     boards[i] = { ...boards[i], frames: boards[i].frames.map((f) => (f.id === id ? { ...f, content: p.content, caption: p.caption, tag: p.tag } : f)) }
     return { boards, parked: s.parked.filter((_, j) => j !== k) }
   }),
+  renameBoard: (i, name) => set((s) => {
+    const boards = s.boards.slice(); boards[i] = { ...boards[i], name: name.slice(0, 80) || undefined }
+    const ex = { ...s.exports }; delete ex[boards[i].id]
+    return { boards, exports: ex }
+  }),
+  // The board number printed in each title band follows the order, so a move or sort asks for fresh exports.
+  moveBoard: (from, to) => set((s) => {
+    const boards = moveBoard(s.boards, from, to)
+    if (boards === s.boards) return {}
+    const id = s.boards[s.selected.board]?.id
+    return { boards, exports: {}, selected: { board: Math.max(0, boards.findIndex((b) => b.id === id)), frame: s.selected.frame } }
+  }),
+  sortByName: () => set((s) => {
+    const boards = sortBoardsByName(s.boards)
+    if (boards.every((b, i) => b === s.boards[i])) return {}
+    const id = s.boards[s.selected.board]?.id
+    return { boards, exports: {}, selected: { board: Math.max(0, boards.findIndex((b) => b.id === id)), frame: s.selected.frame } }
+  }),
+  format: 'jpeg',
+  setFormat: (format) => set({ format }),
   reset: () => set({ boards: freshBoards(), parked: [], exports: {}, ticks: {}, selected: { board: 0, frame: null } }),
 }), {
   name: 'ts.boards',
@@ -118,7 +147,7 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
     try { return localStorage } catch { return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } }
   }),
   // Image pixels live in IndexedDB; exports are re-made on demand.
-  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, parked: s.parked }),
+  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, parked: s.parked, format: s.format }),
 }))
 
 let hydrated = false

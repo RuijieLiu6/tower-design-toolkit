@@ -52,10 +52,10 @@ test('Board fonts: a built-in face, your own font file, the export drawn with it
 
   // A title and a text frame, so the board is used and the faces show.
   await c.getByRole('button', { name: /^Frame f0/ }).click()
-  await c.getByRole('textbox').first().fill('A tower on the high street')
+  await c.locator('textarea').first().fill('A tower on the high street')
   await c.getByRole('button', { name: /^Frame f1/ }).click()
   await c.getByRole('radiogroup', { name: 'Frame content' }).getByRole('radio', { name: 'Text', exact: true }).click()
-  await c.getByRole('textbox').first().fill('The massing steps back from the street, with a public sky room at the top of the podium.')
+  await c.locator('textarea').first().fill('The massing steps back from the street, with a public sky room at the top of the podium.')
 
   // A text file is refused in plain words; a font file is read, named from its own name table and listed under Your fonts.
   await c.getByTestId('font-file').setInputFiles(NOT_A_FONT)
@@ -79,7 +79,7 @@ test('Board fonts: a built-in face, your own font file, the export drawn with it
   await c.getByRole('tablist', { name: 'Panel' }).getByRole('tab').nth(1).click()
   const download = p.waitForEvent('download', { timeout: 120_000 })
   await c.getByRole('button', { name: /^Export \d JPEG/ }).click()
-  expect((await download).suggestedFilename()).toBe('board-1.jpg')
+  expect((await download).suggestedFilename()).toBe('01-board-1.jpg')
   const line = c.getByTestId('export-line').first()
   await expect(line).toBeVisible({ timeout: 120_000 })
   await expect(line).toHaveAttribute('data-export-fonts', /Space Grotesk/)

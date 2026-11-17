@@ -1,10 +1,10 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
-import { Camera, ChevronDown, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, Upload, X } from '../icons'
+import { ArrowUpDown, Camera, ChevronDown, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, Upload, X } from '../icons'
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, SOURCE_LABEL, TEMPLATES, familiesUsed, imageSource, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
+import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, SOURCE_LABEL, TEMPLATES, boardName, familiesUsed, imageSource, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
 import { drawBoard, imageSize, type EvidenceSet } from '../../lib/boardRender'
 import { hydrateBoardImages, useBoardStore } from '../../lib/boardStore'
 import { BUILTIN_FONTS, FONT_SOURCES, KIND_WORD, fontStack } from '../../lib/fonts/catalog'
@@ -20,6 +20,8 @@ import SubmissionPanel from './SubmissionPanel'
 import { useBoardFonts, useEvidence, useLoadedImages, useOverflow } from './useBoardData'
 
 const DRAG = 'application/x-board-image'
+/** A board tab being dragged to a new place (Ruijie, 17 Nov). */
+const BOARD_DRAG = 'application/x-board-order'
 const AI_NAME = /render|gpt|dall|midjourney|firefly|imagen|stable.?diffusion|\bai\b/i
 
 function readFile(file: File): Promise<string> {
@@ -107,8 +109,19 @@ function BoardCanvas({ index, evidence, onFrame }: { index: number; evidence: Re
   )
 }
 
+/**
+ * One board's tab (Ruijie, 17 Nov: boards can be renamed and rearranged): its preview and its name. Click selects;
+ * double-click the name (or F2) renames, Enter keeps, Esc drops; drag a tab onto another, or Alt+← / Alt+→, to move it.
+ */
 function Thumb({ index, evidence, active, onClick }: { index: number; evidence: Record<string, EvidenceSet>; active: boolean; onClick: () => void }) {
   const board = useBoardStore((s) => s.boards[index])
+  const count = useBoardStore((s) => s.boards.length)
+  const renameBoard = useBoardStore((s) => s.renameBoard)
+  const move = useBoardStore((s) => s.moveBoard)
+  const [editing, setEditing] = useState(false)
+  const [over, setOver] = useState(false)
+  const name = boardName(board, index)
+  const keep = (v: string) => { renameBoard(index, v.trim()); setEditing(false) }
   const images = useBoardStore((s) => s.images)
   const loaded = useLoadedImages([board], images)
   const { fonts, resolve, loaded: fontsLoaded } = useBoardFonts()
@@ -122,10 +135,26 @@ function Thumb({ index, evidence, active, onClick }: { index: number; evidence: 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board, images, loaded, evidence, index, fonts, resolve, fontsLoaded])
   return (
-    <button type="button" onClick={onClick} aria-pressed={active} className={`flex flex-col items-center gap-1 rounded p-1 text-meta ${active ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
-      <canvas ref={ref} className={`h-[52px] w-[74px] rounded-[2px] ${active ? 'ring-2 ring-sky-500' : 'ring-1 ring-white/20'}`} />
-      Board {index + 1}
-    </button>
+    <div data-testid="board-tab" data-board-name={name} draggable={!editing}
+      onDragStart={(e) => { e.dataTransfer.setData(BOARD_DRAG, String(index)); e.dataTransfer.effectAllowed = 'move' }}
+      onDragOver={(e) => { if (e.dataTransfer.types.includes(BOARD_DRAG)) { e.preventDefault(); setOver(true) } }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => { setOver(false); const from = Number(e.dataTransfer.getData(BOARD_DRAG)); if (Number.isInteger(from)) { e.preventDefault(); move(from, index) } }}
+      className={`flex w-[92px] flex-col items-center gap-1 rounded p-1 text-meta ${active ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/5'} ${over ? 'outline outline-2 outline-sky-400' : ''}`}>
+      <button type="button" onClick={onClick} aria-pressed={active} aria-label={`${name}: board ${index + 1} of ${count}`} title="Click to open · double-click the name or F2 to rename · drag or Alt+← → to move"
+        onKeyDown={(e) => {
+          if (e.key === 'F2') { e.preventDefault(); setEditing(true) }
+          if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); move(index, index + (e.key === 'ArrowLeft' ? -1 : 1)) }
+        }}
+        className="rounded-[2px] outline-none focus-visible:ring-2 focus-visible:ring-sky-400">
+        <canvas ref={ref} className={`h-[52px] w-[74px] rounded-[2px] ${active ? 'ring-2 ring-sky-500' : 'ring-1 ring-white/20'}`} />
+      </button>
+      {editing
+        ? <input autoFocus defaultValue={board.name ?? ''} placeholder={`Board ${index + 1}`} aria-label={`Name of board ${index + 1}`} maxLength={80} data-testid="board-name-input"
+            onBlur={(e) => keep(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') keep(e.currentTarget.value); if (e.key === 'Escape') setEditing(false) }}
+            className="w-full min-w-0 rounded border border-sky-400 bg-slate-900 px-1 text-center text-meta text-slate-100 outline-none" />
+        : <span onDoubleClick={() => setEditing(true)} className="w-full cursor-text truncate text-center" title={name}>{name}</span>}
+    </div>
   )
 }
 
@@ -325,7 +354,13 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 p-3 text-slate-200">
       <div>
-        <div className="mb-1.5 text-meta font-semibold text-slate-400">Board {selected.board + 1} layout</div>
+        <label className={`${label} mb-3`}>Board name
+          <input key={b.id} defaultValue={b.name ?? ''} placeholder={`Board ${selected.board + 1}`} maxLength={80} data-testid="board-name"
+            onBlur={(e) => useBoardStore.getState().renameBoard(selected.board, e.target.value.trim())} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+            className={input} />
+          <span className="text-meta text-slate-400">Shown on its tab and used for the file name; Sort by name orders the boards by it. Not printed on the board.</span>
+        </label>
+        <div className="mb-1.5 text-meta font-semibold text-slate-400">{boardName(b, selected.board)} layout</div>
         <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Board template">
           {(Object.keys(TEMPLATES) as TemplateId[]).map((t) => (
             <button key={t} type="button" role="radio" aria-checked={b.template === t} title={TEMPLATES[t].hint} onClick={() => setTemplate(selected.board, t)}
@@ -490,8 +525,11 @@ function ComposerBody() {
           <div className="text-meta text-slate-400">Four A2 landscape boards, ≤ 10 MB each (brief p.27)</div>
         </div>
         <nav aria-label="Boards" className="flex gap-1">
-          {boards.map((_, i) => <Thumb key={i} index={i} evidence={evidence} active={selected.board === i} onClick={() => select(i, null)} />)}
+          {boards.map((b, i) => <Thumb key={b.id} index={i} evidence={evidence} active={selected.board === i} onClick={() => select(i, null)} />)}
         </nav>
+        <button type="button" onClick={() => useBoardStore.getState().sortByName()} disabled={!boards.some((b) => b.name?.trim())} data-testid="boards-sort"
+          title="Order the boards by their names (numbers read as numbers: 2 before 10); unnamed boards stay after the named ones"
+          className="flex items-center gap-1 rounded border border-white/15 px-2 py-1 text-xs text-slate-200 hover:border-sky-400 disabled:opacity-40"><ArrowUpDown size={12} aria-hidden />Sort by name</button>
         <div className="ml-auto flex items-center gap-1 rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
           <button type="button" role="tab" aria-selected={tab === 'frame'} onClick={() => setTab('frame')} className={`rounded px-2 py-1 text-xs ${tab === 'frame' ? 'bg-white/15' : 'text-slate-300'}`}>Compose</button>
           <button type="button" role="tab" aria-selected={tab === 'submit'} onClick={() => setTab('submit')} className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${tab === 'submit' ? 'bg-white/15' : 'text-slate-300'}`}><ListChecks size={12} />Check and export</button>

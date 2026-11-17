@@ -171,6 +171,27 @@ export async function loadBoardImages(boards: Board[], images: Record<string, Bo
   return out
 }
 
+/** A board drawn at an export resolution (PNG export; Ruijie, 17 Nov). */
+export async function renderBoardCanvas(board: Board, o: Omit<DrawOptions, 'pxPerMm' | 'loaded' | 'editing'>, dpi: number) {
+  const loaded = await loadBoardImages([board], o.images)
+  const resolve = o.resolve ?? ((f: string) => f)
+  const missing = await ensureFontsLoaded(familiesUsed(board, o.fonts ?? DEFAULT_FONTS).map(resolve))
+  try { await document.fonts.ready } catch { /* no font API */ }
+  const { w, h } = pxForDpi(dpi)
+  const canvas = document.createElement('canvas')
+  canvas.width = w; canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas is not available')
+  drawBoard(ctx, board, { ...o, pxPerMm: w / BOARD_W, loaded, editing: false })
+  return { canvas, missingFonts: missing }
+}
+/** A lossless PNG of a board (for review or print; the brief asks for JPEG). */
+export async function exportBoardPng(board: Board, o: Omit<DrawOptions, 'pxPerMm' | 'loaded' | 'editing'>, dpi: number) {
+  const { canvas } = await renderBoardCanvas(board, o, dpi)
+  const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('PNG encoding failed'))), 'image/png'))
+  return { blob, width: canvas.width, height: canvas.height }
+}
+
 const toBlob = (c: HTMLCanvasElement, q: number) => new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('JPEG encoding failed'))), 'image/jpeg', q))
 
 /**
