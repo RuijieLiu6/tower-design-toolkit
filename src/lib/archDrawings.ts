@@ -163,8 +163,9 @@ function sectionMarks(c: CanvasRenderingContext2D, v: PlanView, t: Tower, st: Bo
 }
 
 type PlanKind = 'context' | 'site' | 'plan' | 'roof'
-function drawPlanKind(c: CanvasRenderingContext2D, k: number, f: Rect, spec: DrawingSpec, d: DrawData, st: BoardStyle, kind: PlanKind): [string, number] {
+function drawPlanKind(c: CanvasRenderingContext2D, k: number, f: Rect, spec: DrawingSpec, d0: DrawData, st: BoardStyle, kind: PlanKind): [string, number] {
   const K = kit(c, k, f, st)
+  const d = kind === 'plan' || kind === 'roof' ? turnData(d0) : d0
   const prisms = d.towers.flatMap((t) => t.prisms)
   const upper = (kind === 'plan' && (spec.level ?? 1) > 1) || kind === 'roof'
   const own: Pt[] = [...(upper ? [] : d.site ?? []), ...prisms.flatMap((p) => p.ring)]
@@ -219,88 +220,187 @@ function drawPlanKind(c: CanvasRenderingContext2D, k: number, f: Rect, spec: Dra
     }
     title = kind === 'site' ? 'Site plan' : lvl === 1 ? 'Ground floor plan' : `${spec.label ?? 'Floor plan'}, level ${lvl}, +${z.toFixed(1)} m`
   }
+  if (kind === 'plan') {
+    const main = mainOf(d), lv = Math.max(1, spec.level ?? 1), fl0 = main.floors.find((x) => x.level === lv) ?? main.floors[Math.min(lv, main.floors.length) - 1]
+    const big = fl0?.rings[0] ?? main.prisms.reduce((m, p) => (area(p.ring) > area(m.ring) ? p : m), main.prisms[0]).ring
+    const xs2 = big.map((p) => p[0]), ys2 = big.map((p) => p[1]), x0 = Math.min(...xs2), x1 = Math.max(...xs2), y0 = Math.min(...ys2), y1 = Math.max(...ys2)
+    const gx = bays(x0, x1), gyy = bays(y0, y1), ext = 5
+    c.strokeStyle = '#8a8f96'; K.lw(0.08); c.setLineDash([K.mm(2.2), K.mm(0.6), K.mm(0.3), K.mm(0.6)]); c.beginPath()
+    for (const x of gx) { c.moveTo(X(x), Y(y1 + ext)); c.lineTo(X(x), Y(y0 - 2)) }
+    for (const y of gyy) { c.moveTo(X(x0 - ext), Y(y)); c.lineTo(X(x1 + 2), Y(y)) }
+    c.stroke(); c.setLineDash([])
+    gx.forEach((x, i) => bubble(c, X(x), Y(y1 + ext) - K.mm(2.2), String(i + 1), st, K))
+    gyy.forEach((y, i) => bubble(c, X(x0 - ext) - K.mm(2.2), Y(y), LETTERS[gyy.length - 1 - i], st, K))
+    dim(c, X(x0), Y(y1 + ext + 4.5), X(x1), Y(y1 + ext + 4.5), `${(x1 - x0).toFixed(2)}`, st, K)
+    dim(c, X(x0 - ext - 4.5), Y(y0), X(x0 - ext - 4.5), Y(y1), `${(y1 - y0).toFixed(2)}`, st, K)
+  }
   K.north(d.north)
   K.scaleBar(sc, kp)
   return [title, sc]
 }
 
+// ------------------------------------------------------------------ project north
+/** The tallest tower: the one the plans and sections are about. */
+const mainOf = (d: DrawData) => d.towers.reduce((m, t) => (Math.max(...t.prisms.map((p) => p.z1)) > Math.max(...m.prisms.map((p) => p.z1)) ? t : m), d.towers[0])
+/** The drawing data turned to project north (17 Nov, Sinnie: "floor plans should be drawn as project north not true north"):
+ *  the main tower's long side runs across the sheet; `north` keeps pointing at true north for the arrow. */
+function turnData(d: DrawData): DrawData {
+  const main = mainOf(d), a = axisOf(main).a, T = (p: Pt): Pt => [p[0] * a[0] + p[1] * a[1], -p[0] * a[1] + p[1] * a[0]]
+  const R = (r: Pt[]) => r.map(T)
+  return {
+    site: d.site ? R(d.site) : null,
+    towers: d.towers.map((t) => ({ ...t, core: t.core ? R(t.core) : t.core, prisms: t.prisms.map((p) => ({ ...p, ring: R(p.ring) })), floors: t.floors.map((fl) => ({ ...fl, rings: fl.rings.map(R) })) })),
+    context: d.context.map((o) => ({ ...o, ring: R(o.ring) })),
+    north: d.north + (Math.atan2(a[1], a[0]) * 180) / Math.PI,
+  }
+}
+const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+/** Grid lines through the column bays of a span (columns at most 9 m apart, 1.1 m inside the façade). */
+const bays = (u0: number, u1: number) => { const a = u0 + 1.1, b = u1 - 1.1, n = Math.max(1, Math.ceil((b - a) / 9)); return Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n) }
+function bubble(c: CanvasRenderingContext2D, x: number, y: number, txt: string, st: BoardStyle, K: ReturnType<typeof kit>) {
+  c.beginPath(); c.arc(x, y, K.mm(2.2), 0, 7); c.fillStyle = st.paper; c.fill(); c.strokeStyle = st.ink; K.lw(0.2); c.stroke()
+  c.fillStyle = st.ink; c.font = K.font(2.1, true); c.textAlign = 'center'; c.fillText(txt, x, y + K.mm(0.8))
+}
+/** A dimension line with ticks and its figure (canvas px), horizontal or vertical. */
+function dim(c: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, txt: string, st: BoardStyle, K: ReturnType<typeof kit>) {
+  c.strokeStyle = c.fillStyle = st.ink; K.lw(0.12); c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1)
+  for (const [x, y] of [[x0, y0], [x1, y1]]) { c.moveTo(x - K.mm(0.9), y + K.mm(0.9)); c.lineTo(x + K.mm(0.9), y - K.mm(0.9)) }
+  c.stroke(); c.font = K.font(1.9); c.textAlign = 'center'
+  if (Math.abs(y1 - y0) < 1) c.fillText(txt, (x0 + x1) / 2, y0 - K.mm(0.9))
+  else { c.save(); c.translate(x0 - K.mm(0.9), (y0 + y1) / 2); c.rotate(-Math.PI / 2); c.fillText(txt, 0, 0); c.restore() }
+}
+
 // ------------------------------------------------------------------ sections
-function drawSection(c: CanvasRenderingContext2D, k: number, f: Rect, spec: DrawingSpec, d: DrawData, st: BoardStyle): [string, number] {
+/** The key plan in a section's corner: the plate, the cut with its arrows the way it looks, and the north arrow. */
+function keyPlan(c: CanvasRenderingContext2D, K: ReturnType<typeof kit>, f: Rect, t: Tower, dir: Pt, look: Pt, tag: string, north: number, st: BoardStyle) {
+  const S = 24, x0 = f.x + 4, y0 = f.y + 4, big = t.prisms.reduce((m, p) => (area(p.ring) > area(m.ring) ? p : m), t.prisms[0]).ring, cc = centroid(big)
+  const R = Math.max(...big.map((p) => len(sub(p, cc)))) * 1.45, s = K.mm(S) / (2 * R), X = (p: Pt) => K.mm(x0 + S / 2) + (p[0] - cc[0]) * s, Y = (p: Pt) => K.mm(y0 + S / 2) - (p[1] - cc[1]) * s
+  c.fillStyle = st.paper; c.fillRect(K.mm(x0), K.mm(y0), K.mm(S), K.mm(S)); c.strokeStyle = '#9a9a9a'; K.lw(0.1); c.strokeRect(K.mm(x0), K.mm(y0), K.mm(S), K.mm(S))
+  c.beginPath(); big.forEach((p, i) => (i ? c.lineTo(X(p), Y(p)) : c.moveTo(X(p), Y(p)))); c.closePath(); c.fillStyle = '#d6d6d6'; c.fill(); c.strokeStyle = st.ink; K.lw(0.15); c.stroke()
+  const core = coreOf(t); if (core) { c.beginPath(); core.forEach((p, i) => (i ? c.lineTo(X(p), Y(p)) : c.moveTo(X(p), Y(p)))); c.closePath(); c.fillStyle = st.ink; c.fill() }
+  const e = R * 0.92, p: Pt = [cc[0] - dir[0] * e, cc[1] - dir[1] * e], q: Pt = [cc[0] + dir[0] * e, cc[1] + dir[1] * e]
+  c.strokeStyle = st.ink; K.lw(0.18); c.setLineDash([K.mm(1.6), K.mm(0.6), K.mm(0.3), K.mm(0.6)]); c.beginPath(); c.moveTo(X(p), Y(p)); c.lineTo(X(q), Y(q)); c.stroke(); c.setLineDash([])
+  for (const [e2, lab] of [[p, tag], [q, `${tag}′`]] as [Pt, string][]) {
+    const tip: Pt = [e2[0] + look[0] * R * 0.18, e2[1] + look[1] * R * 0.18]
+    c.beginPath(); c.moveTo(X(e2), Y(e2)); c.lineTo(X(tip), Y(tip)); K.lw(0.25); c.stroke()
+    c.fillStyle = st.ink; c.font = K.font(1.9, true); c.textAlign = 'center'; c.fillText(lab, X(e2) - (look[0] * K.mm(2.4)), Y(e2) + (look[1] * K.mm(2.4)) + K.mm(0.7))
+  }
+  // north arrow in the key plan's corner
+  const nx = K.mm(x0 + S - 3.4), ny = K.mm(y0 + 3.6)
+  c.save(); c.translate(nx, ny); c.rotate((north * Math.PI) / 180); c.fillStyle = st.ink
+  c.beginPath(); c.moveTo(0, -K.mm(2.4)); c.lineTo(K.mm(1), K.mm(1.4)); c.lineTo(0, K.mm(0.6)); c.closePath(); c.fill()
+  c.font = K.font(1.6, true); c.textAlign = 'center'; c.fillText('N', 0, -K.mm(2.8)); c.restore()
+}
+
+function drawSection(c: CanvasRenderingContext2D, k: number, f: Rect, spec: DrawingSpec, d0: DrawData, st: BoardStyle): [string, number] {
   const K = kit(c, k, f, st)
-  const main = d.towers.reduce((m, t) => (Math.max(...t.prisms.map((p) => p.z1)) > Math.max(...m.prisms.map((p) => p.z1)) ? t : m), d.towers[0])
+  const d = turnData(d0), main = mainOf(d)
   const ax = axisOf(main), cross = spec.axis === 'cross'
-  const dir = cross ? ax.b : ax.a, depth: Pt = cross ? [-ax.a[0], -ax.a[1]] : ax.b
+  // A–A runs along the tower (project east), looking project north; B–B across it, looking project west.
+  const dir: Pt = cross ? [0, 1] : [1, 0], depth: Pt = cross ? [-1, 0] : [0, 1]
   const U = (p: Pt) => dot(sub(p, ax.c), dir), W = (p: Pt) => dot(sub(p, ax.c), depth)
   const prisms = d.towers.flatMap((t) => t.prisms.map((p) => ({ ...p, t })))
-  const us = prisms.flatMap((p) => p.ring.map(U))
-  const top = Math.max(...prisms.map((p) => p.z1))
-  const u0 = Math.min(...us) - 25, u1 = Math.max(...us) + 25
-  const sc = fitScale(u1 - u0, top + 26, f.w - 30, f.h - 16, spec.scale)
+  const mu = main.prisms.flatMap((p) => p.ring.map(U)), ma = Math.min(...mu), mb = Math.max(...mu)
+  const top = Math.max(...prisms.map((p) => p.z1)), over = top + 4.5
+  const u0 = ma - 30, u1 = mb + 30
+  const sc = fitScale(u1 - u0, over + 22, f.w - 46, f.h - 30, spec.scale)
   const kp = K.mm(1000 / sc), uc = (u0 + u1) / 2
-  const gy = K.mm(f.y + (f.h - 10) / 2) + ((top + 26) / 2) * kp - 14 * kp
-  const X = (u: number) => K.mm(f.x + (f.w - 22) / 2) + (u - uc) * kp, Y = (z: number) => gy - z * kp
-  // the city behind the cut, pale
+  const gy = K.mm(f.y + 12) + (over + 6) * kp + Math.max(0, (K.mm(f.h - 30) - (over + 22) * kp) / 2)
+  const X = (u: number) => K.mm(f.x + 14 + (f.w - 46) / 2) + (u - uc) * kp, Y = (z: number) => gy - z * kp
+  const ink = st.ink, thin = Math.max(0.6, K.mm(0.08))
+  // the city behind the cut, pale; the earth hatched
   for (const o of d.context) {
     const w = o.ring.map(W); if (Math.max(...w) < 0 || Math.min(...w) > 160) continue
     const uu = o.ring.map(U), a = Math.max(u0, Math.min(...uu)), b = Math.min(u1, Math.max(...uu)); if (b <= a) continue
-    c.fillStyle = '#efefef'; c.fillRect(X(a), Y(o.z1), (b - a) * kp, o.z1 * kp); c.strokeStyle = '#b8b8b8'; K.lw(0.08); c.strokeRect(X(a), Y(o.z1), (b - a) * kp, o.z1 * kp)
+    c.fillStyle = '#efefef'; c.fillRect(X(a), Y(o.z1), (b - a) * kp, o.z1 * kp); c.strokeStyle = '#bdbdbd'; c.lineWidth = thin; c.strokeRect(X(a), Y(o.z1), (b - a) * kp, o.z1 * kp)
   }
-  // the tower beyond the cut: its silhouette and floor lines, fine
+  c.fillStyle = hatchPattern(c, '#8a8a8a', 7, 0.6); c.fillRect(K.mm(f.x + 3), gy, K.mm(f.w - 6), Math.min(K.mm(f.y + f.h - 12) - gy, 14 * kp))
+  // beyond the cut: each part's silhouette and floor lines in thin line
   for (const p of prisms) {
-    const w = p.ring.map(W); if (Math.max(...w) < 0) continue
+    if (Math.max(...p.ring.map(W)) < 0) continue
     const uu = p.ring.map(U), a = Math.min(...uu), b = Math.max(...uu)
-    c.fillStyle = st.paper; c.fillRect(X(a), Y(p.z1), (b - a) * kp, (p.z1 - p.z0) * kp); c.strokeStyle = st.ink; K.lw(0.12); c.strokeRect(X(a), Y(p.z1), (b - a) * kp, (p.z1 - p.z0) * kp)
-    c.strokeStyle = '#bdbdbd'; K.lw(0.06); c.beginPath(); for (const fl of p.t.floors) if (fl.z0 > p.z0 + 0.1 && fl.z0 < p.z1 - 0.1) { c.moveTo(X(a), Y(fl.z0)); c.lineTo(X(b), Y(fl.z0)) } c.stroke()
+    c.fillStyle = st.paper; c.fillRect(X(a), Y(p.z1), (b - a) * kp, (p.z1 - p.z0) * kp); c.strokeStyle = '#8a8f96'; c.lineWidth = thin; c.strokeRect(X(a), Y(p.z1), (b - a) * kp, (p.z1 - p.z0) * kp)
   }
-  // the earth: a hatched band, a heavy ground line
-  c.fillStyle = hatchPattern(c, '#8a8a8a', 7, 0.6); c.fillRect(K.mm(f.x + 3), gy, K.mm(f.w - 6), 6 * kp)
-  // the cut: poché slabs, end walls and core walls
-  const ink = st.ink, slab = Math.max(K.mm(0.5), 0.35 * kp), wall = Math.max(K.mm(0.6), 0.3 * kp), coreW = Math.max(K.mm(0.7), 0.35 * kp)
+  // the cut, as the Sun & Wind Studio draws it: rooms white, a poché slab over each storey, poché end walls with the
+  // glazing between sill and head, poché core walls with the lift shafts crossed and the stair run, the overrun above
+  const T = Math.max(K.mm(0.45), 0.35 * kp), TW = Math.max(K.mm(0.55), 0.3 * kp), TC = Math.max(K.mm(0.7), 0.35 * kp)
+  const box = (x0: number, y0: number, x1: number, y1: number) => c.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.max(0.6, Math.abs(x1 - x0)), Math.max(0.6, Math.abs(y1 - y0)))
   for (const p of prisms) {
     const zs: number[] = []
     p.ring.forEach((a, i) => { const b = p.ring[(i + 1) % p.ring.length], wa = W(a), wb = W(b); if ((wa < 0) !== (wb < 0)) { const s = wa / (wa - wb); zs.push(U([a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s])) } })
     zs.sort((a, b) => a - b)
+    const fls = p.t.floors.filter((fl) => fl.z0 >= p.z0 - 0.01 && fl.z1 <= p.z1 + 0.01)
+    const core = coreOf(p.t), cu = core?.map(U) ?? [], cw = core?.map(W) ?? []
+    const coreCut = core && Math.min(...cw) < 0 && Math.max(...cw) > 0
     for (let i = 0; i + 1 < zs.length; i += 2) {
       const a = zs[i], b = zs[i + 1]
       c.fillStyle = st.paper; c.fillRect(X(a), Y(p.z1), (b - a) * kp, (p.z1 - p.z0) * kp)
       c.fillStyle = ink
-      for (const fl of p.t.floors) if (fl.z0 >= p.z0 - 0.01 && fl.z0 <= p.z1 + 0.01) c.fillRect(X(a), Y(fl.z0) - slab / 2, (b - a) * kp, slab)
-      c.fillRect(X(a), Y(p.z1) - slab, (b - a) * kp, slab * 1.6) // roof slab
-      c.fillRect(X(a), Y(p.z1) - slab * 2.6, wall, slab * 2.6); c.fillRect(X(b) - wall, Y(p.z1) - slab * 2.6, wall, slab * 2.6) // parapets
-      // façade: glazing as two fine lines with spandrels at the slabs
-      K.lw(0.1); c.strokeStyle = ink; for (const x of [X(a) + wall * 0.3, X(b) - wall * 0.3]) { c.beginPath(); c.moveTo(x, Y(p.z1)); c.lineTo(x, Y(p.z0)); c.stroke() }
-      const core = coreOf(p.t)
-      if (core) {
-        const cu = core.map(U), cw = core.map(W)
-        if (Math.min(...cw) < 0 && Math.max(...cw) > 0) {
-          const c0 = Math.max(a, Math.min(...cu)), c1 = Math.min(b, Math.max(...cu)), zt = p.z1 + (p.z1 >= top - 0.01 ? 4.5 : 0)
-          c.fillRect(X(c0), Y(zt), coreW, (zt - p.z0) * kp); c.fillRect(X(c1) - coreW, Y(zt), coreW, (zt - p.z0) * kp)
-          if (zt > p.z1) c.fillRect(X(c0), Y(zt), (c1 - c0) * kp, slab)
-          K.lw(0.08); c.beginPath(); const mid = X((c0 + c1) / 2); c.moveTo(mid, Y(zt)); c.lineTo(mid, Y(p.z0)); c.stroke()
+      for (const fl of fls) {
+        box(X(a), Y(fl.z1) - T / 2, X(b), Y(fl.z1) + T / 2) // slab over the storey
+        // end walls: an upstand to the sill and a spandrel down to the head, glass between as two fine lines
+        const sill = Math.min(0.9, (fl.z1 - fl.z0) * 0.25), head = Math.min(0.6, (fl.z1 - fl.z0) * 0.18)
+        for (const [x, s] of [[X(a), 1], [X(b), -1]] as [number, number][]) {
+          box(x, Y(fl.z0), x + s * TW, Y(fl.z0 + sill)); box(x, Y(fl.z1 - head), x + s * TW, Y(fl.z1))
+          c.strokeStyle = ink; c.lineWidth = thin; c.beginPath(); for (const o of [0.3, 0.7]) { c.moveTo(x + s * TW * o, Y(fl.z0 + sill)); c.lineTo(x + s * TW * o, Y(fl.z1 - head)) } c.stroke()
+        }
+      }
+      box(X(a), Y(p.z0) - T / 2, X(b), Y(p.z0) + T / 2)
+      box(X(a), Y(p.z1 + 1.1), X(a) + TW, Y(p.z1)); box(X(b) - TW, Y(p.z1 + 1.1), X(b), Y(p.z1)) // parapets
+      if (coreCut) {
+        const c0 = Math.max(a, Math.min(...cu)), c1 = Math.min(b, Math.max(...cu)), zt = p.z1 >= top - 0.01 ? over : p.z1, mid = (c0 + c1) / 2
+        if (c1 - c0 > 1) {
+          c.fillStyle = '#f2f2f2'; c.fillRect(X(c0), Y(zt), (c1 - c0) * kp, (zt - p.z0) * kp)
+          c.fillStyle = ink; box(X(c0), Y(zt), X(c0) + TC, Y(p.z0)); box(X(c1) - TC, Y(zt), X(c1), Y(p.z0)); box(X(mid) - TC / 2, Y(zt), X(mid) + TC / 2, Y(p.z0))
+          if (zt > p.z1) box(X(c0), Y(zt), X(c1), Y(zt) + T)
+          c.strokeStyle = '#5f646b'; c.lineWidth = thin; c.beginPath()
+          for (const fl of fls) {
+            // lift shafts: crossed each storey; the stair: one flight per storey
+            const y0 = Y(fl.z0), y1 = Y(fl.z1)
+            c.moveTo(X(c0) + TC, y0); c.lineTo(X(mid) - TC / 2, y1); c.moveTo(X(mid) - TC / 2, y0); c.lineTo(X(c0) + TC, y1)
+            c.moveTo(X(mid) + TC / 2, y0); c.lineTo(X(c1) - TC, y1)
+          }
+          c.stroke()
+          c.fillStyle = ink; for (const fl of fls) box(X(mid), Y(fl.z1) - T / 2, X(c1), Y(fl.z1) + T / 2) // stair landings
         }
       }
     }
   }
-  // foundation under the cut towers, then the ground line over everything
-  for (const t of d.towers) { const uu = t.prisms.flatMap((p) => p.ring.map(U)); const a = Math.min(...uu), b = Math.max(...uu); c.fillStyle = ink; c.fillRect(X(a) - 1.5 * kp, gy, (b - a + 3) * kp, Math.max(K.mm(0.8), 1.4 * kp)) }
+  // grid lines through the column bays, bubbles above the overrun, bay dimensions chained
+  const g = bays(ma, mb), yb = Y(-2), yt = Y(over + 6)
+  c.strokeStyle = '#8a8f96'; c.lineWidth = thin; c.setLineDash([K.mm(2.2), K.mm(0.6), K.mm(0.3), K.mm(0.6)])
+  c.beginPath(); for (const u of g) { c.moveTo(X(u), yb); c.lineTo(X(u), yt) } c.stroke(); c.setLineDash([])
+  g.forEach((u, i) => bubble(c, X(u), yt - K.mm(2.4), cross ? LETTERS[i] : String(i + 1), st, K))
+  for (let i = 0; i + 1 < g.length; i++) dim(c, X(g[i]), Y(over + 2.5), X(g[i + 1]), Y(over + 2.5), (g[i + 1] - g[i]).toFixed(2), st, K)
+  // foundation and the ground line over everything
+  c.fillStyle = ink; box(X(ma) - 1.5 * kp, gy, X(mb) + 1.5 * kp, gy + Math.max(K.mm(0.9), 1.4 * kp))
   c.strokeStyle = ink; K.lw(0.6); c.beginPath(); c.moveTo(K.mm(f.x + 3), gy); c.lineTo(K.mm(f.x + f.w - 3), gy); c.stroke()
-  // use labels inside the cut runs, and level marks on the right
+  // the overall height, outside on the left
+  dim(c, X(ma - 6), Y(0), X(ma - 6), Y(top), `${top.toFixed(2)} overall`, st, K)
+  // use labels in the cut runs
   const rs = runs(main)
-  c.font = K.font(1.9, true); c.textAlign = 'center'; c.fillStyle = ink
-  const ucut = (() => { const uu = main.prisms.flatMap((p) => p.ring.map(U)); return (Math.min(...uu) + Math.max(...uu)) / 2 })()
-  for (const r of rs) if ((r.z1 - r.z0) * kp > K.mm(4)) { const txt = USES[r.use].label.replace(/ \/.*$/, '').toUpperCase(); const y = Y((r.z0 + r.z1) / 2) + K.mm(0.7), w = c.measureText(txt).width; c.fillStyle = st.paper; c.fillRect(X(ucut) - w / 2 - 3, y - K.mm(2.4), w + 6, K.mm(3.2)); c.fillStyle = ink; c.fillText(txt, X(ucut), y) }
-  const marks: [number, string][] = [[0, '±0.00 GROUND'], ...rs.slice(1).map((r) => [r.z0, `+${r.z0.toFixed(2)} L${r.from}`] as [number, string]), [top, `+${top.toFixed(2)} ROOF`]]
-  const lx = K.mm(f.x + f.w - 26)
+  c.font = K.font(1.9, true); c.textAlign = 'center'
+  const ul = (ma + mb) / 2 + (mb - ma) * 0.22
+  for (const r of rs) if ((r.z1 - r.z0) * kp > K.mm(4)) { const txt = USES[r.use].label.replace(/ \/.*$/, '').toUpperCase(); const y = Y((r.z0 + r.z1) / 2) + K.mm(0.7), w = c.measureText(txt).width; c.fillStyle = st.paper; c.fillRect(X(ul) - w / 2 - 3, y - K.mm(2.4), w + 6, K.mm(3.2)); c.fillStyle = ink; c.fillText(txt, X(ul), y) }
+  // level datums: every storey that has room (3.4 mm apart), always the ground, each change of use and the roof
+  const key = new Set<number>([0, top, ...rs.slice(1).map((r) => r.z0)])
+  const lv = [...main.floors.map((fl) => [fl.z0, `L${fl.level}`] as [number, string]), [top, 'Roof'] as [number, string]]
+  const lx = X(mb) + K.mm(8)
   let last = Infinity
   c.font = K.font(1.9); c.textAlign = 'left'
-  for (const [z, t] of marks) {
-    const y = Y(z); if (Math.abs(last - y) < K.mm(3.2)) continue; last = y
-    c.strokeStyle = ink; K.lw(0.1); c.setLineDash([K.mm(1), K.mm(0.8)]); c.beginPath(); c.moveTo(X(u1 - 25), y); c.lineTo(lx - K.mm(2), y); c.stroke(); c.setLineDash([])
-    c.fillStyle = ink; c.beginPath(); c.moveTo(lx, y); c.lineTo(lx - K.mm(1.4), y - K.mm(1.8)); c.lineTo(lx + K.mm(1.4), y - K.mm(1.8)); c.closePath(); c.fill()
-    c.fillText(t, lx + K.mm(2.4), y - K.mm(0.4))
+  const shown = lv.filter(([z]) => key.has(z)).map(([z]) => Y(z))
+  for (const [z, nm] of lv) {
+    const y = Y(z), must = key.has(z)
+    if (!must && (Math.abs(last - y) < K.mm(6) || shown.some((s) => Math.abs(s - y) < K.mm(6)))) continue
+    last = y
+    c.strokeStyle = '#6b7078'; c.lineWidth = thin; c.setLineDash([K.mm(0.6), K.mm(0.6)]); c.beginPath(); c.moveTo(lx - K.mm(3), y); c.lineTo(lx + K.mm(20), y); c.stroke(); c.setLineDash([])
+    c.strokeStyle = ink; K.lw(0.15); c.beginPath(); c.moveTo(lx, y); c.lineTo(lx - K.mm(1.2), y - K.mm(1.6)); c.lineTo(lx + K.mm(1.2), y - K.mm(1.6)); c.closePath(); c.stroke()
+    c.fillStyle = ink; c.fillText(`${nm}  ${z > 0.005 ? '+' : '±'}${z.toFixed(2)}`, lx + K.mm(2), y - K.mm(0.5))
   }
+  const tag = cross ? 'B' : 'A'
+  keyPlan(c, K, f, main, dir, depth, tag, d.north, st)
   K.scaleBar(sc, kp)
-  return [cross ? 'Section B–B, across the tower' : 'Section A–A, along the tower', sc]
+  return [cross ? 'Section B–B′, across the tower' : 'Section A–A′, along the tower', sc]
 }
 
 // ------------------------------------------------------------------ axonometric and program
@@ -404,5 +504,5 @@ export function drawArch(c: CanvasRenderingContext2D, k: number, f: Rect, spec: 
     : spec.vt === 'program' ? drawProgram(c, k, f, d, st)
     : drawPlanKind(c, k, f, spec, d, st, spec.vt as PlanKind)
   c.restore()
-  drawCaption(c, k, f, st, no, title, sc ? `Scale 1:${sc} at A2` : spec.vt === 'axo' ? 'Isometric, to scale along the axes' : 'Exploded, floors by use')
+  drawCaption(c, k, f, st, no, title, sc ? `Scale 1:${sc} at A2${spec.vt === 'plan' || spec.vt === 'roof' || spec.vt === 'section' ? ' · project north' : ''}` : spec.vt === 'axo' ? 'Isometric, to scale along the axes' : 'Exploded, floors by use')
 }

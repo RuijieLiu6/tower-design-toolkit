@@ -1,9 +1,6 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
-import { captureWorkflowDrawings, workflowChecks } from '../../lib/boardCapture'
-import { lazy, Suspense } from 'react'
-const CaptureHost = lazy(() => import('./CaptureHost'))
 import { Camera, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, X } from '../icons'
 import { useEffect, useRef, useState, type ReactNode, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
@@ -480,20 +477,21 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
   // Presets (13 Nov): the five-sheet drawing set, or the Architectural set with every workflow tool's drawings.
   const [preset, setPreset] = useState<'drawings' | 'arch'>('drawings')
   const [capturing, setCapturing] = useState(false)
-  const host = useRef<HTMLDivElement>(null)
   const createArch = async () => {
     if (capturing) return
     setCapturing(true); setSetMsg('Collecting the drawings…')
     await new Promise((r) => setTimeout(r, 300))
     try {
-      const groups = host.current ? await captureWorkflowDrawings(host.current, (t) => setSetMsg(`Drawing ${t}`)) : []
+      // 17 Nov (Sinnie): analysis drawings only when the user added them from the model ("Sheet" on a drawing).
+      const added = Object.values(useBoardStore.getState().images).filter((i) => i.id.startsWith('analysis-')).sort((a, b) => a.id.localeCompare(b.id))
+      const groups = added.length ? [{ title: 'Analysis', items: added.map((i) => ({ imageId: i.id, caption: i.label })) }] : []
       // Renders: the AI renders among the shots and the library, else the 3D views captured (never plans).
       const shots = useStore.getState().shots
       const ai = [...await Promise.all(shots.filter((x) => x.ai).map(importShot)), ...Object.values(useBoardStore.getState().images).filter((i) => i.ai || i.source === 'ai').map((i) => i.id)]
       const renders = [...new Set(ai)].length ? [...new Set(ai)] : await Promise.all(shots.filter((x) => !x.ai && x.representation !== 'plan').slice(0, 4).map(importShot))
       useBoardStore.getState().makeArchSet(Math.max(2, Math.round(levels / 2)), levels, groups, { title: `${draw.towers[0]?.name ?? 'Tower'}: architectural set`, renders })
       const n = groups.reduce((a, g) => a + g.items.length, 0)
-      setSetMsg(`Architectural set: ${useBoardStore.getState().boards.length} sheets${n ? `, ${n} analysis drawings from ${workflowChecks().length} tools` : ''}${renders.length ? `, ${renders.length} render${renders.length > 1 ? 's' : ''}` : ', render frames left empty'}.`)
+      setSetMsg(`Architectural set: ${useBoardStore.getState().boards.length} sheets${n ? `, ${n} analysis drawing${n > 1 ? 's' : ''} you added` : ', no analysis sheet (add drawings with Sheet in the model)'}${renders.length ? `, ${renders.length} render${renders.length > 1 ? 's' : ''}` : ', render frames left empty'}.`)
     } catch (e) { setSetMsg(`The set stopped: ${e instanceof Error ? e.message : String(e)}`) }
     setCapturing(false)
     setTimeout(() => setSetMsg(''), 9000)
@@ -553,7 +551,6 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
       <div className="flex min-h-0 flex-1">
         <SheetsPanel levels={levels} onPick={pick} onCreate={createSet} msg={setMsg} preset={preset} setPreset={setPreset} busy={capturing} />
         {/* While the Architectural set is made, the results of each workflow tool are drawn here, out of sight. */}
-        {capturing && <div ref={host} aria-hidden data-testid="capture-host" className="text-ink" style={{ position: 'fixed', left: -10000, top: 0, width: 340, height: 900, overflow: 'auto', background: '#fff' }}><Suspense fallback={null}><CaptureHost /></Suspense></div>}
         {centre === '3d' && viewport
           ? <main className="min-w-0 flex-1 overflow-hidden bg-panel text-ink" data-testid="present-3d">{viewport}</main>
           : <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
