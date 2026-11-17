@@ -60,6 +60,21 @@ export function useDesignOnRight(): boolean {
   return !present && phase !== 'site' && hasMass && isDesignNode(active)
 }
 
+/**
+ * Design tools that carry a check as one row (17 Nov, Sinnie: "merge program with the FSR one"): Program and its Program &
+ * FSR accounting check are one tool in the left panel, the phase line and Back / Next. Opening it opens Program's tools
+ * here and the FSR results on the right; its expand button opens the FSR section. The check still runs on its own.
+ */
+export const MERGED: Record<string, string> = { 'design.program': 'built.fsr' }
+const MERGED_INTO: Record<string, string> = Object.fromEntries(Object.entries(MERGED).map(([a, b]) => [b, a]))
+/** A list with each merged check folded into its design tool (where the design tool is in the list or leads it). */
+export function foldMerged(ids: string[], lead?: string): string[] {
+  const has = new Set([...ids, ...(lead ? [lead] : [])])
+  return ids.filter((id) => !(MERGED_INTO[id] && has.has(MERGED_INTO[id])))
+}
+/** The name shown for a row: a design tool with its merged check reads as both. */
+const MERGED_NAME: Record<string, string> = { 'design.program': 'Program & FSR' }
+
 /** The phase, its tools in order and the open one: shared by the left panel and the right panel's Properties tab. */
 export function usePhaseActive() {
   const step = useStep((s) => s.step)
@@ -82,10 +97,11 @@ export function usePhaseActive() {
   // A custom tool hidden in the Interface drawer leaves the lists (it stays installed and in the workflow).
   const hiddenUi = useUiVisibility((s) => s.hidden)
   const uiItems = useUiItems()
-  const rows = useMemo(() => (inFlow ? portion.nodes : [design, ...portion.nodes]).filter((id) => !id.startsWith('community.') || isVisible(`addons.tools.${id}`, hiddenUi, uiItems)), [inFlow, portion.nodes, design, hiddenUi, uiItems])
+  const rows = useMemo(() => foldMerged((inFlow ? portion.nodes : [design, ...portion.nodes]).filter((id) => !id.startsWith('community.') || isVisible(`addons.tools.${id}`, hiddenUi, uiItems)), design), [inFlow, portion.nodes, design, hiddenUi, uiItems])
   const showWorkflow = useUiGroupVisible('left.workflow'), showTool = useUiVisible('left.tool')
   const picked = usePhaseTools((s) => s.active[phase])
-  const active = picked && rows.includes(picked) ? picked : design
+  const pick = picked && MERGED_INTO[picked] && rows.includes(MERGED_INTO[picked]) ? MERGED_INTO[picked] : picked
+  const active = pick && rows.includes(pick) ? pick : design
   return { phase, wf, info, home, design, rows, active, mode, counts, showWorkflow, showTool }
 }
 
@@ -109,6 +125,8 @@ export default function PhasePanel() {
     }
     lastTool.current = key
     if (!isDesignNode(active) && useStore.getState().selectedNode !== active) useStore.getState().selectNode(active)
+    const merged = MERGED[active]
+    if (merged && rows.includes(active) && useStore.getState().enabled[merged] && useStore.getState().selectedNode !== merged) useStore.getState().selectNode(merged)
   }, [active, phase])
   const head = 'flex h-8 items-center gap-1 rounded-lg bg-panel px-2 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
@@ -168,7 +186,7 @@ function PhaseWorkflow({ phase, mode, counts, rows, design, active, open, info, 
   const summary = rows.map((id) => info(id).word).join(' › ')
   // Back and Next (12 Nov, back again 17 Nov after the merge: "bring back the next and back buttons"): every tool of the
   // workflow in working order, into the next phase when a phase's tools end.
-  const tools = useMemo(() => runOrder(board), [board])
+  const tools = useMemo(() => foldMerged(runOrder(board)), [board])
   const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
   const ti = tools.indexOf(active)
   const pi = PHASE_IDS.indexOf(phase)
@@ -219,10 +237,11 @@ function PhaseWorkflow({ phase, mode, counts, rows, design, active, open, info, 
                         onClick={() => open(id)} title={`${n.name} · ${kind}${!inBoard ? ' · joins the workflow when you add a tool here' : ''}`}
                         className={`node-hit flex min-h-8 w-full min-w-0 items-center gap-2 rounded-lg py-1 pl-1.5 pr-9 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? 'bg-selected' : 'hover:bg-subtle'}`}>
                         <NodeTile id={id} size={TILE} art={<NodeArtwork id={id} size={Math.round(TILE * 0.9)} category={n.category} />} />
-                        <span className={`min-w-0 flex-1 truncate text-node ${isActive ? 'font-semibold text-accent-hover' : 'text-ink'}`}>{n.word.length > 3 && n.name.length > 26 ? n.word : n.name}<span className="sr-only">, {kind}</span></span>
+                        <span className={`min-w-0 flex-1 truncate text-node ${isActive ? 'font-semibold text-accent-hover' : 'text-ink'}`}>{MERGED_NAME[id] ?? (n.word.length > 3 && n.name.length > 26 ? n.word : n.name)}<span className="sr-only">, {kind}</span></span>
                         {rets.map((e) => <span key={edgeKey(e)} aria-hidden data-return={edgeKey(e)} title={`Loops back to ${info(e.b).name}`} className="shrink-0 text-meta text-muted">↻</span>)}
                       </button>
                       {!isDesignNode(id) && canExpand(id) && <ExpandAnalysis id={id} name={n.name} />}
+                      {MERGED[id] && canExpand(MERGED[id]) && <ExpandAnalysis id={MERGED[id]} name={MERGED_NAME[id] ?? n.name} />}
                     </li>
                   )
                 })}
@@ -259,7 +278,7 @@ function PhaseLine({ board, phase, mode, active, info, home, counts }: { board: 
   const phases = phasesOf(mode)
   const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
   // Only this mode's phases: Presentation's tools stay out of the Model line, and the other way round.
-  const order = useMemo(() => runOrder(board).filter((id) => phases.includes(designNode(id)?.phase ?? home(id))), [board, phases, home])
+  const order = useMemo(() => foldMerged(runOrder(board)).filter((id) => phases.includes(designNode(id)?.phase ?? home(id))), [board, phases, home])
   const back = useMemo(() => returnEdges(board.edges), [board.edges])
   const summaries = useNodeSummaries()
   const segs = phases.map((p) => ({ p, nodes: order.filter((id) => phaseOf(id) === p) }))
@@ -459,18 +478,20 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
   const right = usePanels((s) => s.right)
   const pkg = useCommunityStore((s) => s.packages.find((p) => p.id === id))
   const controls = NODE_CONTROLS[id]
-  const showResults = () => { useStore.getState().selectNode(id); if (!right) togglePanel('right') }
+  const mc = MERGED[id]
+  const showResults = () => { useStore.getState().selectNode(mc ?? id); if (!right) togglePanel('right') }
   const state = d ? d.about : !on ? 'Switched off: add it to the workflow or switch it on in More › Check library' : analysis ? 'Runs with the model; its results are on the right' : 'Auto-run checks is off: its results wait until you turn it on in the project bar'
   return (
     <div role="region" aria-label={`${n.name}: controls`} data-testid="phase-active" data-active={id}>
       <div className="flex items-center gap-2 px-3 py-2">
         <NodeTile id={id} size={24} art={<NodeArtwork id={id} size={21} category={n.category} />} />
         <span className="min-w-0 flex-1">
-          <h3 className="truncate text-control font-semibold text-ink" data-testid="phase-active-name">{n.name}</h3>
+          <h3 className="truncate text-control font-semibold text-ink" data-testid="phase-active-name">{MERGED_NAME[id] ?? n.name}</h3>
           <span className="block truncate text-meta text-muted" title={state}>{state}</span>
         </span>
         {!d && canExpand(id) && <ExpandAnalysis id={id} name={n.name} className="h-8 w-8 shrink-0" />}
-        {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
+        {mc && canExpand(mc) && <ExpandAnalysis id={mc} name={MERGED_NAME[id] ?? n.name} className="h-8 w-8 shrink-0" />}
+        {(!d || mc) && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
       {/* With a mass, a design node's editing tools are in the right panel's Design tab (useDesignOnRight). */}
       {/* Massing keeps its four ways to start here at all times (16 Nov, Sinnie: "on the left, i should always see the 4
