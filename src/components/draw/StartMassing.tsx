@@ -4,7 +4,7 @@
 // hover. From scratch starts the Rectangle tool (Ruijie's brief); the Toolkit's starting tower stays as a link (twenty
 // browser tests drive; the rail's Rectangle then draws footprints). Import opens the same platform tiles as the
 // Import tool. Case study places one of nine known towers with its published height and storeys and an approximate
-// plate and podium (every row unverified, her note on hover), then asks where it stands. Typology shows her tower-form
+// plate and podium (height and storeys checked against the CTBUH Skyscraper Center on 17 Nov, the plate and podium hers and unverified; her note on hover), then asks where it stands. Typology shows her tower-form
 // presets above the Generate tool.
 import { setDrawTool, toast } from '../../lib/draw/drawStore'
 import { Suspense, lazy, useState } from 'react'
@@ -61,7 +61,7 @@ export default function StartMassing({ onGenerate }: { onGenerate?: () => void }
       <div className="mt-2 flex flex-wrap gap-0.5" role="group" aria-label="Start your massing">
         <IconTile icon={Crosshair} word="Scratch" label="From scratch: draw a footprint" hint="Starts the Rectangle tool: drag a footprint on the ground, then push it up; Line and Circle draw other outlines." data-start="scratch" onClick={() => pick('scratch')} />
         <IconTile icon={FileUp} word="Import" label="Import a model" hint="A model from Rhino, Revit, Archicad, AutoCAD, SketchUp or any OBJ, glTF or IFC file; the same import as the project menu's Import › 3D model." active={open === 'import'} aria-expanded={open === 'import'} data-start="import" onClick={() => pick('import')} />
-        <IconTile icon={Landmark} word="Case study" label="Case study: a known tower" hint="Nine known towers with their published height and storeys and an approximate plate and podium; one click places it, then you say where it stands. Every row is unverified." active={open === 'case'} aria-expanded={open === 'case'} data-start="case" onClick={() => pick('case')} />
+        <IconTile icon={Landmark} word="Case study" label="Case study: a known tower" hint="Nine towers with their published height and storeys (eight checked against the CTBUH Skyscraper Center, one a type) and an approximate plate and podium; one click places it, then you say where it stands." active={open === 'case'} aria-expanded={open === 'case'} data-start="case" onClick={() => pick('case')} />
         <IconTile icon={Shapes} word="Typology" label="Typology: a tower-form preset" hint="Tapered shaft, twisting tower, set-back tiers or shifted stack, with sliders; or generate a massing from a brief." active={open === 'typology'} aria-expanded={open === 'typology'} data-start="typology" onClick={() => pick('typology')} />
       </div>
       <p className="mt-1.5 text-meta text-muted">Or <button type="button" onClick={placeFirstTower} data-testid="place-tower" className="text-accent underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent">place the Toolkit's starting tower</button> {where ?? 'downtown'} and shape it.</p>
@@ -76,7 +76,7 @@ export default function StartMassing({ onGenerate }: { onGenerate?: () => void }
           <ol className="max-h-72 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
             {CASE_STUDIES.map((c) => (
               <li key={c.id} className="border-b border-line/60 last:border-0">
-                <button type="button" onClick={() => placeCaseStudy(c)} data-case={c.id} title={`${c.note} Unverified: the numbers are from the case-study list, no source opened here.`}
+                <button type="button" onClick={() => placeCaseStudy(c)} data-case={c.id} data-flag={c.flag} title={`${c.note} ${c.source ? `Height and storeys verified against ${c.source.what} (${c.source.accessed}).${c.changed ? ` ${c.changed}` : ''}` : 'Unverified: no source for a type.'} Plate and podium approximate, unverified.`}
                   className="flex w-full items-center gap-2 px-2 py-1.5 text-left outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent">
                   <Elevation c={c} />
                   <span className="min-w-0 flex-1">
@@ -84,11 +84,13 @@ export default function StartMassing({ onGenerate }: { onGenerate?: () => void }
                     <span className="block truncate text-meta text-muted">{c.place} · {c.architect} · {c.year}</span>
                   </span>
                   <span className="shrink-0 text-right text-meta tabular-nums text-muted">{c.height} m<br />{c.storeys} fl</span>
+                  <FlagChip flag={c.flag} />
                 </button>
+                {c.source && <a href={c.source.url} target="_blank" rel="noopener noreferrer" data-case-source={c.id} className="-mt-1 block truncate px-2 pb-1 text-meta text-muted underline-offset-2 hover:text-accent hover:underline">Height and storeys: {c.source.what}, read {c.source.accessed}{c.changed ? ' · corrected' : ''}</a>}
               </li>
             ))}
           </ol>
-          <p className="flex items-center gap-1.5 border-t border-line px-2 py-1 text-meta text-muted"><FlagChip flag="unverified" />Plans and podiums approximate; twists and tapers not modelled.</p>
+          <p className="flex items-center gap-1.5 border-t border-line px-2 py-1 text-meta text-muted"><FlagChip flag="unverified" />Plans and podiums approximate; twists and tapers not modelled. Height and storeys are verified where a row shows its source.</p>
         </div>
       )}
       {open === 'typology' && (

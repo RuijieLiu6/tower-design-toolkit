@@ -181,7 +181,7 @@ test('Drawing tools: rectangle, push / pull, offset, copy, split, union, erase, 
   await expect.poll(async () => (await masses(p)).length).toBe(1)
   const vh = (await masses(p))[0]
   expect(vh.name).toBe('Vancouver House')
-  expect(vh.height).toBe(150)
+  expect(vh.height).toBe(155.6) // the Skyscraper Center's architectural height (checked 17 Nov)
   await p.keyboard.press('Escape')
   await p.waitForTimeout(1500)
   await p.keyboard.press('b')
