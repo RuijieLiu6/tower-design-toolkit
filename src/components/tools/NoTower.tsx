@@ -12,7 +12,7 @@ import { FlagChip } from '../ui'
 import { useShallow } from 'zustand/react/shallow'
 import { defaultTower, useStore } from '../../store'
 import { goToStep } from '../../lib/step'
-import { usePhaseTools } from '../../lib/workflow/phaseTools'
+import { NeedsInput } from '../ResultState'
 import Help from '../Help'
 import { flyToFit } from '../VistaLook'
 
@@ -70,18 +70,11 @@ export function PlaceFirstTower({ onGenerate }: { onGenerate?: () => void } = {}
 }
 
 /** Program and Schematic before any tower: one line and the way to Volume. */
+/** No tower yet: the same card as the right panel's "Needs model" (17 Nov, Sinnie: "match the right UI with left UI"). */
 export function NoTowerYet() {
-  return (
-    <section data-testid="no-tower-yet" className="m-3 rounded-lg border border-line bg-black/[0.02] p-3">
-      <p className="text-xs font-semibold text-ink">No tower yet</p>
-      <p className="mt-1 text-meta text-muted">These tools shape a tower. Place one first.</p>
-      {/* Straight to the Massing tool, where a tower is started (17 Nov, Sinnie: "this should lead to massing node") */}
-      <button type="button" data-testid="go-massing" onClick={() => { usePhaseTools.getState().setActive('form', 'design.massing'); goToStep('volume') }}
-        className="mt-2 flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
-        <ArrowLeft size={13} />Go to Massing
-      </button>
-    </section>
-  )
+  return <div data-testid="no-tower-yet"><NeedsInput name="These tools" gap={{ status: 'needs-model', word: 'Needs model', step: 'volume',
+    reason: 'There is no building model in this project yet, so these tools have nothing to shape.',
+    next: 'Place a tower in Massing, or import a model in the Site step.' }} /></div>
 }
 
 /** A case study as the starting tower: its height, storeys (floor-to-floor), plate and podium (data/caseStudies.ts). */
