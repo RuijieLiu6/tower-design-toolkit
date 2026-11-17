@@ -18,7 +18,8 @@ async function open(p: Page) {
   await p.keyboard.press('2') // the node belongs to Schematic
   await p.waitForTimeout(1500)
 }
-const ghgiOf = async (p: Page) => parseFloat((await p.getByTestId('energy-sw-key').locator('div', { hasText: /^GHGI/ }).first().innerText()).split('\n')[1])
+// textContent, not innerText: the card folds again on a rerun, and a folded card's innerText is empty
+const ghgiOf = async (p: Page) => parseFloat(/GHGI\s*([\d.]+)/.exec((await p.getByTestId('energy-sw-key').textContent()) ?? '')?.[1] ?? 'NaN')
 
 test('energy use: TEUI / TEDI / GHGI against her targets, end uses, programs, losses, and a gas rerun', async ({ page: p }) => {
   test.setTimeout(300_000)

@@ -37,13 +37,13 @@ test('natural ventilation: 62.1 readings, hours by month, floor and week, and a 
   await expect(card).toContainText('ASHRAE 62.1')
   await expect(card).toContainText('Sun & Wind Studio')
   await expect(card).not.toContainText(/\bVerified\b/)
-  const before = await p.getByTestId('ventilation-sw-key').innerText()
+  const before = await p.getByTestId('ventilation-sw-key').textContent()
   await card.screenshot({ path: 'test-results/ventilation-sw-card.png' })
   // single-sided with the adaptive band: a rerun with other hours
   await p.getByTestId('ventilation-sw-mode').selectOption('single')
   await card.locator('select').filter({ has: p.locator('option', { hasText: 'ASHRAE 55 adaptive' }) }).selectOption('adaptive')
-  // the rerun starts after a short debounce: wait for the new readings rather than the old status line
-  await expect.poll(() => p.getByTestId('ventilation-sw-key').innerText(), { timeout: 120_000 }).not.toBe(before)
+  // the rerun starts after a short debounce and the card folds again: wait for new readings (textContent, as innerText is empty when folded)
+  await expect.poll(async () => { const t = await p.getByTestId('ventilation-sw-key').textContent(); return !!t && t !== before }, { timeout: 120_000 }).toBe(true)
   await openResultDetails(p)
   await expect(card).toContainText('ASHRAE 55 adaptive band')
   await p.screenshot({ path: 'test-results/ventilation-sw.png', fullPage: false })
