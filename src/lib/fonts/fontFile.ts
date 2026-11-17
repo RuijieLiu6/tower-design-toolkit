@@ -3,6 +3,7 @@
 // own name table (TrueType, OpenType and WOFF; a WOFF2 is Brotli-packed, so the file's name stands in), a size guard,
 // and a load probe through the FontFace API, which is what will draw it. Pure apart from the probe, which the test
 // replaces. Plain words for every refusal.
+import { isBuiltin } from './catalog'
 export type FontFormat = 'ttf' | 'otf' | 'woff' | 'woff2'
 export const FONT_MAX_BYTES = 8_000_000
 export const FONT_EXT = /\.(ttf|otf|woff|woff2)$/i
@@ -120,6 +121,7 @@ export async function checkFontFile(file: { name: string; size: number; arrayBuf
   const format = formatOf(bytes)
   if (!format) return { ok: false, error: `${file.name} does not start like a font (TrueType, OpenType, WOFF or WOFF2): it may be another kind of file renamed.` }
   const family = (await familyNameOf(bytes)) ?? familyFromFileName(file.name)
+  if (isBuiltin(family)) return { ok: false, error: `${family} is one of the Toolkit's own faces: pick it from the list. To use this file instead, rename its family.` }
   try { await probe(family, bytes) } catch { return { ok: false, error: `${file.name} could not be loaded as a font: the file may be damaged or use a feature this browser cannot read.` } }
   return { ok: true, family, format, bytes }
 }
