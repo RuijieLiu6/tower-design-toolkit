@@ -11,7 +11,7 @@ import { useMobility } from '../hooks/useMobility'
 import { useFacade } from '../hooks/useFacade'
 import { useEnergyCarbon } from '../hooks/useEnergyCarbon'
 import { useWindScreen } from '../hooks/useWindScreen'
-import { useWindComfort } from '../hooks/useWindComfort'
+import { useWindComfort, useWindComfortCurrent } from '../hooks/useWindComfort'
 import { BAND_NAMES } from '../engine/windComfortInput'
 import { useTrips } from '../hooks/useTrips'
 import { useCultureGate } from './CultureResults'
@@ -61,7 +61,8 @@ export default function NodeCanvas() {
   const facade = useFacade()
   const energy = useEnergyCarbon()
   const windScreen = useWindScreen()
-  const { status: windComfortStatus, out: windComfort } = useWindComfort()
+  const { status: windComfortStatus } = useWindComfort()
+  const windComfort = useWindComfortCurrent()
   const trips = useTrips()
   const towers = useTowers()
   const selectedTower = useStore((s) => s.selectedTower)
