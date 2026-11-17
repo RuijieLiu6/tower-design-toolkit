@@ -139,7 +139,8 @@ export default function ToolRail() {
       hint: 'A drawn mass: drag left or right, in 5° steps. A tower: drag the arc, or type the angle. Key: R.',
       onPick: () => { if (selectedDrawn) { setDrawTool(drawTool === 'rotate' ? null : 'rotate'); return } if (drawTool) setDrawTool(null); withPick(() => toggleMode('rotate'))() } },
     // Face and Mass belong to the Massing tool (Form step): picking one opens Massing when it is not open.
-    ...(phase === 'basic' && !noTower && shown.some((t) => t.id === 'massing') ? EDIT_MODES.map((m): RailItem => ({
+    // A drawn mass has the drawing tools for that (Push / pull, Move): the two tiles leave while one is selected.
+    ...(phase === 'basic' && !noTower && !selectedDrawn && shown.some((t) => t.id === 'massing') ? EDIT_MODES.map((m): RailItem => ({
       key: `mode:${m.id}`, icon: m.id === 'face' ? Crosshair : Cuboid, word: m.label, label: `${m.label}: ${m.id === 'face' ? 'push or pull a face' : 'move a block'}`,
       hint: `${m.hint} Key: F.`, active: blockOn && blockMode === m.id, data: { 'data-mode': m.id },
       onPick: () => { useBlockEdit.setState({ mode: m.id, hover: null }); if (activeId !== 'massing') open('massing') },

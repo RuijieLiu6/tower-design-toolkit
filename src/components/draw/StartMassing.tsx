@@ -1,11 +1,12 @@
 // "Start your massing" (Sinnie Choi's Toolkit build, artifact 1794900977-6d89, ported 17 Nov 2026 at Ruijie's
 // request; source of the design: her build and github.com/xubynii/towerdesigntool), in the Massing tool while the
 // site has no tower: four tiles in the Toolkit's own icon style, one word each, the full name and what it does on
-// hover. From scratch places the starting tower and starts placing it (the Toolkit's own first step, which twenty
+// hover. From scratch starts the Rectangle tool (Ruijie's brief); the Toolkit's starting tower stays as a link (twenty
 // browser tests drive; the rail's Rectangle then draws footprints). Import opens the same platform tiles as the
 // Import tool. Case study places one of nine known towers with its published height and storeys and an approximate
 // plate and podium (every row unverified, her note on hover), then asks where it stands. Typology shows her tower-form
 // presets above the Generate tool.
+import { setDrawTool, toast } from '../../lib/draw/drawStore'
 import { Suspense, lazy, useState } from 'react'
 import { Building2, Crosshair, FileUp, Landmark, MapPin, Shapes, Wand2 } from '../icons'
 import { CASE_STUDIES, caseStudyPatch, type CaseStudy } from '../../lib/draw/caseStudies'
@@ -46,22 +47,24 @@ export default function StartMassing({ onGenerate }: { onGenerate?: () => void }
   const [open, setOpen] = useState<Start | null>(null)
   const noSite = project === 'city' && !site
   const where = project === 'vtc' ? 'on the competition block' : site ? `on your site${site.label ? ` (${site.label})` : ''}` : null
-  const pick = (k: Start) => { if (k === 'scratch') { placeFirstTower(); return } setOpen((o) => (o === k ? null : k)) }
+  // From scratch (Ruijie's brief): the Rectangle tool, a footprint dragged on the ground; the starting tower is the link below.
+  const pick = (k: Start) => { if (k === 'scratch') { setDrawTool('rect'); toast('Drag a footprint on the ground, then push it up'); return } setOpen((o) => (o === k ? null : k)) }
   return (
     <section data-testid="place-first-tower" data-massing-start aria-labelledby="start-massing-head" className="m-3 rounded-lg border border-accent/40 bg-accent/[0.06] p-2.5">
       <h3 id="start-massing-head" className="flex items-center gap-2 text-sm font-semibold text-ink">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-white"><Building2 size={15} /></span>
         Start your massing
         <Help label="About starting a massing">
-          Four ways in (after Sinnie Choi's Downtown Massing Tool). From scratch: the starting tower {where ?? 'downtown'}, placed where you click; then draw footprints with Rectangle, Line or Circle in the rail and shape them. Import: a model from Rhino, Revit, Archicad, AutoCAD, SketchUp or a file. Case study: a known tower with its published height and storeys (plans and podiums approximate, every row unverified). Typology: a tower-form preset, tapered, twisting, tiered or stacked, over the Generate tool.
+          Four ways in (after Sinnie Choi's Downtown Massing Tool). From scratch: the Rectangle tool, a footprint dragged on the ground and pushed up (the Toolkit's starting tower is the link under the tiles). Import: a model from Rhino, Revit, Archicad, AutoCAD, SketchUp or a file. Case study: a known tower with its published height and storeys (plans and podiums approximate, every row unverified). Typology: a tower-form preset, tapered, twisting, tiered or stacked, over the Generate tool.
         </Help>
       </h3>
       <div className="mt-2 flex flex-wrap gap-0.5" role="group" aria-label="Start your massing">
-        <IconTile icon={Crosshair} word="Scratch" label="From scratch: place the starting tower" hint={`The starting tower goes ${where ?? 'downtown'}; click where it should stand. Then draw footprints with the rail's Rectangle, Line or Circle.`} data-testid="place-tower" data-start="scratch" onClick={() => pick('scratch')} />
+        <IconTile icon={Crosshair} word="Scratch" label="From scratch: draw a footprint" hint="Starts the Rectangle tool: drag a footprint on the ground, then push it up; Line and Circle draw other outlines." data-start="scratch" onClick={() => pick('scratch')} />
         <IconTile icon={FileUp} word="Import" label="Import a model" hint="A model from Rhino, Revit, Archicad, AutoCAD, SketchUp or any OBJ, glTF or IFC file; the same import as the project menu's Import › 3D model." active={open === 'import'} aria-expanded={open === 'import'} data-start="import" onClick={() => pick('import')} />
         <IconTile icon={Landmark} word="Case study" label="Case study: a known tower" hint="Nine known towers with their published height and storeys and an approximate plate and podium; one click places it, then you say where it stands. Every row is unverified." active={open === 'case'} aria-expanded={open === 'case'} data-start="case" onClick={() => pick('case')} />
         <IconTile icon={Shapes} word="Typology" label="Typology: a tower-form preset" hint="Tapered shaft, twisting tower, set-back tiers or shifted stack, with sliders; or generate a massing from a brief." active={open === 'typology'} aria-expanded={open === 'typology'} data-start="typology" onClick={() => pick('typology')} />
       </div>
+      <p className="mt-1.5 text-meta text-muted">Or <button type="button" onClick={placeFirstTower} data-testid="place-tower" className="text-accent underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent">place the Toolkit's starting tower</button> {where ?? 'downtown'} and shape it.</p>
       {noSite && (
         <button type="button" onClick={() => goToStep('site')} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-line bg-panel px-3 py-1.5 text-xs text-ink outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
           <MapPin size={13} />No site yet: choose one first

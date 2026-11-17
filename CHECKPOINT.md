@@ -1,3 +1,42 @@
+# CHECKPOINT: the review of the chain, fixed branch by branch (17 Nov 2026)
+
+An independent read of the whole chain (tool-rail → model-presentation → board-fonts → phase-dots → import-sync →
+ui-drawer → sinnie-modelling) listed fifteen findings and eight of Ruijie's intents. Each fix went on the branch where
+its bug began, then forward through the chain with plain merges (no rebase, no force-push); every branch is pushed.
+Decisions mine (approved in advance). Not merged to main, not deployed; `sinnie-modelling` still waits for Sinnie's OK.
+- **tool-rail** `e035cd0`: the user guide said H hides the overlays; it is O, and H is the rail.
+- **model-presentation** `8e5b6b9`: the guide's "Present" stage is Presentation (three places).
+- **board-fonts** `ec957e6`: a font file whose family is one of the built-in faces is refused by the check (two entries
+  of one name clashed in the list and in React keys), and stored ones are left out (`fontFile.ts`, `fontStore.ts`).
+  Right after a reload the export found the font cache empty and drew the fallback without a word: loading now reads
+  "Your fonts" first, every face is checked with the FontFace API, and the export line names the faces actually drawn,
+  with an amber note when one fell back to Inter (`boardRender.ts`, `SubmissionPanel.tsx`, `ExportRecord.missingFonts`).
+- **phase-dots** `932e7cb`: the guide's "phase list under Workflow" is the line's segments and arrows.
+- **import-sync**: nothing of its own (the sync dialog's finding began with the drawer); the merge only.
+- **ui-drawer** `aca988a`: hiding a tool reopened Generate on an empty Form step (`toolPick.ts afterHiding`: nothing
+  open stays closed); the phases line is locked, being the only phase navigation inside Model; the Sync model dialog's
+  arrow keys walk the platforms on show; what a hidden context layer was before is kept in this browser
+  (`ts.ui.layersWere`), so a reload still brings it back as it was.
+- **sinnie-modelling** (this commit), high: the drawn mass's mesh is keyed by a hash of its shape
+  (`lib/draw/drawnMesh.ts`), so every shape keeps its own mesh and Undo finds the old one; the view and the .3dm / OBJ
+  export rebuild it from the outline when the store has none, so nothing depends on the stored copy (this also ends the
+  Real Vancouver copy overwriting it). Push / pull on a wall moves on the plane of the wall's hit height (no jump on the
+  first move). The drawing keys count only on the canvas, the body and the rail's tiles (`lib/draw/keys.ts`): Enter on
+  a dialog's button presses it, Esc closes the drawer, 1 / 2 / 3 work again. Medium: a tool ends when the step or the
+  stage changes; Rotate turns holes, core and every part about one centroid, Offset refuses to cross a courtyard; the
+  tower tools (Place, Align to lot, the gizmo, the toolbar's x, y and angle) move a drawn mass's outline and its parts
+  through `moveDrawn`; a copy, a split part or a cut piece takes its settings from its source mass (basement, interior
+  and form cleared); the parts of one building are not a separation pair (`publicRealm.ts`) and share one core (the part
+  with a placed core, else the largest: `oneCorePerBuilding`); a mass drawn on a roof starts at its base (no empty
+  storeys up from the ground). Ruijie's intents: From scratch starts the Rectangle tool (the Toolkit's starting tower is
+  a link under the tiles, keeping `place-tower`); the drawing keys work before any tower exists; Face and Mass leave
+  the rail while a drawn mass is selected; the right panel's tab row fits five tabs (narrower, truncating, titled);
+  Erase and Del take only the clicked part; Subtract and Intersect measure their change and cut nothing under 4 m²
+  (`lib/draw/boolean.ts`; the second mass used to be deleted anyway); a typology slider drag is one undo step.
+- **Judged not a bug:** FSR already reads the parts of one building as one (their floor areas add, they do not
+  overlap). The Boolean union's parts keeping their own heights is Sinnie's rule, kept.
+- **Tests:** `tsc -b` PASS on every branch touched · `vitest run` 1,282 pass, 3 skipped (+19 new: `lib/draw/keys.test.ts` where a key counts; `lib/draw/boolean.test.ts` cut pieces and the 4 m² rule; `lib/draw/drawStore.test.ts` the tool ends with the step and the stage, the key map; `lib/draw/mass.test.ts` a mesh per shape found again by Undo, a copy from its source, rotate with holes and core, offset into a courtyard refused, one core per building and a move through the tower tools, a stacked mass starting at its base; `engine/publicRealm.test.ts` parts are no pair; `components/tools/toolPick.test.ts` an empty step stays closed; `lib/ui/registry.test.ts` the phases line locked, a layer's state kept; `lib/fonts/fontFile.test.ts` a built-in name refused; the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e on the `sinnie-modelling` tip: `drawing-tools` (+ From scratch starts Rectangle; a wall taken near its top and let go after a pixel stays put) PASS · `tool-rail` PASS · `massing-edit` PASS · `model-presentation` PASS · `import-sync` PASS · `ui-drawer` PASS · `board-fonts` PASS · `journeys` PASS; `board-fonts` also on its own branch, `ui-drawer` and `import-sync` on the ui-drawer branch. Screenshots refreshed: `docs/evaluation/2026-11-17-drawing-tools/01-start-massing.png` (the tiles with the starting-tower link) and `02-drawing.png`.
+
 # CHECKPOINT: Sinnie Choi's modelling tools in the Toolkit (17 Nov 2026)
 
 Ruijie, 17 Nov: port Sinnie Choi's "Start your massing" and her drawing tools from her Toolkit build and

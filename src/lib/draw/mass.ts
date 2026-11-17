@@ -6,27 +6,22 @@
 // is kept like an uploaded one (lib/import/store.ts putMesh), so the 3D view draws it as it draws imports. `part`
 // groups the masses of one building (a Boolean union of masses of different heights, a Split): they move together and
 // keep each their own height. A placed core sets the core share and turns the automatic core off.
-import * as THREE from 'three'
 import { carryTags, hullOf, meshVolume, sliceStoreys, tagByBands, towerPatch } from '../../engine/imported'
 import { withAutoCore } from '../../engine/lifts'
 import type { DrawnMass, ImportedMass, Tower } from '../../engine/types'
-import { putMesh } from '../import/store'
+import { putMesh, useImportStore } from '../import/store'
 import { breakStep } from '../project/history'
 import { defaultTower, useStore } from '../../store'
-import { area, bbox, centroid, inPoly, netArea, prismMesh, type Pt } from './geometry'
+import { area, bbox, inPoly, netArea, type Pt } from './geometry'
+import { MIN_MASS_AREA } from './boolean'
+import { drawnLocal, drawnMesh, drawnMeshId, drawnTop } from './drawnMesh'
 
-export const MIN_MASS_AREA = 4
+export { MIN_MASS_AREA }
 const r2 = (v: number) => Math.round(v * 100) / 100
 let seq = 0
 export const newMassId = () => `dm${Date.now().toString(36)}${(seq++).toString(36)}`
 
-/** The cap triangles of an outline with holes, as indices into [outline, ...holes] (three's ear clipping). */
-function cap(pts: Pt[], holes: Pt[][]): number[] {
-  const tri = THREE.ShapeUtils.triangulateShape(pts.map((p) => new THREE.Vector2(p[0], p[1])), holes.map((h) => h.map((p) => new THREE.Vector2(p[0], p[1]))))
-  return tri.flat()
-}
-
-export const massTop = (d: DrawnMass) => r2(d.base + d.floors * d.f2f)
+export const massTop = drawnTop
 
 /**
  * The tower a drawn mass makes: centred on its outline's centroid, the box its bounding box; the storey stack sliced
@@ -34,17 +29,18 @@ export const massTop = (d: DrawnMass) => r2(d.base + d.floors * d.f2f)
  * tower's previous stack when there is one.
  */
 export function towerFromDrawn(base: Tower, d: DrawnMass): Tower {
-  const c = centroid(d.pts), bb = bbox(d.pts)
-  const local = (r: Pt[]): Pt[] => r.map((p) => [r2(p[0] - c[0]), r2(p[1] - c[1])])
-  const pts = local(d.pts), holes = (d.holes ?? []).map(local)
+  const { c } = drawnLocal(d), bb = bbox(d.pts)
   const top = massTop(d)
-  const mesh = prismMesh(pts, holes, d.base, top, cap)
-  const data = { positions: new Float32Array(mesh.positions), indices: new Uint32Array(mesh.indices) }
+  // One mesh per shape (lib/draw/drawnMesh.ts): an edit makes a new one and Undo finds the old one still there.
+  const meshId = drawnMeshId(d)
+  const entry = useImportStore.getState().meshes[meshId] ?? drawnMesh(d)
+  if (!useImportStore.getState().meshes[meshId]) putMesh(meshId, entry)
+  const data = { positions: entry.positions, indices: entry.indices }
   const prev = base.imported?.storeys
-  let storeys = sliceStoreys(data, { f2f: d.f2f, podiumTop: 0, podiumF2F: d.f2f, top })
+  // A mass on a roof starts at its base: sliced from there (no empty storeys up from the ground), then put back.
+  const lowered = { positions: data.positions.map((v, i) => (i % 3 === 2 ? v - d.base : v)), indices: data.indices }
+  let storeys = sliceStoreys(lowered, { f2f: d.f2f, podiumTop: 0, podiumF2F: d.f2f, top: top - d.base }).map((s) => ({ ...s, z0: r2(s.z0 + d.base), z1: r2(s.z1 + d.base) }))
   storeys = prev?.length ? carryTags(storeys, prev) : tagByBands(storeys, base.bands, base.podiumUse)
-  const meshId = `drawn:${base.id}`
-  putMesh(meshId, { positions: data.positions, indices: data.indices, openSegments: new Float32Array(0), flippedTriangles: new Uint32Array(0), health: [], report: { objects: 1, triangles: mesh.indices.length / 3, sources: ['drawn in the Toolkit'], skipped: [], notes: [], unitNote: 'metres', northNote: 'project north' } })
   const imported: ImportedMass = {
     meshId, fileName: `${base.name}.drawn`, format: 'drawn', unit: 'm', unitSource: 'file', fileNorthDeg: 0, northSource: 'Drawn in the project frame',
     datumShift: 0, datumSource: 'Drawn at the project datum', f2f: d.f2f, podiumTop: 0, podiumF2F: d.f2f, storeys, hull: hullOf(data),
@@ -89,7 +85,7 @@ export function updateDrawnMass(id: string, patch: Partial<DrawnMass>, opts: { s
 }
 
 /** Several masses changed together (a move of a building's parts, a Boolean, a Split): one undo step. */
-export function updateDrawnMany(changes: { id: string; patch: Partial<DrawnMass> }[], add: { pts: Pt[]; base: number; floors: number; f2f: number; holes?: Pt[][]; part?: string; name?: string }[] = [], remove: string[] = []) {
+export function updateDrawnMany(changes: { id: string; patch: Partial<DrawnMass> }[], add: { pts: Pt[]; base: number; floors: number; f2f: number; holes?: Pt[][]; part?: string; name?: string; /** The mass this one is made from (a copy, a split part, a cut piece): its settings come along. */ from?: string }[] = [], remove: string[] = []) {
   const s = app()
   breakStep()
   let towers = list()
@@ -102,15 +98,67 @@ export function updateDrawnMany(changes: { id: string; patch: Partial<DrawnMass>
     towers = towers.map((x) => (x.id === c.id ? next : x))
   }
   for (const a of add) {
-    const like = towers.find((x) => x.drawn) ?? defaultTower(s.project)
+    // Made from its source mass (uses, presets), never from the first mass drawn; what is the source's alone is cleared.
+    const like = (a.from && towers.find((x) => x.id === a.from)) || towers.find((x) => x.drawn) || defaultTower(s.project)
     const id = newMassId()
     const d: DrawnMass = { pts: a.pts, base: a.base, floors: a.floors, f2f: a.f2f, ...(a.holes?.length ? { holes: a.holes } : {}), ...(a.part ? { part: a.part } : {}) }
-    towers = [...towers, withAutoCore(towerFromDrawn({ ...like, id, name: a.name ?? `Mass ${towers.filter((x) => x.drawn).length + 1}`, imported: undefined }, d), s.liftPresets, s.egressPresets)]
+    towers = [...towers, withAutoCore(towerFromDrawn({ ...like, id, name: a.name ?? `Mass ${towers.filter((x) => x.drawn).length + 1}`, imported: undefined, basement: undefined, interior: undefined, form: undefined, coreAuto: true }, d), s.liftPresets, s.egressPresets)]
   }
   if (remove.length) towers = towers.filter((x) => !remove.includes(x.id))
+  towers = oneCorePerBuilding(towers, s.liftPresets, s.egressPresets)
   const sel = towers.some((x) => x.id === s.selectedTower) ? s.selectedTower : towers[0]?.id ?? ''
   useStore.setState({ towers: { ...s.towers, [s.project]: towers }, selectedTower: sel })
   breakStep()
+}
+
+/**
+ * One core per building: the parts of a split or joined building share one core (the part with a placed core, else
+ * the largest), the others carry none, so lifts, egress and the core share are not counted once per part.
+ */
+export function oneCorePerBuilding(towers: Tower[], lifts = app().liftPresets, egress = app().egressPresets): Tower[] {
+  const groups = new Map<string, Tower[]>()
+  for (const t of towers) if (t.drawn?.part) groups.set(t.drawn.part, [...(groups.get(t.drawn.part) ?? []), t])
+  const out = new Map<string, Tower>()
+  for (const g of groups.values()) {
+    if (g.length < 2) continue
+    const keeper = g.find((t) => t.drawn!.core) ?? g.reduce((m, t) => (netArea(t.drawn!.pts, t.drawn!.holes ?? []) > netArea(m.drawn!.pts, m.drawn!.holes ?? []) ? t : m))
+    for (const t of g) {
+      if (t === keeper) { if (!t.drawn!.core && !t.coreAuto && t.coreShare === 0) out.set(t.id, withAutoCore({ ...t, coreAuto: true }, lifts, egress)) }
+      else if (t.coreShare !== 0 || t.coreAuto) out.set(t.id, { ...t, coreShare: 0, coreAuto: false })
+    }
+  }
+  return out.size ? towers.map((t) => out.get(t.id) ?? t) : towers
+}
+
+/** The outline, holes and core moved by one mapping of the plane (the core stays axis-aligned: its centre moves, its size stays). */
+export function transformDrawn(d: DrawnMass, f: (p: Pt) => Pt): Partial<DrawnMass> {
+  const core = d.core ? (() => { const [x, y] = f([d.core.x + d.core.w / 2, d.core.y + d.core.d / 2]); return { ...d.core, x: r2(x - d.core.w / 2), y: r2(y - d.core.d / 2) } })() : undefined
+  return { pts: d.pts.map(f), ...(d.holes ? { holes: d.holes.map((h) => h.map(f)) } : {}), ...(d.core ? { core } : {}) }
+}
+/** Turned by `deg` about a point, holes and core with it. */
+export function rotateDrawn(d: DrawnMass, deg: number, about: Pt): Partial<DrawnMass> {
+  const r = (deg * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r)
+  return transformDrawn(d, (p) => [r2(about[0] + (p[0] - about[0]) * c - (p[1] - about[1]) * s), r2(about[1] + (p[0] - about[0]) * s + (p[1] - about[1]) * c)])
+}
+/** Moved by (dx, dy), holes and core with it. */
+export const shiftDrawn = (d: DrawnMass, dx: number, dy: number): Partial<DrawnMass> => transformDrawn(d, (p) => [r2(p[0] + dx), r2(p[1] + dy)])
+/** Would this new outline cut into one of the mass's holes (an inward offset past a courtyard)? */
+export const crossesHole = (d: DrawnMass, pts: Pt[]) => (d.holes ?? []).some((h) => h.some((p) => !inPoly(p[0], p[1], pts)))
+
+/**
+ * A drawn mass moved or turned by the tower tools (Place, Align to lot, the gizmo, the toolbar's x, y and angle:
+ * lib/towerEdit.ts): the outline goes with it, the parts of its building too, one undo step. Rotation is about the
+ * mass's own centre; a drawn tower keeps rotation 0, its outline carries the turn.
+ */
+export function moveDrawn(id: string, dx: number, dy: number, dDeg: number): boolean {
+  const t = list().find((x) => x.id === id)
+  if (!t?.drawn) return false
+  const about: Pt = [t.x, t.y]
+  updateDrawnMany(partsOf(id).map((p) => {
+    const turned = dDeg ? { ...p.drawn!, ...rotateDrawn(p.drawn!, dDeg, about) } : p.drawn!
+    return { id: p.id, patch: dx || dy ? shiftDrawn(turned, dx, dy) : { pts: turned.pts, holes: turned.holes, core: turned.core } }
+  }))
+  return true
 }
 
 /** The masses that move with this one: itself and the parts of its building. */

@@ -76,16 +76,14 @@ export function formBlocks(form: FormType, p: Record<string, number>, base: { w:
   return out
 }
 
-/** Give the tower a form: its podium blocks stay, the tower blocks are rebuilt (one undo step). Not for drawn or imported masses. */
+/** Give the tower a form: its podium blocks stay, the tower blocks are rebuilt. A slider drag is one undo step (the step breaks when a slider is taken). Not for drawn or imported masses. */
 export function applyForm(id: string, form: FormType, p: Record<string, number>): boolean {
   const s = useStore.getState(), t = s.towers[s.project].find((x) => x.id === id)
   if (!t || t.imported || t.drawn) return false
   const base = baseOf(t), bl = blocksOf(t), podium: Block[] = []
   for (const b of bl) { if (b.podium) podium.push(b); else break }
   const next = withBlocks(t, [...podium, ...formBlocks(form, p, base)])
-  breakStep()
   s.updateTower(id, { blocks: next.blocks, boxFromBlocks: next.boxFromBlocks, height: next.height, width: next.width, depth: next.depth, podiumHeight: next.podiumHeight, podiumWidth: next.podiumWidth, podiumDepth: next.podiumDepth, form: form === 'none' ? undefined : { type: form, p, base } })
-  breakStep()
   return true
 }
 
@@ -121,7 +119,7 @@ export default function TowerForms() {
         return (
           <label key={k} className="mt-1.5 block text-meta">
             <span className="flex justify-between text-muted"><span>{q.label}</span><output className="tabular-nums text-ink">{q.fmt(p[k])}</output></span>
-            <input type="range" min={q.min} max={q.max} step={q.step} value={p[k]} aria-label={q.label} data-param={k} className="w-full" onChange={(e) => applyForm(t.id, form, { ...p, [k]: Number(e.target.value) })} />
+            <input type="range" min={q.min} max={q.max} step={q.step} value={p[k]} aria-label={q.label} data-param={k} className="w-full" onPointerDown={breakStep} onFocus={breakStep} onChange={(e) => applyForm(t.id, form, { ...p, [k]: Number(e.target.value) })} />
           </label>
         )
       })}

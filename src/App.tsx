@@ -61,7 +61,7 @@ export default function App() {
       if ((e.key === 'v' || e.key === 'V') && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleMode(); return }
       // The drawing tools' keys (lib/draw/drawStore.ts DRAW_KEY), on the Form step in Model; M and R are the gizmo's (TowerGizmo.tsx).
       const dk = DRAW_KEY[e.key.toLowerCase()]
-      if (dk && dk !== 'move' && dk !== 'rotate' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && route === 'guided' && s.phase === 'basic' && useStep.getState().step === 'volume' && s.towers[s.project].length > 0) { setDrawTool(useDraw.getState().tool === dk ? null : dk); return }
+      if (dk && dk !== 'move' && dk !== 'rotate' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && route === 'guided' && s.phase === 'basic' && useStep.getState().step === 'volume') { setDrawTool(useDraw.getState().tool === dk ? null : dk); return }
       // Present locks the model, so placing is off there.
       if ((e.key === 'p' || e.key === 'P') && s.phase !== 'present') set({ placing: !s.placing })
       if (e.key === '1') setPhase('basic')

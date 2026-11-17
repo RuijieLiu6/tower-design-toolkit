@@ -6,6 +6,8 @@
 import { create } from 'zustand'
 import type { Pt } from './geometry'
 import { registerUiItems } from '../ui/registry'
+import { useStep } from '../step'
+import { useStore } from '../../store'
 
 export type DrawTool = 'select' | 'line' | 'rect' | 'circle' | 'erase' | 'move' | 'copy' | 'rotate' | 'offset' | 'pull' | 'split' | 'bool' | 'length' | 'core' | 'tape'
 export interface DrawToolDef { id: DrawTool; label: string; word: string; key: string; hint: string; group: number }
@@ -78,6 +80,9 @@ export function setDrawTool(tool: DrawTool | null) {
   useDraw.setState({ tool: tool === 'select' ? 'select' : tool, typed: '', tag: null, boolFirst: null, edge: null, tape: [] })
 }
 export const endDrawTool = () => setDrawTool(null)
+// The tools belong to the Form step in Model: leaving the step or the stage ends the one that is on.
+useStep.subscribe((s, prev) => { if (s.step !== prev.step && useDraw.getState().tool) endDrawTool() })
+useStore.subscribe((s, prev) => { if (s.phase !== prev.phase && useDraw.getState().tool) endDrawTool() })
 export const toast = (text: string) => useDraw.setState((s) => ({ toast: { text, n: (s.toast?.n ?? 0) + 1 } }))
 export const setTag = (tag: DrawState['tag']) => useDraw.setState({ tag })
 export const setSnap = (patch: Partial<SnapSettings>) => useDraw.setState((s) => ({ snap: { ...s.snap, ...patch } }))

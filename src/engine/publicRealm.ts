@@ -358,6 +358,8 @@ export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], op
     // Closest pair of blocks above the podium (shifted or twisted blocks can come closer than the typical plate).
     const A = shafts(towers[i])
     for (let j = i + 1; j < towers.length; j++) {
+      // The parts of one drawn building (a union of different heights, a split) stand together by design: no pair.
+      if (towers[i].drawn?.part && towers[i].drawn?.part === towers[j].drawn?.part) continue
       const B = shafts(towers[j])
       pairs.push({ a: towers[i].name, b: towers[j].name, d: Math.min(...A.flatMap((a) => B.map((b) => polyDistance(a, b)))), need: sepNeeded(sepUses(towers[i]), sepUses(towers[j])), h: Math.max(towers[i].height, towers[j].height) })
     }

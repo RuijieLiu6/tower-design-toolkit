@@ -140,6 +140,10 @@ describe('Streetwall & tower form on Real Vancouver', () => {
   it('keeps the competition check exactly as it was: its tower lines are the shared helper\'s', () => {
     const all = streetwallCheck([vtc, second], input).rules.map((r) => r.id)
     const form = towerFormRules([vtc, second]).map((r) => r.id)
+    // The parts of one drawn building (a split, a union of different heights) stand together: no separation pair.
+    const partA = { ...vtc, id: 'pa', drawn: { pts: [], base: 0, floors: 1, f2f: 4, part: 'b1' } }, partB = { ...vtc, id: 'pb', name: 'Tower 1 part', drawn: { pts: [], base: 0, floors: 1, f2f: 4, part: 'b1' } }
+    expect(towerFormRules([partA, partB]).find((r) => r.id === 'pr-separation')).toBeUndefined()
+    expect(towerFormRules([partA, { ...partB, drawn: { ...partB.drawn, part: 'b2' } }]).find((r) => r.id === 'pr-separation')?.state).toBe('fail')
     expect(form.length).toBeGreaterThan(5)
     expect(all.filter((id) => form.includes(id))).toEqual(form)
     expect(form).toContain('pr-share-t1')

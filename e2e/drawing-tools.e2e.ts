@@ -59,7 +59,7 @@ test('Drawing tools: rectangle, push / pull, offset, copy, split, union, erase, 
   await p.getByRole('tab', { name: 'Competition site' }).or(p.getByRole('button', { name: 'Competition site' })).first().click({ timeout: 120_000 })
   await p.getByRole('navigation', { name: 'Design process' }).locator('[data-step="volume"]').click()
 
-  // Start your massing: four tiles; From scratch places the starting tower (Esc keeps it where it lands).
+  // Start your massing: four tiles; From scratch starts the Rectangle tool; the link under them places the starting tower.
   const start = p.getByTestId('place-first-tower')
   await expect(start).toBeVisible({ timeout: 60_000 })
   await expect(start.locator('[data-start]')).toHaveCount(4)
@@ -68,6 +68,10 @@ test('Drawing tools: rectangle, push / pull, offset, copy, split, union, erase, 
   await expect(p.getByTestId('case-studies')).toContainText('Unverified')
   await p.waitForTimeout(500)
   await p.screenshot({ path: join(SHOTS, '01-start-massing.png') })
+  await start.locator('[data-start="scratch"]').click()
+  await expect(p.getByTestId('draw-panel')).toHaveAttribute('data-draw-tool', 'rect')
+  await p.keyboard.press('Escape')
+  await expect(p.getByTestId('draw-panel')).toHaveCount(0)
   await start.locator('[data-testid="place-tower"]').click()
   await start.waitFor({ state: 'detached', timeout: 30_000 })
   await p.keyboard.press('Escape')
@@ -98,6 +102,18 @@ test('Drawing tools: rectangle, push / pull, offset, copy, split, union, erase, 
   await p.keyboard.press('Enter')
   await expect.poll(async () => (await masses(p)).find((m) => m.name === 'Mass 1')!.floors).toBe(10)
   m1 = (await masses(p)).find((m) => m.name === 'Mass 1')!
+  // A wall taken near its top and let go after one pixel stays put: the pointer's plane is the wall's hit height.
+  {
+    const c = centroid(m1.pts), ys = m1.pts.map((q) => q[1]), south = Math.min(...ys)
+    const at = await screenOf(p, [c[0], south, m1.height * 0.85])
+    await p.mouse.move(at.x, at.y); await p.mouse.down(); await p.mouse.move(at.x + 1, at.y, { steps: 2 }); await p.mouse.up()
+    await p.waitForTimeout(300)
+    const after = (await masses(p)).find((m) => m.name === 'Mass 1')!
+    // one pixel is under a metre at this zoom; the old mid-height plane moved it by the wall's height over the view's slope (about 10 m)
+    expect(Math.abs(Math.min(...after.pts.map((q) => q[1])) - south)).toBeLessThan(2.5)
+    // a half-metre grid step may have been taken: Ctrl+Z puts the outline back (one undo step)
+    if (after.area !== m1.area) { await p.keyboard.press('Control+z'); await expect.poll(async () => (await masses(p)).find((m) => m.name === 'Mass 1')!.area).toBeCloseTo(m1.area, 3) }
+  }
   expect(m1.height).toBeCloseTo(36, 3)
   await p.getByRole('tab', { name: 'Results', exact: true }).click()
   await openResultDetails(p)

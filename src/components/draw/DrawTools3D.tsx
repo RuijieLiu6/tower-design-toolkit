@@ -12,7 +12,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { Tower } from '../../engine/types'
 import { area, arrayCopies, asPoly, centroid, chordEnds, circlePts, clip, hitPrisms, inPoly, nearestWall, offsetPoly, pathPoly, planeHit, pushWall, rotatePts, segDist, setWallLength, shiftPts, splitPoly, type Prism, type Pt, type Ray3 } from '../../lib/draw/geometry'
-import { addDrawnMass, coreInside, inCore, massTop, newMassId, partsOf, updateDrawnMany, updateDrawnMass } from '../../lib/draw/mass'
+import { addDrawnMass, coreInside, crossesHole, inCore, massTop, newMassId, partsOf, rotateDrawn, updateDrawnMany, updateDrawnMass } from '../../lib/draw/mass'
+import { cutPieces, tooSmallACut } from '../../lib/draw/boolean'
+import { keyIsElsewhere } from '../../lib/draw/keys'
 import { drawToolDef, setTag, snapTo, toast, typedNumber, useDraw, type DrawTool, type SnapSettings } from '../../lib/draw/drawStore'
 import { breakStep } from '../../lib/project/history'
 import { pickTower } from '../../lib/towerEdit'
@@ -33,7 +35,7 @@ type Drag =
   | { k: 'rotate'; id: string; x: number; pts0: Pt[]; deg: number }
   | { k: 'offset'; id: string; x: number; pts0: Pt[]; v: number }
   | { k: 'pullTop'; id: string; y: number; f0: number; floors: number; sticky: boolean; moved: boolean }
-  | { k: 'pullSide'; id: string; i: number; n: Pt; p0: Pt; pts0: Pt[]; v: number; sticky: boolean; moved: boolean }
+  | { k: 'pullSide'; id: string; i: number; n: Pt; p0: Pt; /** The height of the wall hit: the pointer's plane, so the first move does not jump. */ z: number; pts0: Pt[]; v: number; sticky: boolean; moved: boolean }
   | { k: 'core'; id: string; z: number; a: Pt; r: { x: number; y: number; w: number; d: number } | null }
   | { k: 'click'; x: number; y: number }
 
@@ -160,7 +162,7 @@ export default function DrawTools3D() {
         return
       }
       const d = m.drawn
-      if (t === 'erase') { updateDrawnMany([], [], partsOf(m.id).map((x) => x.id)); toast(`${m.name} deleted`); return }
+      if (t === 'erase') { updateDrawnMany([], [], [m.id]); toast(`${m.name} deleted`); return }
       lock()
       useStore.getState().selectTower(m.id); pickTower(m.id)
       if (t === 'copy' || t === 'move') {
@@ -190,7 +192,7 @@ export default function DrawTools3D() {
       if (t === 'pull') {
         const top = massTop(d)
         if (hit!.face === 'top' || Math.abs(hit!.point[2] - top) < Math.min(Math.max(1.2, 4 * mpp(hit!.point)), (d.floors * d.f2f) / 4)) setDrag({ k: 'pullTop', id: m.id, y: e.clientY, f0: d.floors, floors: d.floors, sticky: false, moved: false })
-        else { const i = hit!.wall, n = ((): Pt => { const a = d.pts[i], b = d.pts[(i + 1) % d.pts.length], ex = b[0] - a[0], ey = b[1] - a[1], l = Math.hypot(ex, ey) || 1, s = area(d.pts) > 0 ? 1 : 1; return [(ey / l) * s, (-ex / l) * s] })(); const sgn = (() => { let a = 0; for (let k = 0; k < d.pts.length; k++) { const p = d.pts[k], q = d.pts[(k + 1) % d.pts.length]; a += p[0] * q[1] - q[0] * p[1] } return a >= 0 ? 1 : -1 })(); const nn: Pt = [n[0] * sgn, n[1] * sgn]; setDrag({ k: 'pullSide', id: m.id, i, n: nn, p0: [hit!.point[0], hit!.point[1]], pts0: d.pts, v: 0, sticky: false, moved: false }) }
+        else { const i = hit!.wall, n = ((): Pt => { const a = d.pts[i], b = d.pts[(i + 1) % d.pts.length], ex = b[0] - a[0], ey = b[1] - a[1], l = Math.hypot(ex, ey) || 1, s = area(d.pts) > 0 ? 1 : 1; return [(ey / l) * s, (-ex / l) * s] })(); const sgn = (() => { let a = 0; for (let k = 0; k < d.pts.length; k++) { const p = d.pts[k], q = d.pts[(k + 1) % d.pts.length]; a += p[0] * q[1] - q[0] * p[1] } return a >= 0 ? 1 : -1 })(); const nn: Pt = [n[0] * sgn, n[1] * sgn]; setDrag({ k: 'pullSide', id: m.id, i, n: nn, p0: [hit!.point[0], hit!.point[1]], z: hit!.point[2], pts0: d.pts, v: 0, sticky: false, moved: false }) }
         return
       }
       release()
@@ -232,7 +234,7 @@ export default function DrawTools3D() {
         setDrag({ ...D, r }); setPreview({ pts: [[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.d], [r.x, r.y + r.d]], z: D.z }); setTag({ text: `core ${fm(r.w)} × ${fm(r.d)} m`, at: [x, y, D.z] })
       }
     }
-    const hitZ = (D: Extract<Drag, { k: 'pullSide' }>) => { const m = massOf(D.id)!; return (m.drawn!.base + massTop(m.drawn!)) / 2 }
+    const hitZ = (D: Extract<Drag, { k: 'pullSide' }>) => D.z
     const onUp = (e: PointerEvent) => {
       const L = live.current, D = L.drag, t = L.tool!
       if (!D) return
@@ -250,11 +252,11 @@ export default function DrawTools3D() {
         finishDrag(); setPreview(null); setTag(null)
         if (!D.moved) return
         if (D.k === 'move') updateDrawnMany(D.parts.map((p) => ({ id: p.id, patch: { pts: shiftPts(p.pts, D.dx, D.dy), holes: p.holes?.map((h) => shiftPts(h, D.dx, D.dy)), core: p.core ? { ...p.core, x: p.core.x + D.dx, y: p.core.y + D.dy } : undefined } })))
-        else { const m = massOf(D.id)!; updateDrawnMany([], [{ pts: shiftPts(m.drawn!.pts, D.dx, D.dy), holes: m.drawn!.holes?.map((h) => shiftPts(h, D.dx, D.dy)), base: m.drawn!.base, floors: m.drawn!.floors, f2f: m.drawn!.f2f, name: `${m.name} copy` }]); useDraw.setState({ lastCopy: { id: m.id, dx: D.dx, dy: D.dy } }); toast('Copied. Type a number and Enter for that many copies in a row.') }
+        else { const m = massOf(D.id)!; updateDrawnMany([], [{ pts: shiftPts(m.drawn!.pts, D.dx, D.dy), holes: m.drawn!.holes?.map((h) => shiftPts(h, D.dx, D.dy)), base: m.drawn!.base, floors: m.drawn!.floors, f2f: m.drawn!.f2f, name: `${m.name} copy`, from: m.id }]); useDraw.setState({ lastCopy: { id: m.id, dx: D.dx, dy: D.dy } }); toast('Copied. Type a number and Enter for that many copies in a row.') }
         return
       }
-      if (D.k === 'rotate') { finishDrag(); setPreview(null); setTag(null); if (D.deg) updateDrawnMass(D.id, { pts: rotatePts(D.pts0, D.deg) }); return }
-      if (D.k === 'offset') { finishDrag(); setPreview(null); setTag(null); if (D.v) updateDrawnMass(D.id, { pts: offsetPoly(D.pts0, D.v) }); return }
+      if (D.k === 'rotate') { finishDrag(); setPreview(null); setTag(null); if (D.deg) { const about = centroid(D.pts0); updateDrawnMany(partsOf(D.id).map((p) => ({ id: p.id, patch: rotateDrawn(p.drawn!, D.deg, about) }))) } return }
+      if (D.k === 'offset') { finishDrag(); setPreview(null); setTag(null); if (D.v) { const m = massOf(D.id), q = offsetPoly(D.pts0, D.v); if (m?.drawn && crossesHole(m.drawn, q)) toast('That offset would cross a courtyard'); else updateDrawnMass(D.id, { pts: q }) } return }
       if (D.k === 'core') {
         finishDrag(); setPreview(null); setTag(null)
         const m = massOf(D.id)!, d = m.drawn!
@@ -390,7 +392,7 @@ export default function DrawTools3D() {
       setCut(null); setPreview(null); setTag(null)
       if (!r) { toast('The cut has to run across the mass. Draw it from one side to the other.'); return }
       const part = d.part ?? newMassId()
-      updateDrawnMany([{ id: m.id, patch: { pts: r.big.pts, holes: r.big.holes, part } }], [{ pts: r.small.pts, holes: r.small.holes, base: d.base, floors: d.floors, f2f: d.f2f, part, name: `${m.name} part` }])
+      updateDrawnMany([{ id: m.id, patch: { pts: r.big.pts, holes: r.big.holes, part } }], [{ pts: r.small.pts, holes: r.small.holes, base: d.base, floors: d.floors, f2f: d.f2f, part, name: `${m.name} part`, from: m.id }])
       toast(`${m.name} cut into ${Math.round(area(r.big.pts))} and ${Math.round(area(r.small.pts))} m² parts. It still reads as one building; push or pull either part on its own.`)
     }
     // ---- Boolean: union, subtract, intersect; each part keeps its height
@@ -407,19 +409,20 @@ export default function DrawTools3D() {
         if (!stacked) {
           const r = clip('difference', asPoly(db.pts, db.holes ?? []), asPoly(da.pts, da.holes ?? []))
           if (!r.length) { toast('The second mass sits inside the first'); return }
-          updateDrawnMany([{ id: A.id, patch: { part } }, { id: B.id, patch: { pts: r[0].pts, holes: r[0].holes, part } }], r.slice(1).map((pg) => ({ pts: pg.pts, holes: pg.holes, base: db.base, floors: db.floors, f2f: db.f2f, part })))
+          updateDrawnMany([{ id: A.id, patch: { part } }, { id: B.id, patch: { pts: r[0].pts, holes: r[0].holes, part } }], r.slice(1).map((pg) => ({ pts: pg.pts, holes: pg.holes, base: db.base, floors: db.floors, f2f: db.f2f, part, from: B.id })))
         } else updateDrawnMany([{ id: A.id, patch: { part } }, { id: B.id, patch: { part } }])
         toast('Joined as one building. Each part keeps its own height.'); return
       }
       if (stacked) { toast('Stacked masses cannot be cut this way'); return }
-      const r = clip(mode === 'subtract' ? 'difference' : 'intersection', asPoly(da.pts, da.holes ?? []), asPoly(db.pts, db.holes ?? []))
+      const { pieces: r, change } = cutPieces(mode, da, db)
       if (!r.length) { toast(mode === 'subtract' ? 'Nothing would be left of the first mass' : 'These two masses do not overlap'); return }
-      updateDrawnMany([{ id: A.id, patch: { pts: r[0].pts, holes: r[0].holes } }], r.slice(1).map((pg) => ({ pts: pg.pts, holes: pg.holes, base: da.base, floors: da.floors, f2f: da.f2f })), [B.id])
+      if (tooSmallACut(change)) { toast('These two masses barely overlap: nothing to cut'); return }
+      updateDrawnMany([{ id: A.id, patch: { pts: r[0].pts, holes: r[0].holes } }], r.slice(1).map((pg) => ({ pts: pg.pts, holes: pg.holes, base: da.base, floors: da.floors, f2f: da.f2f, from: A.id })), [B.id])
       toast(mode === 'subtract' ? 'Subtracted. The first mass keeps its height.' : 'Kept the overlap. The first mass keeps its height.')
     }
     // ---- keys: typed values, Enter, Tab, Backspace, Esc, Delete
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return
+      if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target) || keyIsElsewhere(e.target, e.key, el)) return
       const L = live.current, t = L.tool!, d = L.draft
       if (e.key === 'Escape') {
         e.stopImmediatePropagation()
@@ -436,7 +439,7 @@ export default function DrawTools3D() {
         if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); if (d[d.field] !== '') setDraft({ ...d, [d.field]: d[d.field].slice(0, -1) }); else if (d.pts.length > 1) { const nd = { ...d, pts: d.pts.slice(0, -1) }; setDraft(nd); drawDraft(nd) } else { setDraft(null); setPreview(null); setTag(null) } return }
         return
       }
-      if (e.key === 'Delete' && (t === 'select' || t === 'erase')) { const id = useStore.getState().selectedTower, m = massOf(id); if (m?.drawn) { updateDrawnMany([], [], partsOf(id).map((x) => x.id)); toast(`${m.name} deleted`) } return }
+      if (e.key === 'Delete' && (t === 'select' || t === 'erase')) { const id = useStore.getState().selectedTower, m = massOf(id); if (m?.drawn) { updateDrawnMany([], [], [id]); toast(`${m.name} deleted`) } return }
       // Typed values are the tool's: the app's stage keys (1, 2, 3) must not see them.
       if (/^[0-9.]$/.test(e.key) || e.key === '-') { e.preventDefault(); e.stopImmediatePropagation(); useDraw.setState({ typed: L.typed + e.key }); return }
       if (e.key === 'Backspace') { e.preventDefault(); e.stopImmediatePropagation(); useDraw.setState({ typed: L.typed.slice(0, -1) }); return }
@@ -453,9 +456,9 @@ export default function DrawTools3D() {
           if (!m?.drawn || v <= 0) { toast('Select a mass, then type its height in metres'); return }
           const floors = Math.max(1, Math.round(v / m.drawn.f2f)); updateDrawnMass(m.id, { floors }); toast(`Height set to ${fm(floors * m.drawn.f2f)} m, ${floors} storeys`); return
         }
-        if (t === 'offset') { if (!m?.drawn) { toast('Click a mass first'); return } const q = offsetPoly(m.drawn.pts, v); if (area(q) < 4) { toast('That offset leaves nothing'); return } updateDrawnMass(m.id, { pts: q }); toast(`Outline offset by ${fm(v)} m`); return }
+        if (t === 'offset') { if (!m?.drawn) { toast('Click a mass first'); return } const q = offsetPoly(m.drawn.pts, v); if (area(q) < 4) { toast('That offset leaves nothing'); return } if (crossesHole(m.drawn, q)) { toast('That offset would cross a courtyard'); return } updateDrawnMass(m.id, { pts: q }); toast(`Outline offset by ${fm(v)} m`); return }
         if (t === 'length') { const g = useDraw.getState().edge, em = g ? massOf(g.id) : null; if (!g || !em?.drawn || v <= 0) { toast('Click a wall first'); return } updateDrawnMass(em.id, { pts: setWallLength(em.drawn.pts, g.i, v) }); useDraw.setState({ edge: null }); setPreview(null); toast(`Wall set to ${fm(v)} m`); return }
-        if (t === 'copy') { const c = useDraw.getState().lastCopy, src = c ? massOf(c.id) : null, n = Math.round(v); if (!c || !src?.drawn || n < 2) { toast('Drag a copy first, then type how many'); return } const d0 = src.drawn; updateDrawnMany([], arrayCopies(d0.pts, c.dx, c.dy, n + 1).slice(1).map((pts, i) => ({ pts, holes: d0.holes?.map((h) => shiftPts(h, c.dx * (i + 2), c.dy * (i + 2))), base: d0.base, floors: d0.floors, f2f: d0.f2f, name: `${src.name} copy ${i + 2}` }))); toast(`${n} copies in a row`); return }
+        if (t === 'copy') { const c = useDraw.getState().lastCopy, src = c ? massOf(c.id) : null, n = Math.round(v); if (!c || !src?.drawn || n < 2) { toast('Drag a copy first, then type how many'); return } const d0 = src.drawn; updateDrawnMany([], arrayCopies(d0.pts, c.dx, c.dy, n + 1).slice(1).map((pts, i) => ({ pts, holes: d0.holes?.map((h) => shiftPts(h, c.dx * (i + 2), c.dy * (i + 2))), base: d0.base, floors: d0.floors, f2f: d0.f2f, name: `${src.name} copy ${i + 2}`, from: src.id }))); toast(`${n} copies in a row`); return }
       }
     }
     el.addEventListener('pointerdown', onDown)
