@@ -55,6 +55,7 @@ export function phasePortion(b: Board, phase: PhaseId, home: (id: string) => Pha
  * are in the right panel. A design node opens all of its phase's design tools.
  */
 export const NODE_CONTROLS: Record<string, string[]> = {
+  'built.view-from': ['view-choose'], 'built.vista': ['view-choose'],
   'built.sun': ['sun'], 'built.solar-access': ['sun'], 'built.heights': ['height-suggestion'],
   'built.fsr': ['program'], 'built.economics': ['program'], 'built.interior': ['program'],
   'built.pr-streetwall': ['ground'], 'built.pr-frontage': ['ground'], 'built.pr-ground': ['ground'], 'built.sky-room': ['ground'],
@@ -109,3 +110,11 @@ export function massingToolOpen(): boolean {
   return !a || a === designOf('form').id
 }
 export const phaseIndexOf = (p: PhaseId) => PHASES.findIndex((x) => x.id === p)
+
+/** The view tool is open (View from here or its Vista tab): the view-angle tabs (City, Observer, Inspect, Plan) show
+ *  only then (17 Nov, Sinnie: "it shouldnt show up during other tool or phases"). */
+export function useViewToolOpen(): boolean {
+  const step = useStep((s) => s.step)
+  const a = usePhaseTools((s) => s.active[STEP_PHASE[step]])
+  return a === 'built.view-from' || a === 'built.vista'
+}

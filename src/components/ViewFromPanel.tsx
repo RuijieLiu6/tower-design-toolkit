@@ -2,14 +2,14 @@
 // pick a LiDAR roof, a street point or a floor of a design tower, look at eye height, capture a 360° strip, and read
 // what the sightline sees: the North Shore terrain over the skyline, and the protected cones it crosses.
 import SheetFrame from './SheetFrame'
-import { Camera, Eye, EyeOff, MousePointerClick } from './icons'
+import { Camera, Eye, EyeOff } from './icons'
 import { useMemo } from 'react'
 import { sampleTerrain } from '../lib/cityLayers'
 import { towerFloors, towerFootprint } from '../engine/massing'
 import { castRay, compass, conesCrossed, skyline, type Obstacle, type Ray, type SkylineInput } from '../engine/viewFrom'
 import { CONES } from '../engine/viewCones'
 import type { RuleResult } from '../engine/types'
-import { eyeZ, useViewFromStore, type Viewpoint } from '../lib/viewFromStore'
+import { eyeZ, useViewFromStore } from '../lib/viewFromStore'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityObstacles } from './CityContext'
 import { rayBuildingsLabel, standableNote } from '../lib/vistaBuildings'
@@ -19,6 +19,56 @@ import { Legend, MethodFold, RuleRows } from './ResultViz'
 /** Terrain at or above this height counts as the mountains (team preset; downtown sits below 60 m, the North Shore rises to about 1,400 m). */
 const FAR_MIN = 200
 
+
+/** The look settings (left panel, Choose a view): look from here, the 360° strip, bearing, tilt, field and eye. */
+export function LookControls() {
+  const v = useViewFromStore()
+  if (!v.viewpoint) return null
+  return (
+    <div className="grid gap-2" data-testid="view-look">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => v.set({ looking: !v.looking })} className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${v.looking ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>{v.looking ? <EyeOff size={13} /> : <Eye size={13} />}{v.looking ? 'Back to the map' : 'Look from here'}</button>
+        <button type="button" onClick={() => v.set({ captureReq: v.captureReq + 1 })} disabled={v.capturing} title="Eight 45° frames from north, clockwise, saved to your shots" className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs hover:border-accent disabled:opacity-50"><Camera size={13} />360° strip</button>
+      </div>
+      <label className="grid gap-0.5 text-meta"><span className="text-muted">Looking {compass(v.bearing)} ({Math.round(v.bearing)}°)</span>
+        <input type="range" min={0} max={359} step={1} value={v.bearing} onChange={(e) => v.set({ bearing: Number(e.target.value) })} className="accent-accent" aria-label="Bearing" />
+      </label>
+      <div className="grid grid-cols-3 gap-2 text-meta">
+        <label className="grid gap-0.5"><span className="text-muted">Tilt</span><input type="number" min={-30} max={30} value={v.pitch} onChange={(e) => v.set({ pitch: Math.max(-30, Math.min(30, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Tilt" /></label>
+        <label className="grid gap-0.5"><span className="text-muted">Field</span><input type="number" min={20} max={110} value={v.hfov} onChange={(e) => v.set({ hfov: Math.max(20, Math.min(110, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Field of view" /></label>
+        <label className="grid gap-0.5"><span className="text-muted">Eye</span><input type="number" min={0} max={3} step={0.1} value={v.eye} onChange={(e) => v.set({ eye: Math.max(0, Math.min(3, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Eye height" /></label>
+      </div>
+      <label className="flex items-center gap-2 text-meta"><input type="checkbox" checked={v.overlays} onChange={() => v.set({ overlays: !v.overlays, looking: false })} />Keep map overlays in the view</label>
+    </div>
+  )
+}
+
+/** A floor or the roof of a design tower to stand on (From a building). */
+export function TowerStand() {
+  const towers = useTowers()
+  const ground = useStore((s) => s.groundElevation)
+  const v = useViewFromStore()
+  if (!towers.length) return null
+  const pick = (id: string, level: number | 'top') => {
+    const t = towers.find((x) => x.id === id)
+    if (!t) return
+    const f = level === 'top' ? null : towerFloors(t).find((x) => x.level === level)
+    const stand = ground + (f ? f.z0 : t.height)
+    v.set({ viewpoint: { kind: 'tower', x: t.x, y: t.y, stand, towerId: t.id, label: f ? `${t.name}, level ${f.level}` : `${t.name}, roof`,
+      basis: `Project ground ${ground.toFixed(1)} m + ${f ? `floor at ${f.z0.toFixed(1)} m` : `top at ${t.height.toFixed(1)} m`}`, near: f ? Math.hypot(t.width, t.depth) / 2 + 1 : 0.3 }, picking: false, note: null })
+  }
+  return (
+    <select value="" onChange={(e) => { const [id, lv] = e.target.value.split('|'); pick(id, lv === 'top' ? 'top' : Number(lv)) }} className="h-8 w-full rounded-md border border-line bg-white px-1.5 text-control" aria-label="Stand in a design tower">
+      <option value="" disabled>Stand in your tower…</option>
+      {towers.map((t) => (
+        <optgroup key={t.id} label={t.name}>
+          <option value={`${t.id}|top`}>{t.name}: roof ({Math.round(t.height)} m)</option>
+          {towerFloors(t).filter((f, i, all) => i % Math.max(1, Math.round(all.length / 12)) === 0 || f.skyLobby).map((f) => <option key={f.level} value={`${t.id}|${f.level}`}>Level {f.level} (+{Math.round(f.z0)} m)</option>)}
+        </optgroup>
+      ))}
+    </select>
+  )
+}
 
 export default function ViewFromPanel() {
   const project = useStore((s) => s.project)
@@ -42,38 +92,12 @@ export default function ViewFromPanel() {
   if (error) return <Section title="View from here"><p className="text-meta text-red-700">Context layers did not load: {error}</p></Section>
 
   const withHeight = heights ? Array.from(heights.roof).filter((r, i) => Number.isFinite(r) && r > heights.ground[i]).length : 0
-  const pickTower = (id: string, level: number | 'top') => {
-    const t = towers.find((x) => x.id === id)
-    if (!t) return
-    const f = level === 'top' ? null : towerFloors(t).find((x) => x.level === level)
-    const stand = ground + (f ? f.z0 : t.height)
-    const vpNew: Viewpoint = { kind: 'tower', x: t.x, y: t.y, stand, towerId: t.id, label: f ? `${t.name}, level ${f.level}` : `${t.name}, roof`,
-      basis: `Project ground ${ground.toFixed(1)} m + ${f ? `floor at ${f.z0.toFixed(1)} m` : `top at ${t.height.toFixed(1)} m`}`, near: f ? Math.hypot(t.width, t.depth) / 2 + 1 : 0.3 }
-    v.set({ viewpoint: vpNew, picking: false, note: null })
-  }
   const visibleDirs = rays.filter((r) => r.farVisible)
 
   return (
     <>
       <Section title="Viewpoint">
-        <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => v.set({ picking: !v.picking, note: null, looking: false })} aria-pressed={v.picking}
-            className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${v.picking ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>
-            <MousePointerClick size={13} />{v.picking ? 'Click a roof or street in the 3D view…' : 'Pick a roof or street'}
-          </button>
-          {towers.length > 0 && (
-            <select value="" onChange={(e) => { const [id, lv] = e.target.value.split('|'); pickTower(id, lv === 'top' ? 'top' : Number(lv)) }} className="rounded-md border border-line bg-panel px-1.5 py-1 text-xs" aria-label="View from a design tower">
-              <option value="" disabled>From a design tower…</option>
-              {towers.map((t) => (
-                <optgroup key={t.id} label={t.name}>
-                  <option value={`${t.id}|top`}>{t.name}: roof ({Math.round(t.height)} m)</option>
-                  {towerFloors(t).filter((f, i, all) => i % Math.max(1, Math.round(all.length / 12)) === 0 || f.skyLobby).map((f) => <option key={f.level} value={`${t.id}|${f.level}`}>Level {f.level} (+{Math.round(f.z0)} m)</option>)}
-                </optgroup>
-              ))}
-            </select>
-          )}
-        </div>
-        {v.note && <p role="status" className="mt-1.5 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">{v.note}</p>}
+        {!vp && <p className="text-meta text-muted">Choose a view in the left panel: a protected view cone, a building, the street, or drag and view.</p>}
         <MethodFold title="What can be stood on or block a view"><p>{withHeight.toLocaleString()} of {data?.footprints.length.toLocaleString() ?? '…'} building parts have a height ({data ? standableNote(data) : '…'}); only those can be stood on or block a view.{hidden.size > 0 && ` ${hidden.size.toLocaleString()} existing building footprint${hidden.size === 1 ? ' is' : 's are'} hidden under the design (hypothetical removal, team assumption).`}</p></MethodFold>
         {vp && (
           <div className="mt-2 rounded-md bg-black/[0.03] p-2 text-meta">
@@ -88,25 +112,6 @@ export default function ViewFromPanel() {
           </div>
         )}
       </Section>
-
-      {vp && (
-        <Section title="Look">
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => v.set({ looking: !v.looking })} className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${v.looking ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`}>{v.looking ? <EyeOff size={13} /> : <Eye size={13} />}{v.looking ? 'Back to the map' : 'Look from here'}</button>
-            <button onClick={() => v.set({ captureReq: v.captureReq + 1 })} disabled={v.capturing} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs hover:border-accent disabled:opacity-50"><Camera size={13} />Capture 360° strip</button>
-          </div>
-          <label className="mt-2 grid gap-0.5 text-meta"><span className="text-muted">Looking {compass(v.bearing)} ({Math.round(v.bearing)}° from grid north)</span>
-            <input type="range" min={0} max={359} step={1} value={v.bearing} onChange={(e) => v.set({ bearing: Number(e.target.value) })} className="accent-accent" aria-label="Bearing" />
-          </label>
-          <div className="grid grid-cols-3 gap-2 text-meta">
-            <label className="grid gap-0.5"><span className="text-muted">Tilt</span><input type="number" min={-30} max={30} value={v.pitch} onChange={(e) => v.set({ pitch: Math.max(-30, Math.min(30, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Tilt" /></label>
-            <label className="grid gap-0.5"><span className="text-muted">Field of view</span><input type="number" min={20} max={110} value={v.hfov} onChange={(e) => v.set({ hfov: Math.max(20, Math.min(110, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Field of view" /></label>
-            <label className="grid gap-0.5"><span className="text-muted">Eye height</span><input type="number" min={0} max={3} step={0.1} value={v.eye} onChange={(e) => v.set({ eye: Math.max(0, Math.min(3, Number(e.target.value))) })} className="rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums" aria-label="Eye height" /></label>
-          </div>
-          <label className="mt-1.5 flex items-center gap-2 text-meta"><input type="checkbox" checked={v.overlays} onChange={() => v.set({ overlays: !v.overlays, looking: false })} />Keep map overlays (cone sheets, tints) in the view</label>
-          <p className="mt-1 text-meta text-muted">The strip is eight 45° frames from north, clockwise, saved to the filmstrip (Present stage).</p>
-        </Section>
-      )}
 
       {vp && now && (
         <Section title="What this sightline sees">

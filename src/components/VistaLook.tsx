@@ -9,6 +9,7 @@
 // off all"), in step with the Layers dock (lib/coneVisibility.ts).
 // VistaLookRig runs inside the canvas (model frame x east, y north, z up); the rest is DOM over the view.
 import { ViewModeMenu } from './DisplayModeSwitch'
+import { useViewToolOpen } from '../lib/workflow/phaseTools'
 import { dataFetch } from '../lib/loadProgress'
 import { useFrame, useThree } from '@react-three/fiber'
 import { ChevronDown, ChevronUp, Crosshair, Layers, Minus, Plus, X } from './icons'
@@ -493,6 +494,7 @@ function Utilities() {
 function Legend() {
   const mode = useShownMode()
   const coneHidden = useConeVisibility((s) => s.hidden)
+  const viewTool = useViewToolOpen()
   const conesShown = !CONES.every((c) => coneHidden[c.id])
   const sw = (color: string, extra: CSSProperties = {}) => <i aria-hidden className="inline-block h-3 w-3 shrink-0 rounded-[3px]" style={{ background: color, border: '1px solid rgb(32 38 48 / 0.18)', ...extra }} />
   return (
@@ -500,7 +502,7 @@ function Legend() {
     {/* The View menu at the top of the view (12 Nov): mode, Pin view, the sun and the key of the shown mode. Only an
         Analysis scale stays down here, since the colours can't be read without it. */}
     {mode === 'analysis' && <div data-testid="city-legend" className="glass grid max-w-full gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink"><AnalysisLegend project="city" /></div>}
-    <ViewModeMenu project="city" angles={<AngleButtons />} onFrame={focusSite}>
+    <ViewModeMenu project="city" angles={viewTool ? <AngleButtons /> : undefined} onFrame={focusSite}>
       <div className="flex flex-wrap items-center gap-1.5"><SunChip /></div>
       {<>
         {mode === 'massing' && <MassingKey />}

@@ -90,8 +90,7 @@ function VistaCity() {
       <SitePanel />
       <OverlapTable exact={exact} top={top} />
       <EnvelopeSection />
-      <Viewpoints exact={exact} tower={t} ground={ground} />
-      <RoofViews tower={t} ground={ground} />
+      <ActiveCone />
       <WhatIf exact={inside} fp={fp} ground={ground} top={top} />
       <Studies />
       <FrameRule tower={t} exact={exact} />
@@ -135,14 +134,36 @@ function OverlapTable({ exact, top }: { exact: ExactCone[]; top: number }) {
 }
 
 /** Vista's "view from the protected origin", from the City's origin and eye (Lv), with Vista's cone-fit field. */
-function Viewpoints({ exact, tower, ground }: { exact: ExactCone[]; tower: Tower; ground: number }) {
+/** The protected viewpoint being looked from: Tower Design Toolkit's numbers beside Vista's (data only; the choice is
+ *  in the left panel's Choose a view, 17 Nov). */
+function ActiveCone() {
+  const v = useViewFromStore()
+  const active = v.viewpoint?.kind === 'cone' ? CONES.find((c) => c.id === v.viewpoint?.coneId) ?? null : null
+  if (!active) return null
+  return <Section title={`From protected view ${active.id}`}><ConeCompare cone={active} /></Section>
+}
+
+/** The left panel's lists for Choose a view: the protected viewpoints, or the rooftops that see the tower. */
+export function ViewChoices({ how }: { how: 'cone' | 'building' }) {
+  const towers = useTowers()
+  const sel = useStore((s) => s.selectedTower)
+  const ground = useStore((s) => s.groundElevation)
+  const t = towers.find((k) => k.id === sel) ?? towers[0]
+  const fp = useMemo(() => (t ? towerFootprint(t).map(abs) : null), [t])
+  const top = ground + (t?.height ?? 0)
+  const exact = useMemo(() => (fp ? exactCones(fp, top) : []), [fp, top])
+  if (how === 'building') return t ? <RoofViews tower={t} ground={ground} /> : null
+  return <Viewpoints exact={exact} tower={t ?? null} ground={ground} />
+}
+
+function Viewpoints({ exact, tower, ground }: { exact: ExactCone[]; tower: Tower | null; ground: number }) {
   const v = useViewFromStore()
   const haze = useVistaStore((s) => s.haze)
   const [all, setAll] = useState(false)
   const near = exact.filter((e) => e.overlapM2 > 0 || (e.gapM ?? Infinity) <= 60).map((e) => e.cone)
-  const list = all ? [...near, ...CONES.filter((c) => !near.includes(c))] : near.length ? near : CONES.slice().sort((a, b) => Math.hypot(a.ring[0][0] - CITY_ORIGIN[0] - tower.x, a.ring[0][1] - CITY_ORIGIN[1] - tower.y) - Math.hypot(b.ring[0][0] - CITY_ORIGIN[0] - tower.x, b.ring[0][1] - CITY_ORIGIN[1] - tower.y)).slice(0, 3)
+  const list = all || !tower ? [...near, ...CONES.filter((c) => !near.includes(c))] : near.length ? near : CONES.slice().sort((a, b) => Math.hypot(a.ring[0][0] - CITY_ORIGIN[0] - tower.x, a.ring[0][1] - CITY_ORIGIN[1] - tower.y) - Math.hypot(b.ring[0][0] - CITY_ORIGIN[0] - tower.x, b.ring[0][1] - CITY_ORIGIN[1] - tower.y)).slice(0, 3)
   const active = v.viewpoint?.kind === 'cone' ? CONES.find((c) => c.id === v.viewpoint?.coneId) ?? null : null
-  const target = { x: tower.x, y: tower.y, top: ground + tower.height }
+  const target = tower ? { x: tower.x, y: tower.y, top: ground + tower.height } : null
   return (
     <Section title="From the protected viewpoints" right={<button type="button" onClick={() => setAll(!all)} className="text-meta text-accent underline">{all ? 'Fewer' : 'All 24 views'}</button>}>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1">
@@ -160,7 +181,6 @@ function Viewpoints({ exact, tower, ground }: { exact: ExactCone[]; tower: Tower
           )
         })}
       </div>
-      {active && <ConeCompare cone={active} />}
       <label className="mt-2 flex items-center gap-2 text-meta"><input type="checkbox" checked={haze} onChange={() => useVistaStore.getState().set({ haze: !haze })} />Light haze in eye-level views (visual only; off = evidence view)</label>
       <p className="mt-1 flex items-center gap-1 text-meta text-muted"><Mountain size={11} />Mountains: NRCan MRDEM-30 to 25 km, CGVD28; far plane 60 km while looking, so no peak is clipped.</p>
     </Section>

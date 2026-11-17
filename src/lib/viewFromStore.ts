@@ -28,6 +28,10 @@ export const eyeZ = (vp: Viewpoint, eye: number) => vp.eyeAbs ?? vp.stand + eye
 
 interface ViewFromState {
   picking: boolean
+  /** How the view is chosen (Vista's four, 17 Nov): a protected cone, a building, the street, or drag and view. */
+  how: ViewHow
+  /** What a click in the view picks while picking: a roof, a street point, either, or a drag (stand, then look along). */
+  pickKind: 'any' | 'roof' | 'street' | 'drag'
   viewpoint: Viewpoint | null
   looking: boolean
   /** Degrees clockwise from grid north. */
@@ -43,7 +47,9 @@ interface ViewFromState {
   set: (patch: Partial<Omit<ViewFromState, 'set'>>) => void
 }
 
+export type ViewHow = 'cone' | 'building' | 'street' | 'drag'
 export const useViewFromStore = create<ViewFromState>((set) => ({
+  how: 'cone', pickKind: 'any',
   picking: false, viewpoint: null, looking: false, bearing: 0, pitch: 0, hfov: 70, eye: EYE_HEIGHT, note: null, captureReq: 0, capturing: false, overlays: false,
   set: (patch) => set(patch),
 }))

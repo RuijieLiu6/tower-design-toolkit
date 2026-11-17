@@ -56,7 +56,31 @@ export default function ViewFromRig() {
       if (!hit) return
       const x = hit.point.x, y = -hit.point.z
       const s = useViewFromStore.getState()
+      // Drag and view: stand where pressed (street level), look the way the pointer is dragged, then look.
+      if (s.pickKind === 'drag') {
+        e.stopImmediatePropagation(); e.preventDefault()
+        const g = sampleTerrain(data.grids, x, y)
+        s.set({ note: null, looking: false, viewpoint: { kind: 'street', x, y, stand: g ?? hit.point.y, label: 'Dragged viewpoint', basis: g != null ? `Terrain ${g.toFixed(1)} m (${terrainBasis(data.grids, [[x, y]])}; CGVD28)` : 'Clicked surface (no terrain here)' } })
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.point.y), at = new THREE.Vector3()
+        const move = (m: PointerEvent) => {
+          const rr = el.getBoundingClientRect()
+          ray.setFromCamera(new THREE.Vector2(((m.clientX - rr.left) / rr.width) * 2 - 1, -((m.clientY - rr.top) / rr.height) * 2 + 1), camera)
+          if (!ray.ray.intersectPlane(plane, at)) return
+          const dx = at.x - x, dy = -at.z - y
+          if (Math.hypot(dx, dy) > 2) useViewFromStore.getState().set({ bearing: Math.round(((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360) })
+        }
+        const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); useViewFromStore.getState().set({ picking: false, looking: true, pitch: 0 }) }
+        window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
+        return
+      }
       const p = pickAt(idx, heights, x, y, s.eye)
+      if (s.pickKind === 'street' && p.kind === 'roof') {
+        const g = sampleTerrain(data.grids, x, y)
+        if (g == null) { s.set({ note: 'No ground here: click a street or open ground.' }); return }
+        s.set({ picking: false, note: null, viewpoint: { kind: 'street', x, y, stand: g, label: 'Street point', basis: `Terrain ${g.toFixed(1)} m (${terrainBasis(data.grids, [[x, y]])}; CGVD28)` } })
+        return
+      }
+      if (s.pickKind === 'roof' && p.kind !== 'roof') { s.set({ note: p.kind === 'unknown' ? p.reason : 'That is not a roof with a measured height: click a building.' }); return }
       if (p.kind === 'unknown') { s.set({ note: p.reason }); return }
       if (p.kind === 'roof') {
         const id = data.footprints[p.index].id
@@ -72,9 +96,9 @@ export default function ViewFromRig() {
       const ground = sampleTerrain(data.grids, x, y)
       s.set({ picking: false, note: null, viewpoint: { kind: 'street', x, y, stand: ground ?? hit.point.y, label: 'Street point', basis: ground != null ? `Terrain ${ground.toFixed(1)} m (${terrainBasis(data.grids, [[x, y]])}; CGVD28)` : 'Clicked surface (no terrain here)' } })
     }
-    el.addEventListener('pointerdown', onDown)
+    el.addEventListener('pointerdown', onDown, { capture: true })
     el.style.cursor = 'crosshair'
-    return () => { el.removeEventListener('pointerdown', onDown); el.style.cursor = '' }
+    return () => { el.removeEventListener('pointerdown', onDown, { capture: true }); el.style.cursor = '' }
   }, [v.picking, data, idx, heights, gl, camera, scene])
 
   // Enter and leave the eye-level view, restoring the orbit camera afterwards.
