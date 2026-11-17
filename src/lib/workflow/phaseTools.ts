@@ -71,6 +71,9 @@ for (const [lead, m] of Object.entries(MERGES)) {
   const all = [...new Set([lead, ...m.parts.map((p) => p.id)].flatMap((id) => NODE_CONTROLS[id] ?? []))]
   if (all.length) NODE_CONTROLS[lead] = all
 }
+// Sun and shadow: the Studio's Sun settings hold the date, the viewport hour and the study hours (16 Nov, Sinnie), so
+// the separate hour and sun-and-time controls would repeat them.
+NODE_CONTROLS['built.sw-shadow'] = ['sw-sun-set']
 
 /**
  * The open tool of each phase (a node id), remembered in this browser; the phase's design node when none is picked.

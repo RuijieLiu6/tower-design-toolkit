@@ -34,6 +34,8 @@ export interface SunOptions {
   scope: 'date' | 'period'
   date: SunDate
   period: SunPeriod
+  /** Period scope: a day range (day of year, d1 < d0 wraps over the new year); overrides `period` (Studio's From / To). */
+  range?: { d0: number; d1: number }
   /** Study hours, local clock time (date scope). */
   h0: number
   h1: number
@@ -103,17 +105,18 @@ export function sunGround(towers: Prism[], context: Prism[], site: Pt[] | null, 
     }
     th = [1, 2, 4]
   } else {
-    const Pd = SUN_PERIODS[o.period]
+    const Pd = o.range ?? SUN_PERIODS[o.period]
     const days = Pd.d1 >= Pd.d0 ? Pd.d1 - Pd.d0 + 1 : 365 - Pd.d0 + 1 + Pd.d1
-    const every = 4
+    // Every 4th day over a season; every day over a short range (a week, one day), each sample weighted by the days it stands for.
+    const every = days <= 21 ? 1 : 4
     for (let i = 0; i < days; i += every) {
-      const doy = ((Pd.d0 - 1 + i) % 365) + 1
+      const doy = ((Pd.d0 - 1 + i) % 365) + 1, w = Math.min(every, days - i)
       for (let q = 0; q < 24; q++) {
         const k = (doy - 1) * 24 + q
         if (P.dni[k] < 120) continue
-        step(P.alt[k], P.az[k], every)
+        step(P.alt[k], P.az[k], w)
       }
-      hoursStudied += 24 * every
+      hoursStudied += 24 * w
     }
     th = [100, 250, 500].map((t) => Math.max(1, Math.round(t * days / 365))) as [number, number, number]
   }

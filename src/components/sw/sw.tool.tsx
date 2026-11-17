@@ -3,12 +3,12 @@
 // opens with its own through lib/workflow/phaseTools.ts NODE_CONTROLS.
 import { Blinds, CalendarClock, Fan, Leaf, SunDim, Thermometer, SolarPanel, Droplets } from '../icons'
 import { DEFAULT_ZONES, FACE_NAME, ORI, STRATS, zonesOf, type FacadeZone, type StratId } from '../../engine/sw/plate'
-import { SUN_DATES, SUN_PERIODS, type SunDate, type SunPeriod } from '../../engine/sw/sun'
 import { SEASONS, type Season } from '../../engine/sw/wind'
 import { THERM_SYS, type ThermSys } from '../../engine/sw/thermal'
 import { useSwStudy, type VentMode } from '../../lib/swStudy'
 import { useStore, useTowers } from '../../store'
 import type { DesignTool } from '../tools/registry'
+import SunSet from './SunStudyPanel'
 
 const label = 'grid gap-1 text-meta text-muted'
 const input = 'h-8 rounded-md border border-line bg-white px-2 text-control text-ink'
@@ -73,20 +73,6 @@ function FacadeZonesTool() {
 }
 
 // ------------------------------------------------------------------ study settings
-function SunSet() {
-  const s = useSwStudy()
-  return (
-    <div className="grid gap-2 px-3 pb-3">
-      <div className="grid grid-cols-2 gap-1" role="radiogroup" aria-label="Study">
-        {(['date', 'period'] as const).map((k) => <button key={k} type="button" role="radio" aria-checked={s.sunScope === k} onClick={() => s.set({ sunScope: k })} className={`h-8 rounded-md border text-control ${s.sunScope === k ? 'border-accent bg-accent/10 text-accent' : 'border-line'}`}>{k === 'date' ? 'One day' : 'A season'}</button>)}
-      </div>
-      {s.sunScope === 'date' ? <>
-        <label className={label}>Day<select className={input} value={s.sunDate} onChange={(e) => s.set({ sunDate: e.target.value as SunDate })}>{(Object.keys(SUN_DATES) as SunDate[]).map((k) => <option key={k} value={k}>{SUN_DATES[k].label}</option>)}</select></label>
-        <div className={row}><Num name="From" value={s.h0} min={5} max={s.h1 - 1} unit=":00" onChange={(v) => s.set({ h0: v })} /><Num name="To" value={s.h1} min={s.h0 + 1} max={21} unit=":00" onChange={(v) => s.set({ h1: v })} /></div>
-      </> : <label className={label}>Season<select className={input} value={s.sunPeriod} onChange={(e) => s.set({ sunPeriod: e.target.value as SunPeriod })}>{(Object.keys(SUN_PERIODS) as SunPeriod[]).map((k) => <option key={k} value={k}>{SUN_PERIODS[k].label}</option>)}</select></label>}
-    </div>
-  )
-}
 function HourSet() {
   const s = useSwStudy()
   return (
@@ -157,7 +143,7 @@ const tool = (id: string, labelText: string, short: string, icon: DesignTool['ic
 
 const tools: DesignTool[] = [
   tool('facade-zones', 'Façade zones', 'Façade', Blinds, FacadeZonesTool, 'Glazing, glass, shading device, PV and operable windows by face and level'),
-  tool('sw-sun-set', 'Shadow study day', 'Day', SunDim, SunSet, 'One day and its hours, or a season'),
+  tool('sw-sun-set', 'Sun', 'Sun', SunDim, SunSet, 'Time period, scope, date, hours'),
   tool('sw-hour-set', 'Study hour', 'Hour', CalendarClock, HourSet, 'Month, day and hour, and the blinds'),
   tool('sw-wind-set', 'Wind season', 'Season', Fan, WindSet, 'Which months of the wind record'),
   tool('sw-dl-set', 'Daylight target', 'Target', SunDim, DaylightSet, 'Lux target and blinds'),

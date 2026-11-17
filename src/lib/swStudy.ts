@@ -13,6 +13,9 @@ export interface SwStudySettings {
   sunScope: 'date' | 'period'
   sunDate: SunDate
   sunPeriod: SunPeriod
+  /** The time period (Studio's From / To, 'MM-DD'); period studies use it. */
+  periodFrom: string
+  periodTo: string
   h0: number
   h1: number
   /** Wind studies: season of the airport record. */
@@ -37,7 +40,7 @@ export interface SwStudySettings {
 }
 
 export const SW_DEFAULTS: SwStudySettings = {
-  sunScope: 'date', sunDate: 'autumn', sunPeriod: 'year', h0: 10, h1: 16,
+  sunScope: 'date', sunDate: 'autumn', sunPeriod: 'year', periodFrom: '01-01', periodTo: '12-31', h0: 10, h1: 16,
   season: 'year',
   dlTarget: 300, blinds: false,
   month: 5, day: 21, hour: 13, level: null,

@@ -9,7 +9,8 @@ import { hourBase, hourLight, type HourLight } from '../engine/sw/hourLight'
 import { energyModel, ENERGY_DEFAULTS, type EnergyFloor, type EnergyResult } from '../engine/sw/energy'
 import { FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, band, STRATS, type Face, type SwFloor } from '../engine/sw/plate'
 import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainBySector, roofCollect, wdrBins, type FaceRain, type GroundShelter, type RainTower, type RoofWater } from '../engine/sw/rain'
-import { facadeIrradiance, sunGround, SUN_DATES, SUN_PERIODS, type SunGround } from '../engine/sw/sun'
+import { facadeIrradiance, sunGround, SUN_DATES, type SunGround } from '../engine/sw/sun'
+import { periodLabel, periodRange } from './sunPeriod'
 import type { FacadeFace, Prism } from '../engine/sw/types'
 import { ALPHA, lawsonClass, runWindStudy, SEASONS, windRose, type Rose, type WindStudy } from '../engine/sw/wind'
 import type { RuleResult, RuleState, Tower } from '../engine/types'
@@ -81,8 +82,8 @@ type Run = (inp: SwInputs, s: SwStudySettings) => Omit<SwOut, 'ms' | 'key'> | Pr
 const RUNS: Partial<Record<SwId, Run>> = {
   'built.sw-shadow': (inp, s) => {
     const C = inp.C!
-    const g: SunGround = sunGround(inp.towers.flatMap(prismsOf), inp.context, inp.site, C, inp.north, { scope: s.sunScope, date: s.sunDate, period: s.sunPeriod, h0: s.h0, h1: s.h1, cell: 2, margin: 120 })
-    const when = s.sunScope === 'date' ? `${SUN_DATES[s.sunDate].label}, ${s.h0}:00–${s.h1}:00` : SUN_PERIODS[s.sunPeriod].label
+    const g: SunGround = sunGround(inp.towers.flatMap(prismsOf), inp.context, inp.site, C, inp.north, { scope: s.sunScope, date: s.sunDate, period: s.sunPeriod, range: periodRange(s.periodFrom, s.periodTo), h0: s.h0, h1: s.h1, cell: 2, margin: 120 })
+    const when = s.sunScope === 'date' ? `${SUN_DATES[s.sunDate].label}, ${s.h0}:00–${s.h1}:00` : periodLabel(s.periodFrom, s.periodTo)
     const plazaShare = g.siteOpen ? g.siteInShadow / g.siteOpen : null
     // The shadow at each hour of the study day and of the three sample days (study.js shadowRangeSVG), north up.
     const own = prismsToNorth(inp.towers.flatMap(prismsOf), inp.north)
