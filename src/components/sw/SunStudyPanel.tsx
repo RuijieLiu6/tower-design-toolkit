@@ -15,6 +15,7 @@ import { RATE_COL } from '../../engine/sw/form'
 import { useSwStudy } from '../../lib/swStudy'
 import { PERIOD_PRESETS, periodInfo, periodLabel, presetOf } from '../../lib/sunPeriod'
 import { useStore } from '../../store'
+import { canExpand, openAnalysis, useAnalysisView } from '../../lib/analysisView'
 
 const YEAR = 2026
 const label = 'text-xs text-muted'
@@ -67,6 +68,9 @@ function RunButton({ ids, testid }: { ids: SwId[]; testid: string }) {
   const busy = useSwOut((x) => ids.some((id) => !!x.busy[id]))
   const hasMass = inp.towers.length > 0
   const run = () => {
+    // A tool with an analysis view beside the model opens it first if it is closed (17 Nov, Sinnie), then runs.
+    const lead = ids[0]
+    if (canExpand(lead) && useAnalysisView.getState().node !== lead) openAnalysis(lead)
     useSwOut.setState((x) => ({ out: { ...x.out, ...Object.fromEntries(ids.map((id) => [id, x.out[id] ? { ...x.out[id]!, key: '' } : undefined])) } }))
     for (const id of ids) runSw(id, inp, useSwStudy.getState())
   }
