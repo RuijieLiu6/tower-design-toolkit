@@ -1,3 +1,44 @@
+# CHECKPOINT: the Interface drawer, what the app shows as a table of contents (17 Nov 2026)
+
+Ruijie, 17 Nov: "another button whose drop-down is about personalising the interface … a drawer holding everything that
+helps model, understand the model and add information … like a library: almost all the information on the site shown
+as a table of contents … a clear hierarchy, from a few big categories down to the modules and their small components."
+Branch `ui-drawer` from the `import-sync` tip. Decisions mine (approved in advance). Not merged, not deployed.
+- **The button:** "Interface" (a drawer icon and the word), in the top bar right after the project menu
+  (`components/ui/InterfaceDrawer.tsx`). It opens a panel with a search box, Show all, Reset, a one-line note that
+  hiding is view-only, the tree, and Save / Load layout. An ARIA tree: tri-state boxes (on / mixed / off) for groups,
+  "N hidden" per group, locked parts with a lock; Up / Down move, Left / Right close and open a group, Home / End,
+  Space or Enter toggles, typing in the search box filters (ancestors of a match stay so the path reads). Every change
+  applies at once and is reversed by re-checking; Ctrl+Z is the design's undo and does not cover view choices (stated
+  in the panel's note). Reset is the default layout (everything shown), so Show all and Reset coincide today; both
+  stay for the day a part is hidden by default.
+- **One registry** (`lib/ui/registry.ts`): the static tree (Top bar, Left panel, Design tools, Viewport, Right panel,
+  Presentation, Add-ons) plus parts that register as they exist: every design tool (`tools/toolPick.ts`, so a tool
+  added later, drawing tools included, lists itself with no extra work), each dock section as the dock shows it
+  (`ViewportDock.tsx`), each right-panel section as its tab is seen (`ui.tsx` `Section` inside a `UiScopeContext` per
+  tab, ids like `right.tab.results.what-stays-with-people`), and the add-ons (`lib/ui/addons.ts`: My tools from the
+  community store, Your fonts, the sync links, Real Vancouver's context layers). Components read `useUiVisible(id)` /
+  `useUiGroupVisible(id)` or wrap in `<UiShow id>`; the drawer draws the tree from the same list.
+- **Rules:** hiding is view-only (checks keep running; a hidden Results section switches no node off). Locked: the
+  project tabs, Undo / Redo, the project menu, the drawer, the Model / Presentation switch, the More menu (it holds
+  the help). A context layer's entry turns the layer off in the view when hidden and back on as it was when shown.
+  Hiding every child hides the container (a tab with all sections hidden leaves the bar; a dock with every section
+  hidden goes). Visibility inherits down; showing a part shows its ancestors. Kept per browser as `ts.ui.visibility`
+  (the hidden ids), never in the project file; Save / Load layout writes and reads `tower-studio-ui@1` JSON (locked
+  ids in a file are ignored).
+- **Modes and projects:** the tree lists the current mode's parts under "in Model" / "in Presentation" (an item says
+  its mode); the hooks are the same in both projects.
+- **Found on the way:** a key pressed on a nested tree row also reached the parent group's row (one Space toggled the
+  Trace tab and the whole Right panel); the row handler stops propagation now.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,249 pass, 3 skipped (+6 `lib/ui/registry.test.ts`: inheritance, tri-state
+  and counts, show clearing descendants and ancestors, locked parts, persistence and layout files, the apply hook;
+  the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e: `e2e/ui-drawer.e2e.ts` (new: the tree and
+  its locked parts; the Trace tab, the Sun tool, a Results section and the dock's Site section hidden and gone, group
+  counts, search and keyboard toggling, a reload keeping four hidden ids, Reset, a My-tool package appearing under
+  Add-ons and leaving the Add tool list when hidden) PASS · `tool-rail` PASS · `model-presentation` PASS ·
+  `import-sync` PASS · `journeys` PASS. Screenshots: `docs/evaluation/2026-11-17-ui-drawer/01-drawer-open.png` and
+  `02-items-hidden.png`.
+
 # CHECKPOINT: the Import window simplified; Sync model in the project menu (17 Nov 2026)
 
 Ruijie, 17 Nov: "Simplify the text further, and develop an icon for each of the five options. Bring in a 3D model is

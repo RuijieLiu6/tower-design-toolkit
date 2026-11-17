@@ -32,6 +32,7 @@ import { setToolRailSide, toggleToolRail, useToolRail, type RailSide } from '../
 import { pickTower, toggleMode, useTowerEdit } from '../lib/towerEdit'
 import { STEP_PHASE, designOf, usePhaseTools } from '../lib/workflow/phaseTools'
 import { useStore, useTowers } from '../store'
+import { isVisible, useUiItems, useUiVisibility, useUiVisible } from '../lib/ui/registry'
 import { TOOL_ICONS, TOOL_WORDS } from '../data/icons'
 import { captureShot } from '../lib/capture'
 import { togglePanel, usePanels } from '../lib/panels'
@@ -99,6 +100,10 @@ export default function ToolRail() {
   const presentation = phase === 'present'
   const [focusAt, setFocusAt] = useState<string | null>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
+  // The Interface drawer (lib/ui/registry.ts): the rail itself, and each edit mode.
+  const railOn = useUiVisible('tools.rail')
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
   const rail = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -142,7 +147,7 @@ export default function ToolRail() {
     : shown.map((t) => ({
       key: `tool:${t.id}`, icon: t.icon, word: shortName(t), label: t.label, hint: t.hint, active: t.id === activeId, data: { 'data-tool': t.id }, onPick: () => open(t.id),
     }))
-  const groups = [modes, tools].filter((g) => g.length)
+  const groups = [modes.filter((m) => isVisible(`tools.modes.${m.data['data-mode']}`, hiddenUi, uiItems)), tools].filter((g) => g.length)
   const items = groups.flat()
   // Roving tabindex: the control last focused, else the open tool, else the grip; Up and Down (Home, End) move along the rail.
   const keys = ['grip', ...items.map((i) => i.key), 'hide']
@@ -197,6 +202,7 @@ export default function ToolRail() {
   }
 
   const place = side === 'left' ? 'order-first' : 'order-last'
+  if (!railOn) return null
   if (hidden) {
     const Icon = side === 'left' ? ChevronRight : ChevronLeft
     return (

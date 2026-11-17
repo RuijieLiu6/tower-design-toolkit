@@ -11,6 +11,8 @@ import { BUILTIN_FONTS, FONT_SOURCES, KIND_WORD, fontStack } from '../../lib/fon
 import { FONT_ACCEPT } from '../../lib/fonts/fontFile'
 import { addUserFont, allFamilies, ensureFontsLoaded, familyAvailable, hydrateUserFonts, missingFamilies, removeUserFont, useFonts, type UserFont } from '../../lib/fonts/fontStore'
 import Fold from '../Fold'
+import UiShow from '../ui/UiShow'
+import { isVisible, useUiItems, useUiVisibility } from '../../lib/ui/registry'
 import { planSvgText } from '../../lib/capture'
 import { captureHiRes } from '../../lib/hiresCapture'
 import { useStore, type Shot } from '../../store'
@@ -215,7 +217,9 @@ function FontPanel() {
   const fonts = useBoardStore((s) => s.fonts)
   const setFonts = useBoardStore((s) => s.setFonts)
   const boards = useBoardStore((s) => s.boards)
-  const user = useFonts((s) => s.user)
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const user = useFonts((s) => s.user).filter((u) => isVisible(`addons.fonts.${u.family}`, hiddenUi, uiItems))
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -495,15 +499,15 @@ function ComposerBody() {
         <button type="button" onClick={() => setOpen(false)} aria-label="Close the board composer (Esc)" className="rounded p-1.5 text-slate-300 hover:bg-white/10"><X size={16} /></button>
       </header>
       <div className="flex min-h-0 flex-1">
-        <aside className="w-60 shrink-0 border-r border-white/10" aria-label="Images"><Library onPick={pick} /></aside>
+        <UiShow id="present.composer.library"><aside className="w-60 shrink-0 border-r border-white/10" aria-label="Images"><Library onPick={pick} /></aside></UiShow>
         <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
           <div className="flex h-full w-full items-center justify-center">
             <BoardCanvas index={selected.board} evidence={evidence} onFrame={onFrame} />
           </div>
         </main>
-        <aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={tab === 'frame' ? 'Frame' : 'Check and export'}>
+        <UiShow id="present.composer.inspector"><aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={tab === 'frame' ? 'Frame' : 'Check and export'}>
           {tab === 'frame' ? <FrameInspector evidence={evidence} /> : <SubmissionPanel evidence={evidence} overflow={overflow} />}
-        </aside>
+        </aside></UiShow>
       </div>
     </div>,
     document.body,

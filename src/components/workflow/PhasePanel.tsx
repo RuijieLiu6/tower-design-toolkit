@@ -27,6 +27,8 @@ import { PHASES, type PhaseId } from '../../lib/phases'
 import { MODE_NAME, modeOfPhase, phasesOf, type Mode } from '../../lib/mode'
 import { usePhaseCounts, type PhaseCounts } from '../../lib/workflow/phaseCounts'
 import { useNodeSummaries } from '../../hooks/useNodeSummaries'
+import { isVisible, useUiGroupVisible, useUiItems, useUiVisibility, useUiVisible } from '../../lib/ui/registry'
+import UiShow from '../ui/UiShow'
 import type { NodePackage } from '../../lib/nodePackages'
 import { togglePanel, usePanels } from '../../lib/panels'
 import { goToStep, useStep } from '../../lib/step'
@@ -61,7 +63,11 @@ export default function PhasePanel() {
   const counts = usePhaseCounts(home)
   const inFlow = portion.nodes.includes(design)
   // The phase's own design tool always leads the list, in the workflow or not yet (it joins at the first edit).
-  const rows = useMemo(() => (inFlow ? portion.nodes : [design, ...portion.nodes]), [inFlow, portion.nodes, design])
+  // A custom tool hidden in the Interface drawer leaves the lists (it stays installed and in the workflow).
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const rows = useMemo(() => (inFlow ? portion.nodes : [design, ...portion.nodes]).filter((id) => !id.startsWith('community.') || isVisible(`addons.tools.${id}`, hiddenUi, uiItems)), [inFlow, portion.nodes, design, hiddenUi, uiItems])
+  const showWorkflow = useUiGroupVisible('left.workflow'), showTool = useUiVisible('left.tool')
   const picked = usePhaseTools((s) => s.active[phase])
   const active = picked && rows.includes(picked) ? picked : design
   const open = (id: string) => {
@@ -91,10 +97,10 @@ export default function PhasePanel() {
           <HidePanelButton side="left" />
         </div>
       </div>
-      <PhaseWorkflow phase={phase} mode={mode} counts={counts} rows={rows} design={design} active={active} open={open} info={info} home={home} />
-      <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls">
+      {showWorkflow && <PhaseWorkflow phase={phase} mode={mode} counts={counts} rows={rows} design={design} active={active} open={open} info={info} home={home} />}
+      {showTool && <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls">
         <ActiveTool key={active} id={active} phase={phase} info={info} />
-      </div>
+      </div>}
     </aside>
   )
 }
@@ -148,14 +154,14 @@ function PhaseWorkflow({ phase, mode, counts, rows, design, active, open, info, 
           The line is your whole workflow in working order, one coloured segment per phase; the tinted one is {PHASE_NAME[phase]}, where you are. Click a segment or use the arrows under the line to change phase; hover a dot for its tool and its results; an arc is a loop back to an earlier tool. Under them are the {PHASE_NAME[phase]} tools: click one to open its controls below (a check's results open on the right). Workflow (or Edit) opens the editor in the centre view, where you add tools from the shelf, drag them, connect them and make loops, then Confirm to come back here. A loop is a route for revisiting work: it never reruns anything on its own.
         </Help>
       </div>
-      <PhaseLine board={board} phase={phase} mode={mode} active={active} info={info} home={home} counts={counts} />
+      <UiShow id="left.workflow.line"><PhaseLine board={board} phase={phase} mode={mode} active={active} info={info} home={home} counts={counts} /></UiShow>
 
       {collapsed
         ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the workflow">{summary}{loops ? ' ↻' : ''}</button>
         : (
           <>
             <div className="mt-1 max-h-[13.5rem] overflow-y-auto overscroll-contain" style={{ scrollbarWidth: 'thin' }} data-testid="phase-workflow-region">
-              <ol aria-label={`${PHASE_NAME[phase]} tools, in working order`} data-testid="phase-rows" className="px-2">
+              <UiShow id="left.workflow.rows"><ol aria-label={`${PHASE_NAME[phase]} tools, in working order`} data-testid="phase-rows" className="px-2">
                 {rows.map((id) => {
                   const n = info(id), isActive = active === id, inBoard = board.nodes.includes(id)
                   const kind = isDesignNode(id) ? 'Design tool' : id.startsWith('community.') ? 'Custom tool' : 'Check'
@@ -173,11 +179,11 @@ function PhaseWorkflow({ phase, mode, counts, rows, design, active, open, info, 
                     </li>
                   )
                 })}
-              </ol>
-              <div className="px-3 pt-1.5">
+              </ol></UiShow>
+              <UiShow id="left.workflow.add"><div className="px-3 pt-1.5">
                 <button type="button" onClick={() => setAdding((v) => !v)} aria-expanded={adding} data-testid="phase-add"
                   className="flex h-8 items-center gap-1 rounded-lg border border-dashed border-line px-2.5 text-control text-ink outline-none hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"><Plus size={14} aria-hidden />Add tool</button>
-              </div>
+              </div></UiShow>
               {adding && <AddTool phase={phase} board={board} info={info} home={home} after={info(rows[rows.length - 1]).name} onAdd={add} onClose={() => setAdding(false)} />}
             </div>
           </>
@@ -305,7 +311,9 @@ function PhaseNav({ phase, mode }: { phase: PhaseId; mode: Mode }) {
 function AddTool({ phase, board, info, home, after, onAdd, onClose }: {
   phase: PhaseId; board: Board; info: (id: string) => Info; home: (id: string) => PhaseId; after: string; onAdd: (id: string) => void; onClose: () => void
 }) {
-  const packages = useCommunityStore((s) => s.packages)
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const packages = useCommunityStore((s) => s.packages).filter((p) => isVisible(`addons.tools.${p.id}`, hiddenUi, uiItems))
   const openDialog = useCommunityStore((s) => s.openDialog)
   const [tab, setTab] = useState<'tools' | 'mine'>('tools')
   const [q, setQ] = useState('')
@@ -410,7 +418,7 @@ function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; info: (id
         </span>
         {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
-      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : <ToolPanel embedded />)
+      {d ? (phase === 'present' ? <UiShow id="present.filmstrip"><Filmstrip tone="light" /></UiShow> : <ToolPanel embedded />)
         : controls ? <ToolPanel embedded only={controls} />
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}

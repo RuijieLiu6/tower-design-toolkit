@@ -13,6 +13,7 @@ import { create } from 'zustand'
 import { stopLink, useLiveLink } from '../../lib/interchange/live'
 import { PLATFORMS, platformById, type PlatformId } from '../../lib/interchange/platforms'
 import { useStore } from '../../store'
+import { isVisible, useUiItems, useUiVisibility } from '../../lib/ui/registry'
 import Help from '../Help'
 import { FlagChip } from '../ui'
 import { FileLive, RhinoLive, ServerLive } from './RhinoImportPanel'
@@ -38,6 +39,9 @@ function Body() {
   const box = useRef<HTMLDivElement>(null)
   const [note, setNote] = useState<string | null>(null)
   const p = platformById(platform)
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const platforms = PLATFORMS.filter((x) => !x.link || isVisible(`addons.sync.${x.id}`, hiddenUi, uiItems))
   useEffect(() => { requestAnimationFrame(() => box.current?.querySelector<HTMLElement>('[data-sync-platform][aria-checked="true"]')?.focus()) }, [])
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); closeSyncDialog() } }; window.addEventListener('keydown', k, true); return () => window.removeEventListener('keydown', k, true) }, [])
   const trap = (e: React.KeyboardEvent) => {
@@ -83,7 +87,7 @@ function Body() {
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 md:flex-row" style={{ scrollbarWidth: 'thin' }}>
           {/* The platforms, honestly: which link has been run inside its app */}
           <div role="radiogroup" aria-label="Modelling app" className="grid shrink-0 content-start gap-1 md:w-64">
-            {PLATFORMS.map((x) => (
+            {platforms.map((x) => (
               <button key={x.id} type="button" role="radio" aria-checked={x.id === platform} tabIndex={x.id === platform ? 0 : -1} onClick={() => useSyncDialog.setState({ platform: x.id })} onKeyDown={onKey}
                 data-sync-platform={x.id} data-tested={x.tested.ok ? 'ok' : 'no'} title={`${x.name} ${x.versions} · ${x.tested.text}`}
                 className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${x.id === platform ? 'border-accent bg-selected' : 'border-line bg-panel hover:border-boundary'}`}>

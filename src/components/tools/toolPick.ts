@@ -6,6 +6,10 @@ import { create } from 'zustand'
 import { toolsForStep, useStep, type StepId } from '../../lib/step'
 import { useStore, useTowers, type Phase } from '../../store'
 import { DESIGN_TOOLS, toolsFor, type DesignTool } from './registry'
+import { isVisible, registerUiItems, useUiItems, useUiVisibility } from '../../lib/ui/registry'
+
+// Every design tool is a part of the interface (lib/ui/registry.ts): a tool added later registers here with no extra work.
+registerUiItems('tools.design', DESIGN_TOOLS.map((t) => ({ id: `tools.${t.id}`, label: t.label, parent: 'tools', icon: t.icon, mode: t.stages.includes('present') && t.stages.length === 1 ? 'presentation' as const : 'model' as const, hint: typeof t.hint === 'string' ? t.hint : undefined })))
 
 const KEY = 'ts.tools.active'
 function readActive(): Record<string, string> {
@@ -66,6 +70,14 @@ export function useToolChoice(only?: string[]) {
   const picked = useToolPick((s) => s.picked)
   // `when` conditions read the store; the list follows the stage and the project.
   const tools = useMemo(() => toolsFor(DESIGN_TOOLS, phase, useStore.getState()), [phase, project])
-  const choice = useMemo(() => resolveTools(tools, { all: DESIGN_TOOLS, phase, step, only, noTower, picked }), [tools, phase, step, only, noTower, picked])
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const choice = useMemo(() => {
+    const c = resolveTools(tools, { all: DESIGN_TOOLS, phase, step, only, noTower, picked })
+    // A tool hidden in the Interface drawer leaves the row and the rail (the panel and the rail read the same list).
+    const shown = c.shown.filter((t) => isVisible(`tools.${t.id}`, hiddenUi, uiItems))
+    const activeId = shown.some((t) => t.id === c.activeId) ? c.activeId : shown[0]?.id
+    return { ...c, shown, activeId }
+  }, [tools, phase, step, only, noTower, picked, hiddenUi, uiItems])
   return { ...choice, phase, step, pick: (id: string) => pickTool(choice.where, id) }
 }

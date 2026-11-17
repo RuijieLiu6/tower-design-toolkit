@@ -19,6 +19,7 @@ import { useResults } from '../hooks/useResults'
 import { BUILDING_USES, SWATCH_BORDER, useColor } from '../lib/buildingUse'
 import { MODEL } from '../lib/design/tokens'
 import { useShownMode } from '../lib/displayModeHooks'
+import UiShow from './ui/UiShow'
 import { AnalysisLegend, DisplayModeSwitch, KeyGroup, KeyItem, MassingKey, SunChip, TowerUseKey } from './DisplayMode'
 import { sampleTerrain, type Manifest } from '../lib/cityLayers'
 import { fitPoints } from '../lib/fitView'
@@ -458,7 +459,7 @@ function Legend() {
   return (
     <div data-testid="city-legend" className="glass grid max-w-full gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink">
       <div className="flex flex-wrap items-center gap-1.5">
-        <DisplayModeSwitch project="city" />
+        <UiShow id="viewport.strip"><DisplayModeSwitch project="city" /></UiShow>
         <SunChip />
         {foldButton}
       </div>

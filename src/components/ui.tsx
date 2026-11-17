@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { registerUiPart, uiSlug, useUiScope, useUiVisible } from '../lib/ui/registry'
 import type { ReactNode } from 'react'
 import { FLAG_ICONS } from '../data/icons'
 import { fieldUnit, useUnits } from '../lib/units'
@@ -51,6 +53,12 @@ export function ConeChip({ state, label }: { state: ConeState; label: string }) 
 
 /** A titled block; `help` is what the block does, behind a "?" beside the title (Ruijie, 5 Nov). */
 export function Section({ title, children, right, help }: { title: string; children: ReactNode; right?: ReactNode; help?: ReactNode }) {
+  // Inside a scope (a right-panel tab), the section is a part the Interface drawer lists under that tab (lib/ui/registry.ts).
+  const scope = useUiScope()
+  const id = scope ? `${scope}.${uiSlug(title)}` : null
+  useEffect(() => { if (id && scope) registerUiPart({ id, label: title, parent: scope }) }, [id, scope, title])
+  const on = useUiVisible(id ?? '')
+  if (id && !on) return null
   return (
     <section className="border-b border-line px-4 py-3">
       <div className="mb-2 flex items-center justify-between">

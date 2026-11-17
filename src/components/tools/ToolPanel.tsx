@@ -15,6 +15,7 @@ import IconTile from '../IconTile'
 import type { DesignTool } from './registry'
 import { PROCESS } from '../../data/stages'
 import { useToolChoice } from './toolPick'
+import { useUiVisible } from '../../lib/ui/registry'
 import { NoTowerYet, PlaceFirstTower } from './NoTower'
 
 /** The key words under a tool's icon. */
@@ -53,6 +54,7 @@ export default function ToolPanel({ embedded = false, only }: { embedded?: boole
   // The step's tools and the open one, shared with the tool rail beside the model (toolPick.ts, ToolRail.tsx).
   const { phase, step, shown, empty, activeId, pick } = useToolChoice(only)
   const active = shown.find((t) => t.id === activeId)
+  const showRow = useUiVisible('left.tool.row')
   const stepLabel = phase === 'basic' ? PROCESS.find((p) => p.id === step)?.label : null
   // Arrow keys, Home and End move along the icons (tabs pattern); the icon reached opens.
   const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
@@ -78,7 +80,7 @@ export default function ToolPanel({ embedded = false, only }: { embedded?: boole
         </div>
       )}
       {/* a check that opens with one control set shows it directly (its name is in the phase panel's header) */}
-      {shown.length > 0 && !(only && shown.length === 1) && (
+      {showRow && shown.length > 0 && !(only && shown.length === 1) && (
         <div role="tablist" aria-label="Design tools" className="flex flex-wrap gap-0.5 border-b border-line px-2 py-1.5">
           {shown.map((t, i) => <ToolTile key={t.id} tool={t} active={t.id === activeId} tabStop={activeId ? t.id === activeId : i === 0} panelOpen={!!activeId} onPick={() => pick(t.id)} onKey={onKey} />)}
         </div>

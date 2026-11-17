@@ -16,6 +16,8 @@ import { navigate } from '../lib/route'
 import { useTour } from '../lib/tour'
 import { openBuilder, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
 import ProjectMenu from './ProjectMenu'
+import InterfaceDrawer from './ui/InterfaceDrawer'
+import UiShow from './ui/UiShow'
 import TransferDialog from './porting/TransferDialog'
 import SyncModelDialog from './import/SyncModelDialog'
 import { useTransfer } from '../lib/porting/transfer'
@@ -148,6 +150,8 @@ export default function TopBar() {
         ))}
       </div>
       <ProjectMenu />
+      {/* Interface (Ruijie, 17 Nov): the drawer of everything the app shows, from the registry (lib/ui/registry.ts). */}
+      <InterfaceDrawer />
       {/* The transfer centre (Result B, 9 Nov): opened from the project menu's Import… and Export…, or by a file dropped anywhere. */}
       <TransferDialog />
       <SyncModelDialog />
@@ -155,22 +159,22 @@ export default function TopBar() {
       <ModeSwitch />
       <span className="mx-auto" />
       {present && (
-        <>
+        <UiShow id="topbar.capture">
           <span title="Model locked: go back to Form or Schematic to change it" className="flex items-center gap-1 whitespace-nowrap rounded-full bg-white/10 px-2 py-1 text-meta"><LockKeyhole size={13} aria-hidden />Model locked</span>
           <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-2.5 font-medium text-ink hover:bg-white/90"><Aperture size={14} aria-hidden />Capture</button>
-        </>
+        </UiShow>
       )}
-      {!building && <div className="flex items-center gap-0.5" role="group" aria-label="View">
+      {!building && <UiShow id="topbar.view-buttons"><div className="flex items-center gap-0.5" role="group" aria-label="View">
         {VIEWS.map(({ id, icon: Icon, label }) => (
           <button key={id} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}
             className={`${icon} ${view === id ? (present ? 'bg-white/15' : 'bg-selected text-accent-hover') : present ? 'text-chrome-ink opacity-80 hover:opacity-100' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
         ))}
-      </div>}
-      <AutoRun />
+      </div></UiShow>}
+      <UiShow id="topbar.autorun"><AutoRun /></UiShow>
       {/* Edit workflow (Ruijie, 9 Nov: "I didn't know what does assistant mean … this is more about editing the project
           workflow. So definitely rename it"): opens the workflow editor in the centre view; its Suggest field takes words. */}
-      {!building && <button type="button" onClick={() => openBuilder()} data-testid="edit-workflow-button" title="Edit the project workflow: arrange the tools you will use, add return paths, open any tool"
-        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden />Edit workflow</button>}
+      {!building && <UiShow id="topbar.edit-workflow"><button type="button" onClick={() => openBuilder()} data-testid="edit-workflow-button" title="Edit the project workflow: arrange the tools you will use, add return paths, open any tool"
+        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden />Edit workflow</button></UiShow>}
       <MoreMenu />
     </header>
   )

@@ -51,6 +51,7 @@ function NothingToAnalyse() {
 }
 
 import { setRightTab, useRightTab, type RightTab } from '../lib/rightTab'
+import { groupVisible, UiScopeContext, useUiItems, useUiVisibility } from '../lib/ui/registry'
 type Tab = RightTab
 
 /** Picks which node's results to read, without switching anything on or off (the bottom bar does that). */
@@ -110,13 +111,18 @@ export default function RightPanel() {
   // Tower position open (Form step): its Properties tab comes first and opens; closing the tool goes back to the results.
   const positioning = useTowerPosition((s) => s.on) && !present
   useEffect(() => { setTab((cur) => (positioning ? 'properties' : cur === 'properties' ? 'results' : cur)) }, [positioning])
-  const tabs: { id: Tab; label: string }[] = present
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const tabsAll: { id: Tab; label: string }[] = present
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
     : [...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
+  // A tab hidden in the Interface drawer, or one whose every section is hidden, leaves the bar (lib/ui/registry.ts).
+  const tabs = tabsAll.filter((t) => groupVisible(`right.tab.${t.id}`, hiddenUi, uiItems))
   const analysis = useStore((s) => s.analysis)
   // No tower: the banner, unless the picked check already says it needs a model (no message twice).
   const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))
-  const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0].id
+  const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0]?.id ?? tab
+  if (!tabs.length) return null
   return (
     <aside data-panel="right" className="glass-edge flex h-full w-[var(--right-w)] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>
       <div className="flex border-b border-line">
@@ -134,12 +140,14 @@ export default function RightPanel() {
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>
       </div>
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
+        <UiScopeContext.Provider value={`right.tab.${shown}`}>
         {shown === 'properties' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}
         {shown === 'present' && <PresentPanel />}
         {shown === 'render' && RenderTab && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Render…</p>}><RenderTab /></Suspense>}
         {shown === 'trace' && <TracePanel />}
+        </UiScopeContext.Provider>
       </div>
     </aside>
   )

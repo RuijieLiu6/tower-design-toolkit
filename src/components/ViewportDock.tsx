@@ -6,6 +6,7 @@
 import { ChevronDown, ChevronRight, Eye, EyeOff, Layers, PanelRightClose, X } from './icons'
 import { useEffect, type ReactNode } from 'react'
 import { create } from 'zustand'
+import { groupVisible, isVisible, registerUiItems, useUiItems, useUiVisibility } from '../lib/ui/registry'
 import { useStore } from '../store'
 
 export interface DockPrefs { open: boolean; sections: Record<string, boolean>; hints: Record<string, boolean> }
@@ -97,13 +98,20 @@ function Section({ s }: { s: DockSection }) {
  * "Layers" button in the top-right column opens and closes it, so it opens under that column and has no tab of its own.
  */
 export function ViewportDock({ sections, hint, label = 'Layers & context', anchored = false }: { sections: DockSection[]; hint?: { id: string; content: ReactNode }; label?: string; anchored?: boolean }) {
+  // Each section is a part in the Interface drawer (lib/ui/registry.ts), registered as the dock shows it; the dock goes when all are hidden.
+  useEffect(() => registerUiItems('viewport.dock', sections.map((x) => ({ id: `viewport.dock.${x.id}`, label: typeof x.title === 'string' ? x.title : x.id, parent: 'viewport.dock', mode: 'model' as const }))), [sections])
+  const hiddenUi = useUiVisibility((d) => d.hidden)
+  const uiItems = useUiItems()
+  const dockOn = groupVisible('viewport.dock', hiddenUi, uiItems)
+  const shownSections = sections.filter((x) => isVisible(`viewport.dock.${x.id}`, hiddenUi, uiItems))
   const { open: docked, menu, hidden, hints } = useDock()
   const open = anchored ? menu : docked
   const look = useOverlayLook()
   if (hidden) return null
   if (!open && anchored) return null
   if (!open) {
-    return (
+    if (!dockOn) return null
+  return (
       <button type="button" aria-expanded={false} aria-controls="vp-dock" onClick={() => useDock.setState({ open: true })}
         className={`glass absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-md border border-r-0 border-line px-1.5 py-2.5 text-control font-medium text-ink shadow-sm hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}
         title="Show the layers panel">
@@ -140,7 +148,7 @@ export function ViewportDock({ sections, hint, label = 'Layers & context', ancho
             </button>
           </div>
         )}
-        {sections.map((s) => <Section key={s.id} s={s} />)}
+        {shownSections.map((s) => <Section key={s.id} s={s} />)}
       </div>
     </aside>
   )

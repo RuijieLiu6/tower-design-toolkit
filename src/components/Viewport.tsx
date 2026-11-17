@@ -35,6 +35,8 @@ import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import RelaxationMasks from './RelaxationMasks'
 import TowerGizmo, { TowerMover, outlineSegments } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
+import UiShow from './ui/UiShow'
+import { useUiVisible } from '../lib/ui/registry'
 import MassingEdit3D from './MassingEdit3D'
 import TowerPosition3D from './TowerPosition3D'
 import Help from './Help'
@@ -704,19 +706,19 @@ export default function Viewport() {
       {/* While the Real Vancouver map is still downloading: how much has arrived (Ruijie, 7 Nov). */}
       {project === 'city' && <LoadingBar />}
       {/* The open tool's working view, and anything else drawn as pinned context (8 Nov). */}
-      {!present && !hidden && !looking && <ContextPins project={project} top={project === 'city' ? 'top-14' : 'top-3'} />}
+      {!present && !hidden && !looking && <UiShow id="viewport.working-view"><ContextPins project={project} top={project === 'city' ? 'top-14' : 'top-3'} /></UiShow>}
       {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
-      {project === 'city' && !present && <CityLegend />}
+      {project === 'city' && !present && <UiShow id="viewport.city-legend"><CityLegend /></UiShow>}
       {project === 'vtc' && !present && <VtcDock />}
-      {project === 'vtc' && !present && !hidden && <VtcContextCard />}
-      {project === 'vtc' && !present && !hidden && <VtcLookBar />}
-      {project === 'city' && !present && !hidden && <VistaInset />}
+      {project === 'vtc' && !present && !hidden && <UiShow id="viewport.context-card"><VtcContextCard /></UiShow>}
+      {project === 'vtc' && !present && !hidden && <UiShow id="viewport.strip"><VtcLookBar /></UiShow>}
+      {project === 'city' && !present && !hidden && <UiShow id="viewport.vista-inset"><VistaInset /></UiShow>}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-meta text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}
       {placing && !hidden && !picked && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
       {!present && <ShowOverlaysButton />}
-      <TowerToolbar />
-      <MassingEditReadout />
+      <UiShow id="viewport.tower-toolbar"><TowerToolbar /></UiShow>
+      <UiShow id="viewport.edit-readout"><MassingEditReadout /></UiShow>
     </div>
   )
 }
@@ -764,6 +766,8 @@ function NorthCompass({ north }: { north: number }) {
     northView.invalidate?.()
     return () => { northView.arrows.delete(el) }
   }, [north])
+  const northOn = useUiVisible('viewport.north')
+  if (!northOn) return null
   return (
     <button type="button" onClick={() => faceNorth(north)} data-testid="north-arrow"
       aria-label={`Turn the view to face north. ${label}${north ? ". False assumption corrected: the file's saved north is the grid." : '.'}`} title={`Face north · ${label}`}
