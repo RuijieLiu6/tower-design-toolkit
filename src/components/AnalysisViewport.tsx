@@ -39,6 +39,7 @@ import { Box, Map as MapIcon, X } from './icons'
 import Label from './Label'
 import SolarOverlay from './SolarOverlay'
 import SheetButton from './SheetButton'
+import ProgramSection, { sectionCanvas } from './ProgramSection'
 import { canvasImage } from '../lib/sheetAdd'
 import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import { SunTimeFields } from './SunTime'
@@ -311,7 +312,8 @@ export default function AnalysisViewport() {
   })() : null
 
   const layer: AnalysisLayerId | null = def.kind === 'layer' ? def.layer : null
-  const needsOn = def.kind !== 'uses' && !on
+  const needsOn = def.kind !== 'uses' && def.kind !== 'section' && !on
+  const section = def.kind === 'section'
   const swView = isSw(node) ? SW_VIEW[node] : undefined
   // The interior studies are a floor plan (2D drawing), not a 3D scene.
   const swPlan = swView === 'plan'
@@ -323,10 +325,10 @@ export default function AnalysisViewport() {
           <p className="truncate text-meta text-muted" title={def.about}>{hasOwnAnalysis(node) ? def.about : `${def.about} This check has no drawing of its own yet; its numbers are in the right panel.`}</p>
         </span>
         <SheetButton label={`${name} · analysis`} make={async () => {
-          const c = document.querySelector<HTMLCanvasElement>('[data-testid="analysis-view"] canvas')
+          const c = section ? await sectionCanvas() : document.querySelector<HTMLCanvasElement>('[data-testid="analysis-view"] canvas')
           return c ? canvasImage(c, name, def.about) : null
         }} />
-        {!swPlan && <div role="radiogroup" aria-label="Camera" className="flex rounded-lg bg-subtle p-0.5">
+        {!swPlan && !section && <div role="radiogroup" aria-label="Camera" className="flex rounded-lg bg-subtle p-0.5">
           {([[true, 'Plan', MapIcon], [false, '3D', Box]] as const).map(([v, word, I]) => (
             <button key={word} type="button" role="radio" aria-checked={plan === v} onClick={() => useAnalysisView.setState({ plan: v })} data-testid={`analysis-${word.toLowerCase()}`}
               className={`flex h-7 items-center gap-1 rounded-md px-2 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${plan === v ? 'bg-panel text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>
@@ -340,7 +342,7 @@ export default function AnalysisViewport() {
       <div className="relative min-h-0 flex-1">
         {/* Plan is a true plan: an orthographic camera straight down, north up, pan and zoom only (the canvas is rebuilt with
             the other camera when Plan / 3D changes, so the controls always drive the camera in use). */}
-        {swPlan && isSw(node) ? <SwPlanView id={node} /> : <Canvas key={plan ? 'plan' : 'axo'} orthographic={plan} camera={plan ? { position: [0, 3000, 0], zoom: 1, near: 1, far: 20000 } : { fov: 30, position: [0, 800, 1], near: 1, far: 40000 }} frameloop="demand" dpr={[1, 2]} gl={{ antialias: true, preserveDrawingBuffer: true }}>
+        {section ? <ProgramSection /> : swPlan && isSw(node) ? <SwPlanView id={node} /> : <Canvas key={plan ? 'plan' : 'axo'} orthographic={plan} camera={plan ? { position: [0, 3000, 0], zoom: 1, near: 1, far: 20000 } : { fov: 30, position: [0, 800, 1], near: 1, far: 40000 }} frameloop="demand" dpr={[1, 2]} gl={{ antialias: true, preserveDrawingBuffer: true }}>
           <ForcedLayer.Provider value={layer}>
             <color attach="background" args={['#f4f5f7']} />
             <hemisphereLight args={['#ffffff', '#c9ced6', 1.6]} />
@@ -376,7 +378,7 @@ export default function AnalysisViewport() {
         {!towers.length && <p role="status" className="absolute inset-x-3 top-3 rounded-lg bg-pending-surface px-3 py-2 text-meta text-pending">No tower yet: place one in the model and its analysis appears here.</p>}
 
         {/* the key and, for the sun, the day and hour (changing them here moves the main view's sun too) */}
-        {!swPlan && <div className="glass absolute bottom-3 left-3 max-w-[min(22rem,calc(100%-1.5rem))] space-y-2 rounded-xl bg-glass-1 p-3 text-meta shadow-float" data-testid="analysis-key">
+        {!swPlan && !section && <div className="glass absolute bottom-3 left-3 max-w-[min(22rem,calc(100%-1.5rem))] space-y-2 rounded-xl bg-glass-1 p-3 text-meta shadow-float" data-testid="analysis-key">
           {def.kind === 'shadows' && (
             <>
               <div>

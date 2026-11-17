@@ -75,7 +75,7 @@ export default function SiteInfo() {
     <>
       {project === 'city' ? <SiteNow /> : <VtcSite />}
       <SiteFloorArea />
-      <SiteHeights />
+
       <LayersPanel />
     </>
   )
@@ -187,6 +187,7 @@ function SiteNow() {
       ) : null}
       {ok && <SiteStreets />}
       {ok ? null : <p className="mt-1 flex items-center gap-1 text-xs text-ink">No site yet: choose one in the Site step.<Help label="About the study site">Type an address or click the map in the Site step's Site tool, or take the default site there (Default: the Granville / W Pender / Howe / Dunsmuir block). The tower can still be placed anywhere (Form step); the site checks wait for a site.</Help></p>}
+      {ok && <SiteHeights embedded />}
       {message && <p data-testid="site-message" className={`mt-1.5 rounded px-2 py-1 ${message.kind === 'error' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>{message.text}</p>}
     </section>
   )
@@ -210,6 +211,7 @@ function VtcSite() {
         </div>
         <NorthSwitch ring={null} />
       </div>
+      <SiteHeights embedded />
     </section>
   )
 }

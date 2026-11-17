@@ -29,8 +29,8 @@ function ChooseView() {
     </button>
   )
   return (
-    <div className="grid gap-3 px-3 pb-3" data-testid="choose-view">
-      <div role="radiogroup" aria-label="Choose a view" className="grid grid-cols-2 gap-1.5">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 px-3 pb-3 [&_section]:border-0 [&_section]:px-0 [&_section]:py-1" data-testid="choose-view">
+      <div role="radiogroup" aria-label="Choose a view" className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-1.5">
         {CARDS.map(({ id, label, Icon }) => {
           const on = v.how === id
           return (
@@ -42,9 +42,9 @@ function ChooseView() {
         })}
       </div>
       {v.how === 'cone' && <ViewChoices how="cone" />}
-      {v.how === 'building' && <div className="grid gap-1.5">{pickBtn('Click a roof', 'roof')}<TowerStand /><ViewChoices how="building" /></div>}
+      {v.how === 'building' && <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">{pickBtn('Click a roof', 'roof')}<TowerStand /><ViewChoices how="building" /></div>}
       {v.how === 'street' && pickBtn('Click a street point', 'street')}
-      {v.how === 'drag' && <div className="grid gap-1.5">
+      {v.how === 'drag' && <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">
         <button type="button" onClick={() => v.set({ picking: !v.picking, pickKind: 'drag', note: null, looking: false })} aria-pressed={v.picking}
           className={`flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs ${v.picking ? 'border-accent bg-accent text-white' : 'border-line bg-white hover:border-accent'}`}><Move size={13} aria-hidden />{v.picking ? 'Press where you stand, drag to look…' : 'Drag on the map'}</button>
         <p className="text-meta text-muted">Press where you stand and drag toward what you want to see; letting go looks that way at eye height.</p>

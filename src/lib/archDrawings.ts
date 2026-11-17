@@ -439,24 +439,88 @@ function isoPrism(c: CanvasRenderingContext2D, P: Iso, ring: Pt[], z0: number, z
   c.beginPath(); r.forEach((p, i) => { const q = P(p, z1); if (i) c.lineTo(...q); else c.moveTo(...q) }); c.closePath(); c.fillStyle = fill.top; c.fill(); c.strokeStyle = st.ink; lw(0.25); c.stroke()
 }
 
+/** One extruded mass in isometric, drawn to the house drawing standard (arch-drawing-standards §1/§2): faces filled with
+ *  paper so nearer masses hide farther ones, floor lines thin (surface), edges medium, and vertical edges only where the
+ *  façade really turns (a curved façade gets no line per facet). */
+function isoMass(c: CanvasRenderingContext2D, P: Iso, ring: Pt[], z0: number, z1: number, o: { faces: [string, string]; top: string; edge: string; edgeMm: number; outMm?: number; surf?: { z: number[]; mm: number; colour: string; minGap: number } }, lw: (v: number) => void) {
+  const r = ccw(ring), n = r.length
+  const face = r.map((a, i) => { const b = r[(i + 1) % n], nn: Pt = [b[1] - a[1], -(b[0] - a[0])]; return { a, b, n: nn, vis: -(nn[0] + nn[1]) > 1e-9, depth: a[0] + a[1] + b[0] + b[1], i } })
+  const turn = (i: number) => { const p = face[(i - 1 + n) % n].n, q = face[i].n, l = Math.hypot(p[0], p[1]) * Math.hypot(q[0], q[1]) || 1; return (Math.acos(Math.max(-1, Math.min(1, (p[0] * q[0] + p[1] * q[1]) / l))) * 180) / Math.PI }
+  const vis = face.filter((x) => x.vis).sort((p, q) => q.depth - p.depth)
+  for (const fc of vis) {
+    const A = P(fc.a, z0), B = P(fc.b, z0), C = P(fc.b, z1), D = P(fc.a, z1)
+    const tone = fc.n[0] < fc.n[1] ? o.faces[0] : o.faces[1]
+    c.beginPath(); c.moveTo(...A); c.lineTo(...B); c.lineTo(...C); c.lineTo(...D); c.closePath()
+    c.fillStyle = tone; c.fill()
+    // a hairline in the face's own tone closes the seams between the facets of a curve
+    c.strokeStyle = tone; lw(0.05); c.stroke()
+    const sf = o.surf
+    if (sf && sf.z.length > 1) {
+      const gap = Math.abs(P(fc.a, sf.z[1])[1] - P(fc.a, sf.z[0])[1]), every = [1, 2, 5, 10].find((m) => gap * m >= sf.minGap) ?? 10
+      c.strokeStyle = sf.colour; lw(sf.mm); c.beginPath()
+      sf.z.forEach((z, i) => { if (i % every === 0 && z > z0 + 0.1 && z < z1 - 0.1) { c.moveTo(...P(fc.a, z)); c.lineTo(...P(fc.b, z)) } })
+      c.stroke()
+    }
+  }
+  c.strokeStyle = o.edge; lw(o.edgeMm); c.lineCap = 'butt'; c.lineJoin = 'miter'; c.beginPath()
+  for (const fc of vis) {
+    c.moveTo(...P(fc.a, z0)); c.lineTo(...P(fc.b, z0))
+    if (!face[(fc.i - 1 + n) % n].vis || turn(fc.i) > 25) { c.moveTo(...P(fc.a, z0)); c.lineTo(...P(fc.a, z1)) }
+    if (!face[(fc.i + 1) % n].vis) { c.moveTo(...P(fc.b, z0)); c.lineTo(...P(fc.b, z1)) }
+  }
+  c.stroke()
+  c.beginPath(); r.forEach((p, i) => { const q = P(p, z1); if (i) c.lineTo(...q); else c.moveTo(...q) }); c.closePath()
+  c.fillStyle = o.top; c.fill(); c.strokeStyle = o.edge; lw(o.outMm ?? o.edgeMm); c.stroke()
+  if (o.outMm) {
+    // silhouette pen: the outer vertical edges and the foot of the visible faces
+    lw(o.outMm); c.beginPath()
+    for (const fc of vis) {
+      c.moveTo(...P(fc.a, z0)); c.lineTo(...P(fc.b, z0))
+      if (!face[(fc.i - 1 + n) % n].vis) { c.moveTo(...P(fc.a, z0)); c.lineTo(...P(fc.a, z1)) }
+      if (!face[(fc.i + 1) % n].vis) { c.moveTo(...P(fc.b, z0)); c.lineTo(...P(fc.b, z1)) }
+    }
+    c.stroke()
+  }
+}
+const inRing = (p: Pt, r: Pt[]) => { let s = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a = r[i], b = r[j]; if (a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]) s = !s } return s }
+
+// 17 Nov (Sinnie): "learn [the arch-drawing-standards skill] and fix this axo drawing". One isometric (30/30), heavy
+// silhouette on the tower, medium edges, thin floor lines, context thin and grey at its real height, one painter's order
+// for everything so nearer buildings hide the tower base, footprints the design replaces left out, site as a property line.
 function drawAxo(c: CanvasRenderingContext2D, k: number, f: Rect, d: DrawData, st: BoardStyle): [string, number] {
   const K = kit(c, k, f, st)
   const main = d.towers.reduce((m, t) => (t.floors.length > m.floors.length ? t : m), d.towers[0]), T = turnTo(main)
   const prisms = d.towers.flatMap((t) => t.prisms.map((p) => ({ ...p, ring: p.ring.map(T), t })))
   const own = prisms.flatMap((p) => p.ring)
   const cc = centroid(own)
-  const near = d.context.map((o) => ({ ...o, ring: o.ring.map(T) })).filter((o) => o.ring.some((p) => Math.abs(p[0] - cc[0]) < 90 && Math.abs(p[1] - cc[1]) < 90))
   const site = d.site?.map(T) ?? null
-  const pts: [number, number, number][] = [...prisms.flatMap((p) => p.ring.flatMap((q) => [[q[0], q[1], 0], [q[0], q[1], p.z1]] as [number, number, number][])), ...near.flatMap((o) => o.ring.map((q) => [q[0], q[1], 0] as [number, number, number]))]
+  const under = (r: Pt[]) => { const m = centroid(r); return (site != null && inRing(m, site)) || prisms.some((p) => inRing(m, p.ring) || r.some((q) => inRing(q, p.ring))) }
+  const CUT = 20 // context cut at one height so the tower reads whole; stated in the title
+  const near = d.context.map((o) => ({ ring: o.ring.map(T), z1: Math.min(o.z1, CUT), cut: o.z1 > CUT })).filter((o) => o.ring.some((p) => Math.abs(p[0] - cc[0]) < 90 && Math.abs(p[1] - cc[1]) < 90) && !under(o.ring))
+  const pts: [number, number, number][] = [
+    ...prisms.flatMap((p) => p.ring.flatMap((q) => [[q[0], q[1], 0], [q[0], q[1], p.z1]] as [number, number, number][])),
+    ...near.flatMap((o) => o.ring.flatMap((q) => [[q[0], q[1], 0], [q[0], q[1], o.z1]] as [number, number, number][])),
+  ]
   const { P } = isoFit(c, k, f, pts, 8)
   const lw = K.lw
-  // the ground: neighbours as low grey blocks, the site outline dashed
-  const blocks = near.map((o) => ({ ring: o.ring, z1: Math.min(o.z1, 30) })).sort((a, b) => { const ca = centroid(a.ring), cb = centroid(b.ring); return cb[0] + cb[1] - (ca[0] + ca[1]) })
-  for (const o of blocks) isoPrism(c, P, o.ring, 0, o.z1, { ...st, ink: '#9c9c9c' }, lw, { side: ['#f4f4f4', '#e9e9e9'], top: '#fbfbfb' })
-  if (site) { c.strokeStyle = st.ink; lw(0.25); c.setLineDash([K.mm(3), K.mm(1)]); c.beginPath(); site.forEach((p, i) => { const q = P(p, 0); if (i) c.lineTo(...q); else c.moveTo(...q) }); c.closePath(); c.stroke(); c.setLineDash([]) }
-  // the towers, far to near, low to high
-  const order = [...prisms].sort((a, b) => { const ca = centroid(a.ring), cb = centroid(b.ring); return (a.t === b.t ? 0 : cb[0] + cb[1] - (ca[0] + ca[1])) || a.z0 - b.z0 })
-  for (const p of order) isoPrism(c, P, p.ring, p.z0, p.z1, st, lw, { side: [st.paper, '#dcdcdc'], top: st.paper }, p.t.floors.map((fl) => fl.z0), K.mm(1.2))
+  const depth = (r: Pt[]) => Math.max(...r.map((p) => p[0] + p[1])) + Math.min(...r.map((p) => p[0] + p[1]))
+  // the site boundary as a property line (phantom: long dash, two short), on the ground under everything
+  if (site) {
+    c.strokeStyle = st.ink; lw(0.35); c.setLineDash([K.mm(4), K.mm(0.8), K.mm(0.6), K.mm(0.8), K.mm(0.6), K.mm(0.8)])
+    c.beginPath(); site.forEach((p, i) => { const q = P(p, 0); if (i) c.lineTo(...q); else c.moveTo(...q) }); c.closePath(); c.stroke(); c.setLineDash([])
+  }
+  const items: { d: number; draw: () => void }[] = near.map((o) => ({ d: depth(o.ring), draw: () => isoMass(c, P, o.ring, 0, o.z1, { faces: ['#ffffff', '#f0f0f0'], top: o.cut ? '#d6d6d6' : '#ffffff', edge: '#8c8c8c', edgeMm: 0.13 }, lw) }))
+  for (const t of d.towers) {
+    // low to high; at one level far to near, so a wider podium in front covers the shaft's foot
+    const nearest = (r: Pt[]) => Math.min(...r.map((p) => p[0] + p[1]))
+    const mine = prisms.filter((p) => p.t === t).sort((a, b) => a.z0 - b.z0 || nearest(b.ring) - nearest(a.ring))
+    if (!mine.length) continue
+    items.push({ d: Math.min(...mine.map((p) => depth(p.ring))), draw: () => {
+      const fz = t.floors.map((fl) => fl.z0)
+      for (const p of mine) isoMass(c, P, p.ring, p.z0, p.z1, { faces: [st.paper, '#e2e2e2'], top: st.paper, edge: st.ink, edgeMm: 0.25, outMm: 0.5, surf: { z: fz, mm: 0.09, colour: '#a0a0a0', minGap: K.mm(1.6) } }, lw)
+    } })
+  }
+  items.sort((a, b) => b.d - a.d).forEach((it) => it.draw())
   return ['Exterior axonometric', 0]
 }
 
@@ -504,5 +568,5 @@ export function drawArch(c: CanvasRenderingContext2D, k: number, f: Rect, spec: 
     : spec.vt === 'program' ? drawProgram(c, k, f, d, st)
     : drawPlanKind(c, k, f, spec, d, st, spec.vt as PlanKind)
   c.restore()
-  drawCaption(c, k, f, st, no, title, sc ? `Scale 1:${sc} at A2${spec.vt === 'plan' || spec.vt === 'roof' || spec.vt === 'section' ? ' · project north' : ''}` : spec.vt === 'axo' ? 'Isometric, to scale along the axes' : 'Exploded, floors by use')
+  drawCaption(c, k, f, st, no, title, sc ? `Scale 1:${sc} at A2${spec.vt === 'plan' || spec.vt === 'roof' || spec.vt === 'section' ? ' · project north' : ''}` : spec.vt === 'axo' ? 'Isometric, to scale along the axes · neighbours cut at +20 m' : 'Exploded, floors by use')
 }

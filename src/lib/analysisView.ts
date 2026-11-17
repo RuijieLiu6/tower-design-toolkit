@@ -13,6 +13,7 @@ export type AnalysisKind =
   | { kind: 'layer'; layer: AnalysisLayerId } // one of the analytical colour layers, forced on in this view only
   | { kind: 'cones' } // the parts of the towers above the view-cone limits
   | { kind: 'uses' } // the towers' floors coloured by use (program, floor area, value)
+  | { kind: 'section' } // the program checks: a live building section, rooms coloured by use (components/ProgramSection.tsx)
   | { kind: 'sw' } // a Sun & Wind Studio tool (components/sw/SwAnalysis.tsx: ground map, faces, façade zones or floor plan)
 
 const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
@@ -22,6 +23,9 @@ const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
   'built.wind-study': { kind: 'layer', layer: 'wind', plan: true, about: 'Indicative pedestrian wind risk zones (screening, not CFD).' },
   'built.energy-carbon': { kind: 'layer', layer: 'surface-sun', plan: false, about: 'Modelled annual sun on roofs and facades, kWh/m²·yr.' },
   'built.viewcones': { kind: 'cones', plan: false, about: 'Parts of the towers above the protected view-cone limits.' },
+  // the program checks (17 Nov, Sinnie: "the expandable window should be a perfect section view … like the one in the sun wind studio")
+  'built.fsr': { kind: 'section', plan: false, about: 'A section through the tower, every storey coloured by use; pick floors to change their use.' },
+  'built.economics': { kind: 'section', plan: false, about: 'A section through the tower, every storey coloured by use; pick floors to change their use.' },
   // Sun & Wind Studio tools (13 Nov)
   'built.sw-shadow': { kind: 'sw', plan: true, about: 'Hours of new shadow on the ground for the study day or season.' },
   'built.sw-wind-comfort': { kind: 'sw', plan: true, about: 'Mean pedestrian wind in Lawson comfort bands, with the towers.' },
