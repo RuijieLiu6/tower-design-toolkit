@@ -84,9 +84,10 @@ export function NoTowerYet() {
 
 /** A case study as the starting tower: its height, storeys (floor-to-floor), plate and podium (data/caseStudies.ts). */
 export function startFromCaseStudy(c: CaseStudy) {
-  placeFirstTower({ name: c.name, height: c.height, f2f: Math.round((c.height / c.storeys) * 100) / 100, width: c.width, depth: c.depth,
-    podiumHeight: c.podiumHeight, podiumWidth: c.podiumWidth, podiumDepth: c.podiumDepth })
-  useStore.getState().set({ announce: `${c.name} placed as your starting tower: ${c.height} m, ${c.storeys} storeys (published); plate and podium approximate. Click where it should stand.` })
+  // The tower's form as stacked blocks (data/caseStudies.ts); a twist keeps its form so the Typology sliders adjust it.
+  const b = c.build()
+  placeFirstTower({ name: c.name, f2f: c.f2f, blocks: b.blocks, form: b.form, ...(b.podiumUse ? { podiumUse: b.podiumUse } : {}) })
+  useStore.getState().set({ announce: `${c.name} placed as your starting tower: ${c.height} m, ${c.storeys} storeys (published); the form is approximate. Click where it should stand.` })
 }
 
 const ImportPanel = lazy(() => import('../import/RhinoImportPanel'))
@@ -154,7 +155,7 @@ export function MassingStart() {
               </button>
             </li>
           ))}
-          <li className="flex min-w-0 items-start gap-1.5 px-1 text-meta text-muted"><FlagChip flag="unverified" />Plans and podiums approximate; twists and tapers not modelled.</li>
+          <li className="flex min-w-0 items-start gap-1.5 px-1 text-meta text-muted"><FlagChip flag="unverified" />Published heights and storeys; the forms, plates and podiums are approximations from drawings and photographs.</li>
         </ul>
       )}
       {way === 'import' && <div data-testid="start-import" className="mt-2 border-t border-line"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><ImportPanel /></Suspense></div>}
@@ -168,14 +169,19 @@ export function MassingStart() {
   )
 }
 
-/** A case study's profile at a common scale: the shaft over its podium. */
+/** A case study's elevation from its blocks (data/caseStudies.ts), each at a scale that fills the glyph. */
 function CaseGlyph({ c }: { c: CaseStudy }) {
-  const H = 34, k = H / 210, w = Math.max(3, c.width * k * 1.4), pw = Math.max(w, c.podiumWidth * k * 1.4), ph = c.podiumHeight * k
+  const H = 34, W = 24, blocks = c.build().blocks
+  const total = blocks.reduce((a, x) => a + x.height, 0) || 1
+  const along = c.glyph === 'y'
+  const ext = blocks.reduce((a, x) => Math.max(a, Math.abs(along ? x.dy : x.dx) + (along ? x.depth : x.width) / 2), 1)
+  const k = Math.min((H - 1) / total, (W - 2) / (2 * ext))
+  let z = 0
   return (
-    <svg viewBox={`0 0 24 ${H}`} className="h-9 w-6 shrink-0" aria-hidden>
-      <line x1="0" y1={H - 0.5} x2="24" y2={H - 0.5} stroke="#c9cdd2" />
-      {ph > 0 && <rect x={12 - pw / 2} y={H - 0.5 - ph} width={pw} height={ph} fill="#c7d2dd" />}
-      <rect x={12 - w / 2} y={H - 0.5 - c.height * k} width={w} height={c.height * k - ph} fill="#1f5f8b" opacity="0.8" />
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-9 w-6 shrink-0" aria-hidden>
+      <line x1="0" y1={H - 0.5} x2={W} y2={H - 0.5} stroke="#c9cdd2" />
+      {blocks.map((x) => { const w = (along ? x.depth : x.width) * k, cx = W / 2 + (along ? x.dy : x.dx) * k, y0 = z; z += x.height
+        return <rect key={x.id} x={cx - w / 2} y={H - 0.5 - (y0 + x.height) * k} width={Math.max(0.6, w)} height={Math.max(0.4, x.height * k)} fill={x.podium ? '#c7d2dd' : '#1f5f8b'} opacity={x.podium ? 1 : 0.8} /> })}
     </svg>
   )
 }
