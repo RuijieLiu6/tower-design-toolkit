@@ -144,12 +144,20 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const band = () => { const { W, H } = dims.current; return { x0: 0, y0: 0, x1: W, y1: Math.max(340, H * 0.46) } }
   const span = () => { const { W } = dims.current, sx = Math.max(48, W * 0.05), ex = W - Math.max(56, W * 0.055); return { sx, ex, x0: sx + 44, x1: ex - 44 } }
   const shelfK = useRef(SHELF_S)
+  /** 17 Nov (Sinnie: "organize this to look neater"): each lane is as wide as what it holds, so a busy phase keeps its
+   *  nodes in one straight row instead of zig-zagging, and a quiet one does not leave a gap. */
+  const laneSpans = () => {
+    const { x0, x1 } = span(), wt = PHASES.map((ph) => 1.6 + onRef.current.filter((id) => NODES[idx(id)]?.phase === ph.id).length)
+    const tot = wt.reduce((a, b) => a + b, 0)
+    let at = x0
+    return wt.map((v) => { const a = at; at += ((x1 - x0) * v) / tot; return { x0: a, x1: at } })
+  }
   const shelfGeom = () => {
     // Shelf tiles get smaller (to 0.4) when the shelves would leave less than one named row for the workflow (13 Nov).
-    const { x0, x1 } = span(), w = (x1 - x0) / PHASES.length, b = band(), room = b.y1 - 14 - (b.y0 + 140) - (size + 24)
+    const ls = laneSpans(), b = band(), room = b.y1 - 14 - (b.y0 + 140) - (size + 24)
     const geom = (k: number) => {
-      const cell = Math.round(size * k) + 8, cap = Math.max(1, Math.floor((w - 16) / cell))
-      const rows = Math.max(1, ...PHASES.map((ph) => Math.ceil(NODES.filter((n) => n.phase === ph.id && !onRef.current.includes(n.id)).length / cap)))
+      const cell = Math.round(size * k) + 8, capOf = (k2: number) => Math.max(1, Math.floor((ls[k2].x1 - ls[k2].x0 - 16) / cell)), cap = Math.min(...PHASES.map((_, k2) => capOf(k2)))
+      const rows = Math.max(1, ...PHASES.map((ph, k2) => Math.ceil(NODES.filter((n) => n.phase === ph.id && !onRef.current.includes(n.id)).length / capOf(k2))))
       return { cell, cap, h: rows * cell + 10, k }
     }
     let g = geom(SHELF_S)
@@ -169,15 +177,16 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const ends = () => { const s = span(), a = nodeArea(), mid = (a.y0 + a.y1) / 2 + 6; return { start: { x: s.sx, y: mid }, enter: { x: s.ex, y: mid } } }
   /** The five phase lanes along the string, Start to Enter, each with its shelf at the foot. */
   const lanes = () => {
-    const s = span(), a = nodeArea(), b = band(), w = (s.x1 - s.x0) / PHASES.length
-    return PHASES.map((ph, k) => ({ ph, x0: s.x0 + k * w, x1: s.x0 + (k + 1) * w, y0: a.y0, y1: a.y1, shelfTop: a.y1 + 8, shelfBottom: b.y1 - 6 }))
+    const a = nodeArea(), b = band(), ls = laneSpans()
+    return PHASES.map((ph, k) => ({ ph, x0: ls[k].x0, x1: ls[k].x1, y0: a.y0, y1: a.y1, shelfTop: a.y1 + 8, shelfBottom: b.y1 - 6 }))
   }
   /** Each unused node's slot in its lane's shelf, in the registry's order. */
   const shelfSlots = (on: string[]) => {
     const g = shelfGeom(), out = new Map<string, { x: number; y: number }>()
     for (const lane of lanes()) {
+      const cap = Math.max(1, Math.floor((lane.x1 - lane.x0 - 16) / g.cell))
       NODES.filter((n) => n.phase === lane.ph.id && !on.includes(n.id)).forEach((n, j) => {
-        out.set(n.id, { x: lane.x0 + 8 + g.cell / 2 + (j % g.cap) * g.cell, y: lane.shelfTop + 5 + g.cell / 2 + Math.floor(j / g.cap) * g.cell })
+        out.set(n.id, { x: lane.x0 + 8 + g.cell / 2 + (j % cap) * g.cell, y: lane.shelfTop + 5 + g.cell / 2 + Math.floor(j / cap) * g.cell })
       })
     }
     return out
@@ -196,7 +205,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   /** Where a node goes in its own lane, and where in the string's order (after the nodes of its phase and earlier). */
   const slotFor = (id: string, list: string[]) => {
     const lane = lanes().find((l) => l.ph.id === NODES[idx(id)].phase)!, mates = list.filter((x) => NODES[idx(x)].phase === lane.ph.id).length
-    const x = lane.x0 + (lane.x1 - lane.x0) * Math.min(0.85, 0.2 + mates * 0.18), y = (lane.y0 + lane.y1) / 2 + Math.sin((idx(id) + mates) * 1.7) * (lane.y1 - lane.y0) * 0.22
+    const x = lane.x0 + (lane.x1 - lane.x0) * Math.min(0.85, 0.2 + mates * 0.18), y = ends().start.y
     let at = 0
     list.forEach((x2, k) => { if (phaseIndex(x2) <= phaseIndex(id)) at = k + 1 })
     return { x, y, at }
@@ -210,8 +219,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     if (!n) return
     const Lw = lane.x1 - lane.x0 - 12, L = lane.x0 + 6, T = lane.y0 - size / 2, E = lane.y1 + 2 - T, lab = 20
     if (Lw / n >= 92 && E >= size + lab) {
-      const room = (E - size - lab) / 2
-      mine.forEach((id, j) => place(id, L + ((j + 0.5) * Lw) / n, T + size / 2 + room + Math.sin(idx(id) * 1.3) * Math.min(room, 30)))
+      const mid = ends().start.y
+      mine.forEach((id, j) => place(id, L + ((j + 0.5) * Lw) / n, mid))
       return
     }
     if ((2 * Lw) / n >= 96 && E >= 2 * (size + lab) + 4) {
@@ -441,7 +450,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       els.current[i]?.setAttribute('data-on', on.has(n.id) ? '1' : '0')
     })
     shelfRef.current = shelfSlots(onBoard)
-    if (bodies.current.length) tidy()
+    if (bodies.current.length) layout([...chainRef.current, ...onBoard.filter((id) => !chainRef.current.includes(id))])
   }, [onBoard]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- the ropes (verlet), keyed by link, and the frame loop that moves everything
@@ -540,11 +549,9 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       const r = size / 2, sl = slots.get(n.id) ?? { x: -200, y: -200 }
       return { x: sl.x, y: sl.y, tx: sl.x, ty: sl.y, s: shelfK.current, vx: 0, vy: 0, r, held: false, on: false, pop: false, k: 1 }
     })
-    // The board as it was left (restored positions), else laid out along the lanes; no gliding on arrival.
-    const at = init?.at ?? {}, area = nodeArea()
-    if (onRef.current.length && onRef.current.every((id) => at[id])) {
-      for (const id of onRef.current) { const [fx, fy] = at[id]; place(id, Math.max(30, Math.min(W - 30, fx * W)), Math.max(area.y0 - 20, Math.min(area.y1, fy * H)), false) }
-    } else layout([...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))])
+    // Always laid out along the lanes on arrival, one straight row per phase (17 Nov: restored drag positions left the
+    // string ragged); no gliding on arrival.
+    layout([...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))])
     tidyRef.current()
     for (const b of bodies.current) if (b.on) { b.x = b.tx; b.y = b.ty; b.s = b.k; b.pop = false }
 

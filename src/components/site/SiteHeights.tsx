@@ -1,4 +1,5 @@
-// Height limits in the Your site tab (17 Nov 2026, Sinnie): first what this site itself may reach, read from the
+// Site limits in the Your site tab (17 Nov 2026, Sinnie; was Height limits; zoning on the tower's form and the building
+// code from data/siteCode.ts added the same day, no mass needed): first what this site itself may reach, read from the
 // toolkit's own data (the zoning basic height of the lot, the lowest protected view cone over it, the lower of the
 // two), then downtown Vancouver's height policy as researched (data/downtownHeights.ts), one line per fact with its
 // source behind "?". The competition site shows the brief's band instead of a zoning reading.
@@ -8,6 +9,9 @@ import { surfacesOver } from '../../engine/heightModel'
 import { HEIGHT_BAND_M } from '../../engine/vtcRules'
 import type { Pt } from '../../engine/vista'
 import { DOWNTOWN_HEIGHTS, LAYER_NAME, type HeightFact } from '../../data/downtownHeights'
+import { SITE_CODE } from '../../data/siteCode'
+
+const FACTS = [...DOWNTOWN_HEIGHTS, ...SITE_CODE]
 import { useSiteStore } from '../../lib/siteStore'
 import { CITY_ORIGIN, useStore } from '../../store'
 import { useCityHeights } from '../useHeights'
@@ -64,25 +68,28 @@ function SiteReadings() {
 
 function Fact({ f }: { f: HeightFact }) {
   return (
-    <li className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 py-1" data-fact={f.id}>
-      <span className="min-w-0 flex-1 truncate text-ink" title={f.label}>{f.label.replace(/^[^·]+· /, '')}</span>
-      <span className="ml-auto flex max-w-full items-center gap-1 text-right font-mono text-xs font-semibold leading-snug text-ink">{f.value}
-        <Help label={`About: ${f.label}`}><span className="block">{f.note}</span>
-          <span className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={f.flag} /><a href={f.source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-accent hover:underline">{f.source.label}<ExternalLink size={10} aria-hidden /></a></span>
-          <span className="mt-0.5 block text-muted">How it was read: {f.source.read}.</span></Help>
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1.5 py-1" data-fact={f.id}>
+      {/* the label, then its figure under it: the panel is narrow, so neither is cut short (17 Nov) */}
+      <span className="min-w-0">
+        <span className="block text-ink">{f.label.replace(/^[^·]+· /, '')}</span>
+        <span className="block font-mono text-xs font-semibold leading-snug text-ink">{f.value}</span>
       </span>
+      <Help label={`About: ${f.label}`}><span className="block">{f.note}</span>
+        <span className="mt-1 flex flex-wrap items-center gap-1"><FlagChip flag={f.flag} /><a href={f.source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-accent hover:underline">{f.source.label}<ExternalLink size={10} aria-hidden /></a></span>
+        <span className="mt-0.5 block text-muted">How it was read: {f.source.read}.</span></Help>
     </li>
   )
 }
 
+/** The Site limits summary (17 Nov 2026): height readings, zoning on the tower's form, the building code; no mass needed. */
 export default function SiteHeights() {
   const project = useStore((s) => s.project)
   const [more, setMore] = useState(false)
-  const layers = (['zoning', 'policy', 'views', 'built'] as const)
+  const layers = (['zoning', 'form', 'code', 'policy', 'views', 'built'] as const)
   return (
     <section aria-labelledby="site-heights-title" data-testid="site-heights" className={card}>
-      <h3 id="site-heights-title" className="flex items-center gap-1.5 text-xs font-semibold text-accent"><Ruler size={14} aria-hidden />Height limits
-        <Help label="About the height limits">Three layers cap a downtown tower: the Downtown Official Development Plan's zoning height for the lot, the protected public views (view cones) that pass over it, and, above zoning, the Higher Buildings Policy's rezoning path. The readings for this site come from the toolkit's own zoning and cone data (the Height limits tool shows them in full); the policy lines were researched on 17 Nov 2026 and are flagged, since the City's by-law PDFs could not be opened by the tool.</Help>
+      <h3 id="site-heights-title" className="flex items-center gap-1.5 text-xs font-semibold text-accent"><Ruler size={14} aria-hidden />Site limits
+        <Help label="About the site limits">What zoning and the building code set for a tower on this site, read from the site alone (no mass needed). Height: the Downtown Official Development Plan's zoning height for the lot and the protected view cones over it, from the toolkit's own data. Tower form: the Downtown South Guidelines' separation, floor plate and setbacks. Building code: the Vancouver Building By-law 2025 rules every downtown tower meets, from the Downtown Massing Tool's rule data. All flagged unverified: check against the by-laws before quoting. Place a tower and the Site limits tool measures it against them.</Help>
       </h3>
       <div className="mt-1.5 grid gap-2">
         {project === 'city' ? <SiteReadings /> : (
@@ -93,14 +100,14 @@ export default function SiteHeights() {
           </div>
         )}
         <ul className="divide-y divide-line" data-testid="downtown-heights">
-          {layers.filter((l) => more || l === 'zoning' || l === 'policy').map((l) => (
+          {layers.filter((l) => more || l === 'zoning' || l === 'form' || l === 'code').map((l) => (
             <li key={l} className="py-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted">{LAYER_NAME[l]}</p>
-              <ul>{DOWNTOWN_HEIGHTS.filter((f) => f.layer === l).map((f) => <Fact key={f.id} f={f} />)}</ul>
+              <ul>{FACTS.filter((f) => f.layer === l).map((f) => <Fact key={f.id} f={f} />)}</ul>
             </li>
           ))}
         </ul>
-        <button type="button" onClick={() => setMore((v) => !v)} aria-expanded={more} className="justify-self-start text-meta text-accent hover:underline">{more ? 'Fewer' : 'Views, sun and the tallest built'}</button>
+        <button type="button" onClick={() => setMore((v) => !v)} aria-expanded={more} className="justify-self-start text-meta text-accent hover:underline">{more ? 'Fewer' : 'Higher buildings, views, sun, the tallest built'}</button>
       </div>
     </section>
   )

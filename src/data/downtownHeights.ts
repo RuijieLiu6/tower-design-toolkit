@@ -11,7 +11,7 @@ import type { Flag } from '../engine/types'
 export interface HeightFact {
   id: string
   /** The layer: zoning (DODP), the Higher Buildings Policy, public views, built context. */
-  layer: 'zoning' | 'policy' | 'views' | 'built'
+  layer: 'zoning' | 'form' | 'code' | 'policy' | 'views' | 'built'
   label: string
   /** The figure as a person reads it: "137.2 m (450 ft)". */
   value: string
@@ -51,4 +51,4 @@ export const DOWNTOWN_HEIGHTS: HeightFact[] = [
     source: { label: 'Wikipedia, List of tallest buildings in Vancouver', url: 'https://en.wikipedia.org/wiki/List_of_tallest_buildings_in_Vancouver', read: 'opened, 17 Nov 2026' }, flag: 'unverified' },
 ]
 
-export const LAYER_NAME: Record<HeightFact['layer'], string> = { zoning: 'Zoning (Downtown ODP)', policy: 'Higher Buildings Policy', views: 'Public views and sun', built: 'Built context' }
+export const LAYER_NAME: Record<HeightFact['layer'], string> = { zoning: 'Zoning · height (Downtown ODP)', form: 'Zoning · tower form', code: 'Building code (VBBL 2025)', policy: 'Higher Buildings Policy', views: 'Public views and sun', built: 'Built context' }

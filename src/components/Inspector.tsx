@@ -21,6 +21,7 @@ import { WindProcedurePanel, WindStudyPanel } from './WindStructurePanel'
 import StructurePanel from './StructurePanel'
 import LifeSafetyPanel from './LifeSafetyPanel'
 import { PlatePanel, SeparationPanel } from './SiteLimitsPanel'
+import SiteHeights from './site/SiteHeights'
 import RelaxAviationPanel from './RelaxAviationPanel'
 import EnergyCarbonResults from './EnergyCarbonResults'
 import RulesBehind from './RulesBehind'
@@ -357,6 +358,8 @@ export default function Inspector() {
       </div>
 
       {/* Results at a glance (Ruijie, 6 Nov): pass or fail with what to fix; the full cards fold under Details. */}
+      {/* Site limits read the site, not a mass (17 Nov): the summary leads the tool, with or without a tower. */}
+      {n.id === 'built.viewcones' && live && <SiteHeights />}
       {gap && <NeedsInput gap={gap} name={n.name} />}
       {gap && <RulesBehind nodeId={n.id} />}
       {failed && <ResultError reason={failed} name={n.name} />}

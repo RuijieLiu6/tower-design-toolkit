@@ -151,7 +151,8 @@ export default function RightPanel() {
     : [...(designOpen ? [{ id: 'design' as Tab, label: 'Design' }] : []), ...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
   const analysis = useStore((s) => s.analysis)
   // No tower: the banner, unless the picked check already says it needs a model (no message twice).
-  const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))
+  // Not over Site limits either: it reads the site, and its tabs say themselves what waits for a tower (17 Nov).
+  const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && (canonicalNode(s.selectedNode) === 'built.viewcones' || (s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))))
   const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0].id
   return (
     <aside data-panel="right" className="glass-edge flex h-full w-[var(--right-w)] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>

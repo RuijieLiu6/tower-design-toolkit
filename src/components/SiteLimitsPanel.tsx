@@ -52,7 +52,7 @@ function SeparationPlan() {
 
 export function SeparationPanel() {
   const { separation } = useSiteLimits()
-  if (!separation.length) return null
+  if (!separation.length) return <Section title="Tower separation"><p className="text-meta text-muted">At least {SEPARATION_M} m (80 ft) between the parts of towers above {TOWER_ABOVE_M} m. Place a tower to measure its gaps.</p></Section>
   return (
     <Section title="Tower separation">
       <div className="grid gap-2">
@@ -96,7 +96,7 @@ function PlateBars() {
 
 export function PlatePanel() {
   const { plate } = useSiteLimits()
-  if (!plate.length) return null
+  if (!plate.length) return <Section title="Tower floor plate"><p className="text-meta text-muted">Residential plates above {TOWER_ABOVE_M} m: at most {PLATE_MAX_M2} m² (6,500 sq ft), {WIDTH_MAX_M} m (90 ft) wide or deep. Place a tower to measure it.</p></Section>
   return (
     <Section title="Tower floor plate">
       <div className="grid gap-2">

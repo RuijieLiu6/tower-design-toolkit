@@ -11,7 +11,7 @@ import { nodeOfLine } from './options'
 
 /** Built nodes whose results read the building model: with no tower they show "Needs model", nothing else. */
 export const NEEDS_MODEL: ReadonlySet<string> = new Set([
-  'built.vtc-rules', 'built.fsr', 'built.viewcones', 'built.core-lifts', 'built.egress', 'built.sky-room',
+  'built.vtc-rules', 'built.fsr', 'built.core-lifts', 'built.egress', 'built.sky-room',
   'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground',
   'built.wind-procedure', 'built.structure', 'built.wind-study', 'built.life-safety', 'built.relax-aviation',
   'built.mobility', 'built.facade', 'built.economics', 'built.interior', 'built.daylight-depth',
@@ -25,6 +25,7 @@ export const NEEDS_MODEL: ReadonlySet<string> = new Set([
  */
 export const RUNS_WITHOUT_MODEL: Readonly<Record<string, string>> = {
   'built.sun': 'the sun position for a date and hour',
+  'built.viewcones': 'the site: its zoning height, the cones over it, zoning on the tower form and the building code (Site limits); the tower is measured once placed',
   'built.view-from': 'a viewpoint picked on a roof or street; towers only block the view',
   'built.city-in-nature': 'the site ledger (canopy, rainwater, birds); its lines that read the tower wait for one',
   'built.culture-claims': 'the claims and records people enter',
