@@ -18,6 +18,8 @@ import { matchParcels, validateRing } from '../engine/site'
 import { fromCity, normalizeCrs, toCity } from '../engine/geoLocate'
 import { addressLabel, cityRecords, createLookup, suggest } from '../lib/addressSearch'
 import { HEIGHT_CASES } from './heightCases'
+import { plazaMask, siteRaster, WIND_GRID, windStudy, type WindStudyResult } from '../engine/windComfort'
+import { DEFAULT_WIND_PRESETS, readingsOf, SRC as WIND_COMFORT_SRC, windRules } from '../engine/windComfortInput'
 import type { Flag, Tower } from '../engine/types'
 
 export type CaseType = 'typical' | 'boundary' | 'out-of-scope' | 'repeated' | 'definition'
@@ -42,6 +44,18 @@ export interface EvalCase {
 type Outcome = { observed: string; pass: boolean; flag?: Flag }
 
 const square = (x: number, y: number, h = 1): [number, number][] => [[x - h, y - h], [x + h, y - h], [x + h, y + h], [x - h, y + h]]
+
+// Pedestrian wind comfort (Sun & Wind Studio port): one wind case on an empty domain, solved once for both cases (about a second).
+let windRun: { result: WindStudyResult; plaza: Uint8Array } | null = null
+function windCase() {
+  if (!windRun) {
+    const plaza = plazaMask([])
+    windRun = { plaza, result: windStudy(siteRaster([], null), { w: 46, d: 46, cx: 0, cy: 0, rot: 0, height: 285, footprint: [[-23, -23], [23, -23], [23, 23], [-23, 23]] }, plaza,
+      { annual: false, dir: 270, speed: 4.5, period: { from: '01-01', to: '12-31' }, strat: null }) }
+  }
+  return windRun
+}
+const windLines = (loaded: boolean) => { const { result } = windCase(); return windRules({ readings: readingsOf(result, 0), result, obstacles: { loaded, unknownHeights: 0, source: WIND_COMFORT_SRC.vtc }, presets: DEFAULT_WIND_PRESETS, towerName: 'T' }) }
 const cone = (id: string) => CONES.find((c) => c.id === id)!
 const f2 = (v: number) => v.toFixed(2)
 
@@ -165,6 +179,31 @@ export const CASES: EvalCase[] = [
     input: '40 m building, 46 × 46 m plate', expected: 'Height rule passes (60 m or less); not a tall-building case',
     basis: 'NBC 2020 4.1.7.2(2)(b)', basisFlag: 'verified',
     run: () => { const w = windProcedure(box({ height: 40, podiumHeight: 0 })); const s = w.rules.find((r) => r.id === 'height-60')?.state; return { observed: `height rule: ${s}; procedure ${w.procedure}`, pass: s === 'pass', flag: 'verified' } },
+  },
+
+  // ---------- Pedestrian wind comfort (Sun & Wind Studio port, Sinnie Choi) ----------
+  {
+    id: 'WC-T', node: 'built.wind-comfort', type: 'typical', title: 'One wind case on an empty domain: a calm-ground line, and the bands add up to the open ground',
+    input: 'A 46 × 46 m tower of 285 m alone on the 680 × 440 m domain, wind from 270° at 4.5 m/s, context loaded (empty)',
+    expected: `The calm-ground line is judged (pass, warn or fail) and the five bands sum to the open ground: ${WIND_GRID.nx * WIND_GRID.ny} cells × 16 m² less the solid cells × 16 m²`,
+    basis: 'Sun & Wind Studio outputs recorded in src/engine/windComfort.fixtures.json', basisFlag: 'unverified',
+    run: () => {
+      const { result } = windCase()
+      const line = windLines(true).find((r) => r.id === 'calm-ground')
+      let solid = 0
+      for (let k = 0; k < result.a.solid.length; k++) if (result.a.solid[k]) solid++
+      const open = (WIND_GRID.nx * WIND_GRID.ny - solid) * WIND_GRID.cs * WIND_GRID.cs
+      const sum = result.cats.reduce((a, b) => a + b, 0)
+      const judged = !!line && ['pass', 'warn', 'fail'].includes(line.state)
+      return { observed: `calm-ground ${line?.state ?? 'missing'} (${line?.value ?? ''}); bands ${sum.toLocaleString('en-CA')} m² of ${open.toLocaleString('en-CA')} m² open ground (${solid} solid cells)`, pass: judged && Math.abs(sum - open) < 1e-6, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'WC-O', node: 'built.wind-comfort', type: 'out-of-scope', title: 'No context loaded: the calm-ground line stays open, never a pass',
+    input: 'The same run with obstacles.loaded = false (no competition context or City layers)',
+    expected: 'The calm-ground line has state "unknown": a tower alone on open ground is optimistic, so it is not judged',
+    basis: 'Team rule (engine/windComfortInput.ts windRules): a result without context is reported, not judged', basisFlag: 'team_assumption',
+    run: () => { const line = windLines(false).find((r) => r.id === 'calm-ground'); return { observed: `calm-ground ${line?.state ?? 'missing'}`, pass: line?.state === 'unknown', flag: 'team_assumption' } },
   },
 
   // ---------- Energy & carbon ----------

@@ -26,6 +26,8 @@ function liveLines() {
     nature: nature.rules,
     wind: towers.map((t) => ({ tower: t, rules: windProcedure(t).rules })),
     structure: towers.map((t) => ({ tower: t, rules: structureCheck(t, windProcedure(t)).rules })),
+    // the wind comfort port's lines come from a worker run; one line as windRules writes it (engine/windComfortInput.ts)
+    windComfort: [{ id: 'calm-ground', label: 'Ground calm enough to stand (Tower 1)', value: '82% of open ground', threshold: '≥ 80% in the sitting or standing bands', state: 'pass', flag: 'unverified', source: { label: 'Lawson comfort criteria as applied in Sun & Wind Studio' } }],
     lifeSafety: towers.map((t) => ({ tower: t, rules: lifeSafety(t, liftCheck(t, s.liftPresets, s.egressPresets), egressCheck(t, s.egressPresets, s.liftPresets), { transitLink: false, liftPresets: s.liftPresets }).rules })),
   }
   return digestResults(results as unknown as Record<string, unknown>).lines

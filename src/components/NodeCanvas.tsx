@@ -11,6 +11,8 @@ import { useMobility } from '../hooks/useMobility'
 import { useFacade } from '../hooks/useFacade'
 import { useEnergyCarbon } from '../hooks/useEnergyCarbon'
 import { useWindScreen } from '../hooks/useWindScreen'
+import { useWindComfort } from '../hooks/useWindComfort'
+import { BAND_NAMES } from '../engine/windComfortInput'
 import { useTrips } from '../hooks/useTrips'
 import { useCultureGate } from './CultureResults'
 import { useProvenanceIssues } from './ProvenanceResults'
@@ -59,6 +61,7 @@ export default function NodeCanvas() {
   const facade = useFacade()
   const energy = useEnergyCarbon()
   const windScreen = useWindScreen()
+  const { status: windComfortStatus, out: windComfort } = useWindComfort()
   const trips = useTrips()
   const towers = useTowers()
   const selectedTower = useStore((s) => s.selectedTower)
@@ -138,6 +141,16 @@ export default function NodeCanvas() {
         const highs = windScreen ? windScreen.towers.flatMap((t) => t.sectors).filter((s) => s.base === 'high' || s.corner === 'high').length : 0
         status = windScreen ? `${windScreen.study.required ? 'Wind study required' : 'Study not triggered everywhere'} · ${highs ? `${highs} high-risk direction${highs > 1 ? 's' : ''}` : 'no high-risk direction'} · screening` : '—'
         tone = !windScreen ? 'muted' : highs || windScreen.study.required ? 'warn' : 'ok'
+      } else if (n.id === 'built.wind-comfort') {
+        if (windComfortStatus === 'running') { status = 'Solving…'; tone = 'muted' }
+        else if (windComfortStatus === 'error') { status = 'Could not run'; tone = 'bad' }
+        else if (windComfortStatus === 'ready' && windComfort) {
+          const rd = windComfort.readings, cats = windComfort.result.cats
+          const top = cats.indexOf(Math.max(...cats))
+          const calm = windComfort.rules.find((r) => r.id === 'calm-ground')?.state
+          status = `${Math.round(rd.calm * 100)}% calm · plaza ${rd.hasPlaza ? `${rd.plazaWorst.toFixed(1)} m/s` : '—'} · mostly ${BAND_NAMES[top]}`
+          tone = calm === 'pass' ? 'ok' : calm === 'fail' ? 'bad' : 'warn'
+        } else { status = '—'; tone = 'muted' }
       } else if (n.id === 'built.trips') {
         status = trips ? `${Math.round(trips.am.in).toLocaleString('en-CA')} AM arrivals · link ${trips.station.required.toFixed(1)} m needed (comfort only)` : '—'
         tone = !trips ? 'muted' : trips.station.ratio > 1 ? 'warn' : 'muted'
@@ -167,7 +180,7 @@ export default function NodeCanvas() {
     }
     const report: Node<CardData> = { id: 'report', type: 'card', position: { x: 640, y: Math.max(0, (slots - 1) * 60) }, data: { title: 'Evidence report', category: 'PRES', subtitle: 'Results + sources + flags', inputs: true } }
     return { nodes: [...l0, ...evals, report], edges: e }
-  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, trips, facade, towers, selectedTower, model])
+  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, windComfortStatus, windComfort, trips, facade, towers, selectedTower, model])
 
   return (
     <div className="h-full w-full bg-paper" aria-label="Node canvas">

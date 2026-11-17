@@ -35,6 +35,7 @@ export const NODE_NEEDS: Record<string, NodeNeeds> = {
   'built.structure': { reads: ['the tower height, floor areas and core'], asks: ['outrigger floors, if any'] },
   'built.wind-study': { reads: ['each tower’s height'], asks: [] },
   'built.wind-screen': { reads: ['the towers and the context buildings upwind', 'the wind record at the airport'], asks: [] },
+  'built.wind-comfort': { reads: ['the selected tower and its podium', 'the context buildings and future towers', 'the Vancouver wind rose'], asks: [] },
   'built.trips': { reads: ['the people in each tower from the lift check', 'the retail and civic areas'], asks: ['the share arriving by the station link'] },
   'built.energy-carbon': { reads: ['the floor areas by use', 'the lift count', 'the roofs and facades for PV'], asks: ['the envelope and heating choices', 'the structure system for embodied carbon'] },
 }

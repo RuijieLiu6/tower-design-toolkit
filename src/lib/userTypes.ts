@@ -52,21 +52,21 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.competition', type: 'designer', name: 'Enter the Vancouver Tall Challenge',
         goal: "The competition block and its rules, with the public realm (40% of the jury's marks) first.",
         project: 'vtc', step: 'site',
-        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.sky-room', 'built.culture-claims', 'built.provenance'],
+        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.wind-comfort', 'built.sky-room', 'built.culture-claims', 'built.provenance'],
         says: ['competition entry and boards', 'Vancouver Tall Challenge brief and rules', 'student competition deadline'],
       },
       {
         id: 'designer.neighbourhood', type: 'designer', name: 'What a tower would mean for my street',
         goal: 'A real Vancouver site: the views it blocks, the shadows it casts and how tall the City lets it go.',
         project: 'city', step: 'site',
-        nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.solar-access', 'built.sun', 'built.wind-screen'],
+        nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.solar-access', 'built.sun', 'built.wind-screen', 'built.wind-comfort'],
         says: ['shadows on my street and park', 'would it block the mountain views', 'how tall can a tower be here', 'impact on my neighbourhood'],
       },
       {
         id: 'designer.form', type: 'designer', name: 'Sketch a tower and see how it does',
         goal: 'Shape a tower freely and read sun, wind, daylight, value and carbon as you go.',
         project: 'vtc', step: 'volume',
-        nodes: ['built.sun', 'built.wind-screen', 'built.daylight-depth', 'built.fsr', 'built.economics', 'built.energy-carbon'],
+        nodes: ['built.sun', 'built.wind-screen', 'built.wind-comfort', 'built.daylight-depth', 'built.fsr', 'built.economics', 'built.energy-carbon'],
         says: ['play with the form and massing', 'quick massing study', 'try shapes and see the results'],
       },
       {
@@ -135,7 +135,7 @@ export const USER_TYPES: UserType[] = [
         id: 'planner.public', type: 'planner', name: 'Shadows, wind and public space',
         goal: 'New shadow on parks and plazas, wind at street level, sky room access and nature.',
         project: 'city', step: 'volume',
-        nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.sky-room', 'built.city-in-nature'],
+        nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.wind-comfort', 'built.sky-room', 'built.city-in-nature'],
         says: ['shadow on parks', 'solar access guidelines', 'pedestrian wind', 'public realm review'],
       },
       {
@@ -167,7 +167,7 @@ export const USER_TYPES: UserType[] = [
         id: 'engineer.structure', type: 'engineer', name: 'Structure and wind',
         goal: 'Slenderness and the wind procedure, the lateral system and seismic category, pedestrian wind.',
         project: 'vtc', step: 'plates',
-        nodes: ['built.structure', 'built.wind-procedure', 'built.wind-study', 'built.wind-screen'],
+        nodes: ['built.structure', 'built.wind-procedure', 'built.wind-study', 'built.wind-screen', 'built.wind-comfort'],
         says: ['structural system and seismic', 'wind tunnel and slenderness', 'lateral system'],
       },
       {

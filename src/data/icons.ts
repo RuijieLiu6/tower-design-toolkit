@@ -135,6 +135,8 @@ export const NODE_ICONS: Record<string, LucideIcon> = {
   'built.structure': Activity,
   'built.wind-study': FlagIcon,
   'built.wind-screen': Wind,
+  // Sun & Wind Studio port (16 Nov): a sail in the wind, taken out of the community pool (no free filled glyph reads "pedestrian wind comfort").
+  'built.wind-comfort': Sailboat,
   'built.trips': Waypoints,
   'built.energy-carbon': PlugZap,
 }
@@ -144,7 +146,7 @@ export const COMMUNITY_ICON_POOL: LucideIcon[] = [
   Atom, FlaskRound, Brain, Cpu, Diamond, Dna, Droplet, Gem, Globe, Hexagon, Key, Magnet,
   Microscope, Moon, Octagon, Palette, Pentagon, Rocket, Shell, Snowflake, Star, Target, Tent, Triangle,
   Anchor, Award, Bell, Hourglass, Orbit, Clover, Origami, InfinityIcon,
-  Paperclip, Crown, Sailboat,
+  Paperclip, Crown,
 ]
 
 function hash(s: string) {

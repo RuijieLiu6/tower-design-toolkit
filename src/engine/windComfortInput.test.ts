@@ -54,7 +54,7 @@ describe('wind comfort input', () => {
     const o = cityObstacles(footprints, heights, new Set([3]), [1000, 1000], 15)
     expect(o.meshes).toHaveLength(1)
     expect(o.meshes[0].top).toBe(55) // roof 70 above the project ground of 15
-    expect(o.meshes[0].v.slice(0, 3)).toEqual([0, 0, 55]) // shifted so the tower is the origin
+    expect(Array.from(o.meshes[0].v).slice(0, 3)).toEqual([0, 0, 55]) // shifted so the tower is the origin
     expect(o.unknownHeights).toBe(1)
     expect(o.loaded).toBe(true)
     expect(cityObstacles(footprints, null, new Set(), [1000, 1000], 15).loaded).toBe(false)

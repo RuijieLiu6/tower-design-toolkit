@@ -1,3 +1,71 @@
+# CHECKPOINT: Sun & Wind Studio merge, engine 1 of 4: pedestrian wind comfort (16 Nov 2026)
+
+Ruijie, 16 Nov: "start merging Sinnie's tool into the platform." Order agreed in the mid-review notes (P1, comment 3):
+wind comfort → daylight → ventilation → energy, each a Toolkit node checked against her app's numbers. Branch
+`sun-wind-port` from main 50cadfa, worktree `tower-studio-sw`. Pushed for review, **not merged**: her written OK on reusing
+`study.js` (`04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1c, status note added there) is still pending; only the dtmass
+generator reuse (6 Nov) is on file.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/windComfort.ts`): the 2-D D2Q9 lattice-Boltzmann pedestrian flow on 4 m
+  cells over her 680 × 440 m domain (tau 0.58, free-stream target 0.05, round(max(nx, ny) × 3.2) = 544 steps, periodic
+  edges, bounce-back), ratios to the free wind beyond 24 m of any building, Lawson bands on the mean speed (2.5 / 4 / 6 /
+  8 m/s), the downwash allowance 1 + 0.45 log2(H / h̄neighbours within 120 m) capped at 2.1 over 0.22 H upwind, podium
+  (dilation + 0.8 min(1, h/30) relief), canopy (0.35 min(1, d/6)), rounded 0.78 / chamfered 0.85 corners within 14 m,
+  plaza shelter 1 − 0.4 s, the annual blend of her eight sectors (frequency-weighted mean speed map, gusty cells where
+  1.8 × mean > 6 m/s in > 5% of hours), `roseFor` / `periodInfo` over her monthly roses, `windProfile` (z/10)^0.25.
+- **Her data**: `src/data/sunWindRose.json`, the monthly 8-sector rose she distilled from the CWEC2020 typical year
+  (Vancouver Intl AP), credited to her and to climate.onebuilding.org.
+- **Fixtures from her own code**: `tools/sunwind-fixtures.cjs` slices her functions out of `study.js` / `core.js` at
+  commit c24addb (her main, 16 Nov), runs them headless on her `site.json` + `weather.json`, and records seven cases
+  (five one-case runs including podium + canopy + rounded corners + plaza shelter, two annual: whole year and winter) into
+  `src/engine/windComfort.fixtures.json`. **The port reproduces every band area exactly and the ratio fields to four
+  decimals** (`windComfort.test.ts`, 9 tests, ~55 s).
+- **The Toolkit's model into her frame** (`src/engine/windComfortInput.ts`): competition site = her site.json layers from
+  our own derived context (buildings, heritage, plazas, mid-block links, the three future towers when shown); Real
+  Vancouver = the City buildings whose outline touches the domain around the selected tower at roof − project ground,
+  footprints without a height counted and left out (never guessed); the other design towers as roofs; the tower as its
+  turned plan outline; the Toolkit podium → her uniform podium reach = the smaller overhang (team mapping); canopy,
+  corners, plaza shelter and the future-towers switch as node presets.
+- **Node `built.wind-comfort`** "Pedestrian wind comfort (Sun & Wind Studio)", CLIM, form phase, both projects, defaults
+  off (a run takes seconds): worker (`src/workers/windWorker.ts`), hook + store (`src/hooks/useWindComfort.ts`,
+  `ts.windComfort`), results card (`WindComfortResults.tsx`: Lawson bars with / without the tower, key lines, downwash
+  sentence, sectors table, overlay switch, presets with Reset), ground overlay as the Analysis layer `wind-comfort`
+  (`WindComfortOverlay.tsx`, her band colours, with / without / change) with its legend, canvas status, trace digest
+  group `windComfort`, rule card `lawson.sunwind` (unverified: no Lawson edition cited in her code), FIXES for every
+  warn/fail, evidence lint, two eval cases (WC-T, WC-O), Sources hub, lists (icons, art, words, needs, phases, roles,
+  missing-input, assistant keywords).
+- **Evidence lines**: calm ground ≥ 80% good / ≥ 60% fair (her thresholds), plaza peak ≤ 4 / ≤ 6 m/s, uncomfortable
+  ground ≤ 1%, worse/better area, gusty share (annual), downwash allowance, strategies vs the bare tower, method. All
+  flagged **unverified** (her 2-D flow is indicative, not CFD, as her own note says), sources named per line.
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,240 pass; the 2 CRLF data-file checks fail in worktrees only (heightPolicy, registry); evidenceLint now has a 60 s budget for its flow solve |
+| `windComfort.test.ts` (her fixtures) | 9/9 |
+| `windComfortInput.test.ts` | 5/5 |
+| `e2e/wind-comfort.e2e.ts` (Edge, competition site) | 1/1: switch the node on, one case solves, bands + lines + "Sun & Wind Studio" credit, no "Verified"; seasonal rose runs eight sectors with progress, Gusty ground + sectors table |
+| Regression e2e (phase-panel, journeys, node-icons) | 3/3 (Edge) |
+| Real Vancouver run, the deployed site, her app side by side in a browser | NOT RUN |
+
+## Known limits
+- Her OK pending: the branch is not merged and the Pages site is unchanged.
+- North: her domain takes +y as north; on the competition site the Toolkit's true north is 45° from +y (open question
+  3 to Sinnie, 6 Nov). The port follows her frame exactly so the fixtures match; a sector named "W" is her "W".
+- Real Vancouver: no plaza layer yet (plaza lines unknown); heights relative to the project ground; no terrain.
+- The competition context must be loaded for a judged result (on main the entrant adds the base model; the
+  `competition-context-included` branch ships it); without it the calm-ground line is "unknown" and says so.
+- One worker, one tower at a time (the selected tower); an annual run is 16–24 flow solves (about 20–40 s).
+
+## Next
+Daylight (sDA / ASE / UDI per floor, `study.js` + `physics.js`) the same way: fixture recorder on her code, TS port,
+node. Then ventilation, then the ISO 13790 energy model. And the tool rail beside the viewport from Sinnie's artifact
+(separate session, waiting for the repository trust button).
+
+---
+
 # CHECKPOINT: Result B step 1, the transfer centre's entry and registry (9 Nov 2026)
 
 Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-import-export.md`. Same branch as Result A

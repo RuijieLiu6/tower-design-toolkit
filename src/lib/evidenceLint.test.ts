@@ -13,6 +13,8 @@ import { skyRoomCheck } from '../engine/skyRoom'
 import { structureCheck } from '../engine/structure'
 import { vtcRules, SITE } from '../engine/vtcRules'
 import { windProcedure, windStudyRules } from '../engine/windStructure'
+import { plazaMask, siteRaster, windStudy } from '../engine/windComfort'
+import { DEFAULT_WIND_PRESETS, readingsOf, SRC as WIND_COMFORT_SRC, windRules } from '../engine/windComfortInput'
 import type { RuleResult, Tower } from '../engine/types'
 import { DEFAULT_SKY_ROOM, useStore } from '../store'
 import { lintRow, lintRule, lintRules as lintAll, type LintIssue } from './evidenceLint'
@@ -50,6 +52,14 @@ function allIssues(): LintIssue[] {
     out.push(...lintRules('built.facade', facadeCheck(towers, DEFAULT_FACADE, 0).rules))
     out.push(...lintRules('city-in-nature', cityInNature(DEFAULT_NATURE, project === 'vtc' ? SITE.area : null, null).rules))
   }
+  // Pedestrian wind comfort (Sun & Wind Studio port): one case on an empty domain, run once (about a second).
+  {
+    const plaza = plazaMask([])
+    const result = windStudy(siteRaster([], null), { w: 46, d: 46, cx: 0, cy: 0, rot: 0, height: 285, footprint: [[-23, -23], [23, -23], [23, 23], [-23, 23]] }, plaza,
+      { annual: false, dir: 270, speed: 4.5, period: { from: '01-01', to: '12-31' }, strat: null })
+    const readings = readingsOf(result, 0)
+    out.push(...lintRules('built.wind-comfort', windRules({ readings, result, obstacles: { loaded: true, unknownHeights: 0, source: WIND_COMFORT_SRC.vtc }, presets: DEFAULT_WIND_PRESETS, towerName: 'T' })))
+  }
   for (const [k, row] of Object.entries(DEFAULT_ECON)) {
     if (k === 'research') {
       const { cost, charges } = DEFAULT_ECON.research
@@ -73,5 +83,5 @@ describe('evidence lint: unsourced thresholds fail (plan §4)', () => {
     expect(issues.map((i) => `${i.node} › ${i.rule}: ${i.problem}`)).toEqual([])
     // Not a vacuous pass: the engines produced a real set of results.
     expect(checked).toBeGreaterThan(100)
-  })
+  }, 60_000) // the wind comfort lines come from one flow solve (about a second; longer under a loaded suite)
 })

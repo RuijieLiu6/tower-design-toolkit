@@ -29,6 +29,7 @@ import PlanDrawing from './PlanDrawing'
 import PublicRealmOverlay from './PublicRealmOverlay'
 import EnergyOverlay from './EnergyOverlay'
 import WindScreenOverlay from './WindScreenOverlay'
+import WindComfortOverlay from './WindComfortOverlay'
 import HiResCapture from './HiResCapture'
 import SolarOverlay from './SolarOverlay'
 import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
@@ -153,6 +154,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
       <PublicRealmOverlay />
       <EnergyOverlay />
       <WindScreenOverlay />
+      <WindComfortOverlay />
       <SolarOverlay />
     </>
   )
@@ -182,6 +184,7 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
       <ConeOverlays base={ground} xray={xray} />
       <EnergyOverlay base={ground} />
       <WindScreenOverlay base={ground} />
+      <WindComfortOverlay base={ground} />
       <SolarOverlay />
       <SolarEnvelopeOverlay />
       <RelaxationMasks />

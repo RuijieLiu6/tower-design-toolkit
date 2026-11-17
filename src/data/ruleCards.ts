@@ -5,6 +5,7 @@
 // (obligation, prohibition, permission); "recommendation" marks guidance documents that bind no one. Strength: strict,
 // or defeasible when the text admits exceptions or departures.
 import type { Flag, Source } from '../engine/types'
+import { SRC as WIND_COMFORT_SRC } from '../engine/windComfortInput'
 
 export type Deontic = 'obligation' | 'prohibition' | 'permission' | 'recommendation'
 export type Strength = 'strict' | 'defeasible'
@@ -143,6 +144,13 @@ export const RULE_CARDS: RuleCard[] = [
     usedBy: ['built.wind-procedure'], results: ['wind:height-60', 'wind:aspect', 'wind:f1'],
   },
   {
+    id: 'lawson.sunwind', title: 'Lawson pedestrian comfort bands (as applied in Sun & Wind Studio)', source: WIND_COMFORT_SRC.lawson,
+    summary: 'At pedestrian level a mean wind speed up to 2.5 m/s suits sitting, up to 4 m/s standing, up to 6 m/s strolling and up to 8 m/s walking; above that the ground is uncomfortable for any use.',
+    parameter: 'mean pedestrian-level wind speed', rule: 'band by mean speed', deontic: 'recommendation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.wind-comfort'], results: ['windComfort:calm-ground', 'windComfort:plaza-peak', 'windComfort:uncomfortable'],
+    note: 'No Lawson edition is cited in her code (study.js): the thresholds are taken as her app applies them, so the card stays unverified until a person reads the criteria she used.',
+  },
+  {
     id: 'nbc.wall-continuity', title: 'Seismic walls continuous to the foundation', source: { ...NBC, page: 'Div B 4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
     summary: 'For long-period buildings in high-hazard areas, the walls that resist earthquakes must run unbroken down to the foundation: no transfers or offsets.',
     parameter: 'the core walls (SFRS)', rule: 'continuous top to foundation', deontic: 'prohibition', strength: 'strict', flag: 'verified',
@@ -222,4 +230,5 @@ export const NODE_GROUPS: Record<string, string[]> = {
   'built.vtc-rules': ['rules'], 'built.core-lifts': ['lifts'], 'built.egress': ['egress'], 'built.sky-room': ['skyRooms'],
   'built.pr-streetwall': ['streetwall'], 'built.pr-frontage': ['frontage'], 'built.pr-ground': ['groundPlane'], 'built.viewcones': ['cones'],
   'built.city-in-nature': ['nature'], 'built.wind-procedure': ['wind'], 'built.structure': ['structure'], 'built.wind-study': ['windStudy'], 'built.life-safety': ['lifeSafety'], 'built.relax-aviation': ['relaxAviation'],
+  'built.wind-comfort': ['windComfort'],
 }

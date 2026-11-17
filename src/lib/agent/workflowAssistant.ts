@@ -73,6 +73,7 @@ const ALIASES: Record<string, string[]> = {
   'built.structure': ['structure', 'structural', 'seismic', 'earthquake', 'lateral system', 'outrigger', 'outriggers'],
   'built.wind-study': ['wind study', 'pedestrian wind study'],
   'built.wind-screen': ['wind', 'pedestrian wind', 'wind screen', 'downwash', 'windy'],
+  'built.wind-comfort': ['wind comfort', 'lawson', 'pedestrian wind comfort', 'sitting standing', 'sitting and standing', 'sun & wind', 'sun and wind', 'sun & wind studio', 'sun and wind studio'],
   'built.trips': ['trips', 'transit', 'station', 'commute', 'mode split', 'peak hour', 'skytrain', 'ridership'],
   'built.energy-carbon': ['energy', 'carbon', 'teui', 'tedi', 'ghgi', 'embodied carbon', 'emissions', 'solar panels', 'pv', 'net zero', 'sustainability', 'sustainable'],
 }

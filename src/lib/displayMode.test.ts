@@ -54,6 +54,7 @@ describe('display modes (design system §9)', () => {
     expect(layerOfNode('built.solar-access')).toBe('solar')
     expect(layerOfNode('built.energy-carbon')).toBe('surface-sun')
     expect(layerOfNode('built.wind-screen')).toBe('wind')
+    expect(layerOfNode('built.wind-comfort')).toBe('wind-comfort')
     expect(layerOfNode('built.fsr')).toBeNull()
     expect(activeLayer('wind', runs(['built.solar-access', 'built.wind-screen']))).toBe('wind')
     expect(activeLayer('wind', runs(['built.solar-access']))).toBeNull() // never another quantity in its place
