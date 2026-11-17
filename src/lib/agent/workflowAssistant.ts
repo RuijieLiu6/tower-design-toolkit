@@ -76,6 +76,7 @@ const ALIASES: Record<string, string[]> = {
   'built.wind-comfort': ['wind comfort', 'lawson', 'pedestrian wind comfort', 'sitting standing', 'sitting and standing', 'sun & wind', 'sun and wind', 'sun & wind studio', 'sun and wind studio'],
   'built.daylight-sw': ['sda', 'ase', 'spatial daylight autonomy', 'annual sunlight exposure', 'daylight autonomy', 'leed daylight', 'daylight factor', 'udi', 'climate-based daylight'],
   'built.ventilation-sw': ['natural ventilation', 'ventilation', 'operable windows', 'openable area', 'windows open', 'cross ventilation', 'stack ventilation', 'adaptive comfort', 'ashrae 62.1', 'mixed mode'],
+  'built.energy-sw': ['teui', 'tedi', 'ghgi', 'energy use', 'energy model', 'energy use intensity', 'heating demand', '5r1c', 'iso 13790', 'hourly energy'],
   'built.trips': ['trips', 'transit', 'station', 'commute', 'mode split', 'peak hour', 'skytrain', 'ridership'],
   'built.energy-carbon': ['energy', 'carbon', 'teui', 'tedi', 'ghgi', 'embodied carbon', 'emissions', 'solar panels', 'pv', 'net zero', 'sustainability', 'sustainable'],
 }
@@ -105,7 +106,7 @@ const PHASE_WORDS: Record<PhaseId, string[]> = {
 }
 /** The checks against rules and targets, for "the (relevant) checks / constraints". */
 const CHECKS = ['built.vtc-rules', 'built.viewcones', 'built.relax-aviation', 'built.solar-access', 'built.core-lifts', 'built.egress', 'built.life-safety', 'built.sky-room', 'built.mobility',
-  'built.facade', 'built.daylight-depth', 'built.daylight-sw', 'built.ventilation-sw', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.city-in-nature', 'built.wind-procedure', 'built.structure', 'built.wind-study', 'built.wind-screen', 'built.energy-carbon']
+  'built.facade', 'built.daylight-depth', 'built.daylight-sw', 'built.ventilation-sw', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.city-in-nature', 'built.wind-procedure', 'built.structure', 'built.wind-study', 'built.wind-screen', 'built.energy-carbon', 'built.energy-sw']
 const CHECK_WORDS = ['constraint checks', 'constraints', 'checks', 'rule checks', 'rules', 'compliance', 'limits', 'evaluations', 'analysis']
 
 type Ref = { kind: 'node'; id: string; at: number } | { kind: 'phase'; id: PhaseId; at: number } | { kind: 'checks'; at: number } | { kind: 'topic'; topic: (typeof TOPICS)[number]; at: number }

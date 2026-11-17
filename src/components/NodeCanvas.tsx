@@ -14,6 +14,7 @@ import { useWindScreen } from '../hooks/useWindScreen'
 import { useWindComfort } from '../hooks/useWindComfort'
 import { useDaylightSW } from '../hooks/useDaylightSW'
 import { useVentilationSW } from '../hooks/useVentilationSW'
+import { useEnergySW } from '../hooks/useEnergySW'
 import { BAND_NAMES } from '../engine/windComfortInput'
 import { useTrips } from '../hooks/useTrips'
 import { useCultureGate } from './CultureResults'
@@ -66,6 +67,7 @@ export default function NodeCanvas() {
   const { status: windComfortStatus, out: windComfort } = useWindComfort()
   const { status: daylightSWStatus, out: daylightSW } = useDaylightSW()
   const { status: ventilationSWStatus, out: ventilationSW } = useVentilationSW()
+  const { status: energySWStatus, out: energySW } = useEnergySW()
   const trips = useTrips()
   const towers = useTowers()
   const selectedTower = useStore((s) => s.selectedTower)
@@ -145,6 +147,15 @@ export default function NodeCanvas() {
         const highs = windScreen ? windScreen.towers.flatMap((t) => t.sectors).filter((s) => s.base === 'high' || s.corner === 'high').length : 0
         status = windScreen ? `${windScreen.study.required ? 'Wind study required' : 'Study not triggered everywhere'} · ${highs ? `${highs} high-risk direction${highs > 1 ? 's' : ''}` : 'no high-risk direction'} · screening` : '—'
         tone = !windScreen ? 'muted' : highs || windScreen.study.required ? 'warn' : 'ok'
+      } else if (n.id === 'built.energy-sw') {
+        if (energySWStatus === 'running') { status = 'Running…'; tone = 'muted' }
+        else if (energySWStatus === 'error') { status = 'Could not run'; tone = 'bad' }
+        else if (energySWStatus === 'ready' && energySW) {
+          const r = energySW.result
+          const fails = energySW.rules.filter((x) => x.id.startsWith('sw-en-') && x.state === 'fail').length
+          status = `TEUI ${r.teui.toFixed(0)} · TEDI ${r.tedi.toFixed(0)} · GHGI ${r.ghgi.toFixed(1)}`
+          tone = fails ? 'bad' : 'ok'
+        } else { status = '—'; tone = 'muted' }
       } else if (n.id === 'built.ventilation-sw') {
         if (ventilationSWStatus === 'running') { status = 'Running…'; tone = 'muted' }
         else if (ventilationSWStatus === 'error') { status = 'Could not run'; tone = 'bad' }
@@ -202,7 +213,7 @@ export default function NodeCanvas() {
     }
     const report: Node<CardData> = { id: 'report', type: 'card', position: { x: 640, y: Math.max(0, (slots - 1) * 60) }, data: { title: 'Evidence report', category: 'PRES', subtitle: 'Results + sources + flags', inputs: true } }
     return { nodes: [...l0, ...evals, report], edges: e }
-  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, windComfortStatus, windComfort, daylightSWStatus, daylightSW, ventilationSWStatus, ventilationSW, trips, facade, towers, selectedTower, model])
+  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, windComfortStatus, windComfort, daylightSWStatus, daylightSW, ventilationSWStatus, ventilationSW, energySWStatus, energySW, trips, facade, towers, selectedTower, model])
 
   return (
     <div className="h-full w-full bg-paper" aria-label="Node canvas">

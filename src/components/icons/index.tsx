@@ -203,6 +203,8 @@ export const Unplug = make('Unplug', p('M3.5 20.5L6.5 17.5M20.5 3.5L17.5 6.5M7 9
 export const Upload = make('Upload', p('M12 20.5V9M7 14L12 9L17 14M4 8.5V4H20V8.5'))
 export const Users = make('Users', '<circle cx="9" cy="7.5" r="3"/>' + p('M3 20C3 16.7 5.7 14 9 14C12.3 14 15 16.7 15 20M15.5 4.8C17 5.3 18 6.6 18 8C18 9.4 17 10.7 15.5 11.2M17.5 14.4C19.5 15.2 21 17.4 21 20'))
 export const Wand2 = make('Wand2', p('M3.5 19L14 8.5L15.5 10L5 20.5ZM17 3V6M15.5 4.5H18.5M20 9V11.5M18.75 10.25H21.25M10.5 3V5.5M9.25 4.25H11.75'))
+/** A tower beside a bolt: modelled energy use (Sun & Wind Studio port, 17 Nov). */
+export const EnergyMeter = make('EnergyMeter', '<rect x="3.5" y="3" width="10" height="18" rx="1.5"/>' + p('M6.5 7H10.5M6.5 11H10.5M6.5 15H10.5M19 5L16 12H19.5L17 19'))
 /** An open window with air passing (Sun & Wind Studio port, natural ventilation, 17 Nov). */
 export const WindowAir = make('WindowAir', '<rect x="3" y="4" width="10" height="16" rx="1.5"/>' + p('M8 4V20M3 12H13M15.5 8.5H21M15.5 12H19.5M15.5 15.5H21'))
 export const Waves = make('Waves', p('M3 7.5C5 6 7 6 9 7.5C11 9 13 9 15 7.5C17 6 19 6 21 7.5M3 12.5C5 11 7 11 9 12.5C11 14 13 14 15 12.5C17 11 19 11 21 12.5M3 17.5C5 16 7 16 9 17.5C11 19 13 19 15 17.5C17 16 19 16 21 17.5'))

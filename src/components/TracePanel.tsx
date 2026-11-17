@@ -29,6 +29,7 @@ import { windStudyRules } from '../engine/windStructure'
 import { useWindComfortStore } from '../hooks/useWindComfort'
 import { useDaylightSWStore } from '../hooks/useDaylightSW'
 import { useVentilationSWStore } from '../hooks/useVentilationSW'
+import { useEnergySWStore } from '../hooks/useEnergySW'
 import type { RuleResult } from '../engine/types'
 
 /** No wind comfort run yet: one stable empty list, so the store selector never hands React a fresh array. */
@@ -66,6 +67,7 @@ function Recorder() {
   const windComfort = useWindComfortStore((s) => s.out?.rules ?? NO_RULES)
   const daylightSW = useDaylightSWStore((s) => s.out?.rules ?? NO_RULES)
   const ventilationSW = useVentilationSWStore((s) => s.out?.rules ?? NO_RULES)
+  const energySW = useEnergySWStore((s) => s.out?.rules ?? NO_RULES)
   useEffect(() => {
     const names = Object.fromEntries(packages.map((p) => [p.id, p.name]))
     const on = new Map([...runs].filter(([id]) => design.enabled[id]))
@@ -80,6 +82,7 @@ function Recorder() {
       windComfort: isOn('built.wind-comfort') ? windComfort : [],
       daylightSW: isOn('built.daylight-sw') ? daylightSW : [],
       ventilationSW: isOn('built.ventilation-sw') ? ventilationSW : [],
+      energySW: isOn('built.energy-sw') ? energySW : [],
       lifeSafety: isOn('built.life-safety') ? lifeSafety.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
       relaxAviation: isOn('built.relax-aviation') ? relaxAviation.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
     }
@@ -87,7 +90,7 @@ function Recorder() {
     // leave no lines (their views say what they wait for), and no FSR is recorded without a model or a site.
     const digest = gateDigest(digestResults(all as unknown as Record<string, unknown>, on, names), { project: design.project, towers: towers.length, siteArea })
     setLive(designHash(design), digest)
-  }, [results, runs, packages, design, nature, wind, structure, lifeSafety, relaxAviation, windComfort, daylightSW, ventilationSW, siteArea])
+  }, [results, runs, packages, design, nature, wind, structure, lifeSafety, relaxAviation, windComfort, daylightSW, ventilationSW, energySW, siteArea])
   return null
 }
 

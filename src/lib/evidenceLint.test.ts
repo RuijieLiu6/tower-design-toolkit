@@ -20,6 +20,8 @@ import { DEFAULT_DAYLIGHT_PRESETS, daylightRules, readingsOf as daylightReadings
 import hourly from '../data/sunWindHourly.json'
 import { ventStudy, ventTowerQuick, DEFAULT_VENT } from '../engine/ventilationSW'
 import { DEFAULT_VENT_PRESETS, readingsOf as ventReadings, ventRules } from '../engine/ventilationSWInput'
+import { DEFAULT_ENERGY, energyHourly, finishPlate, zoneGlazing as swZoneGlazing, type EnergyFloor } from '../engine/energySW'
+import { DEFAULT_ENERGY_PRESETS, energyRules } from '../engine/energySWInput'
 import type { RuleResult, Tower } from '../engine/types'
 import { DEFAULT_SKY_ROOM, useStore } from '../store'
 import { lintRow, lintRule, lintRules as lintAll, type LintIssue } from './evidenceLint'
@@ -76,6 +78,10 @@ function allIssues(): LintIssue[] {
     // Natural ventilation (Sun & Wind Studio port): the same two floors, her default settings.
     const v = ventStudy(P, { temp: hourly.temp, months: hourly.months, days: hourly.days }, floors, DEFAULT_ZONES, DEFAULT_VENT, { from: '01-01', to: '12-31' }, 8.4)
     const q = ventTowerQuick(floors, DEFAULT_ZONES, DEFAULT_VENT.open, 0, 0)
+    // Energy use (Sun & Wind Studio port): the same two floors as offices, her default envelope and systems.
+    const ef: EnergyFloor[] = floors.map((f, i) => { const fp = finishPlate({ ...f, mask: { ...f.mask, cells: f.mask.cells.slice() } }, 0, 0); const g = (o: 'N' | 'E' | 'S' | 'W') => swZoneGlazing(DEFAULT_ZONES, i + 1, o)
+      return { i, prog: 'office', h: f.h, rot: 0, area: fp.area, facade: fp.facade, garden: false, terrace: 0, roof: i === floors.length - 1 ? fp.area : 0, coveredVoid: 0, glazing: { N: g('N'), E: g('E'), S: g('S'), W: g('W') } } })
+    out.push(...lintRules('built.energy-sw', energyRules({ result: energyHourly(P, { tz: hourly.tz, days: hourly.days }, ef, DEFAULT_ENERGY, null), presets: DEFAULT_ENERGY_PRESETS, glazing: { from: 'studio', note: 'Her default facade' }, towerName: 'T', dimmed: false })))
     out.push(...lintRules('built.ventilation-sw', ventRules({ readings: ventReadings(v, q), presets: DEFAULT_VENT_PRESETS, glazing: { from: 'studio', note: 'Her default facade' }, towerName: 'T', period: 'whole year', levels: [1, 2], left: 0 })))
   }
   for (const [k, row] of Object.entries(DEFAULT_ECON)) {

@@ -8,6 +8,7 @@ import type { Flag, Source } from '../engine/types'
 import { SRC as WIND_COMFORT_SRC } from '../engine/windComfortInput'
 import { SRC as DAYLIGHT_SW_SRC } from '../engine/daylightSWInput'
 import { SRC as VENTILATION_SW_SRC } from '../engine/ventilationSWInput'
+import { SRC as ENERGY_SW_SRC } from '../engine/energySWInput'
 
 export type Deontic = 'obligation' | 'prohibition' | 'permission' | 'recommendation'
 export type Strength = 'strict' | 'defeasible'
@@ -181,6 +182,13 @@ export const RULE_CARDS: RuleCard[] = [
     note: 'Her code (study.js ventStudy) applies the adaptive band with the 3.5 K width and the 10–33.5 °C range, without naming an edition or the acceptability level; the standard was not opened here, so the card stays unverified.',
   },
   {
+    id: 'cov.rezoning-targets.sunwind', title: 'City of Vancouver rezoning energy targets by program (as stated in Sun & Wind Studio)', source: ENERGY_SW_SRC.targets,
+    summary: 'A rezoned building should keep its total energy use, its heating demand and its greenhouse gas emissions per square metre under limits that depend on its use (homes, offices, hotels, retail and others), here weighted by each use\u2019s floor area.',
+    parameter: 'TEUI, TEDI and GHGI of the modelled tower', rule: 'each ≤ the program-weighted target', deontic: 'obligation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.energy-sw'], results: ['energySW:sw-en-teui', 'energySW:sw-en-tedi', 'energySW:sw-en-ghgi'],
+    note: 'Her code (energy.js TARGETS) calls these "indicative City of Vancouver rezoning targets (Zero Emissions Building Plan, approximate)" and cites no document; the Energy & carbon node carries the limits research P04 read. Unverified until a person checks the City\u2019s current rezoning policy.',
+  },
+  {
     id: 'nbc.wall-continuity', title: 'Seismic walls continuous to the foundation', source: { ...NBC, page: 'Div B 4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
     summary: 'For long-period buildings in high-hazard areas, the walls that resist earthquakes must run unbroken down to the foundation: no transfers or offsets.',
     parameter: 'the core walls (SFRS)', rule: 'continuous top to foundation', deontic: 'prohibition', strength: 'strict', flag: 'verified',
@@ -263,4 +271,5 @@ export const NODE_GROUPS: Record<string, string[]> = {
   'built.wind-comfort': ['windComfort'],
   'built.daylight-sw': ['daylightSW'],
   'built.ventilation-sw': ['ventilationSW'],
+  'built.energy-sw': ['energySW'],
 }

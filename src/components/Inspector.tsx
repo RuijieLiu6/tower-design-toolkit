@@ -36,6 +36,7 @@ import WindScreenResults from './WindScreenResults'
 import WindComfortResults from './WindComfortResults'
 import DaylightSWResults from './DaylightSWResults'
 import VentilationSWResults from './VentilationSWResults'
+import EnergySWResults from './EnergySWResults'
 import TripsResults from './TripsResults'
 import PublicRealmResults from './PublicRealmResults'
 import SolarResults from './SolarResults'
@@ -500,6 +501,7 @@ export default function Inspector() {
       {n.id === 'built.wind-comfort' && enabled[n.id] && <WindComfortResults />}
       {n.id === 'built.daylight-sw' && enabled[n.id] && <DaylightSWResults />}
       {n.id === 'built.ventilation-sw' && enabled[n.id] && <VentilationSWResults />}
+      {n.id === 'built.energy-sw' && enabled[n.id] && <EnergySWResults />}
       {n.id === 'built.trips' && enabled[n.id] && <TripsResults />}
       {enabled[n.id] && <RulesBehind nodeId={n.id} />}
       </DetailsFold>

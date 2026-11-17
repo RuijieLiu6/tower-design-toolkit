@@ -1,3 +1,64 @@
+# CHECKPOINT: Sun & Wind Studio merge, engine 4 of 4: energy use, TEUI / TEDI / GHGI (17 Nov 2026)
+
+Same brief as engines 1–3 (below). Branch `sun-wind-energy`, cut from `sun-wind-ventilation` 6d39d0a, worktree
+`tower-studio-sw`. Pushed for review, **not merged, not deployed**; her written OK (§1c, status line added) still pending.
+With this, all four engines of her agreed order are ported, each on its own stacked branch.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/energySW.ts`): energy.js `modelHourly`, the ISO 13790 simple hourly method
+  (5R1C) her app runs whenever the hourly weather is loaded (her monthly model is only its fallback and is not ported):
+  one zone per program, every hour of the CWEC2020 year, Perez solar gains per face at its true azimuth × 0.9 × her
+  context shading, outdoor air with heat recovery and setbacks (±4 K) on each program's schedule, her residential and
+  hotel profiles, lighting dimmed by each floor's monthly daylight share for programs not lived in around the clock,
+  heat-pump and chiller COP following the outdoor temperature, hot water, fans / pumps / lifts; TEUI, TEDI, GHGI (her
+  factors 0.18 gas / 0.011 electricity) against her indicative City targets weighted by program area; heat-loss paths,
+  peaks, overheating of unconditioned zones. Plus core.js `finishMask` (facade length by world orientation, area, sky
+  garden) and study.js `zoneGlazing` (her solar-study transmittance per zone is not available, so the strategy modifier).
+- **Fixtures from her own code**: `tools/sunwind-energy-fixtures.cjs` at **c24addb**, four cases: 20 office floors on a
+  heat pump; a retail podium with offices and homes above on gas, heavy mass, 50% recovery, daylight dimming; a turned
+  hotel and housing tower on electric resistance, light mass, 22/24 °C, U 2.0 glass, double skin and fins by level;
+  housing under a sky garden, an amenity and a plant floor (unconditioned). `src/engine/energy.fixtures.json` (38 KB).
+  **Bit for bit (tolerance 0)**: every program row, the monthly end uses, losses, glazing, envelope, people, peaks, the
+  hourly load sums, and her finishMask facade lengths and areas (`energySW.test.ts`, 5 tests).
+- **Mapping** (`src/engine/energySWInput.ts`): every floor of the selected tower in her frame (true north), the Toolkit
+  uses as her programs (residential → resi, civic and amenity → public, mechanical → her unconditioned plant zone), facade
+  lengths and area from her finishMask on each plate, the exposed top of each floor = what the floor above does not
+  cover, glazing from the facade node when on else her default zones, her envelope and systems as presets; daylight
+  dimming runs the daylight port (with the context) in the same worker first.
+- **Node `built.energy-sw`** "Energy use: TEUI / TEDI / GHGI (Sun & Wind Studio)", ENER, Schematic, both projects, off by
+  default: worker `src/workers/energyWorker.ts`, hook + store `src/hooks/useEnergySW.ts` (`ts.energySW`), card
+  `EnergySWResults.tsx` (TEUI / TEDI / GHGI tiles against target, end uses by month, per-program table, heat-loss paths,
+  lines, presets), canvas status, trace digest group `energySW`, rule card `cov.rezoning-targets.sunwind` (unverified),
+  FIXES `sw-en-*`, evidence lint, eval cases ES-T / ES-B, Sources hub, every list, a new `EnergyMeter` icon.
+- **Relation to "Energy & carbon"**: kept as it is. That node reads the VBBL / Higher Buildings Policy limits (research
+  P04), embodied carbon and PV with team end-use presets; this one models the hourly energy. Both report TEUI / TEDI /
+  GHGI; this one's targets are hers, flagged unverified, and its TEUI line says where the researched limits live.
+
+## Choices made (recommended options)
+- The hourly 5R1C model (what her app runs), not her monthly fallback.
+- Toolkit amenity → her conditioned "public" (her "amenity" is an open sky garden); mechanical → her plant zone.
+- Daylight dimming on by default (her page credits it once daylight has run); context for it as the daylight node's.
+- Exposed roofs from the plate above; no covered voids (the Toolkit's plates are solid).
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,283 pass; only the 2 CRLF data-file checks fail, in worktrees only |
+| `energySW.test.ts` (her fixtures) | 5/5, tolerance 0 |
+| `energySWInput.test.ts` | 3/3 |
+| `e2e/energy-sw.e2e.ts` (Edge, competition site, 67 floors) | 1/1: daylight for dimming then the hourly model in seconds, tiles, monthly, programs, losses, flagged lines, no "Verified"; a gas boiler raises GHGI |
+| e2e reruns: daylight, ventilation (rerun wait made robust), wind comfort, phase-panel, node-icons | 5/5 (Edge) |
+| Real Vancouver, her app side by side | NOT RUN |
+
+Screenshots: `test-results/energy-sw.png`, `test-results/energy-sw-card.png` (worktree, not committed).
+
+## Next
+Her written OK (§1c) before any merge. Then: the four stacked branches can merge in order (wind → daylight →
+ventilation → energy); open questions for her: north on the competition model, her solar-study transmittance per zone.
+
+---
+
 # CHECKPOINT: Sun & Wind Studio merge, engine 3 of 4: natural-ventilation potential (17 Nov 2026)
 
 Same brief as engines 1 and 2 (below). Branch `sun-wind-ventilation`, cut from `sun-wind-daylight` bdf5628, worktree

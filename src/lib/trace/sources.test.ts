@@ -26,6 +26,10 @@ function liveLines() {
     nature: nature.rules,
     wind: towers.map((t) => ({ tower: t, rules: windProcedure(t).rules })),
     structure: towers.map((t) => ({ tower: t, rules: structureCheck(t, windProcedure(t)).rules })),
+    // the energy port's lines likewise (engine/energySWInput.ts energyRules)
+    energySW: [{ id: 'sw-en-teui', label: 'Total energy use intensity, TEUI (Tower 1)', value: '82 kWh/m²·yr', threshold: '≤ 104 kWh/m²·yr', state: 'pass', flag: 'unverified', source: { label: 'City of Vancouver rezoning targets as Sun & Wind Studio states them' } },
+      { id: 'sw-en-tedi', label: 'Thermal energy demand intensity, TEDI', value: '9.0 kWh/m²·yr', threshold: '≤ 18', state: 'pass', flag: 'unverified', source: { label: 'City of Vancouver rezoning targets as Sun & Wind Studio states them' } },
+      { id: 'sw-en-ghgi', label: 'Greenhouse gas intensity, GHGI', value: '0.9 kgCO₂e/m²·yr', threshold: '≤ 3', state: 'pass', flag: 'unverified', source: { label: 'City of Vancouver rezoning targets as Sun & Wind Studio states them' } }],
     // the ventilation port's lines likewise (engine/ventilationSWInput.ts ventRules)
     ventilationSW: [{ id: 'sw-vt-openable', label: 'Openable area (Tower 1)', value: '4.2% of the floor served', threshold: '≥ 4%', state: 'pass', flag: 'unverified', source: { label: 'ASHRAE 62.1 natural ventilation procedure as Sun & Wind Studio states it' } },
       { id: 'sw-vt-within8', label: 'Floor within 8 m of an operable opening', value: '97%', threshold: 'every point', state: 'pass', flag: 'unverified', source: { label: 'ASHRAE 62.1 natural ventilation procedure as Sun & Wind Studio states it' } },

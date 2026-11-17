@@ -178,6 +178,9 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
   // Natural ventilation (Sun & Wind Studio port): a floor with an open window on each side and the air crossing it.
   'built.ventilation-sw': (c) => <>{plate(c)}{box(c, 2, 2, 0.9, 12, 12, 0.8)}{box(c, 2, 2, 1.7, 12, 12, 0.5, 'k')}
     {[0, 1, 2].map((i) => <path key={i} d={`M6 ${20 + i * 4} q8 -3 16 0 t16 0`} fill="none" stroke={A(c, 2)} strokeWidth={1.5} strokeLinecap="round" />)}</>,
+  // Energy use (Sun & Wind Studio port): the tower with its floors stacked in end-use colours, and the sun on it.
+  'built.energy-sw': (c) => <>{plate(c)}{box(c, 5.5, 5.5, 0.9, 5, 5, 4, 'k')}{box(c, 5.5, 5.5, 4.9, 5, 5, 4)}{box(c, 5.5, 5.5, 8.9, 5, 5, 4, 'k')}{box(c, 5.5, 5.5, 12.9, 5, 5, 4)}
+    <circle cx={38} cy={9.5} r={4.6} fill={A(c, 1)} /><circle cx={38} cy={9.5} r={2.6} fill={A(c, 0)} /></>,
   // Trips & station entrance: a train at the station.
   'built.trips': (c) => <>{plate(c)}{box(c, 1.5, 7.5, 0.9, 13, 3.5, 3.6, 'a')}{[0, 1, 2, 3].map((i) => <g key={i}><polygon points={pts([2.5 + i * 3, 11, 2.6], [4.5 + i * 3, 11, 2.6], [4.5 + i * 3, 11, 3.8], [2.5 + i * 3, 11, 3.8])} fill="#fff" opacity={0.9} /></g>)}
     {box(c, 10, 2, 0.9, 4, 3, 3.2)}{box(c, 9.6, 1.6, 4.1, 4.8, 3.8, 0.5, 'n')}</>,

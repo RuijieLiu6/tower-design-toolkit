@@ -42,9 +42,9 @@ test('natural ventilation: 62.1 readings, hours by month, floor and week, and a 
   // single-sided with the adaptive band: a rerun with other hours
   await p.getByTestId('ventilation-sw-mode').selectOption('single')
   await card.locator('select').filter({ has: p.locator('option', { hasText: 'ASHRAE 55 adaptive' }) }).selectOption('adaptive')
-  await expect(status).toContainText(/Evaluated|current model/i, { timeout: 120_000 })
+  // the rerun starts after a short debounce: wait for the new readings rather than the old status line
+  await expect.poll(() => p.getByTestId('ventilation-sw-key').innerText(), { timeout: 120_000 }).not.toBe(before)
   await openResultDetails(p)
   await expect(card).toContainText('ASHRAE 55 adaptive band')
-  expect(await p.getByTestId('ventilation-sw-key').innerText()).not.toBe(before)
   await p.screenshot({ path: 'test-results/ventilation-sw.png', fullPage: false })
 })

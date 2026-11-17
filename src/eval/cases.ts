@@ -26,6 +26,8 @@ import { DEFAULT_DAYLIGHT_PRESETS, daylightRules, readingsOf as daylightReadings
 import { DEFAULT_ZONES as SW_DEFAULT_ZONES } from '../engine/daylightSW'
 import { ventStudy, ventTowerQuick, type VentSettings } from '../engine/ventilationSW'
 import { DEFAULT_VENT_PRESETS, readingsOf as ventReadings, ventRules } from '../engine/ventilationSWInput'
+import { energyHourly, zoneGlazing as swZoneGlazing, type EnergyFloor, type EnergySettings, type Prog } from '../engine/energySW'
+import { DEFAULT_ENERGY_PRESETS, energyRules } from '../engine/energySWInput'
 
 export type CaseType = 'typical' | 'boundary' | 'out-of-scope' | 'repeated' | 'definition'
 
@@ -87,6 +89,16 @@ async function ventCase(id: 'cross-default' | 'sealed') {
   const q = ventTowerQuick(floors, zones, V.open, c.pos[0], c.pos[1])
   const lines = ventRules({ readings: ventReadings(v, q), presets: { ...DEFAULT_VENT_PRESETS, ...V }, glazing: { from: 'studio', note: 'Her case ' + id }, towerName: 'T', period: 'whole year', levels: floors.map((f) => f.i + 1), left: 0 })
   return { lines, total: v.total, herTotal: c.expected.vent.total, freePct: q.freePct, herFree: c.expected.quick.freePct }
+}
+// Energy use (Sun & Wind Studio port, engine 4): one of her fixture cases, run on demand (about a second).
+async function energyCase(id: 'office-hp' | 'mixed-gas-daylit') {
+  const [{ default: hourly }, { default: fx }] = await Promise.all([import('../data/sunWindHourly.json'), import('../engine/energy.fixtures.json')])
+  const c = fx.cases.find((x) => x.id === id)!
+  const zones = c.zones === 'default' ? SW_DEFAULT_ZONES : (c.zones as Zone[])
+  const floors: EnergyFloor[] = c.floors.map((f) => ({ ...f, prog: f.prog as Prog, glazing: { N: swZoneGlazing(zones, f.i + 1, 'N'), E: swZoneGlazing(zones, f.i + 1, 'E'), S: swZoneGlazing(zones, f.i + 1, 'S'), W: swZoneGlazing(zones, f.i + 1, 'W') } }))
+  const r = energyHourly(prep(hourly as never), { tz: hourly.tz, days: hourly.days }, floors, c.E as EnergySettings, c.dsf)
+  const lines = energyRules({ result: r, presets: { ...DEFAULT_ENERGY_PRESETS, ...(c.E as EnergySettings) }, glazing: { from: 'studio', note: 'Her case ' + id }, towerName: 'T', dimmed: !!c.dsf })
+  return { r, lines, her: c.expected }
 }
 const windLines = (loaded: boolean) => { const { result } = windCase(); return windRules({ readings: readingsOf(result, 0), result, obstacles: { loaded, unknownHeights: 0, source: WIND_COMFORT_SRC.vtc }, presets: DEFAULT_WIND_PRESETS, towerName: 'T' }) }
 const cone = (id: string) => CONES.find((c) => c.id === id)!
@@ -237,6 +249,31 @@ export const CASES: EvalCase[] = [
     expected: 'The calm-ground line has state "unknown": a tower alone on open ground is optimistic, so it is not judged',
     basis: 'Team rule (engine/windComfortInput.ts windRules): a result without context is reported, not judged', basisFlag: 'team_assumption',
     run: () => { const line = windLines(false).find((r) => r.id === 'calm-ground'); return { observed: `calm-ground ${line?.state ?? 'missing'}`, pass: line?.state === 'unknown', flag: 'team_assumption' } },
+  },
+
+  // ---------- Energy use: TEUI / TEDI / GHGI (Sun & Wind Studio port, Sinnie Choi) ----------
+  {
+    id: 'ES-T', node: 'built.energy-sw', type: 'typical', title: 'Her office tower on a heat pump: the port gives her TEUI, TEDI and GHGI, and the TEUI line is judged against the office target',
+    input: 'Twenty office floors of 46 × 46 m, her default facade, envelope and systems (heat pump, 70% heat recovery), no daylight dimming',
+    expected: 'TEUI, TEDI and GHGI equal what her own code recorded for this case (src/engine/energy.fixtures.json, "office-hp"); the target is her office row (100 / 20 / 3) and the TEUI line is pass or fail',
+    basis: 'Sun & Wind Studio outputs recorded in src/engine/energy.fixtures.json', basisFlag: 'unverified',
+    run: async () => {
+      const { r, lines, her } = await energyCase('office-hp')
+      const line = lines.find((x) => x.id === 'sw-en-teui')
+      const judged = !!line && (line.state === 'pass' || line.state === 'fail')
+      return { observed: `TEUI ${r.teui.toFixed(2)} (hers ${her.teui.toFixed(2)}), TEDI ${r.tedi.toFixed(2)}, GHGI ${r.ghgi.toFixed(3)}; target ${r.tgt.teui}; line ${line?.state ?? 'missing'}`, pass: judged && r.teui === her.teui && r.tedi === her.tedi && r.ghgi === her.ghgi && r.tgt.teui === 100, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'ES-B', node: 'built.energy-sw', type: 'boundary', title: 'A gas-heated mixed tower: GHGI fails her target while the heat pump would pass',
+    input: 'Her "mixed-gas-daylit" case: a retail podium, offices and homes, gas boiler for heating and hot water',
+    expected: 'The GHGI line fails (gas at 0.18 kg/kWh against BC electricity at 0.011), its fix names the heat pump',
+    basis: 'Her emission factors and targets (energy.js), recorded in src/engine/energy.fixtures.json', basisFlag: 'unverified',
+    run: async () => {
+      const { r, lines } = await energyCase('mixed-gas-daylit')
+      const line = lines.find((x) => x.id === 'sw-en-ghgi')
+      return { observed: `GHGI ${r.ghgi.toFixed(2)} against ${r.tgt.ghgi.toFixed(2)}: ${line?.state ?? 'missing'}`, pass: line?.state === 'fail', flag: 'unverified' }
+    },
   },
 
   // ---------- Natural ventilation potential (Sun & Wind Studio port, Sinnie Choi) ----------

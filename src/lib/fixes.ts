@@ -148,6 +148,16 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^sw-vt-fresh$/, 'Reported, not judged: share of open hours whose airflow meets her outdoor-air rate; cross-flow or a stack shaft raises it on deep floors.'],
   [/^sw-vt-glazing$/, 'Reported, not judged: switch the facade node on for your own glass, and set which faces open under Presets.'],
   [/^sw-vt-method$/, 'Indicative (her note): one zone per floor; a mechanical engineer’s AirflowNetwork or CFD model with the real interior settles natural ventilation.'],
+  // Energy use (Sun & Wind Studio port, 17 Nov): her levers, each as the move to make.
+  [/^sw-en-teui$/, 'Cut the energy at the meter: a heat pump for heating and hot water, more heat recovery on the outdoor air, lower lighting and plug loads, daylight dimming, and a better envelope (lower glass U, less glass on the north); the program mix sets the target.'],
+  [/^sw-en-tedi$/, 'Cut the heating demand: better glass (lower U) and less of it where the sun does not reach, walls and roofs nearer Passive House U-values, tighter air (infiltration), and more heat recovery on the outdoor air.'],
+  [/^sw-en-ghgi$/, 'Take the gas out: an air-source heat pump for heating and hot water instead of a boiler brings GHGI down most on BC’s low-carbon grid.'],
+  [/^sw-en-uses$/, 'Reported, not judged: the largest end uses are where the next saving is.'],
+  [/^sw-en-peaks$/, 'Reported, not judged: peak loads size the plant; shading and mass lower the cooling peak, a better envelope the heating peak.'],
+  [/^sw-en-overheat$/, 'Reported, not judged: unconditioned floors over 26 °C need shading, opening windows or a little cooling.'],
+  [/^sw-en-daylight$/, 'Reported, not judged: daylight dimming saves lighting where floors are shallow and glass is clear.'],
+  [/^sw-en-inputs$/, 'Reported, not judged: set the envelope and systems under Presets, and switch the facade node on for your own glass.'],
+  [/^sw-en-method$/, 'Indicative (her note): an energy model to the City of Vancouver Energy Modelling Guidelines by an energy modeller settles TEUI, TEDI and GHGI.'],
   [/^sw-dl-method$/, 'Indicative early-design proxy (her note): a LEED submission needs an hourly Radiance run with the real interior; a daylighting consultant settles it.'],
   [/^method$/, 'Indicative, not CFD: a two-dimensional flow shows where the massing accelerates or shelters the wind; a wind-tunnel study by a wind engineer settles the numbers.'],
   // Code & life safety (VBBL 2019 3.2.6, 3.2.7, 3.8): obligations a high building carries, each as the move to make.
