@@ -18,12 +18,16 @@ async function open(p: Page) {
 
 test('wind comfort: one case, then the seasonal rose, with evidence and the overlay', async ({ page: p }) => {
   test.setTimeout(300_000)
+  // 17 Nov review (11): on the competition site the check must not load the City dataset (footprints, heights).
+  const cityFiles: string[] = []
+  p.on('request', (r) => { if (/footprint|\/data\/layers\.json/i.test(r.url())) cityFiles.push(r.url()) })
   await open(p)
   await showCheck(p, NODE)
   const card = p.getByTestId('wind-comfort-card')
   await expect(card).toBeVisible({ timeout: 60_000 })
   // the one-case flow solves within seconds; the bands then show with and without the tower
   await expect(p.getByTestId('wind-comfort-status')).toContainText(/Evaluated|current model/i, { timeout: 90_000 })
+  expect(cityFiles).toEqual([])
   await openResultDetails(p) // the full card folds under the checklist (6 Nov pattern)
   const bands = p.getByTestId('wind-comfort-bands')
   await expect(bands).toBeVisible()

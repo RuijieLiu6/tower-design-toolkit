@@ -81,7 +81,7 @@ export default function WindComfortResults() {
           <div className="min-w-0">
             <div className="text-meta text-muted">Run</div>
             <div className="truncate text-xs font-semibold" title={statusWord}>{statusWord}</div>
-            {out && <div className="text-meta text-muted">{out.towerName} · {out.north ? 'true north' : 'grid north'} · {out.obstacles.loaded ? 'context loaded' : 'no context loaded'}{out.obstacles.unknownHeights ? ` · ${out.obstacles.unknownHeights} without height left out` : ''}</div>}
+            {out && <div className="text-meta text-muted">{out.towerName} · {out.north ? 'true north' : 'grid north'} · {out.obstacles.loaded ? <span data-testid="wind-comfort-buildings">{out.obstacles.buildings} context buildings</span> : 'no context loaded'}{out.obstacles.unknownHeights ? ` · ${out.obstacles.unknownHeights} without height left out` : ''}</div>}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <StateChip state={statusState} value={status === 'running' ? 'Running' : status === 'idle' ? 'Idle' : undefined} />
