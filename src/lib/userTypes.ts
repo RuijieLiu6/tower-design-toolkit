@@ -66,7 +66,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.form', type: 'designer', name: 'Sketch a tower and see how it does',
         goal: 'Shape a tower freely and read sun, wind, daylight, value and carbon as you go.',
         project: 'vtc', step: 'volume',
-        nodes: ['built.sun', 'built.wind-screen', 'built.wind-comfort', 'built.daylight-depth', 'built.fsr', 'built.economics', 'built.energy-carbon'],
+        nodes: ['built.sun', 'built.wind-screen', 'built.wind-comfort', 'built.daylight-depth', 'built.daylight-sw', 'built.fsr', 'built.economics', 'built.energy-carbon'],
         says: ['play with the form and massing', 'quick massing study', 'try shapes and see the results'],
       },
       {
@@ -181,7 +181,7 @@ export const USER_TYPES: UserType[] = [
         id: 'engineer.sustainability', type: 'engineer', name: 'Energy, carbon and daylight',
         goal: 'Energy and emissions against the targets, embodied carbon, glazing, daylight and nature.',
         project: 'city', step: 'plates',
-        nodes: ['built.energy-carbon', 'built.facade', 'built.daylight-depth', 'built.city-in-nature', 'built.solar-access'],
+        nodes: ['built.energy-carbon', 'built.facade', 'built.daylight-depth', 'built.daylight-sw', 'built.city-in-nature', 'built.solar-access'],
         says: ['energy and carbon targets', 'embodied carbon', 'sustainability and green building', 'daylight and glazing'],
       },
     ],

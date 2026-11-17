@@ -1,3 +1,87 @@
+# CHECKPOINT: Sun & Wind Studio merge, engine 2 of 4: daylight sDA / ASE (17 Nov 2026)
+
+Same brief as engine 1 (below): Ruijie, 16 Nov, "start merging Sinnie's tool into the platform", in her order wind comfort →
+**daylight** → ventilation → energy. Branch `sun-wind-daylight`, cut from `sun-wind-port` b40e26a, worktree `tower-studio-sw`.
+Pushed for review, **not merged, not deployed**: her written OK (`04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1c, status
+line added for engine 2) is still pending. Ruijie was away overnight and approved the recommended option on every decision;
+the decisions taken are listed under "Choices made".
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/daylightSW.ts`): physics.js (NOAA sun for every hour of the CWEC year, Perez
+  1990 sky on each vertical face, Perez luminous efficacy, LM-83 occupied hours 8:00–18:00 clock time with her monthly
+  clock offsets) and the daylight half of study.js: per 1 m mask cell, sixteen sight lines to the glass under the CIE
+  overcast sky with the BRE externally reflected component (obstruction angle per cardinal face from the context
+  buildings 15–160 m away) and the BRE split-flux internally reflected component → daylight factor; each face's Perez sky
+  hour by hour → DA300, sDA300/50%, UDI 100–3000 lux, monthly daylight share; ASE1000/250h by 2° azimuth bins through the
+  window band after her shading devices (all twelve strategies of her catalogue); her floor signature memo
+  (`floorSig`, which groups floors whose obstruction rounds alike); her tower run at 2 m cells and every second day.
+- **Her data**: `src/data/sunWindHourly.json` (110 KB), the hourly CWEC2020 year (temperature, GHI, DNI, DHI) and the
+  monthly clock offsets exactly as her page holds them after climate.js applies weather.json (elevation falls back to
+  her 4 m, as on her page). Loaded only by the worker and, lazily, by the eval cases.
+- **Fixtures from her own code**: `tools/sunwind-daylight-fixtures.cjs` runs her climate.js (fetch stubbed), physics.js
+  and the daylight functions of study.js + core.js headless at **c24addb** (her main on 16 and 17 Nov), on nine cases:
+  plain tower, her site with future towers and her default facade zones, her site without future towers with WWR 0.35 /
+  VT 0.45 and every shading strategy by level, a deep 72 × 56 m plate, a shallow 30 × 17.5 m plate at 500 lux, a plate
+  turned 30° in context, turned 120° without, an L-shaped plate with the core off centre, and a winter ASE period; plus
+  her physics (sun, Perez state, six faces). `src/engine/daylight.fixtures.json` (159 KB). **The port reproduces every
+  number bit for bit (tolerance 0)**: tower sDA / ASE / DF / DA / UDI, every floor row and monthly share, obstruction
+  angles, facade edges, sampled cell fields, ASE hours per cell, and her full-resolution run (`daylightSW.test.ts`, 13 tests, ~2 s).
+- **The Toolkit's model into her frame** (`src/engine/daylightSWInput.ts`): the selected tower's floors (`towerFloors`;
+  plant floors left out), each floor's plate (`floorRing`: the block at mid-height, or the imported hull) turned along
+  its longest edge and rasterised into her 1 m mask, its core (`coreSide`) at the tower centre; context as in the wind
+  port (competition derived context + future towers, or the City buildings with heights; other design towers as roofs),
+  reduced by her `buildSiteRaster` to each building's centre and roof; glazing from the facade node when it is on
+  (system → her strategy, WWR by facing, VLT), otherwise her default zones and VT 0.60.
+- **Node `built.daylight-sw`** "Daylight sDA / ASE (Sun & Wind Studio)", CLIM, Schematic phase (`advanced`), both projects,
+  off by default: worker (`src/workers/daylightWorker.ts`), hook + store (`src/hooks/useDaylightSW.ts`, `ts.daylightSW`),
+  results card (`DaylightSWResults.tsx`: sDA / ASE / mean DF tiles, her per-floor sDA and ASE bars, a plan of any floor
+  in her DA / DF / direct-sun ramps with core and north arrow, the evidence lines, presets with Reset), canvas status,
+  trace digest group `daylightSW`, rule cards `leed.daylight.sunwind` and `en17037.df.sunwind` (both unverified), FIXES for
+  every line (`sw-dl-*`), evidence lint, eval cases DL-T / DL-O, Sources hub, every list (registry, icons + a filled
+  `SunMedium` drawing, art, words, needs, phases, roles, missing-input, assistant keywords and checks).
+- **Evidence lines** (all unverified, each with its source): sDA with LEED points (pass ≥ 40%, as her app marks it), ASE ≤
+  10% (warn above, her "address glare"), mean DF 2% / 1% (her "EN 17037" label, no edition), weakest floor, UDI, glazing
+  used (team assumption), method. Without context the three judged lines stay "unknown" (as wind).
+
+## How it relates to "Daylight screen (plate depth)"
+Kept as it is. That node is the geometric first pass (plate depth against 2 × window head, no glass, sky or neighbours,
+SPAC). This one is the climate-based check after it: same plates and cores, plus the glass, the neighbours and the
+Vancouver sky hour by hour. The new node's limits, method line and Rules section say so.
+
+## Choices made (recommended options, Ruijie away)
+- Fixtures pinned to c24addb (her current main; unchanged since engine 1).
+- **True north**: plates turned so +y is true north (45° on the competition site), because sun and sky depend on it; a
+  preset reads the model grid as north to compare with her app (which reads a sent tower as is). Wind kept her frame.
+- Plant (mechanical) floors left out of sDA / ASE; podium floors kept (occupied).
+- "Facade node exists" = the facade node is on; then its glazing, else her defaults.
+- No 3-D overlay: the "floor overlay" is the plan in the card (cheap, and each floor differs).
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,261 pass; only the 2 CRLF data-file checks fail, in worktrees only (heightPolicy, registry) |
+| `daylightSW.test.ts` (her fixtures) | 13/13, tolerance 0 |
+| `daylightSWInput.test.ts` | 5/5 |
+| `e2e/daylight-sw.e2e.ts` (Edge, competition site, 87 floors) | 1/1: on from the library in Schematic, runs in seconds, tiles + bars + plan + flagged lines, no "Verified", winter ASE rerun |
+| `e2e/wind-comfort.e2e.ts` rerun | 1/1 |
+| Regression e2e (phase-panel, journeys, node-icons) | 3/3 (Edge) |
+| With the competition base model loaded, Real Vancouver, her app side by side | NOT RUN (e2e has no base model, so the judged lines read "unknown") |
+
+Screenshot: `test-results/daylight-sw.png` and `test-results/daylight-sw-card.png` (worktree, not committed).
+
+## Known limits
+- Her OK pending; branch unmerged. Her model: four cardinal faces per floor, context as mean roofs within 160 m, no
+  partitions, direct sun left to blinds for sDA. Proxies for early design, as her own leedCard note says.
+- LEED v4.1 / EN 17037 / LM-83 read as her code states them; none of those documents was opened.
+- One tower at a time (the selected one).
+
+## Next
+Engine 3, natural-ventilation potential (`planStudy` / `ventStudy` / `ventFlow` in study.js; needs the hourly wind, so
+`sunWindHourly.json` gains ws / wd), on `sun-wind-ventilation` from this branch; then the ISO 13790 energy model.
+
+---
+
 # CHECKPOINT: Sun & Wind Studio merge, engine 1 of 4: pedestrian wind comfort (16 Nov 2026)
 
 Ruijie, 16 Nov: "start merging Sinnie's tool into the platform." Order agreed in the mid-review notes (P1, comment 3):

@@ -6,6 +6,7 @@
 // or defeasible when the text admits exceptions or departures.
 import type { Flag, Source } from '../engine/types'
 import { SRC as WIND_COMFORT_SRC } from '../engine/windComfortInput'
+import { SRC as DAYLIGHT_SW_SRC } from '../engine/daylightSWInput'
 
 export type Deontic = 'obligation' | 'prohibition' | 'permission' | 'recommendation'
 export type Strength = 'strict' | 'defeasible'
@@ -151,6 +152,20 @@ export const RULE_CARDS: RuleCard[] = [
     note: 'No Lawson edition is cited in her code (study.js): the thresholds are taken as her app applies them, so the card stays unverified until a person reads the criteria she used.',
   },
   {
+    id: 'leed.daylight.sunwind', title: 'LEED v4.1 EQ Daylight, option 1 (as applied in Sun & Wind Studio)', source: DAYLIGHT_SW_SRC.leed,
+    summary: 'Spatial daylight autonomy: the share of regularly occupied floor that reaches 300 lux from daylight for at least half the occupied hours earns 1 point at 40%, 2 at 55% and 3 at 75%. Annual sunlight exposure: the floor in direct sun over 1,000 lux for more than 250 hours should stay at or under 10%, or glare control be shown.',
+    parameter: 'sDA300/50% and ASE1000/250h of the analysed floors', rule: 'sDA ≥ 40 / 55 / 75%; ASE ≤ 10%', deontic: 'recommendation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.daylight-sw'], results: ['daylightSW:sw-dl-sda', 'daylightSW:sw-dl-ase'],
+    note: 'Her code (study.js keyItems, leedCard) names LEED v4.1 EQ Daylight option 1 and these thresholds; the USGBC reference guide was not opened here, so the card stays unverified until a person checks it. A LEED credit is a voluntary rating, not a by-law.',
+  },
+  {
+    id: 'en17037.df.sunwind', title: 'Mean daylight factor (EN 17037 as labelled in Sun & Wind Studio)', source: DAYLIGHT_SW_SRC.df,
+    summary: 'Under an overcast sky a room with a mean daylight factor of 2% reads as well daylit; under 1% it needs electric light most of the day.',
+    parameter: 'mean daylight factor of the analysed floors', rule: '≥ 2% good, ≥ 1% fair', deontic: 'recommendation', strength: 'defeasible', flag: 'unverified',
+    usedBy: ['built.daylight-sw'], results: ['daylightSW:sw-dl-df'],
+    note: 'Her app labels this reading EN 17037 without an edition or clause, and EN 17037 itself sets targets as illuminance over half the daylight hours, not a mean DF: the card stays unverified until a person reads the standard she meant.',
+  },
+  {
     id: 'nbc.wall-continuity', title: 'Seismic walls continuous to the foundation', source: { ...NBC, page: 'Div B 4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
     summary: 'For long-period buildings in high-hazard areas, the walls that resist earthquakes must run unbroken down to the foundation: no transfers or offsets.',
     parameter: 'the core walls (SFRS)', rule: 'continuous top to foundation', deontic: 'prohibition', strength: 'strict', flag: 'verified',
@@ -231,4 +246,5 @@ export const NODE_GROUPS: Record<string, string[]> = {
   'built.pr-streetwall': ['streetwall'], 'built.pr-frontage': ['frontage'], 'built.pr-ground': ['groundPlane'], 'built.viewcones': ['cones'],
   'built.city-in-nature': ['nature'], 'built.wind-procedure': ['wind'], 'built.structure': ['structure'], 'built.wind-study': ['windStudy'], 'built.life-safety': ['lifeSafety'], 'built.relax-aviation': ['relaxAviation'],
   'built.wind-comfort': ['windComfort'],
+  'built.daylight-sw': ['daylightSW'],
 }

@@ -34,6 +34,7 @@ import ModelPanel from './import/ModelPanel'
 import LiftStrategy from './LiftStrategy'
 import WindScreenResults from './WindScreenResults'
 import WindComfortResults from './WindComfortResults'
+import DaylightSWResults from './DaylightSWResults'
 import TripsResults from './TripsResults'
 import PublicRealmResults from './PublicRealmResults'
 import SolarResults from './SolarResults'
@@ -496,6 +497,7 @@ export default function Inspector() {
       {n.id === 'built.wind-study' && enabled[n.id] && <WindStudyPanel />}
       {n.id === 'built.wind-screen' && enabled[n.id] && <WindScreenResults />}
       {n.id === 'built.wind-comfort' && enabled[n.id] && <WindComfortResults />}
+      {n.id === 'built.daylight-sw' && enabled[n.id] && <DaylightSWResults />}
       {n.id === 'built.trips' && enabled[n.id] && <TripsResults />}
       {enabled[n.id] && <RulesBehind nodeId={n.id} />}
       </DetailsFold>

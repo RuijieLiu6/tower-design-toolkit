@@ -10,6 +10,7 @@ import { SEISMIC_FALSE_ASSUMPTIONS } from '../../engine/structure'
 import type { Flag, RuleState, Source } from '../../engine/types'
 import { SRC as WIND_SCREEN_SOURCES } from '../../engine/windScreen'
 import { SRC as WIND_COMFORT_SOURCES } from '../../engine/windComfortInput'
+import { SRC as DAYLIGHT_SW_SOURCES } from '../../engine/daylightSWInput'
 import { SRC as TRIP_SOURCES } from '../../engine/trips'
 import { WIND_FALSE_ASSUMPTIONS } from '../../engine/windStructure'
 import { RELAX_AVIATION_FALSE_ASSUMPTIONS } from '../../engine/relaxAviation'
@@ -105,6 +106,8 @@ export const DECLARED: Record<string, Source[]> = {
   'built.wind-screen': Object.values(WIND_SCREEN_SOURCES) as Source[],
   // The wind comfort port runs in a worker only when switched on; its sources (Sinnie Choi's engine, the rose, Lawson) are listed either way.
   'built.wind-comfort': Object.values(WIND_COMFORT_SOURCES) as Source[],
+  // The daylight port (engine 2) likewise: Sinnie Choi's engine, the CWEC2020 hourly year, LEED v4.1, EN 17037, LM-83 as her app states them.
+  'built.daylight-sw': Object.values(DAYLIGHT_SW_SOURCES) as Source[],
   'built.trips': Object.values(TRIP_SOURCES) as Source[],
   // Height references & suggestion (Integrate Vista session, 3 Nov 2026; Real Vancouver only).
   'built.heights': [

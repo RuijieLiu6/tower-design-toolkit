@@ -171,6 +171,10 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
   'built.wind-comfort': (c) => <>{plate(c)}{flat(A(c, 0), 0.95, [1, 6], [10, 6], [10, 15], [1, 15])}{tower(c, 11, 10.5, 1.5, 4, 4)}
     {[0, 1, 2].map((i) => <path key={i} d={`M4 ${21 + i * 4} q5 -3 10 0 t10 0`} fill="none" stroke={A(c, 2)} strokeWidth={1.5} strokeLinecap="round" />)}
     {box(c, 3.5, 10.5, 0.95, 0.9, 0.9, 1.6, 'k')}</>,
+  // Daylight sDA / ASE (Sun & Wind Studio port): a floor plate in her autonomy ramp, bright at the glass and dark at the core, under the sun.
+  'built.daylight-sw': (c) => <>{plate(c)}{box(c, 2, 2, 0.9, 12, 12, 0.8)}
+    {flat('#F0C45C', 1.72, [2, 2], [14, 2], [14, 5], [2, 5])}{flat('#96AABE', 1.72, [2, 5], [14, 5], [14, 9.5], [2, 9.5])}{flat('#2C3E60', 1.72, [2, 9.5], [14, 9.5], [14, 14], [2, 14])}
+    <circle cx={38} cy={9.5} r={4.6} fill={A(c, 1)} /><circle cx={38} cy={9.5} r={2.6} fill={A(c, 0)} /></>,
   // Trips & station entrance: a train at the station.
   'built.trips': (c) => <>{plate(c)}{box(c, 1.5, 7.5, 0.9, 13, 3.5, 3.6, 'a')}{[0, 1, 2, 3].map((i) => <g key={i}><polygon points={pts([2.5 + i * 3, 11, 2.6], [4.5 + i * 3, 11, 2.6], [4.5 + i * 3, 11, 3.8], [2.5 + i * 3, 11, 3.8])} fill="#fff" opacity={0.9} /></g>)}
     {box(c, 10, 2, 0.9, 4, 3, 3.2)}{box(c, 9.6, 1.6, 4.1, 4.8, 3.8, 0.5, 'n')}</>,

@@ -179,6 +179,8 @@ export const FILLED_BODIES: Record<string, string> = {
     R('w', 6.5, 18, 2.5, 2.5, .5) + R('w', 10.75, 18, 2.5, 2.5, .5) + R('d', 15, 18, 2.5, 2.5, .5),
   Cone: P('b', 'M3.5 12 21.5 3v18z') + P('a m', 'M3.5 12l18-5v10z') + C('d', 3.8, 12, 2.6),
   Plane: G('rotate(45 12 12)', P('c', 'M12 8.5 22 14v2.2l-10-3-10 3V14z'), P('d', 'M12 17.5l4 2.4v1.6l-4-1-4 1v-1.6z'), R('a', 10.4, 1.5, 3.2, 21, 1.6)),
+  // Daylight sDA / ASE (Sun & Wind Studio port): the sun beside a window, its light falling across the floor (17 Nov).
+  SunMedium: R('a', 2.5, 8.5, 13, 13, 1.8) + R('b', 4.5, 10.5, 9, 9, 1) + P('d m', 'M13.5 19.5H6l7.5-7.5z') + [0, 90, 180, 270].map((a) => R('c', 17.1, 0.4, 1.8, 2.4, .9, `rotate(${a} 18 6)`)).join('') + C('d', 18, 6, 3.4),
   Sunrise: [-90, -45, 0, 45, 90].map((a) => R('d', 11, 3.4, 2, 3.6, 1, `rotate(${a} 12 16)`)).join('') + P('a', 'M5 16.5a7 7 0 0 1 14 0z') + R('c', 2, 17.5, 20, 2.4, 1.2) + R('b', 6, 21, 12, 1.6, .8),
   ArrowUpDown: P('a', 'M7.5 2.5l5 5.5H9.2v13H5.8V8H2.5z') + P('d', 'M16.5 21.5l-5-5.5h3.3V3h3.4v13h3.3z'),
   DoorOpen: R('c', 5, 3, 12, 18.5, 1) + P('a', 'M5 3l8 2.5v16.5L5 21.5z') + C('w', 11, 13, 1) + R('d', 2, 20.5, 20, 2, 1),

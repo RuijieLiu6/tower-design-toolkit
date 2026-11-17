@@ -10,7 +10,7 @@ export const NODE_WORDS: Record<string, string> = {
   'built.daylight-depth': 'Daylight', 'built.view-from': 'View from', 'built.vista': 'Vista', 'built.heights': 'Height',
   'built.pr-streetwall': 'Streetwall', 'built.pr-frontage': 'Frontage', 'built.pr-ground': 'Open space',
   'built.city-in-nature': 'Nature', 'built.solar-access': 'Sun hours', 'built.wind-procedure': 'Slenderness',
-  'built.structure': 'Structure', 'built.wind-study': 'Wind study', 'built.wind-screen': 'Wind screen', 'built.wind-comfort': 'Wind comfort', 'built.trips': 'Trips',
+  'built.structure': 'Structure', 'built.wind-study': 'Wind study', 'built.wind-screen': 'Wind screen', 'built.wind-comfort': 'Wind comfort', 'built.daylight-sw': 'Daylight sDA', 'built.trips': 'Trips',
   'built.energy-carbon': 'Energy',
   // design nodes (lib/workflow/designNodes.ts)
   'design.site': 'Site', 'design.massing': 'Massing', 'design.program': 'Program', 'design.plates': 'Core & plates', 'design.frame': 'Frame',

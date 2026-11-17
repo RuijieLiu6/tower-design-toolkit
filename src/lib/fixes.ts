@@ -130,6 +130,17 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^gusty$/, 'Reported, not judged: open ground where gusts top 6 m/s in more than 5% of hours over the period; a podium, canopy or softer corners lower it where it meets seating and entrances.'],
   [/^downwash$/, 'Reported, not judged: the allowance for wind brought down the windward face, from the tower’s height against its neighbours; a podium or canopy under that face catches it.'],
   [/^strategies$/, 'Reported, not judged: what the podium, canopy, corners and plaza shelter change against the bare tower; set them under Details to compare.'],
+  // Daylight sDA / ASE (Sun & Wind Studio port, 17 Nov): her levers, each as the move to make.
+  [/^sw-dl-sda$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): without neighbours nothing shades the windows, so the result is optimistic.'
+    : 'Bring more floor over 300 lux: a shallower plate or a smaller core (Massing, Schematic), more glass or clearer glass (the facade node’s WWR and VLT), a taller floor-to-floor for a higher window head, or lighter shading devices on the north; the weakest floors are usually the low ones behind neighbours.')],
+  [/^sw-dl-ase$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): without neighbours every floor sees the full sun, so the result is pessimistic for low floors.'
+    : 'Cut the direct sun: overhangs or balconies on the south, fins or egg-crates on the east and west, a lower window-to-wall ratio or a lower VLT on the sunniest faces; or document glare control (blinds) for the floors over 10%.')],
+  [/^sw-dl-df$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): on open ground the daylight factor is optimistic.'
+    : 'Raise the overcast daylight: more or clearer glass (WWR, VLT), a higher window head (floor-to-floor), shallower plates, light shelves on the deep faces, and lighter interior finishes.')],
+  [/^sw-dl-weakest$/, 'Reported, not judged: the floor with the least sDA; deepen the glass or thin the plate there first (often the low floors behind neighbours).'],
+  [/^sw-dl-udi$/, 'Reported, not judged: hours of useful daylight; a large share over 3,000 lux asks for shading, a large share under 100 lux for more glass or shallower plates.'],
+  [/^sw-dl-glazing$/, 'Reported, not judged: switch the facade node on and set its system, WWR by facing and VLT to study your own glass instead of her default facade.'],
+  [/^sw-dl-method$/, 'Indicative early-design proxy (her note): a LEED submission needs an hourly Radiance run with the real interior; a daylighting consultant settles it.'],
   [/^method$/, 'Indicative, not CFD: a two-dimensional flow shows where the massing accelerates or shelters the wind; a wind-tunnel study by a wind engineer settles the numbers.'],
   // Code & life safety (VBBL 2019 3.2.6, 3.2.7, 3.8): obligations a high building carries, each as the move to make.
   [/^high-building$/, 'All of 3.2.6 applies above 18 m: plan stair venting, smoke control, the firefighter lift, the central alarm room and voice communication with the code consultant.'],

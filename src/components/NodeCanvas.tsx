@@ -12,6 +12,7 @@ import { useFacade } from '../hooks/useFacade'
 import { useEnergyCarbon } from '../hooks/useEnergyCarbon'
 import { useWindScreen } from '../hooks/useWindScreen'
 import { useWindComfort } from '../hooks/useWindComfort'
+import { useDaylightSW } from '../hooks/useDaylightSW'
 import { BAND_NAMES } from '../engine/windComfortInput'
 import { useTrips } from '../hooks/useTrips'
 import { useCultureGate } from './CultureResults'
@@ -62,6 +63,7 @@ export default function NodeCanvas() {
   const energy = useEnergyCarbon()
   const windScreen = useWindScreen()
   const { status: windComfortStatus, out: windComfort } = useWindComfort()
+  const { status: daylightSWStatus, out: daylightSW } = useDaylightSW()
   const trips = useTrips()
   const towers = useTowers()
   const selectedTower = useStore((s) => s.selectedTower)
@@ -141,6 +143,15 @@ export default function NodeCanvas() {
         const highs = windScreen ? windScreen.towers.flatMap((t) => t.sectors).filter((s) => s.base === 'high' || s.corner === 'high').length : 0
         status = windScreen ? `${windScreen.study.required ? 'Wind study required' : 'Study not triggered everywhere'} · ${highs ? `${highs} high-risk direction${highs > 1 ? 's' : ''}` : 'no high-risk direction'} · screening` : '—'
         tone = !windScreen ? 'muted' : highs || windScreen.study.required ? 'warn' : 'ok'
+      } else if (n.id === 'built.daylight-sw') {
+        if (daylightSWStatus === 'running') { status = 'Running…'; tone = 'muted' }
+        else if (daylightSWStatus === 'error') { status = 'Could not run'; tone = 'bad' }
+        else if (daylightSWStatus === 'ready' && daylightSW) {
+          const rd = daylightSW.readings
+          const sda = daylightSW.rules.find((r) => r.id === 'sw-dl-sda')?.state
+          status = `sDA ${Math.round(rd.sda * 100)}% (${rd.points} pt${rd.points === 1 ? '' : 's'}) · ASE ${Math.round(rd.ase * 100)}%`
+          tone = sda === 'pass' ? (rd.ase <= 0.1 ? 'ok' : 'warn') : sda === 'fail' ? 'bad' : 'warn'
+        } else { status = '—'; tone = 'muted' }
       } else if (n.id === 'built.wind-comfort') {
         if (windComfortStatus === 'running') { status = 'Solving…'; tone = 'muted' }
         else if (windComfortStatus === 'error') { status = 'Could not run'; tone = 'bad' }
@@ -180,7 +191,7 @@ export default function NodeCanvas() {
     }
     const report: Node<CardData> = { id: 'report', type: 'card', position: { x: 640, y: Math.max(0, (slots - 1) * 60) }, data: { title: 'Evidence report', category: 'PRES', subtitle: 'Results + sources + flags', inputs: true } }
     return { nodes: [...l0, ...evals, report], edges: e }
-  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, windComfortStatus, windComfort, trips, facade, towers, selectedTower, model])
+  }, [enabled, project, rules, fsr, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, selectedNode, community, packages, econ, culture, provenance, mobility, energy, windScreen, windComfortStatus, windComfort, daylightSWStatus, daylightSW, trips, facade, towers, selectedTower, model])
 
   return (
     <div className="h-full w-full bg-paper" aria-label="Node canvas">

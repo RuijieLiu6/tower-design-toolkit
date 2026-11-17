@@ -137,6 +137,8 @@ export const NODE_ICONS: Record<string, LucideIcon> = {
   'built.wind-screen': Wind,
   // Sun & Wind Studio port (16 Nov): a sail in the wind, taken out of the community pool (no free filled glyph reads "pedestrian wind comfort").
   'built.wind-comfort': Sailboat,
+  // Sun & Wind Studio port, engine 2 (17 Nov): a sun at full strength, beside the plate-depth screen's light bulb.
+  'built.daylight-sw': SunMedium,
   'built.trips': Waypoints,
   'built.energy-carbon': PlugZap,
 }

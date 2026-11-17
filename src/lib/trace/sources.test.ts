@@ -26,6 +26,10 @@ function liveLines() {
     nature: nature.rules,
     wind: towers.map((t) => ({ tower: t, rules: windProcedure(t).rules })),
     structure: towers.map((t) => ({ tower: t, rules: structureCheck(t, windProcedure(t)).rules })),
+    // the daylight port's lines likewise (engine/daylightSWInput.ts daylightRules)
+    daylightSW: [{ id: 'sw-dl-sda', label: 'Spatial daylight autonomy sDA300/50% (Tower 1)', value: '62% of the floor area (2 LEED points)', threshold: '≥ 40% for 1 point', state: 'pass', flag: 'unverified', source: { label: 'LEED v4.1 BD+C EQ Daylight, option 1, as Sun & Wind Studio states it' } },
+      { id: 'sw-dl-ase', label: 'Annual sunlight exposure ASE1000/250h', value: '8% of the floor area', threshold: '≤ 10%', state: 'pass', flag: 'unverified', source: { label: 'LEED v4.1 BD+C EQ Daylight, option 1, as Sun & Wind Studio states it' } },
+      { id: 'sw-dl-df', label: 'Mean daylight factor', value: '2.6%', threshold: '2% well daylit', state: 'pass', flag: 'unverified', source: { label: 'Mean daylight factor read against EN 17037 as Sun & Wind Studio labels it' } }],
     // the wind comfort port's lines come from a worker run; one line as windRules writes it (engine/windComfortInput.ts)
     windComfort: [{ id: 'calm-ground', label: 'Ground calm enough to stand (Tower 1)', value: '82% of open ground', threshold: '≥ 80% in the sitting or standing bands', state: 'pass', flag: 'unverified', source: { label: 'Lawson comfort criteria as applied in Sun & Wind Studio' } }],
     lifeSafety: towers.map((t) => ({ tower: t, rules: lifeSafety(t, liftCheck(t, s.liftPresets, s.egressPresets), egressCheck(t, s.egressPresets, s.liftPresets), { transitLink: false, liftPresets: s.liftPresets }).rules })),

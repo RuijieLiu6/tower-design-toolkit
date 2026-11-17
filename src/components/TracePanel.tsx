@@ -27,6 +27,7 @@ import { useLifeSafety } from './LifeSafetyPanel'
 import { useRelaxAviation } from './RelaxAviationPanel'
 import { windStudyRules } from '../engine/windStructure'
 import { useWindComfortStore } from '../hooks/useWindComfort'
+import { useDaylightSWStore } from '../hooks/useDaylightSW'
 import type { RuleResult } from '../engine/types'
 
 /** No wind comfort run yet: one stable empty list, so the store selector never hands React a fresh array. */
@@ -62,6 +63,7 @@ function Recorder() {
   const relaxAviation = useRelaxAviation()
   // The wind comfort port (Sun & Wind Studio) runs in a worker and keeps its lines in its own store; read through a selector.
   const windComfort = useWindComfortStore((s) => s.out?.rules ?? NO_RULES)
+  const daylightSW = useDaylightSWStore((s) => s.out?.rules ?? NO_RULES)
   useEffect(() => {
     const names = Object.fromEntries(packages.map((p) => [p.id, p.name]))
     const on = new Map([...runs].filter(([id]) => design.enabled[id]))
@@ -74,6 +76,7 @@ function Recorder() {
       structure: isOn('built.structure') ? structure.map((s) => ({ tower: s.tower, rules: s.rules })) : [],
       windStudy: isOn('built.wind-study') ? windStudyRules(Math.max(0, ...towers.map((t) => t.height))) : [],
       windComfort: isOn('built.wind-comfort') ? windComfort : [],
+      daylightSW: isOn('built.daylight-sw') ? daylightSW : [],
       lifeSafety: isOn('built.life-safety') ? lifeSafety.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
       relaxAviation: isOn('built.relax-aviation') ? relaxAviation.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
     }
@@ -81,7 +84,7 @@ function Recorder() {
     // leave no lines (their views say what they wait for), and no FSR is recorded without a model or a site.
     const digest = gateDigest(digestResults(all as unknown as Record<string, unknown>, on, names), { project: design.project, towers: towers.length, siteArea })
     setLive(designHash(design), digest)
-  }, [results, runs, packages, design, nature, wind, structure, lifeSafety, relaxAviation, windComfort, siteArea])
+  }, [results, runs, packages, design, nature, wind, structure, lifeSafety, relaxAviation, windComfort, daylightSW, siteArea])
   return null
 }
 

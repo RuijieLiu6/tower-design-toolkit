@@ -15,6 +15,9 @@ import { vtcRules, SITE } from '../engine/vtcRules'
 import { windProcedure, windStudyRules } from '../engine/windStructure'
 import { plazaMask, siteRaster, windStudy } from '../engine/windComfort'
 import { DEFAULT_WIND_PRESETS, readingsOf, SRC as WIND_COMFORT_SRC, windRules } from '../engine/windComfortInput'
+import { aseTower, daylightTower, DEFAULT_ZONES, maskFloor, newCache, prep } from '../engine/daylightSW'
+import { DEFAULT_DAYLIGHT_PRESETS, daylightRules, readingsOf as daylightReadings } from '../engine/daylightSWInput'
+import hourly from '../data/sunWindHourly.json'
 import type { RuleResult, Tower } from '../engine/types'
 import { DEFAULT_SKY_ROOM, useStore } from '../store'
 import { lintRow, lintRule, lintRules as lintAll, type LintIssue } from './evidenceLint'
@@ -59,6 +62,15 @@ function allIssues(): LintIssue[] {
       { annual: false, dir: 270, speed: 4.5, period: { from: '01-01', to: '12-31' }, strat: null })
     const readings = readingsOf(result, 0)
     out.push(...lintRules('built.wind-comfort', windRules({ readings, result, obstacles: { loaded: true, unknownHeights: 0, source: WIND_COMFORT_SRC.vtc }, presets: DEFAULT_WIND_PRESETS, towerName: 'T' })))
+  }
+  // Daylight sDA / ASE (Sun & Wind Studio port): two floors of a 46 × 46 m tower with her default facade, no neighbours.
+  {
+    const floors = [0, 1].map((i) => maskFloor({ i, z: i * 4.2, h: 4.2, w: 46, d: 46, cx: 0, cy: 0, rot: 0, core: 16 }))
+    const s = { zones: DEFAULT_ZONES, vt: 0.6, target: 300, posX: 0, posY: 0, bld: [], period: { from: '01-01', to: '12-31' } }
+    const P = prep(hourly as never), cache = newCache()
+    const D = daylightTower(P, floors, s, cache), A = aseTower(P, floors, s, hourly.days, cache)
+    const readings = daylightReadings(D, A, [1, 2])
+    out.push(...lintRules('built.daylight-sw', daylightRules({ readings, contextLoaded: true, unknownHeights: 0, glazing: { from: 'studio', note: 'Her default facade' }, presets: DEFAULT_DAYLIGHT_PRESETS, towerName: 'T', period: A.period, left: 0 })))
   }
   for (const [k, row] of Object.entries(DEFAULT_ECON)) {
     if (k === 'research') {

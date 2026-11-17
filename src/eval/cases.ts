@@ -20,7 +20,9 @@ import { addressLabel, cityRecords, createLookup, suggest } from '../lib/address
 import { HEIGHT_CASES } from './heightCases'
 import { plazaMask, siteRaster, WIND_GRID, windStudy, type WindStudyResult } from '../engine/windComfort'
 import { DEFAULT_WIND_PRESETS, readingsOf, SRC as WIND_COMFORT_SRC, windRules } from '../engine/windComfortInput'
-import type { Flag, Tower } from '../engine/types'
+import type { Flag, RuleResult, Tower } from '../engine/types'
+import { aseTower, daylightTower, maskFloor, newCache, prep, type Zone } from '../engine/daylightSW'
+import { DEFAULT_DAYLIGHT_PRESETS, daylightRules, readingsOf as daylightReadings } from '../engine/daylightSWInput'
 
 export type CaseType = 'typical' | 'boundary' | 'out-of-scope' | 'repeated' | 'definition'
 
@@ -54,6 +56,23 @@ function windCase() {
       { annual: false, dir: 270, speed: 4.5, period: { from: '01-01', to: '12-31' }, strat: null }) }
   }
   return windRun
+}
+// Daylight sDA / ASE (Sun & Wind Studio port, engine 2): her 'plain' fixture case, run once (well under a second). The hourly
+// year and her fixtures load only when a case runs, so the app's bundle does not carry them.
+let dlRun: Promise<{ lines: (loaded: boolean) => RuleResult[]; sda: number; ase: number; herSda: number; herAse: number }> | null = null
+function dlCase() {
+  dlRun ??= (async () => {
+    const [{ default: hourly }, { default: fx }] = await Promise.all([import('../data/sunWindHourly.json'), import('../engine/daylight.fixtures.json')])
+    const c = fx.cases.find((x) => x.id === 'plain')!, t = c.tower
+    const floors = Array.from({ length: t.n }, (_, i) => maskFloor({ i, z: t.z0 + i * t.h, h: t.h, w: t.w, d: t.d, cx: t.cx, cy: t.cy, rot: t.rot, core: t.core }))
+    const s = { zones: c.zones as Zone[], vt: c.vt, target: c.target, posX: c.pos[0], posY: c.pos[1], bld: [], period: { from: '01-01', to: '12-31' } }
+    const P = prep(hourly as never), cache = newCache()
+    const D = daylightTower(P, floors, s, cache), A = aseTower(P, floors, s, hourly.days, cache)
+    const readings = daylightReadings(D, A, floors.map((f) => f.i + 1))
+    const lines = (loaded: boolean) => daylightRules({ readings, contextLoaded: loaded, unknownHeights: 0, glazing: { from: 'studio', note: 'Her plain case: curtain wall, WWR 60%, VT 0.60' }, presets: DEFAULT_DAYLIGHT_PRESETS, towerName: 'T', period: A.period, left: 0 })
+    return { lines, sda: D.sda, ase: A.pct, herSda: c.expected.tower.sda, herAse: c.expected.ase.pct }
+  })()
+  return dlRun
 }
 const windLines = (loaded: boolean) => { const { result } = windCase(); return windRules({ readings: readingsOf(result, 0), result, obstacles: { loaded, unknownHeights: 0, source: WIND_COMFORT_SRC.vtc }, presets: DEFAULT_WIND_PRESETS, towerName: 'T' }) }
 const cone = (id: string) => CONES.find((c) => c.id === id)!
@@ -204,6 +223,30 @@ export const CASES: EvalCase[] = [
     expected: 'The calm-ground line has state "unknown": a tower alone on open ground is optimistic, so it is not judged',
     basis: 'Team rule (engine/windComfortInput.ts windRules): a result without context is reported, not judged', basisFlag: 'team_assumption',
     run: () => { const line = windLines(false).find((r) => r.id === 'calm-ground'); return { observed: `calm-ground ${line?.state ?? 'missing'}`, pass: line?.state === 'unknown', flag: 'team_assumption' } },
+  },
+
+  // ---------- Daylight sDA / ASE (Sun & Wind Studio port, Sinnie Choi) ----------
+  {
+    id: 'DL-T', node: 'built.daylight-sw', type: 'typical', title: 'Her plain tower: the port gives her sDA and ASE, and the sDA line is judged',
+    input: 'Six floors of a 46 × 46 m curtain-wall tower (WWR 60%, VT 0.60, 16 m core, 4.2 m floors), no neighbours, context loaded (empty), the whole year',
+    expected: 'sDA and ASE equal to the values her own code recorded for this case (src/engine/daylight.fixtures.json, case "plain"), and the sDA line is pass or fail with its LEED points',
+    basis: 'Sun & Wind Studio outputs recorded in src/engine/daylight.fixtures.json', basisFlag: 'unverified',
+    run: async () => {
+      const r = await dlCase()
+      const line = r.lines(true).find((x) => x.id === 'sw-dl-sda')
+      const judged = !!line && (line.state === 'pass' || line.state === 'fail')
+      return { observed: `sDA ${(r.sda * 100).toFixed(2)}% (hers ${(r.herSda * 100).toFixed(2)}%), ASE ${(r.ase * 100).toFixed(2)}% (hers ${(r.herAse * 100).toFixed(2)}%); sDA line ${line?.state ?? 'missing'}: ${line?.value ?? ''}`, pass: judged && r.sda === r.herSda && r.ase === r.herAse, flag: 'unverified' }
+    },
+  },
+  {
+    id: 'DL-O', node: 'built.daylight-sw', type: 'out-of-scope', title: 'No context loaded: sDA, ASE and the daylight factor stay open, never a pass',
+    input: 'The same run with the context not loaded (no competition context or City layers)',
+    expected: 'The sDA, ASE and daylight-factor lines have state "unknown": without neighbours nothing shades the windows, so they are not judged',
+    basis: 'Team rule (engine/daylightSWInput.ts daylightRules): a result without context is reported, not judged', basisFlag: 'team_assumption',
+    run: async () => {
+      const lines = (await dlCase()).lines(false).filter((x) => ['sw-dl-sda', 'sw-dl-ase', 'sw-dl-df'].includes(x.id))
+      return { observed: lines.map((x) => `${x.id} ${x.state}`).join(', '), pass: lines.length === 3 && lines.every((x) => x.state === 'unknown'), flag: 'team_assumption' }
+    },
   },
 
   // ---------- Energy & carbon ----------
