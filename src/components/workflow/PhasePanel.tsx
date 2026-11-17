@@ -166,6 +166,21 @@ function PhaseWorkflow({ phase, mode, counts, rows, design, active, open, info, 
   const returnsFrom = (id: string) => board.edges.filter((e) => e.a === id && back.has(edgeKey(e)))
   const loops = board.edges.filter((e) => back.has(edgeKey(e)) && (rows.includes(e.a) || rows.includes(e.b))).length
   const summary = rows.map((id) => info(id).word).join(' › ')
+  // Back and Next (12 Nov, back again 17 Nov after the merge: "bring back the next and back buttons"): every tool of the
+  // workflow in working order, into the next phase when a phase's tools end.
+  const tools = useMemo(() => runOrder(board), [board])
+  const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
+  const ti = tools.indexOf(active)
+  const pi = PHASE_IDS.indexOf(phase)
+  const next = ti >= 0 ? tools[ti + 1] : tools.find((t) => PHASE_IDS.indexOf(phaseOf(t)) > pi)
+  const prev = ti >= 0 ? tools[ti - 1] : [...tools].reverse().find((t) => PHASE_IDS.indexOf(phaseOf(t)) < pi)
+  const goTool = (id: string) => {
+    const ph = phaseOf(id)
+    usePhaseTools.getState().setActive(ph, id)
+    if (!isDesignNode(id)) useStore.getState().selectNode(id)
+    if (ph !== phase) goToStep(PHASE_STEP[ph])
+  }
+  const navBtn = 'flex h-8 items-center rounded-lg border border-line bg-panel px-2.5 text-control text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
 
   return (
     <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" className="flex shrink-0 flex-col border-b border-line pb-2">
@@ -212,9 +227,15 @@ function PhaseWorkflow({ phase, mode, counts, rows, design, active, open, info, 
                   )
                 })}
               </ol></UiShow>
-              <UiShow id="left.workflow.add"><div className="px-3 pt-1.5">
+              <UiShow id="left.workflow.add"><div className="flex items-center gap-1.5 px-3 pt-1.5">
                 <button type="button" onClick={() => setAdding((v) => !v)} aria-expanded={adding} data-testid="phase-add"
                   className="flex h-8 items-center gap-1 rounded-lg border border-dashed border-line px-2.5 text-control text-ink outline-none hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"><Plus size={14} aria-hidden />Add tool</button>
+                <span className="ml-auto flex items-center gap-1.5">
+                  <button type="button" onClick={() => prev && goTool(prev)} disabled={!prev} data-testid="workflow-back"
+                    aria-label={prev ? `Back to ${info(prev).name}` : 'Back: this is the first tool'} title={prev ? `Back to ${info(prev).name} (${PHASE_NAME[phaseOf(prev)]})` : 'This is the first tool'} className={navBtn}>‹ Back</button>
+                  <button type="button" onClick={() => next && goTool(next)} disabled={!next} data-testid="workflow-next"
+                    aria-label={next ? `Next: ${info(next).name}` : 'Next: this is the last tool'} title={next ? `Next: ${info(next).name} (${PHASE_NAME[phaseOf(next)]})` : 'This is the last tool'} className={navBtn}>Next ›</button>
+                </span>
               </div></UiShow>
               {adding && <AddTool phase={phase} board={board} info={info} home={home} after={info(rows[rows.length - 1]).name} onAdd={add} onClose={() => setAdding(false)} />}
             </div>
