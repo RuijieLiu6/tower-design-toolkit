@@ -34,7 +34,7 @@ import { nodeWord } from '../../data/nodeWords'
 import type { Proposal } from '../../lib/agent/workflowAssistant'
 import GlassIcon, { HUES, ICON } from '../GlassIcon'
 import { NODE_ICONS, PRESET_ICONS, STEP_ICONS, TYPE_ICONS } from '../../data/icons'
-import { BUILT_NODES } from '../../data/registry'
+import { BUILT_NODES, nodeById } from '../../data/registry'
 import { PHASE_HUE, PHASES, phaseOfNode, type PhaseId } from '../../lib/phases'
 import { PHASE_COLOR, UI } from '../../lib/design/tokens'
 import { startPreset } from '../../lib/startPreset'
@@ -65,9 +65,21 @@ const roleIcon = (r: RoleId) => (r === 'custom' ? TYPE_ICONS.explore : TYPE_ICON
 const presetOf = (r: RoleId): Preset | null => (r === 'custom' ? null : USER_TYPES.find((t) => t.id === r)?.presets[0] ?? null)
 // Each node wears its phase's colour, so it is plain which lane of the string it belongs in.
 // Every node the board can hold: the checks, and the design steps (lib/workflow/designNodes.ts) that lead each phase.
+/** The home page's own default for a preset (17 Nov: the competition default as on Ruijie's main, 15 nodes); the toolkit's
+ *  presets (lib/userTypes.ts) are unchanged. Ped. wind comfort is Sinnie's Sun & Wind node. */
+const HOME_DEFAULT: Record<string, string[]> = {
+  'designer.competition': ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.sw-wind-comfort', 'built.sky-room', 'built.culture-claims', 'built.provenance'],
+}
+const homeNodes = (p: Preset) => HOME_DEFAULT[p.id] ?? p.nodes
+/** Tools the home default shows that the toolkit folds into another (Frontage and Open space into Public realm, Shadow,
+ *  Wind screen) or keeps in the Submission checklist (Claims, AI use log): on the home page they stand as their own. */
+const HOME_ONLY = [...new Set(Object.values(HOME_DEFAULT).flat())].filter((id) => !!nodeById(id) && !BUILT_NODES.some((n) => n.id === id))
 const NODES = [
   ...BUILT_NODES.map((n) => { const phase: PhaseId = phaseOfNode(n.id)?.id ?? 'site'; return { id: n.id, name: n.name, icon: NODE_ICONS[n.id], phase, hue: PHASE_HUE[phase], projects: n.projects ?? (['vtc', 'city'] as ('vtc' | 'city')[]) } }),
   ...DESIGN_NODES.map((d) => ({ id: d.id, name: d.name, icon: STEP_ICONS[d.step], phase: d.phase, hue: PHASE_HUE[d.phase], projects: ['vtc', 'city'] as ('vtc' | 'city')[] })),
+  // Claims and the AI use log live in the Submission checklist inside the toolkit, but the home page shows them as tools
+  // so its default reads as Ruijie's (17 Nov, Sinnie: "only do this change for the home page i want the full 15 nodes").
+  ...HOME_ONLY.map((id) => { const n = nodeById(id)!, phase: PhaseId = phaseOfNode(id)?.id ?? 'present'; return { id, name: n.name, icon: NODE_ICONS[id], phase, hue: PHASE_HUE[phase], projects: n.projects ?? (['vtc', 'city'] as ('vtc' | 'city')[]) } }),
 ]
 /** A preset's checks as a design process: the design step of each phase they use goes in front of that phase. */
 const designed = (ids: string[]) => withDesignSteps(ids, (id) => phaseOfNode(id)?.id)
@@ -112,7 +124,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // The landing always opens with the default workflow, unedited (17 Nov, Sinnie: "it should be the unedited version of
   // the default workflow"); edits made here still travel into the toolkit with Enter, but are not brought back next visit.
   const [init] = useState<ReturnType<typeof restoreCoverWorkflow>>(() => null)
-  const startIds = byPhase(designed(presetOf('designer')?.nodes ?? []))
+  const startIds = (() => { const p = presetOf('designer'); return byPhase(designed(p ? homeNodes(p) : [])) })()
   const [role, setRole] = useState<RoleId>(init?.role ?? 'designer')
   const [presetId, setPresetId] = useState<string | null>(init ? init.presetId : presetOf('designer')?.id ?? null)
   const [customName, setCustomName] = useState<string | null>(init?.customName ?? null)
@@ -133,7 +145,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const preset = presetId ? presetById(presetId) ?? null : null
   // A preset as it starts: its checks with the design step in front of each phase (designed), so the design steps alone
   // never make it "(edited)" (8 Nov).
-  const presetRun = useMemo(() => (preset ? designed(byPhase(preset.nodes)) : []), [preset])
+  const presetRun = useMemo(() => (preset ? designed(byPhase(homeNodes(preset))) : []), [preset])
   const edited = !!preset && !(sameList(chain, presetRun) && onBoard.length === presetRun.length && edges.length === presetRun.length + 1)
   const name = preset ? (edited ? `${preset.name} (edited)` : preset.name) : customName ?? 'Your workflow'
 
@@ -316,7 +328,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   /** Put a role's starting workflow on the string (the nodes not in it fall back into the room). */
   const applyBoard = (r: RoleId, p: Preset | null) => {
     setRole(r); setPresetId(p?.id ?? null); setCustomName(null)
-    const ids = p ? byPhase(designed(p.nodes)) : []
+    const ids = p ? byPhase(designed(homeNodes(p))) : []
     release(onRef.current.filter((id) => !ids.includes(id)))
     layout(ids)
     commit(ids, linear(ids))
@@ -931,7 +943,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
                     <button key={p.id} type="button" role="option" aria-selected={presetId === p.id} data-preset={p.id}
                       onMouseEnter={() => previewPreset(p)} onFocus={() => previewPreset(p)} onClick={() => pickPreset(p)}
                       className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-control outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent ${presetId === p.id ? 'bg-selected text-accent-hover' : ''}`}>
-                      {I && <I size={16} className="shrink-0 text-accent" aria-hidden />}<span className="min-w-0 flex-1 truncate">{p.name}</span><span className="text-meta tabular-nums text-muted">{p.nodes.length}</span>
+                      {I && <I size={16} className="shrink-0 text-accent" aria-hidden />}<span className="min-w-0 flex-1 truncate">{p.name}</span><span className="text-meta tabular-nums text-muted">{homeNodes(p).length}</span>
                     </button>
                   )
                 })}
