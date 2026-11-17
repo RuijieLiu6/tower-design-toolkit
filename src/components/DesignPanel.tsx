@@ -13,7 +13,6 @@ import { TIER_LABEL, type FsrTier } from '../engine/vtcRules'
 import { useResults } from '../hooks/useResults'
 import { DEFAULT_SKY_ROOM, useStore, useTowers } from '../store'
 import BlockEditor from './BlockEditor'
-import FsrSiteLine from './FsrSiteLine'
 import ImportedPanel from './ImportedPanel'
 import PublicRealmPanel from './PublicRealmPanel'
 import { FlagChip, NumberField, Section, Toggle } from './ui'
@@ -245,12 +244,10 @@ export function MassingTool() {
 export function ProgramTool() {
   const { t, up } = useEditedTower()
   const { project, fsrTier, set } = useStore(useShallow((s) => ({ project: s.project, fsrTier: s.fsrTier, set: s.set })))
-  const { fsr } = useResults()
   if (!t) return null
   const setBand = (i: number, patch: Partial<{ use: UseId; share: number }>) => up({ bands: t.bands.map((b, k) => (k === i ? { ...b, ...patch } : b)) })
   const moveBand = (i: number, d: number) => { const b = [...t.bands]; const j = i + d; if (j < 0 || j >= b.length) return; [b[i], b[j]] = [b[j], b[i]]; up({ bands: b }) }
   const shareTotal = t.bands.reduce((s, b) => s + b.share, 0) || 1
-  const maxGfa = Math.max(...Object.values(fsr.gfa), 1)
   return (
     <>
       {!t.imported && (
@@ -279,19 +276,7 @@ export function ProgramTool() {
       <ToolBlock title={`Floors and programme · ${t.name}`}>
         <FloorStack t={t} />
       </ToolBlock>
-      <Section title="Floor area (all towers, gross)">
-        <div className="grid gap-1">
-          {Object.entries(fsr.gfa).filter(([, v]) => v > 0).map(([u, v]) => (
-            <div key={u} className="flex items-center gap-2 text-meta">
-              <ProgramIcon use={u as UseId} small />
-              <span className="w-24 truncate text-muted">{USES[u as UseId].label}</span>
-              <div className="h-2 flex-1 rounded bg-slate-100"><div className="h-2 rounded" style={{ width: `${(v / maxGfa) * 100}%`, background: USES[u as UseId].color }} /></div>
-              <span className="w-20 text-right tabular-nums">{Math.round(v).toLocaleString()} m²</span>
-            </div>
-          ))}
-          <FsrSiteLine totalFsr={fsr.totalFsr} siteArea={fsr.siteArea} tiers={[fsr.tier1, fsr.tier2, fsr.tier3]} />
-        </div>
-      </Section>
+      {/* Floor area and FSR moved to the Your site tab (17 Nov, Sinnie: "remove this from the left panel completely"): components/site/SiteFloorArea.tsx. */}
       {project === 'vtc' && (
         <ToolBlock>
           <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Which uses count toward the 9.0 non-residential FSR <FlagChip flag="team_assumption" /></span>
