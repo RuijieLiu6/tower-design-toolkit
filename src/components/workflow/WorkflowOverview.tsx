@@ -13,6 +13,7 @@
 // Every change applies at once (Undo / Redo). Confirm workflow, Esc or Enter (the end of the lanes) returns to the design
 // where you were; Discard changes puts back the workflow you opened. It edits the same project workflow as the phase panel
 // and the start page (lib/workflow/projectWorkflow.ts); nothing here runs a check or touches the model.
+import { PresetPicker } from '../builder/BuilderHeader'
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ArrowLeft, ArrowRight, Check, Expand, Link2, Play, Plus, Redo2, Save, Search, Sparkles, Trash2, Undo2, X } from '../icons'
@@ -280,7 +281,10 @@ function Expanded({ info, order, board, current, phase, open, fit, setFit }: {
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-control">
         <h2 id="overview-title" className="text-section font-semibold text-ink">Edit the project workflow</h2>
         <Help label="About the workflow editor">The order you work in, the same workflow as on the start page and in the phase panel on the left: every change shows there at once. To add a tool, drag it up from the shelf under the lanes: the best place lights up (after the last tool of its phase), and you can drop it anywhere else. Clicking a shelf tool puts it in the best place. Hover a tool to see its four connection points: drag from one to another tool to connect them, or back to an earlier tool to create a loop (a route for revisiting work: it never reruns anything on its own). Drag a tool to a gap to move it; click it for Move, Open and Remove. Confirm workflow (or Esc, or Enter at the end of the lanes) takes you back to the design with the new workflow; Discard changes puts back the workflow you opened. Taking a tool off never deletes your model or its results.</Help>
-        <div className="ml-auto flex flex-wrap items-center gap-1">
+        {/* The ready-made presets (17 Nov, Sinnie: "a drop down menu of different preset that was already set up and confirm my
+            change"): picking one replaces the workflow here as one Undo step; Confirm workflow keeps it, Discard puts it back. */}
+        <div className="mx-auto"><PresetPicker showCurrent /></div>
+        <div className="flex flex-wrap items-center gap-1">
           <button type="button" onClick={w.undo} disabled={!w.past.length} aria-label="Undo the last workflow change" title="Undo" className="flex h-8 w-8 items-center justify-center rounded-lg bg-panel text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Undo2 size={15} aria-hidden /></button>
           <button type="button" onClick={w.redo} disabled={!w.future.length} aria-label="Redo" title="Redo" className="flex h-8 w-8 items-center justify-center rounded-lg bg-panel text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"><Redo2 size={15} aria-hidden /></button>
           <button type="button" onClick={() => setFit(!fit)} aria-pressed={fit} title="Fit the whole workflow in view" className={`${btn} ${fit ? 'bg-selected text-accent-hover' : ''}`}><Expand size={14} aria-hidden />Fit</button>

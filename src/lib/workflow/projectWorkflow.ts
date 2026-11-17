@@ -270,13 +270,14 @@ export function openOverview(to: 'overview' | 'edit' | 'builder' | 'close', opts
 export function changedSinceOpen(): boolean {
   const { wf, base } = useProjectWorkflow.getState()
   if (!base) return false
-  return wf.nodes.join('|') !== base.nodes.join('|') || edgeDiff(base.edges, wf.edges).added.length + edgeDiff(base.edges, wf.edges).removed.length > 0
+  return wf.presetId !== base.presetId || wf.customName !== base.customName || wf.nodes.join('|') !== base.nodes.join('|') || edgeDiff(base.edges, wf.edges).added.length + edgeDiff(base.edges, wf.edges).removed.length > 0
 }
 
 /** Discard changes: the workflow goes back to how it was when the editor opened, as one step that Undo can take back. */
 export function discardSinceOpen() {
-  const { base, commit } = useProjectWorkflow.getState()
-  if (base && changedSinceOpen()) commit(base, 'Changes discarded: the workflow is back to how it was when you opened the editor')
+  const { base, replaceWith } = useProjectWorkflow.getState()
+  // The opening workflow comes back whole: its tools and wires, and the preset it was (a picked preset is undone too).
+  if (base && changedSinceOpen()) replaceWith(base, { presetId: base.presetId, customName: base.customName, role: base.role }, 'Changes discarded: the workflow is back to how it was when you opened the editor')
 }
 
 // ---------- the workflow builder (Result A, 9 Nov): the same editing session as the centre editor, over the whole

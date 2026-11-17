@@ -100,7 +100,7 @@ function Name({ name, onRename }: { name: string; onRename: (n: string) => void 
  * Choosing one replaces the board as one undo step and notes the preset it started from; the library preset itself is
  * never changed. The arrow keys move between options; Esc or a click outside closes it.
  */
-function PresetPicker() {
+export function PresetPicker({ showCurrent = false }: { showCurrent?: boolean } = {}) {
   const w = useProjectWorkflow()
   const [open, setOpen] = useState(false)
   const [mine, setMine] = useState<MyPreset[]>([])
@@ -140,7 +140,7 @@ function PresetPicker() {
     <div ref={box} className="relative" onKeyDown={onKey}>
       <button ref={trigger} type="button" onClick={() => setOpen(!open)} data-testid="builder-preset" aria-haspopup="listbox" aria-expanded={open}
         title="Replace this workflow with a starting preset (one Undo step takes it back)" className={`${btn} bg-panel hover:bg-subtle`}>
-        Start from preset<ChevronDown size={13} aria-hidden />
+        {showCurrent ? <><span className="text-muted">Preset</span><span className="max-w-[16rem] truncate font-medium">{(current && presetById(current)?.name) || w.wf.customName || 'Your own workflow'}</span></> : 'Start from preset'}<ChevronDown size={13} aria-hidden />
       </button>
       {open && (
         <ul role="listbox" aria-label="Starting presets" data-testid="builder-preset-list"
