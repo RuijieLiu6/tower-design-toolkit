@@ -56,6 +56,8 @@ export const EMPTY_OVERLAY: Overlay = { lines: [], faces: [], dots: [] }
 export interface Snapping { gs: number; corner: boolean; mid: boolean; edge: boolean; align: boolean; dir: boolean; angle: number }
 interface DrawState {
   tool: ToolId
+  /** Select picks a whole mass (drag moves it) or one face (drag pushes / pulls it) (16 Nov, Sinnie). */
+  selMode: 'mass' | 'face'
   line: { mode: 'free' | 'offset'; width: number; align: 'c' | 'i' | 'e' }
   bmode: 'union' | 'subtract' | 'intersect'
   sn: Snapping
@@ -74,7 +76,7 @@ interface DrawState {
 }
 
 export const useDraw = create<DrawState>(() => ({
-  tool: 'select', line: { mode: 'free', width: 10, align: 'c' }, bmode: 'union',
+  tool: 'select', selMode: 'mass', line: { mode: 'free', width: 10, align: 'c' }, bmode: 'union',
   sn: { gs: 0.5, corner: true, mid: true, edge: true, align: true, dir: true, angle: 15 }, grid: true,
   hint: HINTS.select, typed: '', toast: null, tag: null, dim: null, overlay: EMPTY_OVERLAY, reset: 0,
 }))

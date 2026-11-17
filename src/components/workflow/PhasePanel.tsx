@@ -331,7 +331,6 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
   const right = usePanels((s) => s.right)
   const pkg = useCommunityStore((s) => s.packages.find((p) => p.id === id))
   const controls = NODE_CONTROLS[id]
-  const onRight = useDesignOnRight()
   const showResults = () => { useStore.getState().selectNode(id); if (!right) togglePanel('right') }
   const state = d ? d.about : !on ? 'Switched off: add it to the workflow or switch it on in More › Check library' : analysis ? 'Runs with the model; its results are on the right' : 'Auto-run checks is off: its results wait until you turn it on in the project bar'
   return (
@@ -348,7 +347,7 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
       {/* With a mass, a design node's editing tools are in the right panel's Design tab (useDesignOnRight). */}
       {/* Massing keeps its four ways to start here at all times (16 Nov, Sinnie: "on the left, i should always see the 4
           massing options"), also once there is a mass and its editing tools are on the right. */}
-      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : onRight ? (phase === 'form' && id === designOf('form').id ? <MassingStart /> : null) : <ToolPanel embedded />)
+      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : phase === 'form' && id === designOf('form').id ? <MassingStart /> : <ToolPanel embedded />)
         : controls ? <ToolPanel embedded only={controls} />
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}

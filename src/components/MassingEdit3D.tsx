@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { withBlocks } from '../engine/massing'
 import type { Tower } from '../engine/types'
+import { useDraw } from '../lib/drawTools'
 import { axisParam, boxes, faceFrame, hitBlocks, moveBlock, planeHit, pushFace, useBlockEdit, type FaceKey, type Ray3 } from '../lib/blockEdit'
 import { breakStep } from '../lib/project/history'
 import { useTowerEdit } from '../lib/towerEdit'
@@ -41,6 +42,8 @@ const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isCo
 /** True when editing on the model is live: Massing open on the Form step, a box tower selected, nothing else using the view. */
 export function useMassingEditLive(): Tower | null {
   const on = useBlockEdit((s) => s.on)
+  // Select › Face on the rail edits faces of the selected box tower too (16 Nov, Sinnie).
+  const faceSelect = useDraw((s) => s.tool === 'select' && s.selMode === 'face')
   const phase = useStore((s) => s.phase)
   const placing = useStore((s) => s.placing)
   const selected = useStore((s) => s.selectedTower)
@@ -49,7 +52,7 @@ export function useMassingEditLive(): Tower | null {
   const viewing = useViewFromStore((s) => s.looking || s.picking)
   const moving = useTowerEdit((s) => !!s.drag || !!s.proposal)
   const t = towers.find((x) => x.id === selected) ?? null
-  return on && phase === 'basic' && !placing && !hidden && !viewing && !moving && t && !t.imported ? t : null
+  return (on || faceSelect) && phase === 'basic' && !placing && !hidden && !viewing && !moving && t && !t.imported ? t : null
 }
 
 export default function MassingEdit3D() {
@@ -57,7 +60,8 @@ export default function MassingEdit3D() {
   const project = useStore((s) => s.project)
   const ground = useStore((s) => s.groundElevation)
   const baseZ = project === 'city' ? ground : 0
-  const locked = useBlockEdit((s) => s.locked)
+  // The Massing card's locked framing only; Select › Face leaves the view as it is.
+  const locked = useBlockEdit((s) => s.locked && s.on)
   const frameReq = useBlockEdit((s) => s.frame)
   const { gl, camera, size } = useThree()
   const get = useThree((s) => s.get)

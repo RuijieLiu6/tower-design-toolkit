@@ -516,8 +516,18 @@ export default function DrawTools({ baseZ }: { baseZ: number }) {
   useEffect(() => {
     const r = R.current
     const down = (e: PointerEvent) => {
-      const t = tools().tool
-      if (t === 'select' || useStore.getState().phase === 'present') return
+      let t = tools().tool
+      if (useStore.getState().phase === 'present') return
+      // Select, Mass: a press on a mass picks it and a drag moves it (as Move); empty space orbits. Face is the
+      // block editor's (components/MassingEdit3D.tsx) for box towers and Push / pull for drawn masses.
+      if (t === 'select') {
+        if (e.button !== 0 || e.ctrlKey || e.metaKey) return
+        const sh = hit(e)
+        if (!sh) return
+        if (tools().selMode === 'mass') t = 'move'
+        else if (sh.ent.m) t = 'pull'
+        else return
+      }
       if (r.sticky) { e.stopImmediatePropagation(); endPull(false); return }   // the second click of a picked-up face sets it
       if (e.button !== 0) return
       const sx = e.clientX, sy = e.clientY
@@ -581,7 +591,7 @@ export default function DrawTools({ baseZ }: { baseZ: number }) {
     const move = (e: PointerEvent) => {
       const t = tools().tool
       { const rc = el.getBoundingClientRect(); r.ptr = [e.clientX - rc.left, e.clientY - rc.top] }
-      if (t === 'select') return
+      if (t === 'select' && !r.drag && !r.sticky) return
       if (t === 'line' && (!r.drag || r.drag.k === 'click')) { const y0 = r.draft ? r.draft.y : 0, p = ground(e, y0); if (p) { if (r.draft) { draftCursor([p.x, p.y], e.shiftKey, e.altKey); drawDraft() } else hoverSnap([p.x, p.y], e.altKey) } }
       if (!r.drag && !r.sticky) { if (t === 'pull') drawHoverFace(e); else if (t === 'split') splitMove(e) }
       const d = r.drag ?? r.sticky; if (!d) return

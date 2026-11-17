@@ -16,8 +16,6 @@ import { useStore } from '../store'
 import { useDraw } from '../lib/drawTools'
 import { useSiteFocus, watchSiteFocus } from '../lib/siteFocus'
 import DrawToolPanel from './draw/ToolPanel'
-import ToolPanel from './tools/ToolPanel'
-import { useDesignOnRight, usePhaseActive } from './workflow/PhasePanel'
 import { togglePanel, usePanels } from '../lib/panels'
 import { NEEDS_MODEL, NEEDS_MODEL_WORD, NEXT_MODEL } from '../lib/missingInput'
 import { CircleDashed } from './icons'
@@ -104,8 +102,10 @@ export default function RightPanel() {
   const siteStep = phase === 'basic' && step === 'site'
   // The open design tool's tools (Site, Massing, Program…) live here, in the Design tab (16 Nov, Sinnie: "move these to
   // the right"): the phase panel on the left keeps the steps and the tool's name; its tool row and controls are here.
-  const { active } = usePhaseActive()
-  const designOpen = useDesignOnRight()
+  // 16 Nov (Sinnie, on the Design tab's tool row: "remove these tools"): no design tools in this panel; Massing's
+  // options, Basement included, are in the left panel. `designOpen` stays false so the tab logic below is unchanged.
+  const active = ''
+  const designOpen = false as boolean
   const [tab, setTab] = useState<Tab>(present ? 'present' : designOpen ? 'design' : siteStep ? 'site' : 'results')
   useEffect(() => { setTab(phase === 'present' ? 'present' : designOpen ? 'design' : phase === 'basic' && useStep.getState().step === 'site' ? 'site' : 'results') }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
   // Entering the Site step shows its tools (or the site); the other steps keep the tab the user chose.
@@ -170,7 +170,6 @@ export default function RightPanel() {
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>
       </div>
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
-        {shown === 'design' && <div data-testid="design-tab"><ToolPanel embedded /></div>}
         {shown === 'properties' && (drawing ? <DrawToolPanel /> : <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>)}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><SwResults /><ClimateDrawings /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}
