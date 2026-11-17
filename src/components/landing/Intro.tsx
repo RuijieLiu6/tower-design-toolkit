@@ -144,20 +144,12 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const band = () => { const { W, H } = dims.current; return { x0: 0, y0: 0, x1: W, y1: Math.max(340, H * 0.46) } }
   const span = () => { const { W } = dims.current, sx = Math.max(48, W * 0.05), ex = W - Math.max(56, W * 0.055); return { sx, ex, x0: sx + 44, x1: ex - 44 } }
   const shelfK = useRef(SHELF_S)
-  /** 17 Nov (Sinnie: "organize this to look neater"): each lane is as wide as what it holds, so a busy phase keeps its
-   *  nodes in one straight row instead of zig-zagging, and a quiet one does not leave a gap. */
-  const laneSpans = () => {
-    const { x0, x1 } = span(), wt = PHASES.map((ph) => Math.max(1.2, 0.5 + onRef.current.filter((id) => NODES[idx(id)]?.phase === ph.id).length))
-    const tot = wt.reduce((a, b) => a + b, 0)
-    let at = x0
-    return wt.map((v) => { const a = at; at += ((x1 - x0) * v) / tot; return { x0: a, x1: at } })
-  }
   const shelfGeom = () => {
     // Shelf tiles get smaller (to 0.4) when the shelves would leave less than one named row for the workflow (13 Nov).
-    const ls = laneSpans(), b = band(), room = b.y1 - 14 - (b.y0 + 140) - (size + 24)
+    const { x0, x1 } = span(), w = (x1 - x0) / PHASES.length, b = band(), room = b.y1 - 14 - (b.y0 + 140) - (size + 24)
     const geom = (k: number) => {
-      const cell = Math.round(size * k) + 8, capOf = (k2: number) => Math.max(1, Math.floor((ls[k2].x1 - ls[k2].x0 - 16) / cell)), cap = Math.min(...PHASES.map((_, k2) => capOf(k2)))
-      const rows = Math.max(1, ...PHASES.map((ph, k2) => Math.ceil(NODES.filter((n) => n.phase === ph.id && !onRef.current.includes(n.id)).length / capOf(k2))))
+      const cell = Math.round(size * k) + 8, cap = Math.max(1, Math.floor((w - 16) / cell))
+      const rows = Math.max(1, ...PHASES.map((ph) => Math.ceil(NODES.filter((n) => n.phase === ph.id && !onRef.current.includes(n.id)).length / cap)))
       return { cell, cap, h: rows * cell + 10, k }
     }
     let g = geom(SHELF_S)
@@ -177,16 +169,15 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const ends = () => { const s = span(), a = nodeArea(), mid = (a.y0 + a.y1) / 2 + 6; return { start: { x: s.sx, y: mid }, enter: { x: s.ex, y: mid } } }
   /** The five phase lanes along the string, Start to Enter, each with its shelf at the foot. */
   const lanes = () => {
-    const a = nodeArea(), b = band(), ls = laneSpans()
-    return PHASES.map((ph, k) => ({ ph, x0: ls[k].x0, x1: ls[k].x1, y0: a.y0, y1: a.y1, shelfTop: a.y1 + 8, shelfBottom: b.y1 - 6 }))
+    const s = span(), a = nodeArea(), b = band(), w = (s.x1 - s.x0) / PHASES.length
+    return PHASES.map((ph, k) => ({ ph, x0: s.x0 + k * w, x1: s.x0 + (k + 1) * w, y0: a.y0, y1: a.y1, shelfTop: a.y1 + 8, shelfBottom: b.y1 - 6 }))
   }
   /** Each unused node's slot in its lane's shelf, in the registry's order. */
   const shelfSlots = (on: string[]) => {
     const g = shelfGeom(), out = new Map<string, { x: number; y: number }>()
     for (const lane of lanes()) {
-      const cap = Math.max(1, Math.floor((lane.x1 - lane.x0 - 16) / g.cell))
       NODES.filter((n) => n.phase === lane.ph.id && !on.includes(n.id)).forEach((n, j) => {
-        out.set(n.id, { x: lane.x0 + 8 + g.cell / 2 + (j % cap) * g.cell, y: lane.shelfTop + 5 + g.cell / 2 + Math.floor(j / cap) * g.cell })
+        out.set(n.id, { x: lane.x0 + 8 + g.cell / 2 + (j % g.cap) * g.cell, y: lane.shelfTop + 5 + g.cell / 2 + Math.floor(j / g.cap) * g.cell })
       })
     }
     return out
@@ -194,39 +185,53 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   const shelfRef = useRef(new Map<string, { x: number; y: number }>())
   /** Nodes on the board shown without their name (a crowded lane): the name shows on hover. */
   const bare = useRef(new Set<string>())
-  /** Nodes whose name sits above the tile: on a tight row every other name goes above, so none run into each other. */
-  const above = useRef(new Set<string>())
   /** Put a node on the board at (x, y): it glides there from wherever it is, and lands with a small pop. */
-  const place = (id: string, x: number, y: number, pop = true, k = 1, named = true, up = false) => {
+  const place = (id: string, x: number, y: number, pop = true, k = 1, named = true) => {
     const b = bodies.current[idx(id)]
     if (!b) return
     if (!b.on && pop) b.pop = true
     b.tx = x; b.ty = y; b.on = true; b.held = false; b.k = k
-    let changed = named ? bare.current.delete(id) : !bare.current.has(id) && !!bare.current.add(id)
-    if (up !== above.current.has(id)) { if (up) above.current.add(id); else above.current.delete(id); changed = true }
-    if (changed) relayout((n) => n + 1)
+    if (named ? bare.current.delete(id) : !bare.current.has(id) && !!bare.current.add(id)) relayout((n) => n + 1)
   }
   /** Where a node goes in its own lane, and where in the string's order (after the nodes of its phase and earlier). */
   const slotFor = (id: string, list: string[]) => {
     const lane = lanes().find((l) => l.ph.id === NODES[idx(id)].phase)!, mates = list.filter((x) => NODES[idx(x)].phase === lane.ph.id).length
-    const x = lane.x0 + (lane.x1 - lane.x0) * Math.min(0.85, 0.2 + mates * 0.18), y = ends().start.y
+    const x = lane.x0 + (lane.x1 - lane.x0) * Math.min(0.85, 0.2 + mates * 0.18), y = (lane.y0 + lane.y1) / 2 + Math.sin((idx(id) + mates) * 1.7) * (lane.y1 - lane.y0) * 0.22
     let at = 0
     list.forEach((x2, k) => { if (phaseIndex(x2) <= phaseIndex(id)) at = k + 1 })
     return { x, y, at }
   }
   const [hot, setHot] = useState<PhaseId | null>(null)
 
-  /** One lane's nodes, in order, on the one straight line from Start to Enter (17 Nov, Sinnie: "make sure it looks like
-   *  this when users load the screen"). On a tight row the tiles shrink a little and every other name sits above. */
-  const layoutLane = (lane: ReturnType<typeof lanes>[number], mine: string[], start = 0) => {
+  /** One lane's nodes, in order, fitted to the lane: a named row; two named rows; or, crowded, a grid of smaller tiles
+   *  without names that snakes down and up (13 Nov: nothing overlaps, whatever the window or the workflow). */
+  const layoutLane = (lane: ReturnType<typeof lanes>[number], mine: string[]) => {
     const n = mine.length
     if (!n) return
-    const Lw = lane.x1 - lane.x0 - 12, L = lane.x0 + 6, mid = ends().start.y, gap = Lw / n
-    const k = Math.max(0.55, Math.min(1, (gap - 10) / size)), tight = gap < 96
-    mine.forEach((id, j) => place(id, L + ((j + 0.5) * Lw) / n, mid, true, k, true, tight && (start + j) % 2 === 1))
+    const Lw = lane.x1 - lane.x0 - 12, L = lane.x0 + 6, T = lane.y0 - size / 2, E = lane.y1 + 2 - T, lab = 20
+    if (Lw / n >= 92 && E >= size + lab) {
+      const room = (E - size - lab) / 2
+      mine.forEach((id, j) => place(id, L + ((j + 0.5) * Lw) / n, T + size / 2 + room + Math.sin(idx(id) * 1.3) * Math.min(room, 30)))
+      return
+    }
+    if ((2 * Lw) / n >= 96 && E >= 2 * (size + lab) + 4) {
+      const rowH = E / 2
+      mine.forEach((id, j) => place(id, L + ((j + 0.5) * Lw) / n, T + (j % 2) * rowH + (rowH - size - lab) / 2 + size / 2))
+      return
+    }
+    let best = { r: 1, k: 0 }
+    for (let r = 1; r <= 4; r++) {
+      const cols = Math.ceil(n / r), k = Math.min(1, (Lw / cols - 6) / size, (E / r - 6) / size)
+      if (k > best.k + 0.02) best = { r, k }
+    }
+    const r = best.r, cols = Math.ceil(n / r), k = Math.max(0.4, best.k)
+    mine.forEach((id, j) => {
+      const col = Math.floor(j / r), row = col % 2 ? r - 1 - (j % r) : j % r
+      place(id, L + ((col + 0.5) * Lw) / cols, T + ((row + 0.5) * E) / r, true, k, false)
+    })
   }
-  /** Thread nodes along the string, lane by lane, counting along the whole line (names alternate across lanes too). */
-  const layout = (ids: string[]) => { let at = 0; lanes().forEach((lane) => { const mine = ids.filter((id) => NODES[idx(id)].phase === lane.ph.id); layoutLane(lane, mine, at); at += mine.length }) }
+  /** Thread nodes along the string, lane by lane. */
+  const layout = (ids: string[]) => lanes().forEach((lane) => layoutLane(lane, ids.filter((id) => NODES[idx(id)].phase === lane.ph.id)))
   /** Lanes whose nodes sit on each other or outside the board are laid out again (a restored board, a node added to a
    *  full lane, a smaller window); the rest stay where the visitor put them. */
   const tidy = () => {
@@ -237,7 +242,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       const bs = mine.map(box)
       const out = bs.some((a) => a.y < lane.y0 - size / 2 - 6 || a.y + a.h > lane.y1 + 12)
       const hit = bs.some((a, i) => bs.some((b, j) => j > i && a.x < b.x + b.w - 3 && b.x < a.x + a.w - 3 && a.y < b.y + b.h - 3 && b.y < a.y + a.h - 3))
-      if (out || hit) { layout(order.filter((id) => bodies.current[idx(id)]?.on)); return }
+      if (out || hit) layoutLane(lane, mine)
     }
   }
   const tidyRef = useRef(tidy); tidyRef.current = tidy
@@ -436,7 +441,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       els.current[i]?.setAttribute('data-on', on.has(n.id) ? '1' : '0')
     })
     shelfRef.current = shelfSlots(onBoard)
-    if (bodies.current.length) layout([...chainRef.current, ...onBoard.filter((id) => !chainRef.current.includes(id))])
+    if (bodies.current.length) tidy()
   }, [onBoard]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- the ropes (verlet), keyed by link, and the frame loop that moves everything
@@ -535,9 +540,11 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
       const r = size / 2, sl = slots.get(n.id) ?? { x: -200, y: -200 }
       return { x: sl.x, y: sl.y, tx: sl.x, ty: sl.y, s: shelfK.current, vx: 0, vy: 0, r, held: false, on: false, pop: false, k: 1 }
     })
-    // Always laid out along the lanes on arrival, one straight row per phase (17 Nov: restored drag positions left the
-    // string ragged); no gliding on arrival.
-    layout([...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))])
+    // The board as it was left (restored positions), else laid out along the lanes; no gliding on arrival.
+    const at = init?.at ?? {}, area = nodeArea()
+    if (onRef.current.length && onRef.current.every((id) => at[id])) {
+      for (const id of onRef.current) { const [fx, fy] = at[id]; place(id, Math.max(30, Math.min(W - 30, fx * W)), Math.max(area.y0 - 20, Math.min(area.y1, fy * H)), false) }
+    } else layout([...chainRef.current, ...onRef.current.filter((id) => !chainRef.current.includes(id))])
     tidyRef.current()
     for (const b of bodies.current) if (b.on) { b.x = b.tx; b.y = b.ty; b.s = b.k; b.pop = false }
 
@@ -1072,7 +1079,7 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
           onPointerEnter={() => setHoverNode(n.id)} onPointerLeave={() => setHoverNode((h) => (h === n.id ? null : h))} onFocus={() => setHoverNode(n.id)} onBlur={() => setHoverNode((h) => (h === n.id ? null : h))}
           style={{ width: size, height: size, transformOrigin: '50% 50%', transform: 'translate3d(-999px,-999px,0)' }}>
           <NodeTile id={n.id} size={size} state={chain.includes(n.id) ? 'on' : 'soft'} />
-          {onBoard.includes(n.id) && !bare.current.has(n.id) && <span aria-hidden data-node-name data-name-above={above.current.has(n.id) ? '' : undefined} className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-meta font-medium text-ink/80 ${above.current.has(n.id) ? 'bottom-full mb-1' : 'top-full mt-1'}`}>{nodeWord(n)}</span>}
+          {onBoard.includes(n.id) && !bare.current.has(n.id) && <span aria-hidden data-node-name className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-meta font-medium text-ink/80">{nodeWord(n)}</span>}
           {onBoard.includes(n.id) && (['n', 'e', 's', 'w'] as const).map((side) => (
             <span key={side} aria-hidden data-handle={side} onPointerDown={(e) => startLink(n.id, side, e)}
               className="group/h absolute z-10 hidden h-4 w-4 cursor-crosshair items-center justify-center rounded-full border-2 border-white shadow-md group-hover:flex group-focus-visible:flex group-data-[selected]:flex"
