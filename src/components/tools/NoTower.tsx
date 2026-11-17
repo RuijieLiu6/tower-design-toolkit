@@ -97,7 +97,7 @@ const FormsPanel = lazy(() => import('./TowerForms'))
 export function startFromScratch() {
   useStore.getState().set({ placing: false })
   setTool('rect')
-  toast('Drag a footprint on the ground, then Push / pull (P) to raise it')
+  toast('Drag a footprint on the ground; Select comes back once it is drawn')
 }
 
 type StartWay = 'case' | 'import' | 'type'

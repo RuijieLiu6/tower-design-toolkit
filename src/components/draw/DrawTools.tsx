@@ -114,7 +114,9 @@ export default function DrawTools({ baseZ }: { baseZ: number }) {
   const setTag = (text: string, x = 0, y = 0, h = 0) => useDraw.setState({ tag: text ? { text, at: [x, y, Z(h)] } : null })
   const showDim = (text: string | null, typing = false) => useDraw.setState({ dim: text == null ? null : { text, x: R.current.ptr[0] + 16, y: R.current.ptr[1] - 30, typing } })
   const commitStart = () => breakStep()
-  const commit = (msg?: string) => { breakStep(); if (msg) toast(msg) }
+  // Select is the resting tool (16 Nov, Sinnie: "it should always be defaulted as select, unless i choose the push pull
+  // function"): every finished edit goes back to Select; Push / pull stays on until another tool or Esc.
+  const commit = (msg?: string) => { breakStep(); if (msg) toast(msg); if (tools().tool !== 'pull') setTool('select') }
 
   // ------------------------------------------------------------ inference (the workspace's inferPoint)
   const sceneEdges = () => {
@@ -258,7 +260,6 @@ export default function DrawTools({ baseZ }: { baseZ: number }) {
     commitStart()
     addDrawnTower({ pts, base: base || 0, floors: 6, f2f: 3.6, ...(holes && holes.length ? { holes } : {}) })
     commit()
-    setTool('pull')
   }
   const startBase = (e: PointerEvent) => { const h = hit(e); return h && h.ent.m && h.n.z > 0.9 ? Math.round(h.h * 10) / 10 : 0 }
 
