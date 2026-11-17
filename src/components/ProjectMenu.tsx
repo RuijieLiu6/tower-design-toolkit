@@ -1,6 +1,7 @@
 // Project menu in the top bar: undo / redo, New, Open, Save as, and the autosave status. Projects live in this browser
-// (IndexedDB); files come and go through the transfer centre (the bar's Import and Export, Result B, 9 Nov).
-import { ChevronDown, FilePlus, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
+// (IndexedDB); files come and go through the transfer centre, opened by Import… and Export… here (Result B, 9 Nov; the
+// bar's own two buttons went on 17 Nov, Ruijie: "their functions are already incorporated into the project menu").
+import { ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTransfer } from '../lib/porting/transfer'
 import { redo, startHistory, undo, useHistory } from '../lib/project/history'
@@ -94,7 +95,7 @@ export default function ProjectMenu() {
             <Item icon={<FolderOpen size={14} />} onClick={() => (panel === 'open' ? setPanel('none') : openMenu('open'))} disabled={present} hint={locked} expanded={panel === 'open'}>Open…</Item>
             {panel === 'open' && (
               <div className="mx-1 mb-1 max-h-56 overflow-y-auto rounded-md border border-line">
-                {meta.saved.length === 0 && <p className="px-2 py-2 text-meta text-muted">No saved projects in this browser yet. Use Save as…, or Import › Open a saved project.</p>}
+                {meta.saved.length === 0 && <p className="px-2 py-2 text-meta text-muted">No saved projects in this browser yet. Use Save as…, or Import… › Open a saved project.</p>}
                 {meta.saved.map((p) => (
                   <div key={p.key} className="flex items-center gap-1 border-b border-line/60 px-2 py-1 last:border-0">
                     <button onClick={() => { void openStored(p.key); setPanel('none') }} className="min-w-0 flex-1 text-left hover:text-accent">
@@ -117,8 +118,9 @@ export default function ProjectMenu() {
                 <button type="submit" className="rounded bg-accent px-2.5 py-1 text-xs font-medium text-white hover:opacity-90">Save</button>
               </form>
             )}
-            <Item icon={<FolderOpen size={14} />} onClick={() => { setOpen(false); useTransfer.getState().open('export', box.current?.querySelector('button')) }} hint="Backups, geometry, workflow packages, models and tools: the Import and Export buttons beside this menu">Import or export a file…</Item>
-            <p className="px-2 pb-1 pt-1.5 text-meta leading-snug text-muted">Projects stay in this browser. Export › Back up this project keeps a copy or shares it; the same design always exports the same file. Ctrl+Z / Ctrl+Shift+Z undo and redo design changes.</p>
+            <Item icon={<FileUp size={14} />} testId="transfer-import" onClick={() => { setOpen(false); useTransfer.getState().open('import', box.current?.querySelector('button')) }} hint="A model, a saved project, a workflow package, a site boundary or a custom tool; a file dropped anywhere does the same">Import…</Item>
+            <Item icon={<FileDown size={14} />} testId="transfer-export" onClick={() => { setOpen(false); useTransfer.getState().open('export', box.current?.querySelector('button')) }} hint="A backup of this project, the geometry, a workflow package, results for Sun & Wind Studio, PROV">Export…</Item>
+            <p className="px-2 pb-1 pt-1.5 text-meta leading-snug text-muted">Projects stay in this browser. Export… › Back up this project keeps a copy or shares it; the same design always exports the same file. Ctrl+Z / Ctrl+Shift+Z undo and redo design changes.</p>
           </div>
         )}
       </div>
@@ -126,9 +128,9 @@ export default function ProjectMenu() {
   )
 }
 
-function Item({ icon, children, onClick, disabled, hint, expanded }: { icon: ReactNode; children: ReactNode; onClick: () => void; disabled?: boolean; hint?: string; expanded?: boolean }) {
+function Item({ icon, children, onClick, disabled, hint, expanded, testId }: { icon: ReactNode; children: ReactNode; onClick: () => void; disabled?: boolean; hint?: string; expanded?: boolean; testId?: string }) {
   return (
-    <button role="menuitem" onClick={onClick} disabled={disabled} title={hint} aria-expanded={expanded}
+    <button role="menuitem" onClick={onClick} disabled={disabled} title={hint} aria-expanded={expanded} data-testid={testId}
       className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40">
       <span className="text-muted">{icon}</span>{children}
     </button>

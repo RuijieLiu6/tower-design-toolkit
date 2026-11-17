@@ -190,7 +190,7 @@ function ExportPane({ c, purpose, initialPhase }: { c: Capability; purpose: Expo
     <div>{head}
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5" data-testid="transfer-preview">
         {row('Project', meta.name ?? 'Untitled project')}{row('Holds', `${towers.length} tower${towers.length === 1 ? '' : 's'}, every phase's settings, imported meshes, the decision trace (${trace.iterations.length} entries)`)}
-        {row('File', exportName())}{row('Reopens', 'Import › Open a saved project, with everything editable')}
+        {row('File', exportName())}{row('Reopens', 'Project menu › Import… › Open a saved project, with everything editable')}
       </dl>
       <Footer action="Save backup" status={status} onAction={async () => { saveFile(exportName(), await currentText()); setStatus('Saved.') }} /></div>)
   if (purpose === 'workflow') return (

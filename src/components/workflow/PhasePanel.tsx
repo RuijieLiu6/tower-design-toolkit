@@ -1,6 +1,6 @@
 // The left panel, one per phase (Ruijie, 8 Nov: "The left panel should show the selected phase's local tool workflow and,
 // below it, the active tool's parameters, controls and results"). Three parts:
-//   the phase header: its name and Hide (Import and Export are the project bar's, Result B, 9 Nov);
+//   the phase header: its name and Hide (Import… and Export… are the project menu's, Result B, 9 Nov);
 //   the phase workflow (9 Nov): the Workflow header opens the editor in the centre view (WorkflowOverview.tsx); under it a
 //     map of the whole workflow (every tool as a dot in working order, the current phase tinted, loops as arcs) and this
 //     phase's tools, which open on a click; Add tool (asks first);

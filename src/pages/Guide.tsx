@@ -107,7 +107,7 @@ export default function Guide() {
           </Section>
 
           <Section id="files" title="Saving, import and export">
-            <p>Your design is saved in this browser as you work and comes back when you return. The <b>project menu</b> (top left in the guided app) has <b>New project</b>, <b>Open…</b>, <b>Save</b>, <b>Save as…</b>, <b>Export .json</b> and <b>Import .json…</b>. A project file holds the design, your decisions and the trace; send it to a teammate to share the whole state.</p>
+            <p>Your design is saved in this browser as you work and comes back when you return. The <b>project menu</b> (top left in the guided app) has <b>New project</b>, <b>Open…</b>, <b>Save as…</b>, <b>Import…</b> and <b>Export…</b> (the transfer centre: models, project backups, workflow packages, a site boundary, custom tools, results; a file dropped anywhere on the app imports too). A project file holds the design, your decisions and the trace; send it to a teammate to share the whole state.</p>
             <p>To bring in your own massing, use <b>Import</b> in the <b>Towers &amp; site</b> design tool: Rhino <code>.3dm</code>, OBJ, glTF / GLB and IFC. SketchUp and Revit files can't be read in a browser; the app tells you how to export them (OBJ from SketchUp, IFC from Revit). Imported masses are cut into storeys so the checks can read them.</p>
             <p>Browser storage belongs to one browser on one computer: export a project file to keep a copy or to move to another machine.</p>
           </Section>

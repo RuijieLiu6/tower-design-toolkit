@@ -1,3 +1,22 @@
+# CHECKPOINT: the top bar's Import and Export buttons go into the project menu (17 Nov 2026)
+
+Ruijie, 17 Nov: "These two buttons can also be removed, because their functions are already incorporated into the
+Untitled project drop-down menu." Second commit on `phase-dots`. Not merged, not deployed.
+- `TopBar.tsx` loses the two buttons; `ProjectMenu.tsx` gets two items with their icons, Import… and Export…, each opening
+  the transfer centre on its side through the same `useTransfer().open(side, opener)`; the opener is the menu's own
+  button, so Cancel and Esc give focus back to it. The items carry the old `transfer-import` / `transfer-export` test
+  ids; `e2e/helpers.ts` `openTransfer(p, side)` opens the menu and clicks one, and every e2e that clicked the bar's
+  buttons goes through it (journeys, phase-panel, rhino-import, sun-wind-link, transfer-centre; workspace-gate's
+  type check reads the menu button). A file dropped anywhere on the app still opens the centre on Import (unchanged).
+- Texts: the menu hint and its empty-list line ("Import… › Open a saved project"), the transfer centre's backup
+  "Reopens" line, the user guide's project-menu sentence (it still named "Export .json" and "Import .json…") and the
+  comments in `TopBar.tsx`, `ProjectMenu.tsx` and `PhasePanel.tsx`. The onboarding card, the status line, the Rhino
+  import tutorial and the VTC base-model panel never named the bar's buttons (checked by grep), so they are unchanged.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,243 pass (the same 2 CRLF data-file checks fail in this worktree only) ·
+  Edge e2e: `rhino-import` (2) PASS · `transfer-centre` PASS · `phase-panel` PASS · `journeys` PASS ·
+  `model-presentation` PASS · `sun-wind-link` skips itself here (it needs the sun-wind-studio checkout beside the
+  repo, which this worktree does not have). Screenshot: `docs/evaluation/2026-11-17-project-menu/01-project-menu.png`.
+
 # CHECKPOINT: the phase rows go; the line's segments and the arrows are the phase navigation (17 Nov 2026)
 
 Ruijie, 17 Nov: "remove all the Site / Form / Program / Schematic text … the left and right arrows can be the buttons

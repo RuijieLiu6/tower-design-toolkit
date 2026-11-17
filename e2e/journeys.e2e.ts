@@ -8,7 +8,7 @@
 // F05 a use-only band edit keeps GFA and FSR, moves the value, and Undo restores it.
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { placeStartingTower, openDesignTool } from './helpers'
+import { openTransfer, placeStartingTower, openDesignTool } from './helpers'
 
 const rail = (p: Page) => p.getByRole('navigation', { name: 'Design process' })
 const panel = (p: Page) => p.getByTestId('phase-panel')
@@ -153,7 +153,7 @@ test('F01–F05: Form and Program journeys, freshness, persistence and a phase-p
   const programRows = await rows(p)
   const tier = (await live(p)).fsrTier
   await rail(p).locator('[data-phase="form"]').click()
-  await p.getByTestId('transfer-export').click()
+  await openTransfer(p, 'export')
   await p.getByTestId('purpose-workflow').click()
   const [dl] = await Promise.all([p.waitForEvent('download'), p.getByTestId('transfer-action').click()])
   await p.keyboard.press('Escape')
@@ -164,7 +164,7 @@ test('F01–F05: Form and Program journeys, freshness, persistence and a phase-p
   pkg.workflow.links.push({ edge: { a: 'built.sun', b: 'built.economics' }, other: 'built.economics', out: true })
   const file = test.info().outputPath('form-package-edited.json')
   writeFileSync(file, JSON.stringify(pkg))
-  await p.getByTestId('transfer-import').click()
+  await openTransfer(p, 'import')
   await p.getByTestId('purpose-package').click()
   await p.getByTestId('transfer-file').setInputFiles(file)
   await p.getByTestId('transfer-action').click()

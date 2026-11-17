@@ -19,6 +19,12 @@ export async function placeStartingTower(p: Page, { stay = false } = {}) {
   if (!stay && step && step !== 'volume') await rail.locator(`[data-step="${step}"]`).click()
 }
 
+/** The transfer centre opens from the project menu (17 Nov: the bar's own Import and Export buttons went): Import… or Export…. */
+export async function openTransfer(p: Page, side: 'import' | 'export') {
+  await p.getByRole('button', { name: /^Project file/ }).click()
+  await p.getByTestId(`transfer-${side}`).click()
+}
+
 /**
  * Opens a design tool in the left panel: its icon is a tab under the phase's design node, and its controls show below
  * the row of icons. When the phase panel has a check open instead, its design node (the first row) is opened first.

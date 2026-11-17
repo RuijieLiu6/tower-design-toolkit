@@ -3,6 +3,7 @@
 // branch ruijie/tower-toolkit-link) imports it. Her branch is served here from the sibling checkout
 // ../sun-wind-studio; the test is skipped when that checkout is missing. Her page loads three.js from cdnjs (network).
 // Run: node node_modules/playwright/cli.js test e2e/sun-wind-link.e2e.ts
+import { openTransfer } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { createServer, type Server } from 'node:http'
 import { existsSync, readFileSync, statSync } from 'node:fs'
@@ -51,7 +52,7 @@ test('Send to Sun & Wind Studio: the selected tower arrives in place, with its p
   expect(t.project).toBe('vtc')
   expect(t.n).toBe(2)
 
-  await page.getByTestId('transfer-export').click(); await page.getByTestId('purpose-results').click()
+  await openTransfer(page, 'export'); await page.getByTestId('purpose-results').click()
   const [sw] = await Promise.all([context.waitForEvent('page'), page.getByTestId('sunwind-send').click()])
   await sw.waitForLoadState()
   expect(sw.url()).toContain('from=toolkit')
@@ -79,7 +80,7 @@ test('Send to Sun & Wind Studio: the selected tower arrives in place, with its p
   // A design change, sent again to the same window (no reload).
   await store(page, `const t = s.towers.vtc.find((k) => k.id === s.selectedTower) ?? s.towers.vtc[0]; s.updateTower(t.id, { height: 250 })`)
   await page.bringToFront()
-  if (!(await page.getByTestId('sunwind-send').isVisible())) await page.getByTestId('transfer-export').click(); await page.getByTestId('purpose-results').click()
+  if (!(await page.getByTestId('sunwind-send').isVisible())) { await openTransfer(page, 'export'); await page.getByTestId('purpose-results').click() }
   await page.getByTestId('sunwind-send').click()
   // Whole storeys: 250 m comes over as 249 m (the first send was 282.6 m).
   const top = () => sw.evaluate(() => (window as unknown as { LAB: { upload: { top: number } | null } }).LAB.upload?.top ?? 0)

@@ -1,7 +1,8 @@
 // The project bar (overnight brief, 8 Nov: "Project/context, file actions, Undo/Redo and a compact Assistant entry.
 // Consolidate secondary controls in a discoverable menu. Keep the project identity visible; do not build another phase
 // selector here"). 52 px tall, every control 14/20 px. Left: the toolkit's name, the project (Competition site / Real
-// Vancouver), the project file menu with Undo / Redo, Export model. Right: the view (model, model + data graph, data
+// Vancouver), the project file menu with Undo / Redo (its Import… and Export… open the transfer centre; the bar's own
+// Import and Export buttons went on 17 Nov, Ruijie: "their functions are already incorporated into the project menu"). Right: the view (model, model + data graph, data
 // graph), Auto-run checks (what the old "Analysis On/Off" really controls: checks recompute with the model, or pause),
 // Edit workflow (the workflow editor, 9 Nov; it was "Assistant"), and More (the check library, role, units, motion, Customize, Options, guide, tour, build status,
 // sources). Present adds Model locked and Capture. In the centre, the Model | Presentation switch (Ruijie, 17 Nov): one
@@ -17,7 +18,6 @@ import { openBuilder, useProjectWorkflow } from '../lib/workflow/projectWorkflow
 import ProjectMenu from './ProjectMenu'
 import TransferDialog from './porting/TransferDialog'
 import { useTransfer } from '../lib/porting/transfer'
-import { FileDown, FileUp } from './icons'
 import NodeLibrary from './NodeLibrary'
 import { UnitSelect } from './Units'
 import { RoleSelect } from './RolePicker'
@@ -147,12 +147,7 @@ export default function TopBar() {
         ))}
       </div>
       <ProjectMenu />
-      {/* One Import and one Export (Result B, 9 Nov): both open the transfer centre on their tab; nothing is downloaded by the click. */}
-      {(['import', 'export'] as const).map((t) => (
-        <button key={t} type="button" onClick={(e) => useTransfer.getState().open(t, e.currentTarget)} data-testid={`transfer-${t}`} title={t === 'import' ? 'Bring in a model, a project, a workflow package, a site boundary or a custom tool' : 'Take out geometry, a project backup, a workflow package or results'}
-          className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-control font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10'}`}>
-          {t === 'import' ? <FileUp size={13} aria-hidden /> : <FileDown size={13} aria-hidden />}{t === 'import' ? 'Import' : 'Export'}</button>
-      ))}
+      {/* The transfer centre (Result B, 9 Nov): opened from the project menu's Import… and Export…, or by a file dropped anywhere. */}
       <TransferDialog />
       <span className="mx-auto" />
       <ModeSwitch />
