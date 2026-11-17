@@ -3,12 +3,11 @@
 // opens with its own through lib/workflow/phaseTools.ts NODE_CONTROLS.
 import { Blinds, CalendarClock, Fan, Leaf, SunDim, Thermometer, SolarPanel, Droplets } from '../icons'
 import { DEFAULT_ZONES, FACE_NAME, ORI, STRATS, zonesOf, type FacadeZone, type StratId } from '../../engine/sw/plate'
-import { SEASONS, type Season } from '../../engine/sw/wind'
 import { THERM_SYS, type ThermSys } from '../../engine/sw/thermal'
 import { useSwStudy, type VentMode } from '../../lib/swStudy'
 import { useStore, useTowers } from '../../store'
 import type { DesignTool } from '../tools/registry'
-import SunSet from './SunStudyPanel'
+import SunSet, { WindStudyPanel as WindSet } from './SunStudyPanel'
 
 const label = 'grid gap-1 text-meta text-muted'
 const input = 'h-8 rounded-md border border-line bg-white px-2 text-control text-ink'
@@ -86,10 +85,6 @@ function HourSet() {
     </div>
   )
 }
-function WindSet() {
-  const s = useSwStudy()
-  return <div className="grid gap-2 px-3 pb-3"><label className={label}>Season of the wind record<select className={input} value={s.season} onChange={(e) => s.set({ season: e.target.value as Season })}>{(Object.keys(SEASONS) as Season[]).map((k) => <option key={k} value={k}>{SEASONS[k].label}</option>)}</select></label></div>
-}
 function DaylightSet() {
   const s = useSwStudy()
   return (
@@ -145,7 +140,7 @@ const tools: DesignTool[] = [
   tool('facade-zones', 'Façade zones', 'Façade', Blinds, FacadeZonesTool, 'Glazing, glass, shading device, PV and operable windows by face and level'),
   tool('sw-sun-set', 'Sun', 'Sun', SunDim, SunSet, 'Time period, scope, date, hours'),
   tool('sw-hour-set', 'Study hour', 'Hour', CalendarClock, HourSet, 'Month, day and hour, and the blinds'),
-  tool('sw-wind-set', 'Wind season', 'Season', Fan, WindSet, 'Which months of the wind record'),
+  tool('sw-wind-set', 'Wind', 'Wind', Fan, WindSet, 'Time period, wind case, direction and speed, overlay'),
   tool('sw-dl-set', 'Daylight target', 'Target', SunDim, DaylightSet, 'Lux target and blinds'),
   tool('sw-vent-set', 'Ventilation settings', 'Settings', Leaf, VentSet, 'How air moves, the comfort band, the openings'),
   tool('sw-pv-set', 'PV settings', 'Settings', SolarPanel, PvSet, 'Roof covered, efficiency, performance'),

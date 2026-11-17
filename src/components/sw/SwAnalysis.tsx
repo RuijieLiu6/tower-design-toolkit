@@ -11,6 +11,7 @@ import { LAWSON_BANDS, type WindStudy } from '../../engine/sw/wind'
 import type { Grid } from '../../engine/shadow'
 import type { Tower } from '../../engine/types'
 import { useSwOut, type SwId } from '../../lib/swRun'
+import { useSwStudy } from '../../lib/swStudy'
 import DaylightStudio from './DaylightStudio'
 import { InteriorDrawings } from './SwInteriorResults'
 
@@ -24,16 +25,33 @@ export const SW_VIEW: Partial<Record<SwId, SwView>> = {
 
 const bandOf = (bands: LegendBand[], v: number) => bands.find((b) => v <= b.to) ?? bands[bands.length - 1]
 
+const WIND_DELTA_BANDS: LegendBand[] = [
+  { to: -1, label: 'Calmer by over 1 m/s', color: '#2f7f74' }, { to: -0.25, label: 'Calmer', color: '#9fd1c4' }, { to: 0.25, label: 'About the same', color: '#eef0f2' },
+  { to: 1, label: 'Windier', color: '#f2b77a' }, { to: 99, label: 'Windier by over 1 m/s', color: '#c2410c' },
+]
+const deltaCache = new WeakMap<WindStudy, Float32Array>()
+function windDelta(w: WindStudy): Float32Array {
+  let d = deltaCache.get(w)
+  if (!d) { d = new Float32Array(w.mean.length); for (let k = 0; k < d.length; k++) d[k] = Number.isNaN(w.meanB[k]) && !Number.isNaN(w.mean[k]) ? 0 : w.mean[k] - w.meanB[k]; deltaCache.set(w, d) }
+  return d
+}
+
 /** The ground layer of a tool: grid, values and bands. */
 export function groundOf(id: SwId, data: Record<string, unknown>): { grid: Grid; values: Float32Array; bands: LegendBand[]; title: string } | null {
   if (id === 'built.sw-shadow' && data.g) { const g = data.g as SunGround; return { grid: g.grid, values: g.newShadow, bands: SHADOW_BANDS(g.th), title: `New shadow · ${data.when as string}` } }
-  if (id === 'built.sw-wind-comfort' && data.w) { const w = data.w as WindStudy; return { grid: w.grid, values: w.mean, bands: LAWSON_BANDS, title: 'Pedestrian wind, Lawson bands' } }
+  if (id === 'built.sw-wind-comfort' && data.w) {
+    const w = data.w as WindStudy
+    // "Overlay shows" (the Studio's Wind tab): Lawson comfort with the towers, or the change the towers make (m/s).
+    if (useSwStudy.getState().windView === 'delta') return { grid: w.grid, values: windDelta(w), bands: WIND_DELTA_BANDS, title: 'Change in pedestrian wind caused by the towers, m/s' }
+    return { grid: w.grid, values: w.mean, bands: LAWSON_BANDS, title: 'Pedestrian wind, Lawson bands' }
+  }
   if (id === 'built.sw-rain-water' && data.sh) { const s = data.sh as GroundShelter; return { grid: s.grid, values: s.values, bands: SHELTER_BANDS, title: 'Ground sheltered from the rain, % of the year' } }
   return null
 }
 
 export function SwGround({ id, base }: { id: SwId; base: number }) {
   const out = useSwOut((s) => s.out[id])
+  useSwStudy((s) => s.windView) // redraw when the wind overlay changes
   const layer = out ? groundOf(id, out.data) : null
   const tex = useMemo(() => {
     if (!layer) return null

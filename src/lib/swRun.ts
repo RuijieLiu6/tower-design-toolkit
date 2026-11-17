@@ -12,7 +12,7 @@ import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainBySect
 import { facadeIrradiance, sunGround, SUN_DATES, type SunGround } from '../engine/sw/sun'
 import { periodLabel, periodRange } from './sunPeriod'
 import { sunImpact } from '../engine/sw/sunImpact'
-import type { FacadeFace, Prism } from '../engine/sw/types'
+import type { ClimatePayload, FacadeFace, Prism } from '../engine/sw/types'
 import { ALPHA, lawsonClass, runWindStudy, SEASONS, windRose, type Rose, type WindStudy } from '../engine/sw/wind'
 import type { RuleResult, RuleState, Tower } from '../engine/types'
 import type { KeySpec } from '../components/ResultViz'
@@ -77,6 +77,17 @@ export function faceGlazing(t: Tower, floors: SwFloor[]): Record<Face, { wwr: nu
   return Object.fromEntries(ORI.map((o) => [o, { wwr: acc[o].a ? acc[o].g / acc[o].a : 0, shgc: acc[o].g ? acc[o].s / acc[o].g : 0.35, area: acc[o].a }])) as Record<Face, { wwr: number; shgc: number; area: number }>
 }
 
+// ------------------------------------------------------------------ the wind case (the Studio's Wind tab)
+/** One wind case, or the time period's hours (the Studio's Case). */
+export const windCaseOf = (s: SwStudySettings) => (s.windCase === 'one' ? { single: { dir: s.windDir, speed: s.windSpeed } } : { range: periodRange(s.periodFrom, s.periodTo) })
+/** The reference wind at 10 m: the one case, or the mean of the period's hours (study.js refWind). */
+export function refWind(C: ClimatePayload, s: SwStudySettings): { U10: number; label: string } {
+  if (s.windCase === 'one') return { U10: s.windSpeed, label: `${s.windDir}° at ${s.windSpeed.toFixed(1)} m/s` }
+  const r = windRose(C, s.season, periodRange(s.periodFrom, s.periodTo))
+  const U10 = r.sectors.reduce((a, x) => a + x.f * x.s, 0)
+  return { U10, label: `${periodLabel(s.periodFrom, s.periodTo)} mean, ${U10.toFixed(1)} m/s` }
+}
+
 // ------------------------------------------------------------------ one compute per tool
 type Run = (inp: SwInputs, s: SwStudySettings) => Omit<SwOut, 'ms' | 'key'> | Promise<Omit<SwOut, 'ms' | 'key'>>
 
@@ -125,12 +136,18 @@ const RUNS: Partial<Record<SwId, Run>> = {
   },
   'built.sw-wind-comfort': (inp, s) => {
     const C = inp.C!
-    const w: WindStudy = runWindStudy({ project: inp.project, ring: inp.site, context: inp.context, latLon: [49.28, -123.12], northDeg: inp.north, ground: 0 }, massing(inp.towers), C, { season: s.season, cell: 4 })
+    const w: WindStudy = runWindStudy({ project: inp.project, ring: inp.site, context: inp.context, latLon: [49.28, -123.12], northDeg: inp.north, ground: 0 }, massing(inp.towers), C, { season: s.season, cell: 4, ...windCaseOf(s) })
     const tot = w.cats.reduce((a, b) => a + b, 0) || 1, ok = (w.cats[0] + w.cats[1]) / tot, bad = w.cats[4] / tot
+    // The Studio's figures beside the ground study: the downwash section of the tallest tower, the wind with height at
+    // the reference wind, and the period's rose (study.js renderWind).
+    const ref = refWind(C, s), H = Math.max(0, ...inp.towers.map((t) => t.height))
+    const ti = inp.towers.reduce((a, t, i) => (t.height > inp.towers[a].height ? i : a), 0), tall = inp.towers[ti], am = w.amps[ti] ?? { amp: 1, amp0: 1, hn: 20 }
+    const sec = { H, w: Math.max(tall.width, tall.depth), hn: am.hn, amp: am.amp, amp0: am.amp0, depth: 0.22 * H, podiumH: tall.podiumHeight, podiumW: Math.max(tall.podiumWidth, tall.podiumDepth), U10: ref.U10 }
+    const roseP = windRose(C, s.season, periodRange(s.periodFrom, s.periodTo))
     return {
-      data: { w },
+      data: { w, sec, profile: windProfile(ref.U10, H), ref, roseP, single: s.windCase === 'one', period: periodLabel(s.periodFrom, s.periodTo), at: Date.now() },
       keys: [
-        key('sw-wind-calm', 'Calm ground', 'Lawson', pc(ok), ok >= 0.8 ? 'pass' : ok >= 0.6 ? 'warn' : 'fail', 'Share of open ground in the Lawson sitting or standing bands (mean up to 4 m/s). The bar shows all five bands, calmest on the left.', { stack: { parts: w.cats.map((c) => c / tot), colors: BAND_COL, names: BAND_NAME } }),
+        key('sw-wind-calm', 'Ground calm enough to stand', 'Lawson', pc(ok), ok >= 0.8 ? 'pass' : ok >= 0.6 ? 'warn' : 'fail', 'Share of open ground in the Lawson sitting or standing bands (mean up to 4 m/s). The bar shows all five bands, calmest on the left.', { stack: { parts: w.cats.map((c) => c / tot), colors: BAND_COL, names: BAND_NAME } }),
         ...(w.sitePeak != null ? [key('sw-wind-peak', 'Site peak wind', 'Lawson', w.sitePeak.toFixed(1), w.sitePeak <= 4 ? 'pass' : w.sitePeak <= 6 ? 'warn' : 'fail', 'The windiest point on the site: up to 4 m/s suits sitting and standing, 6 strolling, 8 walking; above 8 is uncomfortable.', { unit: 'm/s', bar: { max: 10, v: Math.min(10, w.sitePeak), zone: [0, 4], ticks: [[4, '4'], [6, '6'], [8, '8 m/s']] } })] : []),
         key('sw-wind-bad', 'Too windy', 'over 8 m/s', pc(bad), bad <= 0.01 ? 'pass' : 'fail', 'Open ground over 8 m/s mean, uncomfortable for any use. There should be none near entrances.', { bar: { max: 0.2, v: Math.min(0.2, bad), zone: [0, 0.01], ticks: [[0.01, '']] } }),
         key('sw-wind-change', 'Made windier', 'vs none', fmt(w.worse), w.worse <= w.better ? 'pass' : 'warn', `${fmt(w.worse)} m² drop a comfort band because of the towers; ${fmt(w.better)} m² become calmer in their lee.`, { unit: 'm²', ...(w.worse + w.better > 0 ? { stack: { parts: [w.worse / (w.worse + w.better), w.better / (w.worse + w.better)], colors: ['#E08A3C', '#3E8E7E'], names: ['windier', 'calmer'] } } : {}) }),
@@ -144,8 +161,8 @@ const RUNS: Partial<Record<SwId, Run>> = {
   },
   'built.sw-wind-height': (inp, s) => {
     const C = inp.C!
-    const rose: Rose = windRose(C, s.season)
-    const U10 = rose.sectors.reduce((a, r) => a + r.f * r.s, 0)
+    const rose: Rose = windRose(C, s.season, periodRange(s.periodFrom, s.periodTo))
+    const U10 = refWind(C, s).U10
     // Each roof and terrace at its height (the Studio's 'Wind with height'): mean wind by the power law, Lawson band.
     const decks = inp.towers.flatMap((t) => prismsOf(t).map((p) => ({ tower: t.name, z: p.z1 })))
     const uniq = [...new Map(decks.map((d) => [`${d.tower}|${Math.round(d.z)}`, d])).values()].sort((a, b) => a.z - b.z)
@@ -335,7 +352,7 @@ export const useSwOut = create<SwState>(() => ({ out: {}, busy: {}, errors: {} }
 const TIME_TOOLS: SwId[] = ['built.sw-light-hour', 'built.sw-indoor-temp'], LEVEL_TOOLS: SwId[] = ['built.sw-light-hour', 'built.sw-indoor-temp', 'built.sw-airflow', 'built.sw-natvent']
 export function inputKey(inp: SwInputs, s: SwStudySettings, id: SwId): string {
   // Dragging the hour slider of the daylight viewer must not start the shadow, wind or energy studies again.
-  const mine = { ...s, ...(TIME_TOOLS.includes(id) ? {} : { month: 0, day: 0, hour: 0 }), ...(LEVEL_TOOLS.includes(id) ? {} : { level: null }) }
+  const mine = { ...s, windView: '', ...(TIME_TOOLS.includes(id) ? {} : { month: 0, day: 0, hour: 0 }), ...(LEVEL_TOOLS.includes(id) ? {} : { level: null }) }
   return JSON.stringify([id, inp.project, inp.north, inp.towers, inp.site?.length ?? 0, inp.context.length, !!inp.C, mine])
 }
 

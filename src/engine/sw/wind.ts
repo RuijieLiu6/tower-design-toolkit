@@ -64,8 +64,10 @@ export interface RoseSector { dir: number; name: string; f: number; s: number; /
 export interface Rose { sectors: RoseSector[]; hours: number; calm: number }
 
 /** 8-sector rose of the season's hours: share of the non-calm hours and mean speed (wd = from, clockwise from true north). */
-export function windRose(C: ClimatePayload, season: Season): Rose {
+export function windRose(C: ClimatePayload, season: Season, range?: { d0: number; d1: number }): Rose {
   const months = new Set(SEASONS[season].months)
+  // A day range (the Studio's From / To; d1 < d0 wraps over the new year) replaces the season's months.
+  const inRange = range ? (doy: number) => (range.d1 >= range.d0 ? doy >= range.d0 && doy <= range.d1 : doy >= range.d0 || doy <= range.d1) : null
   const ends: number[] = []
   { let s = 0; for (let m = 0; m < 12; m++) { s += C.days[m]; ends.push(s) } }
   const lists: number[][] = SECTOR_NAMES.map(() => [])
@@ -73,7 +75,7 @@ export function windRose(C: ClimatePayload, season: Season): Rose {
   for (let k = 0; k < 8760; k++) {
     const doy = Math.floor(k / 24) + 1
     while (m < 11 && doy > ends[m]) m++
-    if (!months.has(m)) continue
+    if (inRange ? !inRange(doy) : !months.has(m)) continue
     hours++
     const ws = C.hourly.ws[k], wd = C.hourly.wd[k]
     if (!(ws > 0) || !Number.isFinite(wd)) { calm++; continue }
@@ -230,6 +232,17 @@ export interface WindOptions {
   cell: number
   /** Reference wind: the airport's 10 m wind as is (S&W, default) or carried to the urban site (S&W siteWind). */
   ref?: 'airport' | 'site'
+  /** Hours of a day range instead of the season (the Studio's time period). */
+  range?: { d0: number; d1: number }
+  /** One wind case instead of the rose (the Studio's "one wind case"): from `dir` ° true north at `speed` m/s at 10 m. */
+  single?: { dir: number; speed: number }
+}
+
+const NAMES16 = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+export const compass16 = (deg: number) => NAMES16[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16]
+/** A rose of one wind case: every hour from one direction at one speed. */
+export function singleRose(dir: number, speed: number): Rose {
+  return { sectors: [{ dir, name: compass16(dir), f: 1, s: speed, ws: Float32Array.of(speed) }], hours: 1, calm: 0 }
 }
 
 export interface WindStudy {
@@ -308,7 +321,7 @@ export function runWindStudy(site: SitePayload, massing: MassingPayload, C: Clim
     if (towers.some((t) => boxDist(x, y, t.box) <= studyR)) { study[k] = 1; studyArea += cellA }
   }
 
-  const rose = windRose(C, opt.season)
+  const rose = opt.single ? singleRose(opt.single.dir, opt.single.speed) : windRose(C, opt.season, opt.range)
   const kSite = siteWindFactor(), kRef = opt.ref === 'site' ? kSite : 1
   const mean = new Float32Array(N), meanB = new Float32Array(N), pOver6 = new Float32Array(N), pOver6B = new Float32Array(N)
   const over15 = new Float32Array(N)

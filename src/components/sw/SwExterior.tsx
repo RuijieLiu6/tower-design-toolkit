@@ -76,6 +76,19 @@ function Tile({ name, value, unit, sub, over }: { name: string; value: string; u
   )
 }
 
+/** The Studio's report head: "Site impact · <study>", the tallest tower, its height and floors, and when it ran. */
+function ImpactHead({ what, at, color }: { what: string; at?: number; color: string }) {
+  const towers = useSwInputs().towers
+  const t = [...towers].sort((a, b) => b.height - a.height)[0]
+  const run = at ? new Date(at).toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: false }) : null
+  return (
+    <div className="rounded-lg border border-line bg-white px-3 py-2.5" data-testid="impact-head">
+      <h4 className="text-control font-semibold" style={{ color }}>Site impact · {what}</h4>
+      <p className="mt-0.5 text-meta text-muted">{t ? `${t.name} · ${Math.round(t.height)} m · ${towerFloors(t).length} floors` : 'No tower'}{run ? ` · run ${run}` : ''}</p>
+    </div>
+  )
+}
+
 function ShadowBody() {
   const out = useSwOut((s) => s.out['built.sw-shadow'])
   const inp = useSwInputs()
@@ -95,10 +108,7 @@ function ShadowBody() {
   const day = d.dateLabel.split(' · ')[1]
   return (
     <>
-      <div className="rounded-lg border border-line bg-white px-3 py-2.5" data-testid="sun-impact-head">
-        <h4 className="text-control font-semibold text-[#a16207]">Site impact · Sun and shadow</h4>
-        <p className="mt-0.5 text-meta text-muted">{t ? `${t.name} · ${Math.round(t.height)} m · ${floors} floors` : 'No tower'}{run ? ` · run ${run}` : ''}</p>
-      </div>
+      <ImpactHead what="Sun and shadow" at={d.at} color="#a16207" />
       {H && H.towerKWh > 0 && <p className="border-l-[3px] border-[#d9a441] bg-white py-1.5 pl-2.5 pr-2 text-xs leading-snug text-ink" data-testid="sun-headline">{sunHeadline(H)}</p>}
       <div className="@container"><div className="grid grid-cols-1 gap-1.5 @[26rem]:grid-cols-3" data-testid="sun-tiles">
         <Tile name={`New shadow ≥ ${g.th[0]} ${u}`} value={fmtI(g.a[0])} unit="m²" sub={`${fmtI(g.a[1])} m² ≥ ${g.th[1]} · ${fmtI(g.a[2])} m² ≥ ${g.th[2]}`} />
@@ -195,18 +205,52 @@ function WindRoses({ C }: { C: ClimatePayload }) {
 function WindComfortBody() {
   const out = useSwOut((s) => s.out['built.sw-wind-comfort'])
   const C = useSwInputs().C
-  const w = out?.data.w as WindStudy | undefined
+  const d = out?.data as { w: WindStudy; sec?: DownSec; profile?: ProfilePoint[]; ref?: { U10: number; label: string }; roseP?: ReturnType<typeof windRose>; single?: boolean; period?: string; at?: number } | undefined
+  const w = d?.w
   if (!w) return null
   const tot = (c: number[]) => c.reduce((a, b) => a + b, 0) || 1
+  const sec = d.sec, single = !!d.single
+  const peak = w.sitePeak, mean = w.sitePeakMean
+  const ratio = sec ? sec.H / Math.max(8, sec.hn) : 0
+  const top = d.profile?.[d.profile.length - 1]
   return (
     <>
-      <SwFig title="Lawson bands · open ground" caption="With the towers and without; calmest left." tip="Sitting ≤ 2.5, standing ≤ 4, strolling ≤ 6, walking ≤ 8 m/s mean.">
+      <ImpactHead what="Pedestrian wind" at={d.at} color="#0f766e" />
+      {sec && sec.H > 0 && <p className="border-l-[3px] border-[#1F8A8A] bg-white py-1.5 pl-2.5 pr-2 text-xs leading-snug text-ink" data-testid="wind-headline">
+        The tower stands {ratio.toFixed(1)}× taller than its neighbours (mean {sec.hn.toFixed(0)} m within 120 m), so downwash can raise ground speeds up to {sec.amp0.toFixed(2)}× within {sec.depth.toFixed(0)} m of the windward face{sec.amp < sec.amp0 ? <>; the podium brings that to {sec.amp.toFixed(2)}×</> : null}.{ratio > 2 && sec.amp >= sec.amp0 ? ' A podium that reaches 10 m or more beyond the tower, or a deep entrance canopy, is the usual fix.' : ''}
+      </p>}
+      <div className="@container"><div className="grid grid-cols-1 gap-1.5 @[26rem]:grid-cols-3" data-testid="wind-tiles">
+        <Tile name="Site wind · mean / peak" value={mean != null && peak != null ? `${mean.toFixed(1)} / ${peak.toFixed(1)}` : '–'} unit={peak != null ? 'm/s' : undefined} sub={peak == null ? 'no open site' : peak > 6 ? 'too windy at the peak' : peak > 4 ? 'walking comfort' : 'sitting comfort'} over={peak != null && peak > 6} />
+        <Tile name="Ground made windier" value={fmtI(w.worse)} unit="m²" sub={`${fmtI(w.better)} m² calmer in the lee`} over={w.worse > w.better} />
+        <Tile name={single ? 'Peak speed' : 'Peak period mean'} value={w.maxS.toFixed(1)} unit="m/s" sub={single ? 'at pedestrian level' : `gusty over 5% of hours on ${fmtI(w.gusty)} m² (was ${fmtI(w.gustyB)})`} />
+      </div></div>
+      <SwFig explain title={single ? 'Lawson comfort bands · open ground' : 'Lawson comfort bands · period mean'} caption="With the towers and without; calmest left." tip="Share of the open ground around the towers in each Lawson comfort band, with the towers and without them: sitting up to 2.5, standing 2.5–4, strolling 4–6, walking 6–8, uncomfortable over 8 m/s mean wind at pedestrian height.">
         <StackRowsLawson rows={[{ label: 'With the towers', parts: w.cats.map((c) => c / tot(w.cats)) }, { label: 'Without', parts: w.catsB.map((c) => c / tot(w.catsB)) }]} />
         <Chips items={BAND_NAME.map((n, i) => ({ name: n, color: BAND_COL[i] }))} />
       </SwFig>
-      {w.sectors?.length > 0 && <SwFig title="Ground wind by sector" caption="Bar: ground mean. Colour: Lawson band." tip="Bar: the mean each sector gives on the ground; colour: its Lawson band.">
-        <BarRows label="Ground mean wind by sector" labelW={28} textW={96} rows={w.sectors.map((r) => ({ label: r.name, v: r.groundMean, color: BAND_COL[lawsonClass(r.groundMean)], text: `${r.groundMean.toFixed(1)} m/s · ${Math.round(r.f * 100)}% h`, tip: `${r.name}: ${Math.round(r.f * 100)}% of hours at ${r.s.toFixed(1)} m/s (10 m); ground mean ${r.groundMean.toFixed(1)} m/s; ${fmtI(r.worse)} m² a band windier than without the towers` }))} />
+      <div className="@container">
+        <div className="grid grid-cols-1 gap-3 @[34rem]:grid-cols-2">
+          {sec && sec.H > 0 && <SwFig explain title="Downwash section" caption={`×${sec.amp.toFixed(2)} at the ground, ${sec.depth.toFixed(0)} m out.`} tip="The stagnation point near 0.7 H turns the wind down the windward face into a ground vortex; the label is the ground amplification against the free wind. Grey on the left: the neighbours' mean height within 120 m.">
+            <DownwashSection s={sec} />
+          </SwFig>}
+          {single ? (d.roseP && <SwFig explain title={`Wind rose · ${d.period ?? 'the period'}`} caption="Petal: hours. Colour: speed." tip="The time period's wind at the airport: petal length is the share of the hours from each direction, depth of colour the mean speed at 10 m. This run is one wind case from it.">
+            <div className="mx-auto w-full max-w-[14rem]"><Rose label="Wind rose for the period" color="#3b7fb6" sectors={d.roseP.sectors.map((r) => ({ name: r.name, dir: r.dir, f: r.f, s: r.s }))} /></div>
+          </SwFig>) : (w.sectors?.length > 0 && <SwFig explain title="By sector" caption="Petal: hours. Colour: ground mean." tip="Petal length is the sector's share of the period's hours; depth of colour is the mean wind it gives on the open ground around the towers.">
+            <div className="mx-auto w-full max-w-[14rem]"><Rose label="Wind by sector, coloured by the ground mean" color="#1F8A8A" sUnit="m/s ground mean" sectors={w.sectors.map((r) => ({ name: r.name, dir: r.dir, f: r.f, s: r.groundMean, text: `${Math.round(r.f * 100)}% of hours, ground mean ${r.groundMean.toFixed(1)} m/s, ${fmtI(r.worse)} m² a band windier` }))} /></div>
+          </SwFig>)}
+        </div>
+      </div>
+      {d.profile && d.profile.length > 0 && <SwFig explain title={`Wind with height · ${d.ref?.label ?? ''}`} caption={`Solid: mean. Dashed: gusts${top ? `, ${(top.q / 1000).toFixed(1)} kPa at the top` : ''}.`} tip={`Power-law profile (exponent ${ALPHA}) from the reference wind at 10 m; gusts 1.8× the mean. Terraces need screens above about 60 m.`}>
+        <LineChart label="Wind speed with height" xLabel="m/s" yLabel="height m" marks={[{ y: 60, label: 'terraces need screens above ~60 m' }]} series={[
+          { name: 'mean', color: WIND_C, pts: d.profile.map((p) => [p.U, p.z]), read: (x, y) => `${x.toFixed(1)} m/s at ${Math.round(y)} m` },
+          { name: 'gust', color: BAD_C, dash: true, pts: d.profile.map((p) => [p.gust, p.z]), read: (x, y) => `${x.toFixed(1)} m/s at ${Math.round(y)} m` },
+        ]} />
       </SwFig>}
+      {!single && w.sectors?.length > 0 && <Fold title="Ground wind by sector">
+        <SwFig title="Ground wind by sector" caption="Bar: ground mean. Colour: Lawson band." tip="Bar: the mean each sector gives on the ground; colour: its Lawson band.">
+          <BarRows label="Ground mean wind by sector" labelW={28} textW={96} rows={w.sectors.map((r) => ({ label: r.name, v: r.groundMean, color: BAND_COL[lawsonClass(r.groundMean)], text: `${r.groundMean.toFixed(1)} m/s · ${Math.round(r.f * 100)}% h`, tip: `${r.name}: ${Math.round(r.f * 100)}% of hours at ${r.s.toFixed(1)} m/s (10 m); ground mean ${r.groundMean.toFixed(1)} m/s; ${fmtI(r.worse)} m² a band windier than without the towers` }))} />
+        </SwFig>
+      </Fold>}
       <Fold title="Gusts and safety">
         <SwFig title="Gusty and unsafe ground" caption="Gusts over 6 m/s; unsafe over 15 m/s." tip="Gusty: over 6 m/s gusts more than 5% of hours. Unsafe: over 15 m/s.">
           <BarRows label="Gusty and unsafe ground" labelW={96} rows={[

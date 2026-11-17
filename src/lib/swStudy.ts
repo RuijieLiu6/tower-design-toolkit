@@ -20,6 +20,13 @@ export interface SwStudySettings {
   h1: number
   /** Wind studies: season of the airport record. */
   season: Season
+  /** Wind (the Studio's Wind tab): one wind case, or every hour of the time period by the 8-sector rose. */
+  windCase: 'one' | 'period'
+  /** One wind case: from (° true north) and speed at 10 m (m/s). */
+  windDir: number
+  windSpeed: number
+  /** What the ground layer shows: Lawson comfort with the towers, or the change the towers make. */
+  windView: 'comfort' | 'delta'
   /** Daylight: lux target, blinds operated as LM-83 (off = blinds up, Sinnie's choice in the Studio). */
   dlTarget: number
   blinds: boolean
@@ -41,7 +48,7 @@ export interface SwStudySettings {
 
 export const SW_DEFAULTS: SwStudySettings = {
   sunScope: 'date', sunDate: 'autumn', sunPeriod: 'year', periodFrom: '01-01', periodTo: '12-31', h0: 10, h1: 16,
-  season: 'year',
+  season: 'year', windCase: 'period', windDir: 270, windSpeed: 3.5, windView: 'comfort',
   dlTarget: 300, blinds: false,
   month: 5, day: 21, hour: 13, level: null,
   vent: { mode: 'cross', band: 'fixed', tmin: 12, tmax: 24, umax: 8, open: 0.1, dT: 3 },
