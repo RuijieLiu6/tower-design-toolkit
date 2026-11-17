@@ -24,7 +24,7 @@ export const GAP = 0.45
 
 export type StratId = 'curtain' | 'punched' | 'overhang' | 'louvres' | 'fins' | 'eggcrate' | 'lightshelf' | 'balcony' | 'doubleskin' | 'pvspandrel' | 'greenwall' | 'windscreen'
 /** Her façade strategy catalogue (study.js STRATS), the fields daylight reads: an external device, a solar modifier, her name. */
-export const STRATS: Record<StratId, { name: string; device: boolean; mod?: number }> = {
+export const STRATS: Record<StratId, { name: string; device: boolean; mod?: number; ventBoost?: number }> = {
   curtain: { name: 'Curtain wall', device: false },
   punched: { name: 'Punched windows · deep reveals', device: true },
   overhang: { name: 'Horizontal overhang', device: true },
@@ -33,7 +33,7 @@ export const STRATS: Record<StratId, { name: string; device: boolean; mod?: numb
   eggcrate: { name: 'Egg-crate', device: true },
   lightshelf: { name: 'Light shelf', device: true },
   balcony: { name: 'Balconies as overhangs', device: true },
-  doubleskin: { name: 'Double-skin façade', device: false, mod: 0.65 },
+  doubleskin: { name: 'Double-skin façade', device: false, mod: 0.65, ventBoost: 1.6 },
   pvspandrel: { name: 'PV spandrel', device: false },
   greenwall: { name: 'Planted spandrel · green wall', device: false },
   windscreen: { name: 'Terrace wind screens', device: false },
@@ -63,7 +63,9 @@ const vertSkyAbove = (t: number) => 1 - (t / 2 + Math.sin(2 * t) / 4) / (Math.PI
 // ------------------------------------------------------------------------------------------------ physics.js
 
 /** The hourly climate (her LAB.CLIMATE after weather.json): station, monthly clock offsets, days per month, 8,760 hours. */
-export interface HourlyClimate { lat: number; lon: number; elev: number | null; tz: number[]; days: number[]; t: ArrayLike<number>; ghi: ArrayLike<number>; dni: ArrayLike<number>; dhi: ArrayLike<number> }
+export interface HourlyClimate { lat: number; lon: number; elev: number | null; tz: number[]; days: number[]; t: ArrayLike<number>; ghi: ArrayLike<number>; dni: ArrayLike<number>; dhi: ArrayLike<number>
+  /** Hourly wind speed (m/s at the station), direction (deg) and rain (mm), for ventilation; zeros when absent. */
+  ws?: ArrayLike<number>; wd?: ArrayLike<number>; rain?: ArrayLike<number> }
 
 const PZ = [[-0.008, 0.588, -0.062, -0.060, 0.072, -0.022], [0.130, 0.683, -0.151, -0.019, 0.066, -0.029], [0.330, 0.487, -0.221, 0.055, -0.064, -0.026], [0.568, 0.187, -0.295, 0.109, -0.152, -0.014],
   [0.873, -0.392, -0.362, 0.226, -0.462, 0.001], [1.132, -1.237, -0.412, 0.288, -0.823, 0.056], [1.060, -1.600, -0.359, 0.264, -1.127, 0.131], [0.678, -0.327, -0.250, 0.156, -1.377, 0.251]]
@@ -91,13 +93,16 @@ export interface SkyPrep {
   T: Float32Array; ghi: Float32Array; dni: Float32Array; dhi: Float32Array
   F1: Float32Array; F2: Float32Array; effD: Float32Array; effB: Float32Array; Ed: Float32Array; Eb: Float32Array
   occ: Int32Array
+  /** Station wind, direction and rain by hour; the ASHRAE 55 prevailing mean outdoor temperature and daily means. */
+  ws: Float32Array; wd: Float32Array; rain: Float32Array; tpma: Float32Array; daily: Float32Array
   faces: Map<number, FaceSky>
 }
 export function prep(C: HourlyClimate): SkyPrep {
   const n = 8760, lat = (C.lat * Math.PI) / 180, lon = C.lon
   const o: SkyPrep = { n, doy: new Int16Array(n), mon: new Int8Array(n), hr: new Int8Array(n), alt: new Float32Array(n), az: new Float32Array(n), cz: new Float32Array(n),
     T: Float32Array.from(C.t), ghi: Float32Array.from(C.ghi), dni: Float32Array.from(C.dni), dhi: Float32Array.from(C.dhi),
-    F1: new Float32Array(n), F2: new Float32Array(n), effD: new Float32Array(n), effB: new Float32Array(n), Ed: new Float32Array(n), Eb: new Float32Array(n), occ: new Int32Array(0), faces: new Map() }
+    F1: new Float32Array(n), F2: new Float32Array(n), effD: new Float32Array(n), effB: new Float32Array(n), Ed: new Float32Array(n), Eb: new Float32Array(n), occ: new Int32Array(0),
+    ws: Float32Array.from(C.ws ?? new Array(n).fill(0)), wd: Float32Array.from(C.wd ?? new Array(n).fill(0)), rain: Float32Array.from(C.rain ?? new Array(n).fill(0)), tpma: new Float32Array(n), daily: new Float32Array(365), faces: new Map() }
   const mStart: number[] = []; { let s = 0; for (let m = 0; m < 12; m++) { mStart.push(s); s += C.days[m] } }
   for (let k = 0; k < n; k++) {
     const doy = Math.floor(k / 24) + 1, he = (k % 24) + 1; let m = 11; for (let q = 0; q < 12; q++) { if (doy <= mStart[q] + C.days[q]) { m = q; break } }
@@ -115,6 +120,9 @@ export function prep(C: HourlyClimate): SkyPrep {
   // occupied hours, LM-83: 8:00 to 18:00 local clock time (daylight saving from the climate's monthly offsets) → hour-ending in standard time
   const occ: number[] = []; for (let k = 0; k < n; k++) { const m = o.mon[k]; const dst = (C.tz[m] || -8) + 8; const clockEnd = o.hr[k] + dst; if (clockEnd >= 9 && clockEnd <= 18) occ.push(k) }
   o.occ = Int32Array.from(occ)
+  // ASHRAE 55 prevailing mean outdoor temperature: mean of the previous seven daily means
+  const dm = o.daily; for (let d = 0; d < 365; d++) { let s = 0; for (let q = 0; q < 24; q++) s += o.T[d * 24 + q]; dm[d] = s / 24 }
+  for (let d = 0; d < 365; d++) { let s = 0; for (let q = 1; q <= 7; q++) s += dm[(d - q + 365) % 365]; const v = s / 7; for (let q = 0; q < 24; q++) o.tpma[d * 24 + q] = v }
   return o
 }
 /** Irradiance (W/m²) and illuminance (lux) on a vertical face of compass azimuth az (deg) for every hour, Perez 1990 (physics.js face). */
@@ -145,7 +153,7 @@ export function periodInfo(p: DlPeriod, days: number[]): DlPeriodInfo {
   const nd = d1 >= d0 ? d1 - d0 + 1 : 365 - d0 + 1 + d1; const full = nd >= 365
   return { d0, d1, days: nd, full, label: full ? 'whole year' : `${MONTHS[a.m]} ${a.d} – ${MONTHS[b.m]} ${b.d}` }
 }
-const inPeriod = (PI: DlPeriodInfo, doy: number) => PI.full || (PI.d1 >= PI.d0 ? doy >= PI.d0 && doy <= PI.d1 : doy >= PI.d0 || doy <= PI.d1)
+export const inPeriod = (PI: DlPeriodInfo, doy: number) => PI.full || (PI.d1 >= PI.d0 ? doy >= PI.d0 && doy <= PI.d1 : doy >= PI.d0 || doy <= PI.d1)
 
 // ------------------------------------------------------------------------------------------------ floors
 
