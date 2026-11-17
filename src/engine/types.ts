@@ -87,6 +87,8 @@ export interface Tower {
    * onto the blocks; with no snapshot, the blocks win (engine/blocks.ts `blocksOf`).
    */
   boxFromBlocks?: Pick<Tower, 'height' | 'width' | 'depth' | 'podiumHeight' | 'podiumWidth' | 'podiumDepth'>
+  /** Lined up with its lot once, automatically, on placing or first selecting it (lib/autoAlign.ts); later turns are the user's. */
+  autoAligned?: boolean
   /** The tower form shaping the shaft (engine/towerForms.ts, after dtmass): its type, parameters and the base it starts from. */
   form?: { type: import('./towerForms').FormType; p: Record<string, number>; base: import('./towerForms').FormBase }
 }
