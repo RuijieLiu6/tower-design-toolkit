@@ -1,4 +1,5 @@
 import { Sun as SunIcon } from './icons'
+import { MOUSE_BUTTONS } from '../lib/mouseButtons'
 import FloorPicker3D from './FloorPicker3D'
 import { setSunOn, SunTimeFields, useSunOn } from './SunTime'
 import { Line, OrbitControls } from '@react-three/drei'
@@ -74,9 +75,6 @@ import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
 import { faceNorth, northView, orientReq, upNorthDeg, useNorthMode } from '../lib/northView'
-
-// Right-drag orbits, left-drag pans (17 Nov, Sinnie: "right click hold and move around should be orbit"); the wheel zooms.
-export const MOUSE_BUTTONS = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE } as const
 
 // Indexed pointer picking for the large city and terrain meshes (lib/fastRaycast.ts; clicks took 280+ ms without it).
 installFastRaycast()

@@ -8,7 +8,7 @@
 //   - every other check: the towers floor by floor, coloured by use.
 // The towers are drawn as plain prisms (the solar engine's own casters, engine/solarRules.ts towerOccluders), so drawn,
 // imported and parametric towers all read the same.
-import { MOUSE_BUTTONS } from './Viewport'
+import { MOUSE_BUTTONS } from '../lib/mouseButtons'
 import { SW_VIEW, SwFaces, SwGround, SwKey, SwPlanView, SwZones } from './sw/SwAnalysis'
 import { isSw } from '../lib/swRun'
 import { OrbitControls } from '@react-three/drei'
