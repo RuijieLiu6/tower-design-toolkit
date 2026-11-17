@@ -112,10 +112,12 @@ function loadDetailedCity(base: CityData): Promise<CityData> {
   })()
 }
 
-export function useCityData() {
+/** `enabled` false: load nothing (a check that only needs the City data on Real Vancouver calls it on every project). */
+export function useCityData(enabled = true) {
   const model = useCityModel((s) => s.model)
   const [state, setState] = useState<{ data: CityData | null; error: string | null }>({ data: null, error: null })
   useEffect(() => {
+    if (!enabled) return
     let live = true
     loadCity(model).then(async (base) => {
       if (live) setState({ data: base, error: null })
@@ -125,8 +127,8 @@ export function useCityData() {
       if (live) setState({ data, error: null })
     }, (e: Error) => live && setState({ data: null, error: e.message }))
     return () => { live = false }
-  }, [model])
-  return state
+  }, [model, enabled])
+  return enabled ? state : { data: null, error: null }
 }
 
 const hasHeight = (h: FootprintHeights | null, i: number) => !!h && Number.isFinite(h.ground[i]) && Number.isFinite(h.roof[i]) && h.roof[i] > h.ground[i]
@@ -156,8 +158,8 @@ export function useRemoval(data: CityData | null): Removal {
 
 const baseIndex = new WeakMap<Footprint[], FootprintIndex>()
 /** Picking and ray-cast inputs for View from here and Vista: the City footprints without those hidden under the design. */
-export function useCityObstacles() {
-  const { data, error } = useCityData()
+export function useCityObstacles(enabled = true) {
+  const { data, error } = useCityData(enabled)
   const { hidden } = useRemoval(data)
   const idx = useMemo(() => {
     if (!data) return null

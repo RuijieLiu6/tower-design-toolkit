@@ -4,10 +4,10 @@
 // gives each floor's facade length by orientation and its area; the exposed top of each floor is what the floor above
 // does not cover. Glazing comes from the facade node when it is on, else her default zones; the envelope and systems are
 // her defaults as presets; lighting is dimmed by the daylight port's monthly daylight share of each floor.
-import { coreSide, floorRing, towerFloors } from './massing'
+import { coreSide, towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower, UseId } from './types'
 import type { DlFloor } from './daylightSW'
-import { plateOf, toHer, type GlazingChoice, type P } from './daylightSWInput'
+import { floorLoops, noFloorsRule, plateOf, toHer, type GlazingChoice, type P } from './daylightSWInput'
 import { DEFAULT_ENERGY, finishPlate, zoneGlazing, type EnergyFloor, type EnergyResult, type EnergySettings, type Prog, type UseKey, USES } from './energySW'
 
 export const SRC = {
@@ -37,7 +37,8 @@ export function energyModelOf(t: Tower, centre: P, north: number, glazing: Glazi
   const [posX, posY] = toHer(t.x, t.y, centre, north)
   const plates: DlFloor[] = [], levels: number[] = [], progs: Prog[] = []
   for (const f of all) {
-    const pl = plateOf(floorRing(t, f).map(([x, y]) => toHer(x, y, centre, north)), { i: plates.length, z: f.z0, h: f.z1 - f.z0, core })
+    // An imported tower's own storey loops, not its whole hull on every floor (17 Nov review, 6).
+    const pl = plateOf(floorLoops(t, f).map((r) => r.map(([x, y]) => toHer(x, y, centre, north))), { i: plates.length, z: f.z0, h: f.z1 - f.z0, core })
     if (!pl) continue
     plates.push(pl); levels.push(f.level); progs.push(PROG_OF[f.use] ?? 'office')
   }
@@ -61,6 +62,8 @@ export interface EnergyRuleInput { result: EnergyResult; presets: EnergyPresets;
 /** Her key results as the Toolkit's evidence lines (energy.js kpi / study.js leedCard): TEUI, TEDI and GHGI against her program-weighted targets. None verified. */
 export function energyRules(i: EnergyRuleInput): RuleResult[] {
   const { result: r, presets: p } = i
+  // No floor area: nothing to divide by, never a NaN pass (17 Nov review, 8).
+  if (!(r.gfa > 0)) return [noFloorsRule('sw-en-teui', i.towerName, SRC.engine)]
   const flag: Flag = 'unverified'
   const mix = r.rows.map((x) => `${PROG_WORD[x.p]} ${Math.round((x.area / r.gfa) * 100)}%`).join(', ')
   const plant = p.heat === 'hp' ? 'air-source heat pump' : p.heat === 'gas' ? 'gas boiler' : 'electric resistance'

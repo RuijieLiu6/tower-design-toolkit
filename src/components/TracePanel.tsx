@@ -26,10 +26,10 @@ import { useStructures } from './StructurePanel'
 import { useLifeSafety } from './LifeSafetyPanel'
 import { useRelaxAviation } from './RelaxAviationPanel'
 import { windStudyRules } from '../engine/windStructure'
-import { useWindComfortStore } from '../hooks/useWindComfort'
-import { useDaylightSWStore } from '../hooks/useDaylightSW'
-import { useVentilationSWStore } from '../hooks/useVentilationSW'
-import { useEnergySWStore } from '../hooks/useEnergySW'
+import { useWindComfortCurrent } from '../hooks/useWindComfort'
+import { useDaylightSWLines } from '../hooks/useDaylightSW'
+import { useVentilationSWLines } from '../hooks/useVentilationSW'
+import { useEnergySWLines } from '../hooks/useEnergySW'
 import type { RuleResult } from '../engine/types'
 
 /** No wind comfort run yet: one stable empty list, so the store selector never hands React a fresh array. */
@@ -64,10 +64,12 @@ function Recorder() {
   const lifeSafety = useLifeSafety()
   const relaxAviation = useRelaxAviation()
   // The wind comfort port (Sun & Wind Studio) runs in a worker and keeps its lines in its own store; read through a selector.
-  const windComfort = useWindComfortStore((s) => s.out?.rules ?? NO_RULES)
-  const daylightSW = useDaylightSWStore((s) => s.out?.rules ?? NO_RULES)
-  const ventilationSW = useVentilationSWStore((s) => s.out?.rules ?? NO_RULES)
-  const energySW = useEnergySWStore((s) => s.out?.rules ?? NO_RULES)
+  // Recorded only when run for the project and model on screen (17 Nov review: no stale result in the trace).
+  const windComfortOut = useWindComfortCurrent()
+  const windComfort = windComfortOut?.rules ?? NO_RULES
+  const daylightSW = useDaylightSWLines() ?? NO_RULES
+  const ventilationSW = useVentilationSWLines() ?? NO_RULES
+  const energySW = useEnergySWLines() ?? NO_RULES
   useEffect(() => {
     const names = Object.fromEntries(packages.map((p) => [p.id, p.name]))
     const on = new Map([...runs].filter(([id]) => design.enabled[id]))

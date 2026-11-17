@@ -7,7 +7,7 @@
 import type { FacadeInput, FacadeSystem, Quadrant } from './facade'
 import { SYSTEMS } from './facade'
 import { coreSide, floorRing, towerFloors } from './massing'
-import type { Flag, RuleResult, RuleState, Source, Tower, UseId } from './types'
+import type { Flag, Floor, RuleResult, RuleState, Source, Tower, UseId } from './types'
 import { DEFAULT_TARGET, DEFAULT_VT, DEFAULT_ZONES, maskFloor, sdaPoints, type AseTower, type DlBuilding, type DlFloor, type DlPeriod, type DlTower, type StratId, type Zone } from './daylightSW'
 
 export type P = [number, number]
@@ -73,32 +73,51 @@ export const toHer = (x: number, y: number, centre: P, north: number): P => {
   return [u * c - v * s, u * s + v * c]
 }
 
-/** Is (x, y) inside the ring (even-odd)? */
-function inRing(ring: P[], x: number, y: number) {
+/** Is (x, y) inside the loops (even-odd over all of them, so holes cut out)? */
+function inRings(rings: P[][], x: number, y: number) {
   let inside = false
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+  for (const ring of rings) for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [xi, yi] = ring[i], [xj, yj] = ring[j]
     if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside
   }
   return inside
 }
+const open = (ring: P[]) => (ring.length > 3 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1] ? ring.slice(0, -1) : ring)
 
-/** A plate outline (her frame) as her floor record: turned along its longest edge, the bounding box as w × d, cells inside the outline. */
-export function plateOf(ring: P[], base: { i: number; z: number; h: number; core: number }): DlFloor | null {
-  const pts = ring.length > 3 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1] ? ring.slice(0, -1) : ring
-  if (pts.length < 3) return null
+/**
+ * A plate outline (her frame) as her floor record: turned along its longest edge, the bounding box as w × d, cells inside
+ * the outline. One ring, or several (an imported storey's loops: outer rings and holes, even-odd).
+ */
+export function plateOf(ring: P[] | P[][], base: { i: number; z: number; h: number; core: number }): DlFloor | null {
+  const rings = (ring.length && Array.isArray((ring as P[][])[0][0]) ? (ring as P[][]) : [ring as P[]]).map(open).filter((r) => r.length >= 3)
+  if (!rings.length) return null
   let best = -1, rot = 0
-  for (let k = 0; k < pts.length; k++) { const a = pts[k], b = pts[(k + 1) % pts.length]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L > best + 1e-9) { best = L; rot = Math.atan2(b[1] - a[1], b[0] - a[0]) } }
+  for (const pts of rings) for (let k = 0; k < pts.length; k++) { const a = pts[k], b = pts[(k + 1) % pts.length]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L > best + 1e-9) { best = L; rot = Math.atan2(b[1] - a[1], b[0] - a[0]) } }
   const c = Math.cos(rot), s = Math.sin(rot)
-  const loc = pts.map(([x, y]) => [x * c + y * s, -x * s + y * c] as P)
+  const locs = rings.map((pts) => pts.map(([x, y]) => [x * c + y * s, -x * s + y * c] as P))
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
-  for (const [x, y] of loc) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y) }
+  for (const loc of locs) for (const [x, y] of loc) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y) }
   const w = x1 - x0, d = y1 - y0; if (w < 1 || d < 1) return null
   const mx = (x0 + x1) / 2, my = (y0 + y1) / 2
-  const local = loc.map(([x, y]) => [x - mx, y - my] as P)
+  const local = locs.map((loc) => loc.map(([x, y]) => [x - mx, y - my] as P))
   // Rounded so that a rectangle's sides are exact (a cell centre never lands on its edge at a whole-metre plate).
   const r6 = (v: number) => Math.round(v * 1e6) / 1e6
-  return maskFloor({ ...base, w: r6(w), d: r6(d), cx: mx * c - my * s, cy: mx * s + my * c, rot }, (lx, ly) => inRing(local, lx, ly))
+  return maskFloor({ ...base, w: r6(w), d: r6(d), cx: mx * c - my * s, cy: mx * s + my * c, rot }, (lx, ly) => inRings(local, lx, ly))
+}
+
+/**
+ * A floor's plate loops in the project frame: an imported tower's own storey loops (17 Nov review, 6: not the whole-mass
+ * hull on every floor), else the block at the floor's mid-height.
+ */
+export function floorLoops(t: Tower, f: Pick<Floor, 'level' | 'z0' | 'z1'>): P[][] {
+  if (t.imported) {
+    const st = t.imported.storeys.find((s) => s.level === f.level)
+    if (st?.loops.length) {
+      const a = (t.rotation * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a)
+      return st.loops.map((lp) => lp.map(([u, v]) => [t.x + u * c - v * s, t.y + u * s + v * c] as P))
+    }
+  }
+  return [floorRing(t, f) as P[]]
 }
 
 export interface DaylightModel { floors: DlFloor[]; levels: number[]; uses: UseId[]; posX: number; posY: number; left: number }
@@ -111,8 +130,9 @@ export function daylightModelOf(t: Tower, centre: P, north: number): DaylightMod
   let left = 0
   for (const f of all) {
     if (UNOCCUPIED.includes(f.use)) { left++; continue }
-    const ring = floorRing(t, f).map(([x, y]) => toHer(x, y, centre, north))
-    const pl = plateOf(ring, { i: f.level - 1, z: f.z0, h: f.z1 - f.z0, core })
+    const loops = floorLoops(t, f).map((r) => r.map(([x, y]) => toHer(x, y, centre, north)))
+    // i is the floor's position among those analysed (17 Nov review, 4); levels[i] is only its label.
+    const pl = plateOf(loops, { i: floors.length, z: f.z0, h: f.z1 - f.z0, core })
     if (!pl) { left++; continue }
     floors.push(pl); levels.push(f.level); uses.push(f.use)
   }
@@ -136,9 +156,14 @@ const rule = (id: string, label: string, value: string, threshold: string, state
 
 export interface DaylightRuleInput { readings: DaylightReadings; contextLoaded: boolean; unknownHeights: number; glazing: Pick<GlazingChoice, 'from' | 'note'>; presets: DaylightPresets; towerName: string; period: string; left: number }
 
+/** The one line a check reports when the tower has no floor it can analyse (17 Nov review, 8): unknown, never a pass or a fail. */
+export const noFloorsRule = (id: string, towerName: string, source: Source): RuleResult =>
+  rule(id, `No occupied floors to analyse (${towerName})`, 'no floor plate to study', 'needs at least one occupied floor', 'unknown', 'unverified', source, 'Every floor is plant, a void, or too small to rasterise: nothing was run.')
+
 /** Her key results as the Toolkit's evidence lines (study.js keyItems / leedCard): sDA points, ASE ≤ 10%, mean DF 2% / 1%. None is verified. */
 export function daylightRules(i: DaylightRuleInput): RuleResult[] {
   const { readings: r, presets: p } = i
+  if (!r.floors) return [noFloorsRule('sw-dl-sda', i.towerName, SRC.engine)]
   const flag: Flag = 'unverified'
   const ctx = i.contextLoaded ? (i.unknownHeights ? ` ${i.unknownHeights} context buildings have no height and are left out (never guessed).` : '') : ' No context buildings loaded: nothing shades the windows, so the result is optimistic.'
   const floorsNote = `${r.floors} occupied floors of ${i.towerName}${i.left ? ` (${i.left} plant floors left out)` : ''}, 2 m cells, every second day of the LM-83 occupied hours.`

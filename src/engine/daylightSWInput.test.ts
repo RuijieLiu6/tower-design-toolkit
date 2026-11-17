@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest'
 import hourly from '../data/sunWindHourly.json'
 import { DEFAULT_FACADE } from './facade'
 import type { Tower } from './types'
-import { aseTower, daylightTower, DEFAULT_ZONES, maskFloor, newCache, prep } from './daylightSW'
+import { aseTower, daylightTower, DEFAULT_ZONES, face, FACE_CACHE, maskFloor, newCache, prep } from './daylightSW'
 import { daylightModelOf, daylightRules, DEFAULT_DAYLIGHT_PRESETS, glazingOf, plateOf, readingsOf, toHer } from './daylightSWInput'
+import type { ImportedStorey } from './types'
 
 const tower: Tower = {
   id: 't1', name: 'Tower 1', x: 10, y: -20, rotation: 0, width: 46, depth: 30, height: 42, f2f: 4.2,
@@ -60,5 +61,29 @@ describe('daylight input', () => {
     expect(on.find((r) => r.id === 'sw-dl-sda')!.state).toBe(readings.points > 0 ? 'pass' : 'fail')
     expect(off.filter((r) => ['sw-dl-sda', 'sw-dl-ase', 'sw-dl-df'].includes(r.id)).every((r) => r.state === 'unknown')).toBe(true)
     expect(D.unique).toBe(1) // two identical floors without neighbours: her signature computes one
+  })
+  it('review fix 4: a floor index is its position among the analysed floors; levels are labels only', () => {
+    const m = daylightModelOf(tower, [0, 0], 0)
+    expect(m.floors.map((f) => f.i)).toEqual(m.floors.map((_, k) => k))
+    expect(m.levels).toEqual([1, 2, 3, 4, 6, 7, 8, 9]) // levels 5 and 10 are plant
+  })
+  it('review fix 6: an imported tower gives each storey its own loops (holes cut out), not the whole hull', () => {
+    const sq = (h: number): [number, number][] => [[-h, -h], [h, -h], [h, h], [-h, h]]
+    const st = (level: number, outer: number, hole = 0): ImportedStorey => ({ level, z0: (level - 1) * 4, z1: level * 4, area: 0, use: 'office', podium: false, hasFloor: true, loops: hole ? [sq(outer), sq(hole).reverse()] : [sq(outer)] })
+    const imp = { ...tower, plantEvery: 0, height: 12, imported: { storeys: [st(1, 20), st(2, 15), st(3, 20, 6)], hull: sq(20), f2f: 4, podiumTop: 0, podiumF2F: 4 } } as unknown as typeof tower
+    const m = daylightModelOf(imp, [0, 0], 0)
+    expect(m.floors.map((f) => Math.round(f.area))).toEqual([1600, 900, 1600 - 144])
+  })
+  it('review fix 8: no floor to analyse is one unknown line, never a pass or a 0% fail', () => {
+    const lines = daylightRules({ readings: { sda: 0, ase: 0, df: 0, udiU: 0, udiE: 0, udiS: 0, points: 0, floors: 0, weakest: null, aseWorst: null }, contextLoaded: true, unknownHeights: 0, glazing: { from: 'studio', note: 'n' }, presets: DEFAULT_DAYLIGHT_PRESETS, towerName: 'T', period: 'whole year', left: 3 })
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toMatchObject({ state: 'unknown', label: expect.stringMatching(/No occupied floors/) })
+  })
+  it('review fix 12: the face cache keeps at most 36 faces (least recently used dropped)', () => {
+    const P = prep(hourly as never)
+    for (let a = 0; a < 50; a++) face(P, a * 7)
+    expect(P.faces.size).toBe(FACE_CACHE)
+    const kept = face(P, 7 * 49)
+    expect(face(P, 7 * 49)).toBe(kept)
   })
 })

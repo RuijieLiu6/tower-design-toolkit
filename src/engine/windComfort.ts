@@ -344,6 +344,11 @@ export interface WindStudySettings {
   speed: number
   period: Period
   strat: WindStrategy | null
+  /**
+   * Degrees from the domain's +y to true north, clockwise (the competition model: 45°). `dir` and the rose sectors are compass
+   * bearings; the flow is solved from `bearing + north` in the domain. 0 or absent: her frame, +y read as north.
+   */
+  north?: number
 }
 export interface SectorResult extends RoseSector, WindSummary { }
 export interface WindStudyResult extends WindSummary {
@@ -370,10 +375,11 @@ export interface WindStudyResult extends WindSummary {
 export function windStudy(sr: SiteRaster, tower: WindTower, plaza: Uint8Array, settings: WindStudySettings, onSector?: (i: number, n: number, name: string) => void): WindStudyResult {
   const strat = settings.strat
   if (!settings.annual) {
-    const a = runWind(sr, tower, true, settings.dir, strat, plaza), b = runWind(sr, null, false, settings.dir, null, plaza)
+    const gd = settings.dir + (settings.north ?? 0)
+    const a = runWind(sr, tower, true, gd, strat, plaza), b = runWind(sr, null, false, gd, null, plaza)
     const s = summarise(a, b, settings.speed, plaza)
     let a0: WindField | null = null, vsBase: WindStudyResult['vsBase'] = null
-    if (strat) { a0 = runWind(sr, tower, true, settings.dir, null, plaza); vsBase = { ...summarise(a, a0, settings.speed, plaza), plazaMean0: summarise(a0, b, settings.speed, plaza).plazaMean } }
+    if (strat) { a0 = runWind(sr, tower, true, gd, null, plaza); vsBase = { ...summarise(a, a0, settings.speed, plaza), plazaMean0: summarise(a0, b, settings.speed, plaza).plazaMean } }
     return { annual: false, U: settings.speed, a, b, a0, vsBase, period: null, sectors: [], gusty: 0, gustyB: 0, strat, ...s }
   }
   const N = sr.nx * sr.ny
@@ -384,8 +390,9 @@ export function windStudy(sr: SiteRaster, tower: WindTower, plaza: Uint8Array, s
   for (let i = 0; i < rs.length; i++) {
     const r = rs[i]
     onSector?.(i, rs.length, r.name)
-    const a = runWind(sr, tower, true, r.dir, strat, plaza), b = runWind(sr, null, false, r.dir, null, plaza)
-    const a0 = strat ? runWind(sr, tower, true, r.dir, null, plaza) : null
+    const gd = r.dir + (settings.north ?? 0)
+    const a = runWind(sr, tower, true, gd, strat, plaza), b = runWind(sr, null, false, gd, null, plaza)
+    const a0 = strat ? runWind(sr, tower, true, gd, null, plaza) : null
     solidA = a.solid; zone = a.zone || zone
     const s = summarise(a, b, r.s, plaza)
     for (let k = 0; k < N; k++) {

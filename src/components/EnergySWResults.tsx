@@ -65,14 +65,14 @@ function Monthly({ monthly, gfa }: { monthly: Record<UseKey, number[]>; gfa: num
 }
 
 export default function EnergySWResults() {
-  const { presets, status, progress, error, out, runRev, outRev, set, reset, on } = useEnergySW()
+  const { presets, status, progress, error, out, empty, runRev, outRev, set, reset, on } = useEnergySW()
   const project = useStore((s) => s.project)
   const sel = 'rounded border border-line bg-panel px-1.5 py-1 text-xs'
   const edited = JSON.stringify(presets) !== JSON.stringify(DEFAULT_ENERGY_PRESETS)
   const stale = !!out && outRev !== runRev
   const rerun = () => { useEnergySWStore.setState({ key: '' }); useEnergySWStore.getState().set({}) }
   const statusWord = status === 'running' ? (stale ? `Model changed, rerunning · ${progress || 'working…'}` : progress || 'Working…')
-    : status === 'ready' ? (stale ? 'Model changed, rerunning' : 'Evaluated for the current model')
+    : status === 'ready' ? (!out && empty ? 'No occupied floors to analyse' : stale ? 'Model changed, rerunning' : 'Evaluated for the current model')
     : status === 'error' ? `Could not run: ${error}` : on ? 'Waiting for the model' : 'Off'
   const statusState = status === 'error' ? 'fail' : status === 'ready' && !stale ? 'pass' : 'unknown'
   const r = out?.result
@@ -133,6 +133,9 @@ export default function EnergySWResults() {
         )}
       </Section>
 
+      {!out && empty && status === 'ready' && (
+        <Section title="Rules"><div className="grid gap-2">{empty.rules.map((x) => <Card key={x.id} r={x} />)}</div></Section>
+      )}
       {out && (
         <Section title="Rules">
           <div className="grid gap-2">{out.rules.map((x) => <Card key={x.id} r={x} />)}</div>

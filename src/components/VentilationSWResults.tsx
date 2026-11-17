@@ -71,13 +71,13 @@ function Carpet({ grid }: { grid: Float32Array }) {
 }
 
 export default function VentilationSWResults() {
-  const { presets, status, error, out, runRev, outRev, set, reset, on } = useVentilationSW()
+  const { presets, status, error, out, empty, runRev, outRev, set, reset, on } = useVentilationSW()
   const sel = 'rounded border border-line bg-panel px-1.5 py-1 text-xs'
   const edited = JSON.stringify(presets) !== JSON.stringify(DEFAULT_VENT_PRESETS)
   const stale = !!out && outRev !== runRev
   const rerun = () => { useVentilationSWStore.setState({ key: '' }); useVentilationSWStore.getState().set({}) }
   const statusWord = status === 'running' ? (stale ? 'Model changed, rerunning…' : 'Running the year hour by hour…')
-    : status === 'ready' ? (stale ? 'Model changed, rerunning' : 'Evaluated for the current model')
+    : status === 'ready' ? (!out && empty ? 'No occupied floors to analyse' : stale ? 'Model changed, rerunning' : 'Evaluated for the current model')
     : status === 'error' ? `Could not run: ${error}` : on ? 'Waiting for the model' : 'Off'
   const statusState = status === 'error' ? 'fail' : status === 'ready' && !stale ? 'pass' : 'unknown'
   const V = out?.vent, Q = out?.quick, rd = out?.readings
@@ -90,7 +90,7 @@ export default function VentilationSWResults() {
           <div className="min-w-0">
             <div className="text-meta text-muted">Run</div>
             <div className="truncate text-xs font-semibold" title={statusWord}>{statusWord}</div>
-            {out && V && <div className="text-meta text-muted">{out.towerName} · {V.nF} floors, {V.operable} with operable windows · {out.north ? 'true north' : 'model grid as north'}</div>}
+            {out && V && <div className="text-meta text-muted">{out.towerName} · {V.nF} floors, {V.operable} with operable windows · {out.presets.north === 'true' ? 'true north' : 'model grid as north'}</div>}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <StateChip state={statusState} value={status === 'running' ? 'Running' : status === 'idle' ? 'Idle' : undefined} />
@@ -110,7 +110,7 @@ export default function VentilationSWResults() {
               <Bars main={V.rows.map((r) => (r.hours ? r.vent / r.hours : 0))} back={V.rows.map((r) => r.fT)} labels={MONTH} label="Hours with windows open by month" />
               {V.floors.length > 0 && <>
                 <figcaption className="text-meta"><b className="font-semibold text-ink">By floor</b> <span className="text-muted">· share of the period's hours each operable floor can open; highest open floor L{out.levels[V.limit - 1] ?? V.limit}</span></figcaption>
-                <Bars main={V.floors.map((f) => shareOf(f.i))} labels={V.floors.map((f) => `L${f.i + 1}`)} label="Hours with windows open per floor" />
+                <Bars main={V.floors.map((f) => shareOf(f.i))} labels={V.floors.map((f) => `L${out.levels[f.i] ?? f.i + 1}`)} label="Hours with windows open per floor" />
                 <figcaption className="text-meta"><b className="font-semibold text-ink">Week by hour</b> <span className="text-muted">· share of operable floors open (her carpet)</span></figcaption>
                 <Carpet grid={V.grid} />
               </>}
@@ -119,6 +119,9 @@ export default function VentilationSWResults() {
         )}
       </Section>
 
+      {!out && empty && status === 'ready' && (
+        <Section title="Rules"><div className="grid gap-2">{empty.rules.map((x) => <Card key={x.id} r={x} />)}</div></Section>
+      )}
       {out && (
         <Section title="Rules">
           <div className="grid gap-2">{out.rules.map((x) => <Card key={x.id} r={x} />)}</div>

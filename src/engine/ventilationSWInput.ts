@@ -6,7 +6,7 @@
 import type { Flag, RuleResult, RuleState, Source } from './types'
 import type { Zone } from './daylightSW'
 import { DEFAULT_VENT, type VentQuick, type VentResult, type VentSettings } from './ventilationSW'
-import type { GlazingChoice } from './daylightSWInput'
+import { noFloorsRule, type GlazingChoice } from './daylightSWInput'
 
 export const SRC = {
   engine: { label: 'Sun & Wind Studio, Sinnie Choi (physics.js, study.js, core.js at c24addb, 16 Nov 2026): hourly natural-ventilation potential after Ladybug, the CBE adaptive model and a one-zone CONTAM / AirflowNetwork balance, ported with her method and constants', url: 'https://github.com/xubynii/sun-wind-studio' },
@@ -48,6 +48,7 @@ export interface VentRuleInput { readings: VentReadings; presets: VentilationPre
 /** Her key results as the Toolkit's evidence lines (study.js keyItems / leedCard): openable area ≥ 4%, within 8 m, hours the windows do the work. None verified. */
 export function ventRules(i: VentRuleInput): RuleResult[] {
   const { readings: r, presets: p } = i
+  if (!r.floors) return [noFloorsRule('sw-vt-openable', i.towerName, SRC.engine)]
   const flag: Flag = 'unverified'
   const faces = (['N', 'E', 'S', 'W'] as const).filter((f) => p.operable[f])
   const noOps = r.operableFloors === 0
