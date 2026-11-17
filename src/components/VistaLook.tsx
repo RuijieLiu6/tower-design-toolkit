@@ -567,7 +567,7 @@ function InspectCard() {
  */
 // 12 Nov ("move the function where you can select view cone to the one on the bottom right"): drawn inside the
 // location-map card (VistaInset), on top of the map, at the map's width.
-export function ConePicker() {
+export function ConePicker({ inline = false }: { inline?: boolean } = {}) {
   const vp = useViewFromStore((s) => s.viewpoint)
   const looking = useViewFromStore((s) => s.looking)
   const current = looking && vp?.kind === 'cone' ? vp.coneId ?? '' : ''
@@ -575,7 +575,7 @@ export function ConePicker() {
   const at = CONES.findIndex((c) => c.id === current)
   const navBtn = `rounded-lg border px-2 py-0.5 text-meta hover:bg-subtle ${focusRing}`
   return (
-    <div data-testid="cone-picker" className="w-[196px] space-y-1 text-meta" style={{ color: CHROME.ink }}>
+    <div data-testid="cone-picker" className={`${inline ? 'w-full' : 'w-[196px]'} space-y-1 text-meta`} style={{ color: CHROME.ink }}>
       <label className="grid gap-0.5">
         <span className="font-semibold">View cone</span>
         <select aria-label="Protected view to look from" value={current} onChange={(e) => { if (e.target.value) goToCone(e.target.value) }}
@@ -595,11 +595,11 @@ export function ConePicker() {
       </nav>
       {cone && <p className="text-meta leading-snug" title="Eye at the City's viewpoint elevation Lv (ViewCone service), looking along the cone's axis. Esc or City to leave.">Eye at Lv {cone.Lv} m, along the cone's axis</p>}
       {!cone && looking && <p className="text-meta leading-snug">Looking from {vp?.label ?? 'a picked point'} (View from here).</p>}
-      <button type="button" onClick={() => useViewFromStore.getState().set({ picking: true, looking: false, note: null })}
+      {!inline && <button type="button" onClick={() => useViewFromStore.getState().set({ picking: true, looking: false, note: null })}
         title="Or stand on a street or roof (View from here)"
         className={`w-full rounded-lg border px-2 py-0.5 text-meta hover:bg-subtle ${focusRing}`} style={{ borderColor: CHROME.border, background: '#ffffff' }}>
         Stand on a street or roof
-      </button>
+      </button>}
     </div>
   )
 }

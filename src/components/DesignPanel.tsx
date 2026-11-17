@@ -248,10 +248,26 @@ export function ProgramTool() {
   const setBand = (i: number, patch: Partial<{ use: UseId; share: number }>) => up({ bands: t.bands.map((b, k) => (k === i ? { ...b, ...patch } : b)) })
   const moveBand = (i: number, d: number) => { const b = [...t.bands]; const j = i + d; if (j < 0 || j >= b.length) return; [b[i], b[j]] = [b[j], b[i]]; up({ bands: b }) }
   const shareTotal = t.bands.reduce((s, b) => s + b.share, 0) || 1
+  // 17 Nov (Sinnie: "make sure program equalizer always evens out to 100"): the shares always sum to 1. Moving one band
+  // sets it to that share of the tower and scales the others in proportion (evenly when they are all at nought); adding
+  // or removing a band rebalances the same way; the percentages shown are rounded by largest remainder, so they read 100.
+  const norm = (bs: typeof t.bands) => { const s = bs.reduce((a, b) => a + b.share, 0); return s > 0 ? bs.map((b) => ({ ...b, share: b.share / s })) : bs.map((b) => ({ ...b, share: 1 / bs.length })) }
+  const setShare = (i: number, v: number) => {
+    const bs = norm(t.bands), x = Math.max(0, Math.min(1, v))
+    if (bs.length < 2) { up({ bands: bs.map((b) => ({ ...b, share: 1 })) }); return }
+    const rest = bs.reduce((a, b, k) => (k === i ? a : a + b.share), 0)
+    up({ bands: bs.map((b, k) => ({ ...b, share: k === i ? x : rest > 1e-9 ? (b.share / rest) * (1 - x) : (1 - x) / (bs.length - 1) })) })
+  }
+  const pct = (() => {
+    const raw = t.bands.map((b) => (b.share / shareTotal) * 100), fl = raw.map(Math.floor)
+    let left = 100 - fl.reduce((a, b) => a + b, 0)
+    raw.map((r, k) => [r - fl[k], k] as const).sort((a, b) => b[0] - a[0]).forEach(([, k]) => { if (left > 0) { fl[k]++; left-- } })
+    return fl
+  })()
   return (
     <>
       {!t.imported && (
-        <ToolBlock title={`Bands, bottom → top · ${t.name}`} right={<button onClick={() => up({ bands: [...t.bands, { use: 'office', share: 0.1 }] })} className="flex h-7 items-center gap-1 rounded-lg px-1.5 text-control text-accent-hover hover:bg-subtle"><Plus size={14} />Band</button>}>
+        <ToolBlock title={`Bands, bottom → top · ${t.name}`} right={<button onClick={() => up({ bands: [...norm(t.bands).map((b) => ({ ...b, share: b.share * 0.9 })), { use: 'office', share: t.bands.length ? 0.1 : 1 }] })} className="flex h-7 items-center gap-1 rounded-lg px-1.5 text-control text-accent-hover hover:bg-subtle"><Plus size={14} />Band</button>}>
           <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
             {t.bands.map((b, i) => (
               // Two lines (8 Nov): the use and the band's actions, then its share across the panel's width, so neither is
@@ -262,12 +278,12 @@ export function ProgramTool() {
                   <select value={b.use} onChange={(e) => setBand(i, { use: e.target.value as UseId })} className="h-8 w-0 min-w-0 flex-1 rounded-lg border border-line bg-panel px-1.5 text-control" aria-label={`Band ${i + 1} use`}>
                     {Object.entries(USES).map(([id, u]) => <option key={id} value={id}>{u.label}</option>)}
                   </select>
-                  <span className="w-10 text-right text-control tabular-nums text-ink">{Math.round((b.share / shareTotal) * 100)}%</span>
+                  <span className="w-10 text-right text-control tabular-nums text-ink" data-band-pct={i}>{pct[i]}%</span>
                   <button onClick={() => moveBand(i, -1)} aria-label="Move band down" title="Move down" className="flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-subtle hover:text-ink"><ArrowDown size={14} /></button>
                   <button onClick={() => moveBand(i, 1)} aria-label="Move band up" title="Move up" className="flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-subtle hover:text-ink"><ArrowUp size={14} /></button>
-                  <button onClick={() => up({ bands: t.bands.filter((_, k) => k !== i) })} aria-label="Remove band" title="Remove" className="flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-subtle hover:text-error"><Trash2 size={14} /></button>
+                  <button onClick={() => up({ bands: norm(t.bands.filter((_, k) => k !== i)) })} aria-label="Remove band" title="Remove" className="flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-subtle hover:text-error"><Trash2 size={14} /></button>
                 </div>
-                <input type="range" min={0} max={1} step={0.01} value={b.share} onChange={(e) => setBand(i, { share: Number(e.target.value) })} className="ml-7 w-[calc(100%-1.75rem)] accent-accent" aria-label={`Band ${i + 1} share`} />
+                <input type="range" min={0} max={1} step={0.01} value={b.share / shareTotal} onChange={(e) => setShare(i, Number(e.target.value))} className="ml-7 w-[calc(100%-1.75rem)] accent-accent" aria-label={`Band ${i + 1} share`} />
               </div>
             ))}
           </div>

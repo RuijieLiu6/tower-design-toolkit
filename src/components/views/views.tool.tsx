@@ -9,6 +9,7 @@ import { useViewFromStore, type ViewHow } from '../../lib/viewFromStore'
 import { useStore } from '../../store'
 import { LookControls, TowerStand } from '../ViewFromPanel'
 import { ViewChoices } from '../VistaPanel'
+import VistaInset from '../VistaInset'
 
 const CARDS: { id: ViewHow; label: string; Icon: typeof Eye }[] = [
   { id: 'cone', label: 'Protected view cone', Icon: Cone },
@@ -41,7 +42,7 @@ function ChooseView() {
           )
         })}
       </div>
-      {v.how === 'cone' && <ViewChoices how="cone" />}
+      {v.how === 'cone' && <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"><VistaInset inline /><ViewChoices how="cone" /></div>}
       {v.how === 'building' && <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">{pickBtn('Click a roof', 'roof')}<TowerStand /><ViewChoices how="building" /></div>}
       {v.how === 'street' && pickBtn('Click a street point', 'street')}
       {v.how === 'drag' && <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">

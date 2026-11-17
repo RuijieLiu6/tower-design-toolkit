@@ -67,6 +67,9 @@ import { coreSide } from '../../engine/massing'
 import { setDrawData, type DrawData } from '../../lib/boardDrawings'
 import { BRIEF_SITE } from '../../lib/vtcContextSource'
 import { cityDataLoaded } from '../CityContext'
+import { dataFetch } from '../../lib/loadProgress'
+import { decodeTrees } from '../../lib/contextLayers'
+import { decodeFootprints } from '../../lib/cityLayers'
 import { useCityModel } from '../../lib/cityModel'
 import { useStore } from '../../store'
 
@@ -81,6 +84,17 @@ function coreRing(prisms: { ring: P2[]; z0: number; z1: number }[], side: number
   const v: P2 = [-u[1], u[0]], h = side / 2
   return ([[-h, -h], [h, -h], [h, h], [-h, h]] as P2[]).map(([a, b]) => [c[0] + u[0] * a + v[0] * b, c[1] + u[1] * a + v[1] * b])
 }
+// Street trees and City lots for the presentation axonometric (17 Nov): loaded once, on first use, in Real Vancouver.
+let groundLayers: Promise<{ trees: { x: number; y: number; h: number }[]; lots: P2[][] }> | null = null
+function loadGroundLayers() {
+  groundLayers ??= (async () => {
+    const [tb, pb] = await Promise.all([dataFetch('trees.bin').then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null), dataFetch('parcels.bin').then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null)])
+    const trees = tb ? decodeTrees(tb).map((t) => ({ x: t.x, y: t.y, h: t.feet != null ? t.feet * 0.3048 : 8 })) : []
+    const lots = pb ? decodeFootprints(pb).map((f) => f.outer as P2[]) : []
+    return { trees, lots }
+  })()
+  return groundLayers
+}
 const inside = (p: P2, r: P2[]) => { let o = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) o = !o } return o }
 /** Keeps the drawing data current while the composer is open; returns it so the previews redraw when it changes. */
 export function useDrawData(): DrawData {
@@ -93,6 +107,8 @@ export function useDrawData(): DrawData {
   const model = useCityModel((s) => s.model)
   const [data, setData] = useState<Awaited<ReturnType<typeof cityDataLoaded>> | null>(null)
   useEffect(() => { let live = true; void cityDataLoaded(model)?.then((d) => live && setData(d)); return () => { live = false } }, [model, project])
+  const [ground, setGround] = useState<Awaited<ReturnType<typeof loadGroundLayers>> | null>(null)
+  useEffect(() => { if (project !== 'city') return; let live = true; void loadGroundLayers().then((g) => live && setGround(g)); return () => { live = false } }, [project])
   const d = useMemo<DrawData>(() => {
     const site = project === 'city' ? cityRing : (((ctx?.site ?? BRIEF_SITE)?.outline as P2[] | undefined) ?? null)
     const ts = towers.map((t) => {
@@ -115,8 +131,11 @@ export function useDrawData(): DrawData {
         if (Number.isFinite(z) && z > 0) context.push({ ring: f.outer as P2[], z1: z })
       })
     } else if (project === 'vtc' && ctx) context = vtcOccluders(ctx).prisms.filter((p) => near(p.ring as P2[])).map((p) => ({ ring: p.ring as P2[], z1: p.z1 }))
-    return { site, towers: ts, context, north: project === 'vtc' ? VTC_NORTH_DEG : 0 }
-  }, [towers, project, cityRing, ctx, data])
+    const near2 = (x: number, y: number) => Math.abs(x - c[0]) < 220 && Math.abs(y - c[1]) < 220
+    const trees = project === 'city' && ground ? ground.trees.filter((t) => near2(t.x, t.y) && !ts.some((k) => k.prisms.some((p) => inside([t.x, t.y], p.ring)))) : []
+    const lots = project === 'city' && ground ? ground.lots.filter((r) => r.length > 2 && r.some(([x, y]) => near2(x, y))) : []
+    return { site, towers: ts, context, north: project === 'vtc' ? VTC_NORTH_DEG : 0, trees, lots }
+  }, [towers, project, cityRing, ctx, data, ground])
   setDrawData(d)
   useEffect(() => () => setDrawData(null), [])
   return d

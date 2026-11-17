@@ -24,16 +24,19 @@ const EYE = '#d97706', TOWER = '#1f2328'
 
 const km = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)} km` : `${Math.round(m)} m`)
 
-export default function VistaInset() {
+export default function VistaInset({ inline = false }: { inline?: boolean } = {}) {
   const v = useViewFromStore()
   const towers = useTowers()
   const sel = useStore((s) => s.selectedTower)
   const vp = v.viewpoint
   const local = useMemo(() => CONES.map((c) => ({ id: c.id, est: !!CONE_PARAMS[c.id], ring: c.ring.map(([x, y]) => [x - CITY_ORIGIN[0], y - CITY_ORIGIN[1]] as [number, number]) })), [])
-  // Observer (looking or picking a spot): the card holds the cone picker; the map joins it once there is a viewpoint.
-  if (!v.looking && !v.picking) return null
-  const card = 'pointer-events-auto absolute bottom-3 right-3 rounded-md border border-line bg-white/85 p-1.5 text-meta text-slate-700 shadow-sm backdrop-blur-md'
-  if (!v.looking || !vp) return <div data-testid="vista-inset" className={card}><ConePicker /></div>
+  // 17 Nov (Sinnie: "this view cone panel should show up when you're inside the view cone"): only while looking from a
+  // protected view cone; a street, roof or dragged viewpoint, or picking one, keeps the view clear.
+  // Second pass the same day ("this should only show up when Im on my view cone tool, can you merge it to the left
+  // panel"): no floating card over the view any more; the view tool's Protected view cone option holds it (inline).
+  if (!inline) return null
+  const card = 'rounded-md border border-line bg-white p-1.5 text-meta text-slate-700'
+  if (!v.looking || !vp || vp.kind !== 'cone') return <div data-testid="vista-inset" className={card}><ConePicker inline /></div>
   const t = towers.find((k) => k.id === sel) ?? towers[0]
   const eye: [number, number] = [vp.x, vp.y]
   const fp = t ? towerFootprint(t) : []
@@ -59,7 +62,7 @@ export default function VistaInset() {
   const [x0, y0, x1, y1] = BOUNDS
   return (
     <div data-testid="vista-inset" className={card}>
-      <div className="mb-1.5 border-b border-line pb-1.5"><ConePicker /></div>
+      <div className="mb-1.5 border-b border-line pb-1.5"><ConePicker inline /></div>
       <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} role="img"
         aria-label={`Location map, north up: you at ${vp.label}${t ? `, ${t.name} ${km(dist)} away` : ''}, looking ${compass(v.bearing)} with a ${Math.round(v.hfov)}° field${frame.extentExceeded ? '. The model ends at the outlined edge.' : ''}`}>
         <defs><clipPath id="vista-inset-clip"><rect x={0} y={0} width={S} height={S} rx={4} /></clipPath></defs>

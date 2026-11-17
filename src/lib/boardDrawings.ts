@@ -31,6 +31,9 @@ export interface DrawData {
   site: Pt[] | null
   towers: { id: string; name: string; /** Indicative core ring (a square of the core share, centred on the plate). */ core?: Pt[] | null; prisms: { ring: Pt[]; z0: number; z1: number }[]; floors: { level: number; z0: number; z1: number; use: UseId; area: number; rings: Pt[][] }[] }[]
   context: { ring: Pt[]; z1: number }[]
+  /** Street trees (height in m) and City lots near the site, Real Vancouver only (the presentation axonometric). */
+  trees?: { x: number; y: number; h: number }[]
+  lots?: Pt[][]
   /** True north, degrees clockwise from the frame's +y. */
   north: number
 }
@@ -227,3 +230,5 @@ export function drawTitleBlock(c: CanvasRenderingContext2D, k: number, W: number
   })
   c.restore()
 }
+
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __tdtDraw: unknown }).__tdtDraw = { drawData, drawDrawing, BOARD_STYLES }

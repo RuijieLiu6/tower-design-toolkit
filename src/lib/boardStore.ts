@@ -211,7 +211,18 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   reset: () => set({ boards: freshBoards(), parked: [], exports: {}, ticks: {}, selected: { board: 0, frame: null } }),
 }), {
   name: 'ts.boards',
-  version: 1,
+  // v2 (17 Nov, Sinnie: "all the analysis drawing should only appear if the user presses (add on sheet) … remove all the
+  // analysis page by default"): sheets filled by the old automatic capture (images 'arch-…') are dropped from saved sets.
+  version: 2,
+  migrate: (state, from) => {
+    const st = state as { boards?: { frames: { content?: { kind: string; imageId?: string } }[] }[] }
+    if (from < 2 && Array.isArray(st.boards)) {
+      const auto = (b: (typeof st.boards)[number]) => b.frames.some((f) => f.content?.kind === 'image' && f.content.imageId?.startsWith('arch-'))
+      const kept = st.boards.filter((b) => !auto(b))
+      st.boards = kept.length ? kept : st.boards
+    }
+    return state as never
+  },
   storage: createJSONStorage(() => {
     try { return localStorage } catch { return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } }
   }),
@@ -224,6 +235,9 @@ let hydrated = false
 export async function hydrateBoardImages() {
   if (hydrated) return
   hydrated = true
-  const list = await loadImages()
+  // Drawings the old automatic capture saved (ids 'arch-…') are dropped; the user's own Sheet adds ('analysis-…') stay.
+  const all = await loadImages()
+  for (const i of all) if (i.id.startsWith('arch-')) void deleteImage(i.id)
+  const list = all.filter((i) => !i.id.startsWith('arch-'))
   if (list.length) useBoardStore.setState((s) => ({ images: { ...Object.fromEntries(list.map((i) => [i.id, i])), ...s.images } }))
 }

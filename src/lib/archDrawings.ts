@@ -484,43 +484,96 @@ function isoMass(c: CanvasRenderingContext2D, P: Iso, ring: Pt[], z0: number, z1
 }
 const inRing = (p: Pt, r: Pt[]) => { let s = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a = r[i], b = r[j]; if (a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]) s = !s } return s }
 
-// 17 Nov (Sinnie): "learn [the arch-drawing-standards skill] and fix this axo drawing". One isometric (30/30), heavy
-// silhouette on the tower, medium edges, thin floor lines, context thin and grey at its real height, one painter's order
-// for everything so nearer buildings hide the tower base, footprints the design replaces left out, site as a property line.
+// The presentation axonometric (17 Nov 2026, Sinnie; second pass the same day after a reference image: "axo view should
+// look like this in present mode"): a grey city at its real height with cast shadows, streets mid grey, the City lots
+// pale, the site stippled, street trees as white crowns, and the design in charcoal so it reads first. Line weights
+// follow the house drawing standard (arch-drawing-standards): thin grey edges on the city, medium ink edges and a heavy
+// silhouette on the design, thin floor lines. One isometric (30/30) turned to the tower's axis, one painter's order for
+// buildings and trees, footprints the design replaces left out, the site boundary as a property line. The design is
+// built from its floor plates (a parametric tower's casters each run from the ground to their block's top).
+const AXO = { road: '#b7b7bb', lot: '#e6e6e8', lotEdge: '#9d9da2', shadow: '#a9a9ad', top: '#ececee', sideA: '#dadadd', sideB: '#f6f6f7', edge: '#6e6e73',
+  tower: ['#56575c', '#3f4045'] as [string, string], towerTop: '#6b6c71', towerEdge: '#141416', floor: '#8a8b90' }
+function stipple(c: CanvasRenderingContext2D, base: string) {
+  const p = document.createElement('canvas'); p.width = p.height = 24
+  const x = p.getContext('2d')!; x.fillStyle = base; x.fillRect(0, 0, 24, 24); x.fillStyle = '#8d8d92'
+  let seed = 7; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280)
+  for (let i = 0; i < 26; i++) x.fillRect(Math.floor(rnd() * 24), Math.floor(rnd() * 24), 1, 1)
+  return c.createPattern(p, 'repeat') ?? base
+}
+function hull2(ps: Pt[]): Pt[] {
+  const p = [...ps].sort((a, b) => a[0] - b[0] || a[1] - b[1]); if (p.length < 3) return p
+  const cr = (o: Pt, a: Pt, b: Pt) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+  const lo: Pt[] = [], up: Pt[] = []
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q) }
+  for (const q of [...p].reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q) }
+  return [...lo.slice(0, -1), ...up.slice(0, -1)]
+}
 function drawAxo(c: CanvasRenderingContext2D, k: number, f: Rect, d: DrawData, st: BoardStyle): [string, number] {
   const K = kit(c, k, f, st)
   const main = d.towers.reduce((m, t) => (t.floors.length > m.floors.length ? t : m), d.towers[0]), T = turnTo(main)
-  const prisms = d.towers.flatMap((t) => t.prisms.map((p) => ({ ...p, ring: p.ring.map(T), t })))
-  const own = prisms.flatMap((p) => p.ring)
-  const cc = centroid(own)
+  type Mass = { ring: Pt[]; z0: number; z1: number; t: DrawData['towers'][number]; levels: number[] }
+  const masses: Mass[] = d.towers.flatMap((t) => {
+    const out: Mass[] = []
+    for (const fl of t.floors) for (const r of fl.rings) {
+      const ring = r.map(T)
+      const last = out.find((m) => Math.abs(m.z1 - fl.z0) < 0.01 && m.ring.length === ring.length && m.ring.every((q, i) => Math.hypot(q[0] - ring[i][0], q[1] - ring[i][1]) < 0.05))
+      if (last) { last.z1 = fl.z1; last.levels.push(fl.z0) } else out.push({ ring, z0: fl.z0, z1: fl.z1, t, levels: [fl.z0] })
+    }
+    if (!out.length) for (const p of t.prisms) out.push({ ring: p.ring.map(T), z0: p.z0, z1: p.z1, t, levels: [] })
+    return out
+  })
+  const cc = centroid(masses.flatMap((m) => m.ring))
   const site = d.site?.map(T) ?? null
-  const under = (r: Pt[]) => { const m = centroid(r); return (site != null && inRing(m, site)) || prisms.some((p) => inRing(m, p.ring) || r.some((q) => inRing(q, p.ring))) }
-  const CUT = 20 // context cut at one height so the tower reads whole; stated in the title
-  const near = d.context.map((o) => ({ ring: o.ring.map(T), z1: Math.min(o.z1, CUT), cut: o.z1 > CUT })).filter((o) => o.ring.some((p) => Math.abs(p[0] - cc[0]) < 90 && Math.abs(p[1] - cc[1]) < 90) && !under(o.ring))
-  const pts: [number, number, number][] = [
-    ...prisms.flatMap((p) => p.ring.flatMap((q) => [[q[0], q[1], 0], [q[0], q[1], p.z1]] as [number, number, number][])),
-    ...near.flatMap((o) => o.ring.flatMap((q) => [[q[0], q[1], 0], [q[0], q[1], o.z1]] as [number, number, number][])),
-  ]
-  const { P } = isoFit(c, k, f, pts, 8)
+  const R = 120
+  const inBox = (p: Pt) => Math.abs(p[0] - cc[0]) < R && Math.abs(p[1] - cc[1]) < R
+  const inWide = (p: Pt) => Math.abs(p[0] - cc[0]) < R + 90 && Math.abs(p[1] - cc[1]) < R + 90 // to the frame's edge
+  const under = (r: Pt[]) => { const m = centroid(r); return (site != null && inRing(m, site)) || masses.some((p) => inRing(m, p.ring) || r.some((q) => inRing(q, p.ring))) }
+  const near = d.context.map((o) => ({ ring: o.ring.map(T), z1: o.z1 })).filter((o) => o.ring.some(inWide) && !under(o.ring))
+  const trees = (d.trees ?? []).map((t) => ({ at: T([t.x, t.y]), h: Math.max(5, Math.min(22, t.h)) })).filter((t) => inWide(t.at) && !(site && inRing(t.at, site)))
+  const lots = (d.lots ?? []).map((r) => r.map(T)).filter((r) => r.some((p) => Math.abs(p[0] - cc[0]) < R + 90 && Math.abs(p[1] - cc[1]) < R + 90))
+  const box: Pt[] = [[cc[0] - R, cc[1] - R], [cc[0] + R, cc[1] - R], [cc[0] + R, cc[1] + R], [cc[0] - R, cc[1] + R]]
+  const pts: [number, number, number][] = [...box.map((q) => [q[0], q[1], 0] as [number, number, number]), ...masses.flatMap((m) => m.ring.map((q) => [q[0], q[1], m.z1] as [number, number, number]))]
+  const { P } = isoFit(c, k, f, pts, 6)
   const lw = K.lw
+  const path = (r: Pt[], z: number) => { c.beginPath(); r.forEach((p, i) => { const q = P(p, z); if (i) c.lineTo(...q); else c.moveTo(...q) }); c.closePath() }
+  c.save()
+  c.beginPath(); c.rect(K.mm(f.x + 2), K.mm(f.y + 2), K.mm(f.w - 4), K.mm(f.h - 10)); c.clip()
+  // the ground: streets, the lots, the site stippled
+  c.fillStyle = AXO.road; c.fillRect(K.mm(f.x + 2), K.mm(f.y + 2), K.mm(f.w - 4), K.mm(f.h - 10)) // streets to the frame's edge
+  for (const r of lots) { path(r, 0); c.fillStyle = AXO.lot; c.fill(); c.strokeStyle = AXO.lotEdge; lw(0.1); c.stroke() }
+  if (site) { path(site, 0); c.fillStyle = stipple(c, '#f7f7f8'); c.fill() }
+  // shadows on the ground from a south-east sun: they fall back and to the left, as in the reference
+  const sh: Pt = [-0.32, 1.05]
+  c.fillStyle = AXO.shadow
+  const shadow = (r: Pt[], h: number) => { path(hull2([...r, ...r.map((p) => [p[0] + sh[0] * h, p[1] + sh[1] * h] as Pt)]), 0); c.fill() }
+  for (const o of near) shadow(o.ring, o.z1)
+  for (const m of masses) shadow(m.ring, m.z1)
+  for (const t of trees) { const r = t.h * 0.2, o: Pt = [t.at[0] + sh[0] * t.h * 0.55, t.at[1] + sh[1] * t.h * 0.55]; shadow([[o[0] - r, o[1] - r], [o[0] + r, o[1] - r], [o[0] + r, o[1] + r], [o[0] - r, o[1] + r]], 0) }
+  // the site boundary as a property line
+  if (site) { c.strokeStyle = st.ink; lw(0.3); c.setLineDash([K.mm(4), K.mm(0.8), K.mm(0.6), K.mm(0.8), K.mm(0.6), K.mm(0.8)]); path(site, 0); c.stroke(); c.setLineDash([]) }
+  // buildings and trees, far to near
   const depth = (r: Pt[]) => Math.max(...r.map((p) => p[0] + p[1])) + Math.min(...r.map((p) => p[0] + p[1]))
-  // the site boundary as a property line (phantom: long dash, two short), on the ground under everything
-  if (site) {
-    c.strokeStyle = st.ink; lw(0.35); c.setLineDash([K.mm(4), K.mm(0.8), K.mm(0.6), K.mm(0.8), K.mm(0.6), K.mm(0.8)])
-    c.beginPath(); site.forEach((p, i) => { const q = P(p, 0); if (i) c.lineTo(...q); else c.moveTo(...q) }); c.closePath(); c.stroke(); c.setLineDash([])
-  }
-  const items: { d: number; draw: () => void }[] = near.map((o) => ({ d: depth(o.ring), draw: () => isoMass(c, P, o.ring, 0, o.z1, { faces: ['#ffffff', '#f0f0f0'], top: o.cut ? '#d6d6d6' : '#ffffff', edge: '#8c8c8c', edgeMm: 0.13 }, lw) }))
+  const mpx = Math.abs(P([0, 0], 1)[1] - P([0, 0], 0)[1]) // canvas px per metre of height
+  const items: { d: number; draw: () => void }[] = near.map((o) => ({ d: depth(o.ring), draw: () => isoMass(c, P, o.ring, 0, o.z1, { faces: [AXO.sideB, AXO.sideA], top: AXO.top, edge: AXO.edge, edgeMm: 0.1 }, lw) }))
+  for (const t of trees) items.push({ d: 2 * (t.at[0] + t.at[1]), draw: () => {
+    const b = P(t.at, 0), w = t.h * 0.62 * mpx, h = t.h * 0.95 * mpx, cy = b[1] - t.h * 0.22 * mpx - h / 2
+    c.strokeStyle = '#7c7c80'; lw(0.08); c.beginPath(); c.moveTo(b[0], b[1]); c.lineTo(b[0], cy + h / 2); c.stroke()
+    // a leafy crown: an oval with a scalloped edge, its shaded side a pale grey
+    c.beginPath(); const n = 20
+    for (let i = 0; i <= n; i++) { const a = (i / n) * Math.PI * 2, j = 1 + 0.08 * Math.sin(i * 2.7 + t.at[0]), x = b[0] + Math.sin(a) * (w / 2) * j, y = cy - Math.cos(a) * (h / 2) * j; if (i) c.lineTo(x, y); else c.moveTo(x, y) }
+    c.closePath(); c.fillStyle = '#ffffff'; c.fill(); c.strokeStyle = '#8e8e93'; lw(0.07); c.stroke()
+    c.save(); c.clip(); c.fillStyle = '#e4e4e7'; c.fillRect(b[0] + w * 0.12, cy - h / 2, w, h); c.restore()
+  } })
   for (const t of d.towers) {
-    // low to high; at one level far to near, so a wider podium in front covers the shaft's foot
     const nearest = (r: Pt[]) => Math.min(...r.map((p) => p[0] + p[1]))
-    const mine = prisms.filter((p) => p.t === t).sort((a, b) => a.z0 - b.z0 || nearest(b.ring) - nearest(a.ring))
+    const mine = masses.filter((m) => m.t === t).sort((a, b) => a.z0 - b.z0 || nearest(b.ring) - nearest(a.ring))
     if (!mine.length) continue
     items.push({ d: Math.min(...mine.map((p) => depth(p.ring))), draw: () => {
-      const fz = t.floors.map((fl) => fl.z0)
-      for (const p of mine) isoMass(c, P, p.ring, p.z0, p.z1, { faces: [st.paper, '#e2e2e2'], top: st.paper, edge: st.ink, edgeMm: 0.25, outMm: 0.5, surf: { z: fz, mm: 0.09, colour: '#a0a0a0', minGap: K.mm(1.6) } }, lw)
+      for (const m of mine) isoMass(c, P, m.ring, m.z0, m.z1, { faces: AXO.tower, top: AXO.towerTop, edge: AXO.towerEdge, edgeMm: 0.25, outMm: 0.45, surf: { z: m.levels, mm: 0.07, colour: AXO.floor, minGap: K.mm(1.2) } }, lw)
     } })
   }
   items.sort((a, b) => b.d - a.d).forEach((it) => it.draw())
+  c.restore()
   return ['Exterior axonometric', 0]
 }
 
@@ -568,5 +621,5 @@ export function drawArch(c: CanvasRenderingContext2D, k: number, f: Rect, spec: 
     : spec.vt === 'program' ? drawProgram(c, k, f, d, st)
     : drawPlanKind(c, k, f, spec, d, st, spec.vt as PlanKind)
   c.restore()
-  drawCaption(c, k, f, st, no, title, sc ? `Scale 1:${sc} at A2${spec.vt === 'plan' || spec.vt === 'roof' || spec.vt === 'section' ? ' · project north' : ''}` : spec.vt === 'axo' ? 'Isometric, to scale along the axes · neighbours cut at +20 m' : 'Exploded, floors by use')
+  drawCaption(c, k, f, st, no, title, sc ? `Scale 1:${sc} at A2${spec.vt === 'plan' || spec.vt === 'roof' || spec.vt === 'section' ? ' · project north' : ''}` : spec.vt === 'axo' ? 'Isometric, to scale along the axes · shadows indicative' : 'Exploded, floors by use')
 }

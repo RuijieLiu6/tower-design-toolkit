@@ -97,7 +97,12 @@ export function floorPlates(t: Tower): { f: Floor; rings: Pt[][] }[] {
     const mid = (f.z0 + f.z1) / 2
     const holds = prisms.filter((p) => p.z0 <= mid && mid < p.z1)
     if (!holds.length) { out.push({ f, rings: [towerFootprint(t) as Pt[]] }); continue }
-    const rings = t.imported ? holds.map((p) => p.ring) : [holds.reduce((a, p) => ((f.podium ? area(p.ring) > area(a.ring) : area(p.ring) < area(a.ring)) ? p : a)).ring]
+    // A parametric tower's casters each run from the ground to their block's top, so every block below a floor's top
+    // "holds" it: the floor's own plate is the block with the lowest top above it (17 Nov, Sinnie: a twisted or tapered
+    // shaft showed a second, straight mass, every floor having taken the smallest plate, the top block's). Ties (two
+    // blocks ending together) keep the old rule: the larger for podium floors, the smaller above.
+    const own = holds.reduce((a, p) => (p.z1 < a.z1 - 1e-6 || (Math.abs(p.z1 - a.z1) <= 1e-6 && (f.podium ? area(p.ring) > area(a.ring) : area(p.ring) < area(a.ring))) ? p : a))
+    const rings = t.imported ? holds.map((p) => p.ring) : [own.ring]
     out.push({ f, rings })
   }
   return out
