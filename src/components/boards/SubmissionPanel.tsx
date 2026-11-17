@@ -10,6 +10,7 @@ import type { RuleResult } from '../../engine/types'
 import { exportBoardJpeg, type EvidenceSet } from '../../lib/boardRender'
 import { useBoardStore } from '../../lib/boardStore'
 import { FlagChip, StateChip } from '../ui'
+import SubmissionChecklist from '../workflow/SubmissionChecklist'
 
 const H = 'mb-1.5 text-meta font-semibold text-slate-400'
 
@@ -94,6 +95,7 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
   const used = boards.filter(isBoardUsed).length
   return (
     <div className="grid gap-5 p-3 text-slate-200">
+      <SubmissionChecklist />
       <section aria-label="Upload status" className={`rounded-md border p-2.5 ${open.length ? 'border-amber-400/40 bg-amber-400/10' : 'border-emerald-400/40 bg-emerald-400/10'}`}>
         <div className="flex items-center gap-2 text-sm font-semibold">{open.length ? <ShieldAlert size={15} className="text-amber-300" /> : <CheckCircle2 size={15} className="text-emerald-300" />}{open.length ? `Not ready to upload: ${open.length} open` : 'Ready to upload'}</div>
         <p className="mt-1 text-meta text-slate-300">{open.length ? 'Export early, upload once: after the first upload, changes need a paid reactivation (Terms 4.7, per research).' : 'Upload the four JPEGs yourself at the Buildner panel, once. This tool never uploads.'}</p>

@@ -53,7 +53,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.competition', type: 'designer', name: 'Enter the Vancouver Tall Challenge',
         goal: "The competition block and its rules, with the public realm (40% of the jury's marks) first.",
         project: 'vtc', step: 'site',
-        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.sky-room', 'built.culture-claims', 'built.provenance'],
+        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.sky-room'],
         says: ['competition entry and boards', 'Vancouver Tall Challenge brief and rules', 'student competition deadline'],
       },
       {
@@ -74,7 +74,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.codesign', type: 'designer', name: 'Run a co-design workshop',
         goal: 'The ground floor and public space a group can shape together, with care for culture and claims.',
         project: 'vtc', step: 'program',
-        nodes: ['built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.solar-access', 'built.culture-claims', 'built.provenance'],
+        nodes: ['built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.solar-access', 'built.city-in-nature', 'built.interior'],
         says: ['community workshop with residents', 'co-design session', 'public space and ground floor with the community'],
       },
       {
@@ -95,8 +95,7 @@ export const USER_TYPES: UserType[] = [
           // 17 Nov (Sinnie: "include view cone and building code as a node tool for the demo workflow"): the building code
           // check (VBBL high-building and life-safety requirements) at the head of the Schematic checks; view cones lead the run.
           'built.life-safety',
-          'built.sw-glazing', 'built.sw-daylight', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-indoor-temp', 'built.sw-energy', 'built.sw-pv',
-          'built.provenance'],
+          'built.sw-glazing', 'built.sw-daylight', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-indoor-temp', 'built.sw-energy', 'built.sw-pv'],
         says: ['demo', 'show the whole tool', 'walk through the toolkit from site to boards'],
       },
     ],
@@ -132,7 +131,7 @@ export const USER_TYPES: UserType[] = [
         id: 'practitioner.permit', type: 'practitioner', name: 'Permit-stage checks',
         goal: 'Code, parking and loading, trips, facade, energy and nature: the lists a permit asks for.',
         project: 'city', step: 'plates',
-        nodes: ['built.life-safety', 'built.mobility', 'built.trips', 'built.facade', 'built.energy-carbon', 'built.city-in-nature', 'built.culture-claims'],
+        nodes: ['built.life-safety', 'built.mobility', 'built.trips', 'built.facade', 'built.energy-carbon', 'built.city-in-nature'],
         says: ['development permit', 'building permit submission', 'checklist before submitting'],
       },
     ],
@@ -151,7 +150,7 @@ export const USER_TYPES: UserType[] = [
         id: 'planner.views', type: 'planner', name: 'Views and the Higher Buildings Policy',
         goal: 'Which protected views the proposal enters, how far, and which relaxation routes could apply.',
         project: 'city', step: 'site',
-        nodes: ['built.viewcones', 'built.relax-aviation', 'built.vista', 'built.view-from', 'built.heights', 'built.solar-access'],
+        nodes: ['built.viewcones', 'built.relax-aviation', 'built.vista', 'built.view-from', 'built.heights', 'built.solar-access', 'built.city-in-nature'],
         says: ['protected view cones', 'Higher Buildings Policy', 'height review', 'skyline and mountain views'],
       },
       {
@@ -163,9 +162,9 @@ export const USER_TYPES: UserType[] = [
       },
       {
         id: 'planner.growth', type: 'planner', name: 'Density, transit and servicing',
-        goal: 'Floor area and value, trips and the station entrance, parking and loading, and engagement claims.',
+        goal: 'Floor area and value, homes and keys per floor, trips and the station entrance, parking and loading.',
         project: 'city', step: 'program',
-        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.culture-claims'],
+        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior'],
         says: ['density and FSR', 'transit and trips', 'parking and loading', 'community benefits'],
       },
     ],

@@ -7,11 +7,15 @@ import { PROGRAM_ICONS } from '../../data/icons'
 import { USES, type UseId } from '../../engine/types'
 import { useResults } from '../../hooks/useResults'
 import FsrSiteLine from '../FsrSiteLine'
+import { FlagChip } from '../ui'
+import { useStore } from '../../store'
+import { TIER_LABEL, type FsrTier } from '../../engine/vtcRules'
 
 const card = 'm-3 rounded-lg border border-accent/35 bg-accent/[0.05] px-3 py-2.5 text-meta shadow-sm'
 
 export default function SiteFloorArea() {
   const { fsr } = useResults()
+  const project = useStore((x) => x.project), fsrTier = useStore((x) => x.fsrTier), set = useStore((x) => x.set)
   const rows = Object.entries(fsr.gfa).filter(([, v]) => v > 0) as [UseId, number][]
   const max = Math.max(1, ...rows.map(([, v]) => v))
   const total = rows.reduce((a, [, v]) => a + v, 0)
@@ -32,6 +36,12 @@ export default function SiteFloorArea() {
         </div>
       ) : <p className="mt-1 text-muted">No floor area yet: place a mass in the Massing step.</p>}
       <FsrSiteLine totalFsr={fsr.totalFsr} siteArea={fsr.siteArea} tiers={[fsr.tier1, fsr.tier2, fsr.tier3]} />
+      {project === 'vtc' && (
+        <label className="mt-1.5 grid gap-1"><span className="flex items-center gap-1 text-muted">Uses that count toward the 9.0 FSR <FlagChip flag="team_assumption" /></span>
+          <select value={fsrTier} data-testid="fsr-tier" onChange={(e) => set({ fsrTier: Number(e.target.value) as FsrTier })} className="h-8 rounded-md border border-line bg-white px-1.5 text-control">
+            {([1, 2, 3] as FsrTier[]).map((k) => <option key={k} value={k}>{TIER_LABEL[k]}</option>)}
+          </select></label>
+      )}
     </section>
   )
 }

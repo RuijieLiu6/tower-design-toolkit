@@ -33,7 +33,7 @@ describe('the workflow assistant', () => {
     const r = interpret('Add a water-systems study after the program stage.', start)
     expect(r.kind).toBe('clarify')
     if (r.kind !== 'clarify') return
-    expect(r.options.map((o) => o.text)).toEqual(['Add Code & life safety after the program stage', 'Add City in Nature ledger after the program stage'])
+    expect(r.options.map((o) => o.text)).toEqual(['Add Code & life safety after the program stage', 'Add Green claims check after the program stage'])
     // Picking one adds it right after the last Program node.
     const p = interpret(r.options[0].text, start)
     expect(p.kind).toBe('proposal')

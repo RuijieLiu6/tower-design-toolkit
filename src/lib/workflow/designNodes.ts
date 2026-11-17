@@ -39,5 +39,8 @@ export function withDesignSteps(nodes: string[], phaseOf: (id: string) => PhaseI
     if (!seen.has(ph)) { seen.add(ph); const d = DESIGN_NODES.find((x) => x.phase === ph); if (d) out.push(d.id) }
     out.push(id)
   }
+  // Every workflow ends at the boards (17 Nov): the Present step holds the presentation sheet and the Submission
+  // checklist, which no longer bring it in as checks of their own.
+  if (out.length && !seen.has('present')) { const d = DESIGN_NODES.find((x) => x.phase === 'present'); if (d) out.push(d.id) }
   return out
 }

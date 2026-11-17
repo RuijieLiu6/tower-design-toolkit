@@ -12,7 +12,7 @@ export function useFacade() {
   // One treated share for both nodes (node audit, 7 Nov): City in Nature's, when none is entered here.
   const ledger = useStore((s) => s.cityInNature.birdTreatedPct)
   const treated = own ?? (ledger != null ? ledger / 100 : null)
-  const treatedFrom = own == null && ledger != null ? 'the City in Nature ledger' : undefined
+  const treatedFrom = own == null && ledger != null ? 'the Green claims check' : undefined
   return useMemo(() => facadeCheck(towers, { system, wwr, treated, treatedFrom, vegetation, vlt, shgc }, project === 'vtc' ? VTC_NORTH_DEG : 0),
     [towers, project, system, wwr, treated, treatedFrom, vegetation, vlt, shgc])
 }

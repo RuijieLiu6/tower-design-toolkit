@@ -70,6 +70,7 @@ export function builtOutput(def: NodeDef, r: Results, project: Project, solar?: 
       return { state: vtc ? items[1].state : 'unknown', headline: `FSR ${f.totalFsr.toFixed(2)} · non-res ${f.tier2.toFixed(2)}`, items }
     }
     case 'built.viewcones': {
+      if (project === 'vtc') return { state: 'idle', headline: 'View cones run in the Real Vancouver project', items: [] }
       const items: Item[] = []
       for (const c of r.cones) {
         for (const k of c.checks) {

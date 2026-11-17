@@ -277,15 +277,7 @@ export function ProgramTool() {
         <FloorStack t={t} />
       </ToolBlock>
       {/* Floor area and FSR moved to the Your site tab (17 Nov, Sinnie: "remove this from the left panel completely"): components/site/SiteFloorArea.tsx. */}
-      {project === 'vtc' && (
-        <ToolBlock>
-          <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Which uses count toward the 9.0 non-residential FSR <FlagChip flag="team_assumption" /></span>
-            <select value={fsrTier} onChange={(e) => set({ fsrTier: Number(e.target.value) as FsrTier })} className="rounded border border-line px-1.5 py-1">
-              {([1, 2, 3] as FsrTier[]).map((k) => <option key={k} value={k}>{TIER_LABEL[k]}</option>)}
-            </select>
-          </label>
-        </ToolBlock>
-      )}
+      {/* The FSR tier moved to the Floor area and FSR card on the Your site tab, beside the FSR it changes (17 Nov). */}
     </>
   )
 }

@@ -20,6 +20,7 @@ import NatureLedger from './NatureLedger'
 import { WindProcedurePanel, WindStudyPanel } from './WindStructurePanel'
 import StructurePanel from './StructurePanel'
 import LifeSafetyPanel from './LifeSafetyPanel'
+import { PlatePanel, SeparationPanel } from './SiteLimitsPanel'
 import RelaxAviationPanel from './RelaxAviationPanel'
 import EnergyCarbonResults from './EnergyCarbonResults'
 import RulesBehind from './RulesBehind'
@@ -518,6 +519,9 @@ export default function Inspector() {
       {n.id === 'built.structure' && enabled[n.id] && <StructurePanel />}
       {n.id === 'built.life-safety' && enabled[n.id] && <LifeSafetyPanel />}
       {n.id === 'built.relax-aviation' && enabled[n.id] && <RelaxAviationPanel />}
+      {n.id === 'built.separation' && enabled[n.id] && <SeparationPanel />}
+      {n.id === 'built.floorplate' && enabled[n.id] && <PlatePanel />}
+      {n.id === 'built.viewcones' && project === 'vtc' && <p className="px-4 py-3 text-meta text-muted">The view cones are checked in the Real Vancouver project; on the competition site the brief's height band applies (VTC hard rules). Tower separation and floor plate run here.</p>}
       {n.id === 'built.energy-carbon' && enabled[n.id] && <EnergyCarbonResults />}
       {n.id === 'built.wind-study' && enabled[n.id] && <WindStudyPanel />}
       {n.id === 'built.wind-screen' && enabled[n.id] && <WindScreenResults />}

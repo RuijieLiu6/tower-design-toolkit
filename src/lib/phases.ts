@@ -23,7 +23,7 @@ export const PHASES: Phase[] = [
   {
     id: 'site', name: 'Site', step: 'site', about: 'Choose the site, bring your model, read the views and heights it allows.',
     tools: ['site', 'rhino-import'],
-    nodes: ['built.vtc-rules', 'built.model', 'built.viewcones', 'built.relax-aviation', 'built.heights', 'built.view-from', 'built.vista'],
+    nodes: ['built.vtc-rules', 'built.model', 'built.viewcones', 'built.relax-aviation', 'built.heights', 'built.separation', 'built.floorplate', 'built.view-from', 'built.vista'],
   },
   {
     id: 'form', name: 'Form', step: 'volume', about: 'Place and shape the tower; read sun, shadow and wind as it changes.',

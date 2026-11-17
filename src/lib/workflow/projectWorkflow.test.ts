@@ -12,7 +12,7 @@ const board = (ids: string[]): Board => ({ nodes: ids, edges: linear(ids) })
 describe('design nodes', () => {
   it('lead each phase a preset uses, and are never counted as checks', () => {
     const nodes = withDesignSteps(['built.vtc-rules', 'built.sun', 'built.fsr'], (id) => phaseOfNode(id)?.id)
-    expect(nodes).toEqual(['design.site', 'built.vtc-rules', 'design.massing', 'built.sun', 'design.program', 'built.fsr'])
+    expect(nodes).toEqual(['design.site', 'built.vtc-rules', 'design.massing', 'built.sun', 'design.program', 'built.fsr', 'design.frame'])
     expect(analysisOnly(nodes)).toEqual(['built.vtc-rules', 'built.sun', 'built.fsr'])
     expect(withDesignSteps(nodes, (id) => phaseOfNode(id)?.id)).toBe(nodes) // already a design process: unchanged
     expect(designForStep('volume')?.id).toBe('design.massing')

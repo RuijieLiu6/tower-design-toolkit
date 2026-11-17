@@ -55,9 +55,17 @@ export const ALL_BUILT_NODES: NodeDef[] = [
   { id: 'built.fsr', name: 'Program & FSR accounting', category: 'PROG', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
     question: 'How much floor area does each use get, and what FSR results?', jury: ['design_excellence_20'],
     human: 'The program mix itself is a design decision.', packet: 'P01' },
-  { id: 'built.viewcones', name: 'View-cone height check', category: 'SITE', phase: 'basic', priority: 'core', status: 'built', projects: ['city'],
+  { id: 'built.viewcones', name: 'View-cone height check', category: 'SITE', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
     question: 'How high may a tower rise at this location under each protected public view, and does the design exceed the estimate?', jury: ['cultural_context_30', 'design_excellence_20'],
     human: 'Higher Buildings and Exceptional Downtown Site relaxations, minor elements, hardship (PVG 3.1.2–3.1.5, 3.4) and the final word: the City View Cone Assessment.', packet: 'C01' },
+  { id: 'built.separation', name: 'Tower separation', category: 'SITE', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
+    question: 'Are the parts of the tower above 21.4 m (70 ft) at least 24.4 m (80 ft) from other towers, proposed and existing?', jury: ['urban_integration_10', 'human_scale_40'],
+    human: 'Whether a closer tower is acceptable on this site (privacy, overlook, light) and which neighbour counts as a tower: the City decides at rezoning.',
+    limits: 'Downtown South Guidelines 4.2.4 (residential towers), read 17 Nov 2026 and used elsewhere as a benchmark; plan distance between parts above 21.4 m; existing buildings from the context model, any over 21.4 m counted as a tower.' },
+  { id: 'built.floorplate', name: 'Tower floor plate', category: 'SITE', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
+    question: 'Is the residential floor plate above 21.4 m at most 604 m² (6,500 sq ft) gross, and the tower at most 27.4 m (90 ft) wide or deep?', jury: ['urban_integration_10', 'design_excellence_20'],
+    human: 'A larger plate for a better massing response (the guideline allows it) and the limits on a specific site: the City decides; its June 2025 Residential Tower Floor Plates bulletin sets context-specific benchmarks.',
+    limits: 'Downtown South Guidelines 4.1.3 (residential towers), read 17 Nov 2026; office floors are reported, not capped; the 2025 bulletin was not opened.' },
   { id: 'built.relax-aviation', name: 'Relaxations & aviation', category: 'SITE', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
     question: 'Where could the Higher Buildings Policy or an Exceptional Downtown Site let a tower enter a protected view, which views still bind, and which federal aviation obligations does a 244–305 m tower trigger?', jury: ['urban_integration_10', 'cultural_context_30'],
     human: 'Whether a site qualifies for a relaxation and how a rezoning argues it: the City decides. Aviation: contact Transport Canada and NAV CANADA for any real site; they set what a tower may do.',
@@ -201,7 +209,7 @@ export const ALL_BUILT_NODES: NodeDef[] = [
     human: 'Programming and stewardship, who the space feels welcome to, place-making with Musqueam, Squamish and Tsleil-Waututh, and negotiation with TransLink and the neighbouring site for the station entrance.',
     limits: 'Open space is the unbuilt site at a public share you set; sun on the space and shadow on protected parks come from Solar access & sun hours, wind from the pedestrian wind screen, when those are on. Route directness and block-length presets have no source. Real Vancouver: open space and POPS over the study site; the link, perimeter, transit plaza and station lines need the site’s streets and station, not yet in the Toolkit.',
     packet: 'P06' },
-  { id: 'built.city-in-nature', name: 'City in Nature ledger', category: 'ECOL', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
+  { id: 'built.city-in-nature', name: 'Green claims check', category: 'ECOL', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
     question: 'Which City in Nature claims rest on binding rules, and which on targets, guidelines, comparators or team assumptions: canopy, cover, habitat, rainwater, bird-safe glass and protected views?', jury: ['cultural_context_30', 'urban_integration_10'],
     human: 'Whether the scheme achieves City in Nature is a cultural and design judgment: reconciliation, Stanley Park, water and mountains, whether entering the QE Park view improves the skyline, and whether a justified breach deserves reward. The ledger never turns this into a score.',
     limits: 'An evidence ledger, not a score. Canopy, cover, retention, glazing and habitat values are entered by you until modules P05-M02 to M08 compute them. Site type (R019) and some lines are team assumptions; Toronto and UBC figures are comparators. Views come from the view-cone node in Real Vancouver only.',
@@ -251,11 +259,13 @@ export const ALL_BUILT_NODES: NodeDef[] = [
 export interface Merge { name: string; question: string; parts: { id: string; tab: string }[]; tab: string }
 export const MERGES: Record<string, Merge> = {
   'built.sw-shadow': { name: 'Sun and shadow', tab: 'Shadow on the ground', question: 'Where and for how long does the tower shade the ground, how much sun reaches each face, and what does the sun do at a chosen hour?',
-    parts: [{ id: 'built.sw-sun-faces', tab: 'Sun on the faces' }, { id: 'built.sun', tab: 'Sun at an hour' }] },
+    // 17 Nov (Sinnie: "fix these overlaps"): the City's protected-spaces test is a tab of the shadow study.
+    parts: [{ id: 'built.sw-sun-faces', tab: 'Sun on the faces' }, { id: 'built.sun', tab: 'Sun at an hour' }, { id: 'built.solar-access', tab: 'Protected spaces' }] },
   'built.sw-wind-comfort': { name: 'Pedestrian wind', tab: 'Comfort on the ground', question: 'Is it too windy for people around the tower and on its terraces and roofs, and does the massing call for a wind study?',
     parts: [{ id: 'built.sw-wind-height', tab: 'Terraces and roofs' }, { id: 'built.wind-screen', tab: 'Massing screen' }, { id: 'built.wind-study', tab: 'Study trigger' }] },
   'built.sw-daylight': { name: 'Daylight: sDA and ASE (LEED)', tab: 'sDA and ASE', question: 'How much of each floor gets useful daylight (sDA 300/50%) without too much direct sun (ASE 1000/250), against LEED EQ Daylight, and how deep can the plates be?',
-    parts: [{ id: 'built.daylight-depth', tab: 'Plate depth' }] },
+    // 17 Nov: Light at this hour is a view of the same floor, not a check: a tab here.
+    parts: [{ id: 'built.daylight-depth', tab: 'Plate depth' }, { id: 'built.sw-light-hour', tab: 'Light at this hour' }] },
   'built.sw-energy': { name: 'Energy and carbon', tab: 'Energy use', question: 'What are the TEUI, TEDI and GHGI against the Higher Buildings Policy and VBBL Part 10, how much embodied carbon does the structure carry, and where is PV worth placing?',
     parts: [{ id: 'built.energy-carbon', tab: 'Limits and carbon' }, { id: 'built.sw-pv', tab: 'Photovoltaics' }] },
   'built.sw-glazing': { name: 'Façade: glazing and bird safety', tab: 'Glazing by zone', question: 'How much glass does each façade zone carry, how does it shade, and is the glazing bird-safe?',
@@ -274,8 +284,9 @@ export const MERGES: Record<string, Merge> = {
     parts: [{ id: 'built.trips', tab: 'Trips and station' }] },
   'built.view-from': { name: 'Views', tab: 'View from here', question: 'What is seen from a point on the tower, and how does the tower sit in the protected vista views?',
     parts: [{ id: 'built.vista', tab: 'Vista studies' }] },
-  'built.viewcones': { name: 'Height limits', tab: 'View cones', question: 'Which view cones and height references cap this site, and what height do they suggest?',
-    parts: [{ id: 'built.heights', tab: 'Height references' }] },
+  // 17 Nov (Sinnie): tower separation and floor plate join the height limits as one Site limits tool.
+  'built.viewcones': { name: 'Site limits', tab: 'View cones', question: 'What caps the tower on this site: the view cones and height references, where a relaxation could apply and what aviation asks, the separation from other towers, and the floor plate size?',
+    parts: [{ id: 'built.heights', tab: 'Height references' }, { id: 'built.relax-aviation', tab: 'Relaxations & aviation' }, { id: 'built.separation', tab: 'Tower separation' }, { id: 'built.floorplate', tab: 'Floor plate' }] },
 }
 export const PART_OF: Record<string, string> = Object.fromEntries(Object.entries(MERGES).flatMap(([lead, m]) => m.parts.map((p) => [p.id, lead])))
 /** A part's lead (a merged tool), or the id itself. */
@@ -288,11 +299,17 @@ export const withParts = (ids: string[]) => [...new Set(canonicalNodes(ids).flat
 for (const n of ALL_BUILT_NODES) { const m = MERGES[n.id]; if (m) { n.name = m.name; n.question = m.question } }
 
 /** The built nodes a person sees and picks: merged tools once, under their lead's id. */
-export const BUILT_NODES: NodeDef[] = ALL_BUILT_NODES.filter((n) => !PART_OF[n.id])
+/**
+ * Obligations of the entry rather than checks of the design (17 Nov, Sinnie): they leave the workflow and the tool
+ * library and sit in the Submission checklist on the Present step (components/workflow/SubmissionChecklist.tsx).
+ */
+export const SUBMISSION_NODES = ['built.culture-claims', 'built.provenance', 'built.model'] as const
+const SUBMISSION = new Set<string>(SUBMISSION_NODES)
+export const BUILT_NODES: NodeDef[] = ALL_BUILT_NODES.filter((n) => !PART_OF[n.id] && !SUBMISSION.has(n.id))
 
 // On at first: the leads that are on by default with their parts; the sun preview also stays on by itself (it is the
 // 3D view's sun as well as a part of Sun and shadow).
-export const DEFAULT_ON = [...withParts(BUILT_NODES.filter((n) => !n.defaultOff).map((n) => n.id)), 'built.sun']
+export const DEFAULT_ON = [...withParts(BUILT_NODES.filter((n) => !n.defaultOff).map((n) => n.id)), 'built.sun', ...SUBMISSION_NODES]
 
 const researched: NodeDef[] = (research as unknown as NodeDef[] & { id: string }[]).map((m: any) => ({
   id: m.id,

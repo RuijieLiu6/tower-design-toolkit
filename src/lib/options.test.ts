@@ -21,14 +21,14 @@ describe('results by node', () => {
   })
 
   it('summarises each switched-on node with its worst state and weakest flag', () => {
-    const d = only(demoDesign(), ['built.vtc-rules', 'built.core-lifts', 'built.viewcones', 'built.economics'])
+    const d = only(demoDesign(), ['built.vtc-rules', 'built.viewcones', 'built.core-lifts', 'built.economics'])
     const s = nodeSummaries(d, digest(line('rules:t1:a', 'pass'), line('rules:t1:b', 'warn', 'team_assumption'), line('lifts:t1:c', 'fail', 'unverified')))
-    expect(s.map((x) => x.nodeId)).toEqual(['built.vtc-rules', 'built.core-lifts', 'built.economics']) // view cones run in Real Vancouver only
+    expect(s.map((x) => x.nodeId)).toEqual(['built.vtc-rules', 'built.viewcones', 'built.core-lifts', 'built.economics']) // Site limits runs in both projects (17 Nov)
     expect(s[0]).toMatchObject({ state: 'warn', flag: 'team_assumption', headline: '1 to check · 1 pass', recorded: true })
-    expect(s[1]).toMatchObject({ state: 'fail', flag: 'unverified' })
-    expect(s[2]).toMatchObject({ recorded: false, headline: 'not in the decision trace yet' })
+    expect(s[2]).toMatchObject({ state: 'fail', flag: 'unverified' })
+    expect(s[3]).toMatchObject({ recorded: false, headline: 'not in the decision trace yet' })
     // Info lines do not pull a passing node down to unknown.
-    expect(nodeSummaries(d, digest(line('lifts:t1:a', 'pass'), line('lifts:t1:b', 'unknown')))[1]).toMatchObject({ state: 'pass', headline: '1 pass · 1 info' })
+    expect(nodeSummaries(d, digest(line('lifts:t1:a', 'pass'), line('lifts:t1:b', 'unknown')))[2]).toMatchObject({ state: 'pass', headline: '1 pass · 1 info' })
   })
 
   it('calls a node better or worse by worst state, then by fails and checks', () => {

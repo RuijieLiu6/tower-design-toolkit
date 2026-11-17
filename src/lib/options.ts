@@ -19,7 +19,7 @@ export const GROUP_NODE: Record<string, string> = {
   rules: 'built.vtc-rules', fsr: 'built.fsr', cones: 'built.viewcones', lifts: 'built.core-lifts', egress: 'built.egress', skyRooms: 'built.sky-room',
   streetwall: 'built.pr-streetwall', frontage: 'built.pr-frontage', groundPlane: 'built.pr-ground', nature: 'built.city-in-nature',
   wind: 'built.wind-procedure', structure: 'built.structure', windStudy: 'built.wind-study', lifeSafety: 'built.life-safety',
-  relaxAviation: 'built.relax-aviation',
+  relaxAviation: 'built.relax-aviation', separation: 'built.separation', plate: 'built.floorplate',
 }
 
 /** Node a digest line belongs to: "rules:t1:height-t1" → built.vtc-rules; "community:<result>:<package>" → the package. */

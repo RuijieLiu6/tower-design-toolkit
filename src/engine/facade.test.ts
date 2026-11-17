@@ -57,8 +57,8 @@ describe('bird-friendly glass shared with City in Nature (node audit, 7 Nov)', (
   it('names where the treated share came from when it was not entered here', () => {
     const towers = [tower()]
     const bird = (patch: Partial<FacadeInput>) => facadeCheck(towers, input(patch), 45).rules.find((r) => r.id === 'fa-bird')!
-    expect(bird({ treated: 0.9, treatedFrom: 'the City in Nature ledger' }).note).toMatch(/^Treated share from the City in Nature ledger\. /)
+    expect(bird({ treated: 0.9, treatedFrom: 'the Green claims check' }).note).toMatch(/^Treated share from the Green claims check\. /)
     expect(bird({ treated: 0.9 }).note).not.toMatch(/^Treated share from/)
-    expect(bird({ treated: 0.9, treatedFrom: 'the City in Nature ledger' }).state).toBe('pass')
+    expect(bird({ treated: 0.9, treatedFrom: 'the Green claims check' }).state).toBe('pass')
   })
 })

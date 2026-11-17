@@ -24,6 +24,7 @@ import { useNature } from './NatureLedger'
 import { useWindProcedures } from './WindStructurePanel'
 import { useStructures } from './StructurePanel'
 import { useLifeSafety } from './LifeSafetyPanel'
+import { useSiteLimits } from './SiteLimitsPanel'
 import { useRelaxAviation } from './RelaxAviationPanel'
 import { windStudyRules } from '../engine/windStructure'
 import { FlagChip, Section, StateChip } from './ui'
@@ -55,6 +56,7 @@ function Recorder() {
   const structure = useStructures()
   const lifeSafety = useLifeSafety()
   const relaxAviation = useRelaxAviation()
+  const siteLimits = useSiteLimits()
   useEffect(() => {
     const names = Object.fromEntries(packages.map((p) => [p.id, p.name]))
     const on = new Map([...runs].filter(([id]) => design.enabled[id]))
@@ -68,12 +70,14 @@ function Recorder() {
       windStudy: isOn('built.wind-study') ? windStudyRules(Math.max(0, ...towers.map((t) => t.height))) : [],
       lifeSafety: isOn('built.life-safety') ? lifeSafety.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
       relaxAviation: isOn('built.relax-aviation') ? relaxAviation.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
+      separation: isOn('built.separation') ? siteLimits.separation.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
+      plate: isOn('built.floorplate') ? siteLimits.plate.map((r) => ({ tower: r.tower, rules: r.rules })) : [],
     }
     // Missing data never reads as a result (lib/missingInput.ts): checks that need a model or a site and have none
     // leave no lines (their views say what they wait for), and no FSR is recorded without a model or a site.
     const digest = gateDigest(digestResults(all as unknown as Record<string, unknown>, on, names), { project: design.project, towers: towers.length, siteArea })
     setLive(designHash(design), digest)
-  }, [results, runs, packages, design, nature, wind, structure, lifeSafety, relaxAviation, siteArea])
+  }, [results, runs, packages, design, nature, wind, structure, lifeSafety, relaxAviation, siteLimits, siteArea])
   return null
 }
 

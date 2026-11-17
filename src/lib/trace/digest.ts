@@ -14,6 +14,7 @@ const STATES: RuleState[] = ['pass', 'warn', 'fail', 'unknown']
 const GROUP: Record<string, string> = {
   rules: 'VTC rules', lifts: 'Core & lifts', egress: 'Egress & stairs', skyRooms: 'Sky room', streetwall: 'Streetwall',
   frontage: 'Frontage', groundPlane: 'Open space & links', cones: 'View cones', fsr: 'FSR', nature: 'City in Nature', wind: 'Wind procedure', structure: 'Structure', windStudy: 'Pedestrian wind', lifeSafety: 'Code & life safety', relaxAviation: 'Relaxations & aviation',
+  separation: 'Tower separation', plate: 'Tower floor plate',
 }
 /** View-cone outcomes as rule states: above the estimate fails, no estimate or within uncertainty needs a check. */
 const CONE_STATE: Record<string, RuleState> = { above: 'fail', within_uncertainty: 'warn', limit_unknown: 'warn', near_edge: 'pass', clear: 'pass', outside: 'pass' }
