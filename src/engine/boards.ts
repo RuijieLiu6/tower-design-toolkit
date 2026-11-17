@@ -65,7 +65,29 @@ export type FrameContent =
 export interface Frame { id: string; x: number; y: number; w: number; h: number; role: 'title' | 'body'; content: FrameContent; caption?: string; tag?: DeliverableId | null }
 
 export type TemplateId = 'hero' | 'grid' | 'plans' | 'story'
-export interface Board { id: string; template: TemplateId; frames: Frame[] }
+export interface Board { id: string; template: TemplateId; frames: Frame[]; /** The board's own name (Ruijie, 17 Nov): shown on its tab, used for the file name and to order the boards. */ name?: string }
+
+/** The name shown and written: the board's own, else "Board n" by its place. */
+export const boardName = (b: Board, i: number) => b.name?.trim() || `Board ${i + 1}`
+/** A neutral file name from the board's place and name: "01-site-strategy". A number leading the name (the way people
+ *  order boards by name, "1 Site strategy") gives way to the place, which already leads the file name. */
+export function boardFileStem(b: Board, i: number): string {
+  const slug = boardName(b, i).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/^\d+(?:-|$)/, '').slice(0, 48)
+  return `${String(i + 1).padStart(2, '0')}-${slug || 'board'}`
+}
+/** Move one board to another place; the others keep their order. */
+export function moveBoard<T>(list: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list
+  const out = list.slice(); const [b] = out.splice(from, 1); out.splice(to, 0, b); return out
+}
+/** The boards ordered by their names, numbers read as numbers ("2 Plans" before "10 Views"); unnamed boards keep their order after the named ones. */
+export function sortBoardsByName(list: Board[]): Board[] {
+  const all = list.map((b, i) => ({ b, i }))
+  const named = all.filter((x) => x.b.name?.trim())
+  const rest = all.filter((x) => !x.b.name?.trim())
+  named.sort((x, y) => x.b.name!.trim().localeCompare(y.b.name!.trim(), undefined, { numeric: true, sensitivity: 'base' }) || x.i - y.i)
+  return [...named, ...rest].map((x) => x.b)
+}
 /** The board-wide pair (Ruijie, 17 Nov): headings (the title band) and text (frames, captions, evidence), as CSS family names. */
 export interface BoardFonts { heading: string; body: string }
 /** Every family a board names: the pair and each text frame's own, in use order (the first is the heading). */
