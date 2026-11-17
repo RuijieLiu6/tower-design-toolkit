@@ -5,7 +5,7 @@
 import { create } from 'zustand'
 import { towerFloors, towerFootprint } from '../engine/massing'
 import { towerOccluders } from '../engine/solarRules'
-import type { Floor, Tower, UseId } from '../engine/types'
+import type { Band, Floor, Tower, UseId } from '../engine/types'
 import { useStore } from '../store'
 
 type Pt = [number, number]
@@ -31,7 +31,7 @@ export const clearFloorPick = () => useFloorPick.setState({ tower: null, levels:
 
 const towerById = (id: string | null) => { const s = useStore.getState(); return s.towers[s.project].find((t) => t.id === id) }
 
-/** Gives the picked floors a use of their own (one undo step). */
+/** Gives the picked floors a use of their own (one undo step), then folds the result into the bands. */
 export function setPickedUse(use: UseId) {
   const { tower, levels } = useFloorPick.getState()
   const t = towerById(tower)
@@ -39,6 +39,41 @@ export function setPickedUse(use: UseId) {
   const own = { ...(t.floorUses ?? {}) }
   for (const l of levels) own[l] = use
   useStore.getState().updateTower(t.id, { floorUses: own })
+  foldIntoBands(t.id)
+}
+
+/**
+ * The bands rebuilt from the floors as they now stand (17 Nov, Sinnie: "when I make changes directly on the viewport,
+ * it should also reflect on the equalizer on the side"): every run of tower floors with one use becomes a band whose
+ * share is its count of floors, so the Program sliders show what the model shows and the per-floor overrides are no
+ * longer needed above the podium (podium floors keep theirs: the bands do not cover the podium). Sky lobbies and plant
+ * floors are replacements of a band's floor, so they take the use of the floor under them. The shares round-trip
+ * exactly through bandCounts (largest remainder) when every band shares the tower's floor-to-floor; a tower whose
+ * bands set their own floor-to-floor keeps its overrides instead.
+ */
+export function bandsFromFloors(t: Tower): { bands: Band[]; floorUses: Partial<Record<number, UseId>> | undefined } | null {
+  if (t.imported || !t.floorUses || t.bands.some((b) => b.f2f && b.f2f > 0 && Math.abs(b.f2f - t.f2f) > 1e-6)) return null
+  const floors = towerFloors(t).filter((f) => !f.podium)
+  if (!floors.length) return null
+  const plant = new Set(t.plantLevels ?? [])
+  const uses: UseId[] = []
+  floors.forEach((f, i) => {
+    const replaced = f.skyLobby || plant.has(f.level) || (t.plantEvery > 0 && (i + 1) % t.plantEvery === 0 && f.use === 'mechanical')
+    uses.push(replaced ? (uses[i - 1] ?? (floors.find((g, k) => k > i && !g.skyLobby && g.use !== 'mechanical')?.use ?? f.use)) : f.use)
+  })
+  const bands: Band[] = []
+  for (const u of uses) { const last = bands[bands.length - 1]; if (last && last.use === u) last.share += 1 / uses.length; else bands.push({ use: u, share: 1 / uses.length }) }
+  // podium floors keep their own uses; the tower floors are the bands now
+  const keep: Partial<Record<number, UseId>> = {}
+  const podiumLevels = new Set(towerFloors(t).filter((f) => f.podium).map((f) => f.level))
+  for (const [k, v] of Object.entries(t.floorUses)) if (podiumLevels.has(Number(k)) && v) keep[Number(k)] = v
+  return { bands, floorUses: Object.keys(keep).length ? keep : undefined }
+}
+export function foldIntoBands(id: string) {
+  const t = towerById(id)
+  if (!t) return
+  const r = bandsFromFloors(t)
+  if (r) useStore.getState().updateTower(t.id, { bands: r.bands, floorUses: r.floorUses })
 }
 /** Hands the picked floors (or every floor) back to the bands. */
 export function resetFloorUses(all = false) {
@@ -78,3 +113,6 @@ export function floorRuns(floors: Floor[]): { use: UseId; from: number; to: numb
   }
   return out
 }
+
+// Dev hook for browser checks (scratchpad fold-check.mjs).
+if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as { __tdtFp: unknown }).__tdtFp = { pickLevels, setPickedUse, foldIntoBands, bandsFromFloors }

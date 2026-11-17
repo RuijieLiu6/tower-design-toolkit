@@ -10,6 +10,7 @@ import { towerFloors } from '../../engine/massing'
 import { USES, type Tower, type UseId } from '../../engine/types'
 import { breakStep } from '../../lib/project/history'
 import { useHiddenTowers } from '../../lib/hiddenTowers'
+import { foldIntoBands } from '../../lib/floorPick'
 import { seenTower, useTowerAdds } from '../../lib/towerAdds'
 import { useStore, useTowers } from '../../store'
 
@@ -21,6 +22,7 @@ function setUses(t: Tower, levels: number[], use: UseId) {
   const next = { ...(t.floorUses ?? {}) }
   for (const l of levels) next[l] = use
   useStore.getState().updateTower(t.id, { floorUses: next })
+  foldIntoBands(t.id)
   breakStep()
 }
 
