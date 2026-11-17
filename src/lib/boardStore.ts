@@ -7,7 +7,7 @@ import { BOARD_COUNT, DEFAULT_DENY, applyTemplate, newBoard, type Board, type Bo
 import type { RuleResult } from '../engine/types'
 import { DEFAULT_FONTS } from './fonts/catalog'
 
-export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[]; /** The families the JPEG was drawn with (after any fallback). */ fonts?: string[] }
+export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[]; /** The families the JPEG was drawn with (after any fallback). */ fonts?: string[]; /** Families the board names that did not load, drawn as the fallback. */ missingFonts?: string[] }
 
 interface BoardState {
   open: boolean
