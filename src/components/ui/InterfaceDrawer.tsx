@@ -33,10 +33,10 @@ export default function InterfaceDrawer() {
   }, [open])
   return (
     <div ref={box} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="dialog" data-testid="interface-button"
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="dialog" data-testid="interface-button" aria-label={DRAWER_NAME}
         title="Interface: choose what the app shows: panels, tabs and their sections, design tools, viewport layers, add-ons"
         className={`ml-0.5 flex h-8 items-center gap-1.5 rounded-lg border px-2 text-control font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/30 hover:bg-white/10' : 'border-line hover:border-accent hover:text-accent'}`}>
-        <PanelsTopLeft size={14} aria-hidden /><span className="whitespace-nowrap">{DRAWER_NAME}</span><ChevronDown size={12} aria-hidden />
+        <PanelsTopLeft size={14} aria-hidden /><span className="hidden whitespace-nowrap min-[1500px]:inline">{DRAWER_NAME}</span><ChevronDown size={12} aria-hidden />
       </button>
       {open && <Drawer onClose={() => setOpen(false)} />}
     </div>
