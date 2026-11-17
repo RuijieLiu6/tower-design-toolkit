@@ -77,7 +77,7 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
       expect(geo.issues).toEqual([])
       expect(geo.mw).toBeGreaterThanOrEqual(0.55)
       expect(geo.mh).toBeGreaterThanOrEqual(0.7)
-      expect(geo.shell).toBe('rgb(251, 248, 243)') // UI06: the warm shell
+      expect(geo.shell).toBe('rgb(255, 250, 241)') // UI06: the warm shell (Model's own gradient on ivory since 17 Nov)
 
       // UI04: a four-tool phase shows its workflow and usable controls without the page scrolling; a long one scrolls
       // inside its own region and leaves the controls in reach

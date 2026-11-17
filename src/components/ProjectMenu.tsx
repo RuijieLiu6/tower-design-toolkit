@@ -67,7 +67,7 @@ export default function ProjectMenu() {
   }
 
   const locked = present ? 'The model is locked in Present' : undefined
-  const btn = `rounded p-1.5 disabled:opacity-30 ${present ? 'hover:bg-white/10' : 'hover:bg-black/5'}`
+  const btn = `rounded p-1.5 disabled:opacity-30 ${present ? 'bar-hover' : 'hover:bg-black/5'}`
   const status = meta.storage === 'unavailable' ? 'This browser blocks storage: Export to keep your work'
     : meta.autosavedAt ? `Autosaved in this browser · ${time(meta.autosavedAt)}` : 'Autosaves in this browser after each change'
 
@@ -78,7 +78,7 @@ export default function ProjectMenu() {
       <button className={btn} onClick={() => redo()} disabled={!canRedo || present} title={locked ?? 'Redo (Ctrl+Shift+Z)'} aria-label="Redo"><Redo2 size={16} /></button>
       <div ref={box} className="relative">
         <button onClick={() => (open ? setOpen(false) : openMenu())} aria-haspopup="menu" aria-expanded={open} aria-label={`Project file: ${meta.name ?? 'Untitled project'}`} title="Project file: new, open, save, export, import"
-          className={`ml-0.5 flex h-8 max-w-[12rem] items-center gap-1.5 rounded-lg border px-2 text-control font-medium ${present ? 'border-white/30 hover:bg-white/10' : 'border-line hover:border-accent hover:text-accent'}`}>
+          className={`ml-0.5 flex h-8 max-w-[12rem] items-center gap-1.5 rounded-lg border px-2 text-control font-medium ${present ? 'bar-ghost' : 'border-line hover:border-accent hover:text-accent'}`}>
           <FolderOpen size={14} aria-hidden />
           <span className="truncate">{meta.name ?? 'Untitled project'}</span>
           <ChevronDown size={12} aria-hidden />

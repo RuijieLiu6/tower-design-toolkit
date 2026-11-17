@@ -85,7 +85,8 @@ export default function App() {
           {/* The tool rail (16 Nov): the step's tools as icons beside the model, on the guided route; in Presentation, that mode's tools. */}
           {route === 'guided' && <ToolRail />}
           {(view === '3d' || view === 'split') && (
-            <div className={`overflow-hidden rounded-2xl border border-line bg-panel ${view === 'split' ? 'w-1/2' : 'w-full'}`} data-model-region>
+            // Presentation (Ruijie, 17 Nov): no frame around the board's wall, so the board sits straight on the mode's light.
+            <div className={`overflow-hidden ${phase === 'present' ? '' : 'rounded-2xl border border-line bg-panel'} ${view === 'split' ? 'w-1/2' : 'w-full'}`} data-model-region>
               <Suspense fallback={<Loading what="3D view" />}><Viewport /></Suspense>
             </div>
           )}
