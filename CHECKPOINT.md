@@ -1,3 +1,54 @@
+# CHECKPOINT: Sinnie Choi's modelling tools in the Toolkit (17 Nov 2026)
+
+Ruijie, 17 Nov: port Sinnie Choi's "Start your massing" and her drawing tools from her Toolkit build and
+github.com/xubynii/towerdesigntool into the main tool. Branch `sinnie-modelling` from the `ui-drawer` tip. Decisions
+mine (approved in advance). Not merged, not deployed. **This branch stays unmerged until Sinnie gives her written OK**
+(the ask is drafted in `04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1d); she is credited in every ported file's header,
+in the Drawing tab's note and on the Sources page (Credits).
+- **Start your massing** (`components/draw/StartMassing.tsx`, in the Form step's Massing tool while the project has no
+  tower): four icon tiles. *From scratch* places the Toolkit's own starting tower and starts placing it (the step the
+  twenty existing journeys take; its `place-tower` test id is kept). *Import* opens the model import in place. *Case
+  study* lists nine towers (`lib/draw/caseStudies.ts`: Shangri-La, Trump, 30 St Mary Axe, Vancouver House, One Wall
+  Centre, …) with Sinnie's published numbers, unverified; a click places the starting tower with that height, storey
+  count, floor-to-floor and footprint. *Typology* (`components/draw/TowerForms.tsx`): none, taper, twist, tiered,
+  stacked, each with its sliders, applied as the tower's blocks; the tower remembers its `form` so the sliders read back.
+- **Drawn masses are towers** (`lib/draw/mass.ts`, `engine/types.ts` `Tower.drawn`): the outline, base, storeys,
+  floor-to-floor, holes, part and core live in `drawn`; from them the tower carries an imported-style storey stack,
+  made by extruding the outline into a closed mesh and running the same slicer as an uploaded model, so every engine
+  (VTC rules, FSR, cones, lifts, egress, energy, boards) reads it unchanged and the 3D view draws it as an import.
+  Six storeys at 3.6 m to start, named "Mass n". `part` groups the masses of one building (a union of different
+  heights, a Split): they move together and keep their own heights. A placed core sets the core share by hand.
+- **The tools** (`components/draw/DrawTools3D.tsx` in the scene's z-up group, state in `lib/draw/drawStore.ts`,
+  geometry in `lib/draw/geometry.ts`): Select; Line (freeform corners, or an offset band of a set width, centre /
+  internal / external); Rectangle; Circle; Erase; Move; Copy / array (drag, then a typed count lays the row); Rotate in
+  5° steps; Offset (drag or typed metres); Push / pull (a roof changes storeys, a wall moves; click-move-click or drag;
+  typed value); Split (a chord with corner, middle and edge snaps; in a side view, at a floor); Boolean (union,
+  subtract, intersect, Sinnie's rules: each part keeps its height); Edit length (click a wall, type); Core (drag inside
+  a mass; click a core to remove it); Tape. A live dimension tag follows the pointer; typed digits commit on Enter,
+  Backspace edits, Esc clears, then Esc ends the tool; every edit is one undo step; no confirm dialogs; short toasts
+  (`DrawToast.tsx`). The Drawing tab (`DrawPanel.tsx`) shows the tool, its modes, what to do next, the typed value,
+  Done and the snapping panel: Grid and its size (0.25–5 m), and for Line and Split endpoints, midpoints, on edges, in
+  line with corners, parallel / perpendicular and the angle step; kept per browser as `ts.draw.snap`. Alt suspends
+  snapping while held, Shift locks 90°.
+- **Boolean geometry:** `polygon-clipping` 0.15.7 (MIT) vendored as ES modules in `src/vendor/polygon-clipping/` with
+  `splaytree` (MIT) and `robust-predicates` (public domain), licences beside them; no new npm dependency.
+- **The rail** (`ToolRail.tsx`): the drawing tools sit on the Form step in Model as filled-glyph groups (draw, change,
+  cut, measure). The rail's Move and Rotate are one tool each: M and R act on whatever is selected, a drawn mass through
+  the drawing tool, a parametric tower through its gizmo (`TowerGizmo.tsx`). Each drawing tool lists itself in the
+  Interface drawer under Design tools › Drawing tools.
+- **Keys** (clashes resolved in the Toolkit's favour: V, L, R, O, F, P, H, 1/2/3 stay): Select S · Line N · Rectangle B ·
+  Circle I · Erase E · Move M · Copy C · Rotate R · Offset G · Push / pull U · Split X · Boolean J · Tape T · Edit length
+  and Core from the rail only · Esc ends · Del deletes · Ctrl+Z undoes. Listed in the user guide and the onboarding.
+- **Found on the way:** the Tower position tool's placement click fired on an Erase click and wrote a second undo step,
+  so Ctrl+Z seemed to do nothing; it stands down while a drawing tool is on (`TowerPosition3D.tsx`). Switching to Real
+  Vancouver brings the competition design along (`lib/defaultSite.ts`) but moved only x, y and rotation: a drawn mass
+  kept its outline in competition coordinates. The outline, holes and core now go the same way and the storeys are
+  sliced again (`defaultSite.test.ts`); the core stays axis-aligned, its centre moved, its size kept.
+- **Not done / limits:** the case-study numbers are Sinnie's and unverified; Sinnie's own `R` (Rectangle) and `L`
+  (Line) became B and N; a drawn mass has no gizmo of its own (the drawing tools are its handles); Rotate turns the
+  outline in plan only.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,263 pass, 3 skipped (+10 `lib/draw/geometry.test.ts`: area and winding, offset, path band, clip union / difference, split, push wall, set wall length, array copies, prism mesh; +3 `lib/draw/mass.test.ts`: tower-from-drawn, add and update as one undo step, update-many; +1 `lib/defaultSite.test.ts`: a drawn mass brought along; the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e: `e2e/drawing-tools.e2e.ts` (new: the four start tiles; a rectangle drawn on the ground; Push / pull typed to 36 m and the VTC height band reading Mass 1; Offset typed; Copy ×3 typed; Split; Boolean union; Erase; Ctrl+Z; Real Vancouver: Vancouver House placed from the case list, a mass drawn on the city) PASS · `tool-rail` PASS (its order check now allows the drawing groups) · `massing-edit` PASS · `model-presentation` PASS · `journeys` PASS. Screenshots: `docs/evaluation/2026-11-17-drawing-tools/01-start-massing.png` (the tiles and the case list) and `02-drawing.png` (Mass 1 pulled to 36 m, the toast, the rail's drawing tools).
+
 # CHECKPOINT: the Interface drawer, what the app shows as a table of contents (17 Nov 2026)
 
 Ruijie, 17 Nov: "another button whose drop-down is about personalising the interface … a drawer holding everything that

@@ -16,6 +16,7 @@ import type { Tower } from '../engine/types'
 import data from '../data/defaultSite.json'
 import { breakStep } from './project/history'
 import { normalizeDeg } from './towerEdit'
+import { towerFromDrawn } from './draw/mass'
 import { useStore } from '../store'
 
 type Pt = [number, number]
@@ -44,7 +45,18 @@ export function competitionToCity(towers: Tower[], ring: Pt[]): Tower[] {
   const turn = longSideDeg(ring), r = (turn * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r)
   const [cx, cy] = ringMetrics(ring).centre
   const r3 = (v: number) => Math.round(v * 1000) / 1000
-  return towers.map((t) => ({ ...t, x: r3(cx + t.x * c - t.y * s), y: r3(cy + t.x * s + t.y * c), rotation: normalizeDeg(t.rotation + turn) }))
+  const move = (p: Pt): Pt => [r3(cx + p[0] * c - p[1] * s), r3(cy + p[0] * s + p[1] * c)]
+  return towers.map((t) => {
+    // A drawn mass (lib/draw/mass.ts) keeps its outline in the project frame: the outline, holes and core go the same
+    // way as the tower, and the storey stack is sliced again from the moved outline (the core stays axis-aligned, its
+    // centre moved, its size kept).
+    if (t.drawn) {
+      const d = t.drawn
+      const core = d.core ? (() => { const [x, y] = move([d.core.x + d.core.w / 2, d.core.y + d.core.d / 2]); return { ...d.core, x: r3(x - d.core.w / 2), y: r3(y - d.core.d / 2) } })() : undefined
+      return towerFromDrawn(t, { ...d, pts: d.pts.map(move), ...(d.holes ? { holes: d.holes.map((h) => h.map(move)) } : {}), ...(core ? { core } : {}) })
+    }
+    return { ...t, ...(() => { const [x, y] = move([t.x, t.y]); return { x, y } })(), rotation: normalizeDeg(t.rotation + turn) }
+  })
 }
 
 /** Switch to Real Vancouver, setting the default site and bringing the design when there is none there yet. */
