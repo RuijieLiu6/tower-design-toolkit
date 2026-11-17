@@ -42,6 +42,18 @@ export type Portion = ReturnType<typeof phasePortion>
 const TILE = 24
 const BUILT = BUILT_NODES.map((n) => n.id)
 
+/**
+ * Where the open design tool's tools go (16 Nov, Sinnie: the starting choices "should stay on the left, i might the
+ * tools to edit the mass after (position, height, etc.)"): once there is a mass, a design tool past the Site step edits
+ * it from the right panel's Design tab; before that (Massing's start choices) and on the Site step, it stays here.
+ */
+export function useDesignOnRight(): boolean {
+  const { active, phase } = usePhaseActive()
+  const hasMass = useStore((s) => s.towers[s.project].length > 0)
+  const present = useStore((s) => s.phase === 'present')
+  return !present && phase !== 'site' && hasMass && isDesignNode(active)
+}
+
 /** The phase, its tools in order and the open one: shared by the left panel and the right panel's Properties tab. */
 export function usePhaseActive() {
   const step = useStep((s) => s.step)
@@ -318,6 +330,7 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
   const right = usePanels((s) => s.right)
   const pkg = useCommunityStore((s) => s.packages.find((p) => p.id === id))
   const controls = NODE_CONTROLS[id]
+  const onRight = useDesignOnRight()
   const showResults = () => { useStore.getState().selectNode(id); if (!right) togglePanel('right') }
   const state = d ? d.about : !on ? 'Switched off: add it to the workflow or switch it on in More › Check library' : analysis ? 'Runs with the model; its results are on the right' : 'Auto-run checks is off: its results wait until you turn it on in the project bar'
   return (
@@ -331,8 +344,8 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
         {!d && canExpand(id) && <ExpandAnalysis id={id} name={n.name} className="h-8 w-8 shrink-0" />}
         {!d && <button type="button" onClick={showResults} data-testid="phase-results" className="flex h-8 shrink-0 items-center rounded-lg bg-panel px-2.5 text-control text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent">Results</button>}
       </div>
-      {/* A design node's tools are in the right panel's Design tab (16 Nov, Sinnie: "move these to the right"). */}
-      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : null)
+      {/* With a mass, a design node's editing tools are in the right panel's Design tab (useDesignOnRight). */}
+      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : onRight ? null : <ToolPanel embedded />)
         : controls ? <ToolPanel embedded only={controls} />
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}

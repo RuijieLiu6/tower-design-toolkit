@@ -17,8 +17,7 @@ import { useDraw } from '../lib/drawTools'
 import { useSiteFocus, watchSiteFocus } from '../lib/siteFocus'
 import DrawToolPanel from './draw/ToolPanel'
 import ToolPanel from './tools/ToolPanel'
-import { usePhaseActive } from './workflow/PhasePanel'
-import { isDesignNode } from '../lib/workflow/designNodes'
+import { useDesignOnRight, usePhaseActive } from './workflow/PhasePanel'
 import { togglePanel, usePanels } from '../lib/panels'
 import { NEEDS_MODEL, NEEDS_MODEL_WORD, NEXT_MODEL } from '../lib/missingInput'
 import { CircleDashed } from './icons'
@@ -106,7 +105,7 @@ export default function RightPanel() {
   // The open design tool's tools (Site, Massing, Program…) live here, in the Design tab (16 Nov, Sinnie: "move these to
   // the right"): the phase panel on the left keeps the steps and the tool's name; its tool row and controls are here.
   const { active } = usePhaseActive()
-  const designOpen = !present && isDesignNode(active)
+  const designOpen = useDesignOnRight()
   const [tab, setTab] = useState<Tab>(present ? 'present' : designOpen ? 'design' : siteStep ? 'site' : 'results')
   useEffect(() => { setTab(phase === 'present' ? 'present' : designOpen ? 'design' : phase === 'basic' && useStep.getState().step === 'site' ? 'site' : 'results') }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
   // Entering the Site step shows its tools (or the site); the other steps keep the tab the user chose.
