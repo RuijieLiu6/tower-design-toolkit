@@ -85,7 +85,7 @@ test('Model | Presentation: the switch replaces the phase row; the phases list i
 
   // Presentation: the model locked, the filmstrip in the panel, Present first on the right; the phase list is that
   // mode's one phase; the rail and the dots line show Presentation's tools and no edit modes.
-  await expect(p.getByText('Model locked')).toBeVisible()
+  await expect(p.getByTestId('model-locked')).toBeVisible()
   await expect(panel(p).getByTestId('filmstrip')).toBeVisible()
   await expect(p.getByRole('complementary', { name: 'Present and results' }).getByRole('tab', { name: 'Present' })).toHaveAttribute('aria-selected', 'true')
   expect(await phases(p)).toEqual(['present'])
@@ -105,7 +105,7 @@ test('Model | Presentation: the switch replaces the phase row; the phases list i
   await expect(panel(p)).toHaveAttribute('data-phase', 'schematic')
   expect(await phases(p)).toEqual(['site', 'form', 'program', 'schematic'])
   await expect(rail(p).locator('[data-tool="boards"]')).toHaveCount(0)
-  await expect(p.getByText('Model locked')).toHaveCount(0)
+  await expect(p.getByTestId('model-locked')).toHaveCount(0)
   // V toggles from the keyboard; 3 and 1 still jump to Presentation and Massing.
   await p.keyboard.press('v')
   await expect(radio(p, 'Presentation')).toHaveAttribute('aria-checked', 'true')
