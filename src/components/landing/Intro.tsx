@@ -874,7 +874,8 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
     const nodes = [...chain]
     const vtc = nodes.filter((id) => NODES[idx(id)].projects.includes('vtc')).length, city = nodes.filter((id) => NODES[idx(id)].projects.includes('city')).length
     const project = preset && !edited ? preset.project : vtc >= city ? 'vtc' : 'city'
-    const step = designNode(nodes[0])?.step ?? (phaseOfNode(nodes[0]) ?? PHASES[0]).step
+    // Entering always starts on the Site step (17 Nov, Sinnie: "make the users always start with site after entering").
+    const step = 'site' as const
     const run = () => { enterToolkit(); void startPreset({ id: preset && !edited ? preset.id : null, type: role === 'custom' ? null : role, name: loop ? `${name} · with a loop` : name, goal: preset?.goal, project, step, nodes }) }
     if (still) { run(); return }
     const q = from.getBoundingClientRect(), r = box.current!.getBoundingClientRect()
