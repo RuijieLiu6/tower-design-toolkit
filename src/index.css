@@ -269,6 +269,10 @@ body {
   --f3: hsl(calc(var(--gh) - 14) calc(72% * var(--gs)) 38%); --fa: hsl(calc(var(--gh) + 140) calc(88% * var(--gs)) 57%); }
 .gicon[data-level="off"], .ficon[data-off] { --gs: 0.22; }
 .ficon[data-off] { opacity: 0.8; }
+/* Grey until chosen (IconTile greyUnlit; Ruijie, 17 Nov: the transfer dialog's purposes, the chosen one vivid, the rest
+   grey): no hue at all, a hint of it back on hover. */
+.gicon.gicon-grey { --gs: 0; color: hsl(0 0% 42%); }
+.group:hover .gicon.gicon-grey { --gs: 0.45; color: hsl(var(--gh) 30% 40%); }
 .gicon[data-filled] .gicon-glow { filter: blur(calc(var(--gi) * 0.07)) saturate(1.3); opacity: 0.16; transform: translateY(calc(var(--gi) * 0.05)); }
 .gicon[data-filled][data-level="soft"] .gicon-glow { opacity: 0.08; }
 .gicon[data-filled][data-level="off"] .gicon-glyph { opacity: 0.75; }

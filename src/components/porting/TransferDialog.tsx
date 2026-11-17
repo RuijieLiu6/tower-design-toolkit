@@ -73,7 +73,7 @@ export default function TransferDialog() {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/30 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) close() }}>
       <div ref={box} role="dialog" aria-modal="true" aria-labelledby="transfer-title" data-testid="transfer-dialog" data-tab={tab} onKeyDown={trap}
         className="flex max-h-[90vh] w-[min(1120px,100%)] flex-col overflow-hidden rounded-2xl bg-panel text-ink shadow-float">
-        <div className="flex items-center gap-3 border-b border-line px-4 py-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-4 py-1.5">
           <h2 id="transfer-title" className="text-section font-semibold">{tab === 'import' ? 'Import' : 'Export'}</h2>
           <div role="tablist" aria-label="Import or export" className="flex rounded-lg bg-subtle p-0.5">
             {(['import', 'export'] as const).map((t) => (
@@ -83,16 +83,17 @@ export default function TransferDialog() {
             ))}
           </div>
           <span className="text-meta text-muted">{PROJECT_NAME[project]}</span>
-          <button type="button" onClick={close} aria-label="Close" data-testid="transfer-close" className="ml-auto rounded-lg p-1 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={15} aria-hidden /></button>
-        </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 md:flex-row" style={{ scrollbarWidth: 'thin' }}>
-          <div role="radiogroup" aria-label={tab === 'import' ? 'What to bring in' : 'What to take out'} className="flex shrink-0 flex-wrap content-start gap-0.5 md:w-60">
+          {/* Ruijie, 17 Nov: the purposes in one row in the bar, right of the project name; the chosen one in colour, the rest grey. */}
+          <div role="radiogroup" aria-label={tab === 'import' ? 'What to bring in' : 'What to take out'} data-testid="transfer-purposes" className="ml-2 flex flex-wrap items-center gap-1">
             {list.map((c) => (
-              <IconTile key={c.key} role="radio" aria-checked={purpose === c.key} disabled={!c.enabled} data-testid={`purpose-${c.key}`} onClick={() => setPurpose(c.key)}
+              <IconTile key={c.key} size="sm" greyUnlit className="w-[5.75rem]!" role="radio" aria-checked={purpose === c.key} disabled={!c.enabled} data-testid={`purpose-${c.key}`} onClick={() => setPurpose(c.key)}
                 icon={tab === 'import' ? IMPORT_ICONS[c.key as ImportPurpose] : EXPORT_ICONS[c.key as ExportPurpose]} word={c.short} label={c.title} active={purpose === c.key}
                 hint={c.enabled ? c.purpose : `Not available: ${c.projects && !c.projects.includes(project) ? `${PROJECT_NAME[c.projects[0]]} only` : c.via}`} />
             ))}
           </div>
+          <button type="button" onClick={close} aria-label="Close" data-testid="transfer-close" className="ml-auto rounded-lg p-1 text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={15} aria-hidden /></button>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4" style={{ scrollbarWidth: 'thin' }}>
           <div className="min-w-0 flex-1 rounded-xl border border-line bg-canvas p-3" data-testid="transfer-body">
             {!chosen ? <p className="text-control text-muted">Choose what you want to {tab === 'import' ? 'bring in' : 'take out'}. Nothing happens until the action at the bottom.</p>
               : tab === 'import' ? <ImportPane c={chosen} purpose={chosen.key as ImportPurpose} initial={init.file ?? null} /> : <ExportPane c={chosen} purpose={chosen.key as ExportPurpose} initialPhase={init.phase ?? null} />}

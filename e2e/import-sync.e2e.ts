@@ -38,7 +38,14 @@ test('Import window: five icon tiles, 3D model = the Massing import; Sync model 
   await dialog.getByTestId('purpose-model').hover()
   await expect(p.getByRole('tooltip')).toContainText('Bring in a 3D model')
   // 3D model: the six platform tiles of the Massing import, each with its own upload note and file types.
+  // 17 Nov: the tiles sit in one row in the bar, right of the project name; the chosen one in colour, the rest grey.
+  const bar = await dialog.locator('#transfer-title').boundingBox(), row = await dialog.getByTestId('transfer-purposes').boundingBox()
+  expect(Math.abs(row!.y + row!.height / 2 - (bar!.y + bar!.height / 2))).toBeLessThan(24)
+  expect(await tiles.evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size)).toBe(1)
+  await expect(dialog.locator('[data-testid^="purpose-"] .gicon-grey')).toHaveCount(5)
   await dialog.getByTestId('purpose-model').click()
+  await expect(dialog.locator('[data-testid="purpose-model"] .gicon')).toHaveAttribute('data-level', 'on')
+  await expect(dialog.locator('[data-testid^="purpose-"] .gicon-grey')).toHaveCount(4)
   await expect(dialog.locator('[data-platform]')).toHaveCount(6)
   await dialog.locator('[data-platform="other"]').click()
   await expect(dialog.getByTestId('platform-how')).toContainText('OBJ')
