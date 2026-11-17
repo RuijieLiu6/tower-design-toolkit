@@ -59,13 +59,17 @@ export const imageSource = (img: BoardImage | undefined): ImageSource | undefine
 export type FrameContent =
   | { kind: 'empty' }
   | { kind: 'image'; imageId: string; fit: 'cover' | 'contain' }
-  | { kind: 'text'; text: string; sizeMm: number; bold?: boolean }
+  | { kind: 'text'; text: string; sizeMm: number; bold?: boolean; /** A family of its own (lib/fonts); the board's heading or body face otherwise. */ font?: string }
   | { kind: 'evidence'; nodeId: string }
 
 export interface Frame { id: string; x: number; y: number; w: number; h: number; role: 'title' | 'body'; content: FrameContent; caption?: string; tag?: DeliverableId | null }
 
 export type TemplateId = 'hero' | 'grid' | 'plans' | 'story'
 export interface Board { id: string; template: TemplateId; frames: Frame[] }
+/** The board-wide pair (Ruijie, 17 Nov): headings (the title band) and text (frames, captions, evidence), as CSS family names. */
+export interface BoardFonts { heading: string; body: string }
+/** Every family a board names: the pair and each text frame's own, in use order (the first is the heading). */
+export const familiesUsed = (b: Board, fonts: BoardFonts): string[] => [...new Set([fonts.heading, fonts.body, ...b.frames.flatMap((f) => (f.content.kind === 'text' && f.content.font ? [f.content.font] : []))])]
 
 export const TEMPLATES: Record<TemplateId, { label: string; hint: string }> = {
   hero: { label: 'Hero + two', hint: 'One large view, two smaller, a text block' },

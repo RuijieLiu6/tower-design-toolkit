@@ -3,10 +3,11 @@
 // (they are too large for localStorage). Nothing here is uploaded anywhere.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { BOARD_COUNT, DEFAULT_DENY, applyTemplate, newBoard, type Board, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
+import { BOARD_COUNT, DEFAULT_DENY, applyTemplate, newBoard, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
+import { DEFAULT_FONTS } from './fonts/catalog'
 
-export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[] }
+export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[]; /** The families the JPEG was drawn with (after any fallback). */ fonts?: string[] }
 
 interface BoardState {
   open: boolean
@@ -14,6 +15,8 @@ interface BoardState {
   images: Record<string, BoardImage>
   denyList: string[]
   dpi: 150 | 200
+  /** The heading and body faces of the boards (Ruijie, 17 Nov; lib/fonts): family names, Inter behind each. */
+  fonts: BoardFonts
   /** Ticks for the upload gates: `${gateId}` or `${gateId}:${boardId}` for per-board gates. */
   ticks: Record<string, boolean>
   exports: Record<string, ExportRecord>
@@ -28,6 +31,7 @@ interface BoardState {
   removeImage: (id: string) => void
   setDeny: (terms: string[]) => void
   setDpi: (dpi: 150 | 200) => void
+  setFonts: (patch: Partial<BoardFonts>) => void
   tick: (key: string) => void
   setExport: (boardId: string, rec: ExportRecord | null) => void
   unpark: (i: number, board: number, frame: string) => void
@@ -70,6 +74,7 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
   images: {},
   denyList: DEFAULT_DENY,
   dpi: 150,
+  fonts: DEFAULT_FONTS,
   ticks: {},
   exports: {},
   selected: { board: 0, frame: null },
@@ -96,6 +101,7 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
   }) },
   setDeny: (denyList) => set({ denyList }),
   setDpi: (dpi) => set({ dpi, exports: {} }),
+  setFonts: (patch) => set((s) => ({ fonts: { ...s.fonts, ...patch }, exports: {} })),
   tick: (key) => set((s) => ({ ticks: { ...s.ticks, [key]: !s.ticks[key] } })),
   setExport: (id, rec) => set((s) => { const ex = { ...s.exports }; if (rec) ex[id] = rec; else delete ex[id]; return { exports: ex } }),
   unpark: (k, i, id) => set((s) => {
@@ -112,7 +118,7 @@ export const useBoardStore = create<BoardState>()(persist((set) => ({
     try { return localStorage } catch { return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } }
   }),
   // Image pixels live in IndexedDB; exports are re-made on demand.
-  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, ticks: s.ticks, parked: s.parked }),
+  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, parked: s.parked }),
 }))
 
 let hydrated = false

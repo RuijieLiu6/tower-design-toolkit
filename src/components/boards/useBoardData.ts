@@ -4,7 +4,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { BOARD_W, type Board, type BoardImage } from '../../engine/boards'
 import { useResults } from '../../hooks/useResults'
 import { drawBoard, loadBoardImages, type EvidenceSet } from '../../lib/boardRender'
+import { useBoardStore } from '../../lib/boardStore'
+import { familyAvailable, resolveFamily, useFonts } from '../../lib/fonts/fontStore'
 import { useTowers } from '../../store'
+
+/** The board faces and the resolver that swaps a missing family for Inter; changes when a face loads, so drawings redraw. */
+export function useBoardFonts() {
+  const fonts = useBoardStore((s) => s.fonts)
+  const user = useFonts((s) => s.user)
+  const loaded = useFonts((s) => s.loaded)
+  return useMemo(() => ({ fonts, resolve: (f: string) => resolveFamily(f, (x) => familyAvailable(x, user)), loaded }), [fonts, user, loaded])
+}
 
 /** Rule lists from the built evaluation nodes, by node id, for evidence frames. */
 export function useEvidence(): Record<string, EvidenceSet> {
@@ -26,20 +36,30 @@ export function useEvidence(): Record<string, EvidenceSet> {
   }, [res, towers])
 }
 
-/** Load every image placed on the boards; re-renders when they arrive. */
+/**
+ * Load every image placed on the boards; re-renders when they arrive. Keyed on the image ids, and the same Map is kept
+ * when nothing changed: a caller passing a fresh `[board]` array each render used to restart the load every render,
+ * which re-rendered the composer hundreds of times a second (found 17 Nov while adding the fonts).
+ */
 export function useLoadedImages(boards: Board[], images: Record<string, BoardImage>) {
   const [loaded, setLoaded] = useState<Map<string, HTMLImageElement>>(() => new Map())
+  const key = boards.flatMap((b) => b.frames.flatMap((f) => (f.content.kind === 'image' ? [f.content.imageId] : []))).sort().join('|')
   useEffect(() => {
     let live = true
-    void loadBoardImages(boards, images).then((m) => { if (live) setLoaded(m) })
+    void loadBoardImages(boards, images).then((m) => {
+      if (!live) return
+      setLoaded((prev) => (prev.size === m.size && [...m].every(([id, el]) => prev.get(id) === el) ? prev : m))
+    })
     return () => { live = false }
-  }, [boards, images])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, images])
   return loaded
 }
 
 let measureCanvas: HTMLCanvasElement | null = null
 /** Frames whose text does not fit, per board (measured at 2 px/mm, without images). */
 export function useOverflow(boards: Board[], images: Record<string, BoardImage>, evidence: Record<string, EvidenceSet>) {
+  const { fonts, resolve, loaded } = useBoardFonts()
   return useMemo(() => {
     const out: Record<string, string[]> = {}
     if (typeof document === 'undefined') return out
@@ -48,7 +68,9 @@ export function useOverflow(boards: Board[], images: Record<string, BoardImage>,
     measureCanvas.width = BOARD_W * k; measureCanvas.height = 1
     const ctx = measureCanvas.getContext('2d')
     if (!ctx) return out
-    boards.forEach((b, i) => { const r = drawBoard(ctx, b, { pxPerMm: k, images, loaded: new Map(), evidence, editing: false, index: i, total: boards.length }); if (r.overflow.length) out[b.id] = r.overflow })
+    boards.forEach((b, i) => { const r = drawBoard(ctx, b, { pxPerMm: k, images, loaded: new Map(), evidence, editing: false, index: i, total: boards.length, fonts, resolve }); if (r.overflow.length) out[b.id] = r.overflow })
     return out
-  }, [boards, images, evidence])
+  // `loaded`: measured again once a face arrives (the first pass may have used the fallback).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boards, images, evidence, fonts, resolve, loaded])
 }

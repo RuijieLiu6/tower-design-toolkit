@@ -4,8 +4,9 @@
 import { CheckCircle2, ChevronDown, Clock, Download, FileCheck2, Loader2, ShieldAlert } from '../icons'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  DELIVERABLES, GATES, MILESTONES, boardChecks, coverage, deadlineInfo, isBoardUsed, submissionChecks, validateJpeg, type Manifest,
+  DELIVERABLES, GATES, MILESTONES, boardChecks, coverage, deadlineInfo, familiesUsed, isBoardUsed, submissionChecks, validateJpeg, type Manifest,
 } from '../../engine/boards'
+import { useBoardFonts } from './useBoardData'
 import type { RuleResult } from '../../engine/types'
 import { exportBoardJpeg, type EvidenceSet } from '../../lib/boardRender'
 import { useBoardStore } from '../../lib/boardStore'
@@ -48,6 +49,7 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
   const [checked, setChecked] = useState<{ manifest: Manifest; rules: RuleResult[] }[]>([])
   const [profile, setProfile] = useState<'board' | 'cover'>('board')
   const [denyText, setDenyText] = useState(denyList.join('\n'))
+  const { fonts, resolve } = useBoardFonts()
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(t) }, [])
 
   const d = deadlineInfo(now)
@@ -75,10 +77,10 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
       if (!isBoardUsed(b)) continue
       setBusy(`Board ${i + 1}`)
       try {
-        const r = await exportBoardJpeg(b, { images, evidence, index: i, total: boards.length }, dpi)
+        const r = await exportBoardJpeg(b, { images, evidence, index: i, total: boards.length, fonts, resolve }, dpi)
         const name = `board-${i + 1}.jpg`
         const v = validateJpeg(name, r.bytes, { denyList, profile: 'board' })
-        setExport(b.id, { at: new Date().toISOString(), name, bytes: r.bytes.length, quality: r.quality, dpi: r.dpi, manifest: v.manifest, rules: v.rules })
+        setExport(b.id, { at: new Date().toISOString(), name, bytes: r.bytes.length, quality: r.quality, dpi: r.dpi, manifest: v.manifest, rules: v.rules, fonts: familiesUsed(b, fonts).map(resolve) })
         download(r.blob, name)
       } catch (e) { setError(`Board ${i + 1}: ${(e as Error).message}`) }
     }
@@ -128,7 +130,7 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
             {perBoard[i].map((r) => <RuleRow key={r.id} r={r} />)}
             {exports[b.id] && (
               <div className="rounded border border-sky-400/30 p-1.5">
-                <div className="mb-1 text-meta text-sky-200">Exported {exports[b.id].name}: {(exports[b.id].bytes / 1e6).toFixed(2)} MB at {exports[b.id].dpi} dpi, quality {Math.round(exports[b.id].quality * 100)}</div>
+                <div className="mb-1 text-meta text-sky-200" data-testid="export-line" data-export-fonts={exports[b.id].fonts?.join(', ')}>Exported {exports[b.id].name}: {(exports[b.id].bytes / 1e6).toFixed(2)} MB at {exports[b.id].dpi} dpi, quality {Math.round(exports[b.id].quality * 100)}{exports[b.id].fonts ? ` · ${exports[b.id].fonts!.map((f) => f.replace(' Variable', '')).join(', ')}` : ''}</div>
                 <div className="grid gap-1">{exports[b.id].rules.map((r) => <RuleRow key={r.id} r={r} />)}</div>
               </div>
             )}

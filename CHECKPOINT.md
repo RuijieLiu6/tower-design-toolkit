@@ -1,3 +1,54 @@
+# CHECKPOINT: board fonts in Presentation (17 Nov 2026)
+
+Brief (Ruijie, 17 Nov): "On the presentation layout, I'd like an option to change the font, and users can also download
+and upload the font type they want for their own needs." Decisions mine (approved in advance). Branch `board-fonts`
+from the `model-presentation` tip, same worktree. Not merged, not deployed.
+- **Font choice** (`BoardComposer.tsx` `FontPanel`, `FontPick`): a board-wide pair, Headings (the title band) and Text
+  (frames, captions, evidence lines), and a per-frame override on any text frame ("Board default" or a face). The
+  picker draws every name in its own face and the current one on its button; the board preview, the thumbnails and
+  the fit measurement redraw with the real face as soon as it loads. The pair lives with the boards
+  (`lib/boardStore.ts` `fonts`, persisted as `ts.boards` by family name; a change clears the board's export record, as
+  other edits do); the per-frame face is `font?` on the text content (`engine/boards.ts`). Board edits have no undo
+  stack today (Ctrl+Z is the design's), so the font choice behaves like every other board edit: it persists and the
+  picker reverts it.
+- **Built in, offline** (`lib/fonts/catalog.ts`, `public/fonts/<id>/`): Inter (the app's own, loaded by `index.css`),
+  IBM Plex Sans, Lora (serif), IBM Plex Mono and Barlow Condensed (for one-line board titles), the Latin 400 and 700
+  WOFF2 files from the Fontsource packages (one `npm pack` into a scratch folder; nothing added to node_modules), each
+  with its `LICENSE.txt` beside it, all SIL OFL 1.1; listed with their licences at the foot of the Sources page
+  (`pages/Sources.tsx` `FontLicences`). The faces are registered with the FontFace API when the composer opens, never
+  fetched from a font server. Four others rather than five: Space Grotesk was dropped from the set so a copy of it can
+  be the e2e's upload fixture without colliding with a built-in name.
+- **Find fonts**: a Fold with Google Fonts, Fontsource and the League of Moveable Type as plain links (`target=_blank`,
+  the app sends nothing).
+- **Upload your own** (`lib/fonts/fontFile.ts`, `lib/fonts/fontStore.ts`): .ttf, .otf, .woff and .woff2 by file
+  picker or drop; judged by magic bytes, not the name; up to 8 MB; the family read from the file's own `name` table
+  (TrueType, OpenType and WOFF, inflating a packed table with DecompressionStream; a WOFF2 is Brotli-packed, so its
+  file name stands in: "SpaceGrotesk-Regular.woff2" → "Space Grotesk"); a load probe through `FontFace.load()`; plain
+  words for every refusal ("not a font file", "is 9.2 MB; a font here can be up to 8.0 MB", "does not start like a
+  font", "could not be loaded"). Kept in this browser's IndexedDB (`tower-studio-fonts`), never uploaded, listed under
+  "Your fonts" with Remove; one licence line at the point of upload.
+- **Export and fallback** (`lib/boardRender.ts`): `drawBoard` takes the board's faces and a resolver; `exportBoardJpeg`
+  registers every family the board names and awaits `document.fonts.ready` before drawing, and the export record
+  says which faces it drew with (shown on the export line, `data-export-fonts`). A family not in this browser (a font
+  added elsewhere) is drawn as Inter and named in a "Not in this browser" line in the Type panel. No board export
+  writes SVG (the plan SVG is an image placed on a board), so there is nothing to embed. The fit check ("Text fits its
+  frame") measures with the real face; the "Smallest type" rule keeps the type height the user set, which is the same
+  measure in every face.
+- **Found and fixed on the way:** `useLoadedImages` restarted its load on every render (a fresh `[board]` array and a
+  new Map each time), so the composer re-rendered hundreds of times a second; it is keyed on the image ids now and
+  keeps the Map when nothing changed. The inspector's `1fr` columns let the deliverable select's longest option widen
+  the panel past 320 px; the columns are `minmax(0, 1fr)` and inputs `w-full` now.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,243 pass, 3 skipped (+9: `lib/fonts/fontFile.test.ts` formats by bytes, the
+  name table in TrueType and WOFF, file-name fallback, the refusals and a good file; `lib/fonts/catalog.test.ts` the
+  shipped set and licences, the stack, fallback and missing names, `familiesUsed`; the same 2 CRLF data-file checks
+  fail in this worktree only) · Edge e2e: `e2e/board-fonts.e2e.ts` (new: Presentation → the composer, Lora picked
+  for headings with the picker drawing names in their faces and the choice persisted, a text file refused, the Space
+  Grotesk WOFF fixture added and named from its name table, picked for headings, IBM Plex Mono for one frame, a
+  JPEG exported with those faces loaded and named on the export line, a reload keeping the font and the choice,
+  Remove leaving a "Not in this browser" note) PASS · `layout` (Massing, Schematic and Present) PASS ·
+  `model-presentation` PASS · `tool-rail` PASS. Screenshots: `docs/evaluation/2026-11-17-board-fonts/01-board-fonts.png`
+  and `02-board-fonts-exported.png`.
+
 # CHECKPOINT: Model | Presentation, the phase row folded into the left panel (17 Nov 2026)
 
 Brief (Ruijie, 17 Nov, with the reference build's screenshot): "At the very top of the page there is a Model /

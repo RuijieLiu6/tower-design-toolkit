@@ -1,17 +1,21 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
-import { Camera, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, X } from '../icons'
+import { Camera, ChevronDown, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, Upload, X } from '../icons'
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, SOURCE_LABEL, TEMPLATES, imageSource, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
+import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, SOURCE_LABEL, TEMPLATES, familiesUsed, imageSource, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
 import { drawBoard, imageSize, type EvidenceSet } from '../../lib/boardRender'
 import { hydrateBoardImages, useBoardStore } from '../../lib/boardStore'
+import { BUILTIN_FONTS, FONT_SOURCES, KIND_WORD, fontStack } from '../../lib/fonts/catalog'
+import { FONT_ACCEPT } from '../../lib/fonts/fontFile'
+import { addUserFont, allFamilies, ensureFontsLoaded, familyAvailable, hydrateUserFonts, missingFamilies, removeUserFont, useFonts, type UserFont } from '../../lib/fonts/fontStore'
+import Fold from '../Fold'
 import { planSvgText } from '../../lib/capture'
 import { captureHiRes } from '../../lib/hiresCapture'
 import { useStore, type Shot } from '../../store'
 import SubmissionPanel from './SubmissionPanel'
-import { useEvidence, useLoadedImages, useOverflow } from './useBoardData'
+import { useBoardFonts, useEvidence, useLoadedImages, useOverflow } from './useBoardData'
 
 const DRAG = 'application/x-board-image'
 const AI_NAME = /render|gpt|dall|midjourney|firefly|imagen|stable.?diffusion|\bai\b/i
@@ -52,6 +56,7 @@ function BoardCanvas({ index, evidence, onFrame }: { index: number; evidence: Re
   const selected = useBoardStore((s) => s.selected)
   const total = useBoardStore((s) => s.boards.length)
   const loaded = useLoadedImages([board], images)
+  const { fonts, resolve, loaded: fontsLoaded } = useBoardFonts()
   const wrap = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [width, setWidth] = useState(0)
@@ -76,8 +81,9 @@ function BoardCanvas({ index, evidence, onFrame }: { index: number; evidence: Re
     const dpr = window.devicePixelRatio || 1
     c.width = Math.round(width * dpr); c.height = Math.round((width / A2_RATIO) * dpr)
     const ctx = c.getContext('2d')
-    if (ctx) drawBoard(ctx, board, { pxPerMm: c.width / BOARD_W, images, loaded, evidence, editing: true, index, total })
-  }, [board, images, loaded, evidence, width, index, total])
+    if (ctx) drawBoard(ctx, board, { pxPerMm: c.width / BOARD_W, images, loaded, evidence, editing: true, index, total, fonts, resolve })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board, images, loaded, evidence, width, index, total, fonts, resolve, fontsLoaded])
   const pct = (f: Frame) => ({ left: `${(f.x / BOARD_W) * 100}%`, top: `${(f.y / BOARD_H) * 100}%`, width: `${(f.w / BOARD_W) * 100}%`, height: `${(f.h / BOARD_H) * 100}%` })
   return (
     <div ref={wrap} className="relative shadow-2xl" style={{ width, height: width / A2_RATIO }}>
@@ -103,14 +109,16 @@ function Thumb({ index, evidence, active, onClick }: { index: number; evidence: 
   const board = useBoardStore((s) => s.boards[index])
   const images = useBoardStore((s) => s.images)
   const loaded = useLoadedImages([board], images)
+  const { fonts, resolve, loaded: fontsLoaded } = useBoardFonts()
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const c = ref.current
     if (!c) return
     c.width = 220; c.height = Math.round(220 / A2_RATIO)
     const ctx = c.getContext('2d')
-    if (ctx) drawBoard(ctx, board, { pxPerMm: 220 / BOARD_W, images, loaded, evidence, editing: true, index, total: 4 })
-  }, [board, images, loaded, evidence, index])
+    if (ctx) drawBoard(ctx, board, { pxPerMm: 220 / BOARD_W, images, loaded, evidence, editing: true, index, total: 4, fonts, resolve })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board, images, loaded, evidence, index, fonts, resolve, fontsLoaded])
   return (
     <button type="button" onClick={onClick} aria-pressed={active} className={`flex flex-col items-center gap-1 rounded p-1 text-meta ${active ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/5'}`}>
       <canvas ref={ref} className={`h-[52px] w-[74px] rounded-[2px] ${active ? 'ring-2 ring-sky-500' : 'ring-1 ring-white/20'}`} />
@@ -197,15 +205,121 @@ function LibraryItem({ img, onPick, onDrag, onRemove }: { img: BoardImage; onPic
   )
 }
 
+
+/**
+ * The board's type (Ruijie, 17 Nov: "an option to change the font, and users can also download and upload the font
+ * type they want"): a heading and a text face for the whole board (each text frame may name its own), the built-in
+ * faces and your own files (lib/fonts), every name drawn in its face, and where free fonts come from.
+ */
+function FontPanel() {
+  const fonts = useBoardStore((s) => s.fonts)
+  const setFonts = useBoardStore((s) => s.setFonts)
+  const boards = useBoardStore((s) => s.boards)
+  const user = useFonts((s) => s.user)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [msg, setMsg] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const available = (f: string) => familyAvailable(f, user)
+  const missing = missingFamilies(boards.flatMap((b) => familiesUsed(b, fonts)), available)
+  const add = async (files: FileList | File[]) => {
+    setBusy(true); setMsg(null)
+    for (const f of [...files]) {
+      const r = await addUserFont(f)
+      setMsg(r.ok ? { tone: 'ok', text: `${r.family} added from ${f.name}: pick it under Headings, Text or a frame.` } : { tone: 'bad', text: r.error })
+      if (!r.ok) break
+    }
+    setBusy(false)
+  }
+  return (
+    <section aria-label="Board fonts" data-testid="font-panel" className="grid min-w-0 gap-2 [overflow-wrap:anywhere]">
+      <div className="text-meta font-semibold text-slate-400">Type on every board</div>
+      <div className="grid grid-cols-2 gap-1.5">
+        <FontPick id="heading" label="Headings" value={fonts.heading} user={user} onPick={(family) => family && setFonts({ heading: family })} />
+        <FontPick id="body" label="Text" value={fonts.body} user={user} onPick={(family) => family && setFonts({ body: family })} />
+      </div>
+      {missing.length > 0 && <p data-testid="font-missing" className="text-meta text-amber-300">Not in this browser: {missing.join(', ')}. Inter is drawn instead; add the file under Your fonts to bring it back.</p>}
+      <div>
+        <div className="mb-1 text-meta text-slate-400">Your fonts ({user.length})</div>
+        {user.length > 0 && (
+          <ul className="grid gap-1">
+            {user.map((u) => (
+              <li key={u.id} data-user-font={u.family} className="flex items-center gap-2 rounded border border-white/10 px-1.5 py-1 text-meta">
+                <span className="min-w-0 flex-1 truncate text-sm" style={{ fontFamily: fontStack(u.family) }}>{u.family}</span>
+                <span className="shrink-0 text-slate-400">{u.format} · {Math.max(1, Math.round(u.size / 1000))} kB</span>
+                <button type="button" onClick={() => void removeUserFont(u.id)} aria-label={`Remove ${u.family}`} className="p-1 text-slate-400 hover:text-red-300"><Trash2 size={12} /></button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div data-testid="font-drop" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length) void add(e.dataTransfer.files) }}
+          className="mt-1 min-w-0 rounded border border-dashed border-white/20 p-2 text-meta text-slate-300">
+          <button type="button" disabled={busy} onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 rounded border border-white/15 px-2 py-1 text-xs hover:border-sky-400 disabled:opacity-50"><Upload size={13} />Add a font file</button>
+          <input ref={fileRef} data-testid="font-file" type="file" accept={FONT_ACCEPT} multiple className="hidden" onChange={async (e) => { if (e.target.files) await add(e.target.files); e.target.value = '' }} />
+          <p className="mt-1">.ttf, .otf, .woff or .woff2 up to 8 MB, or drop one here. It stays in this browser and is never uploaded.</p>
+          <p className="mt-0.5 text-slate-400">You are responsible for having the right to use a font on your boards: its licence says.</p>
+          {msg && <p data-testid="font-msg" className={`mt-1 ${msg.tone === 'ok' ? 'text-emerald-300' : 'text-amber-300'}`}>{msg.text}</p>}
+        </div>
+      </div>
+      <Fold summary="Find fonts: free sources (a link; the app sends nothing)" className="[&_summary]:text-slate-400 [&_summary:hover]:text-slate-200 [&>div]:text-slate-300">
+        {FONT_SOURCES.map((s) => <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer" className="text-sky-300 hover:underline">{s.name}<span className="text-slate-400"> · {s.note}</span></a>)}
+        <span className="text-slate-400">Built in, all SIL Open Font Licence: {BUILTIN_FONTS.map((b) => b.family.replace(' Variable', '')).join(', ')}; their licences are on the Sources page.</span>
+      </Fold>
+    </section>
+  )
+}
+
+/** A font picker: the current family in its own face; a list where every name is drawn in its face. */
+function FontPick({ id, label, value, user, onPick, allowDefault = false }: { id: string; label: string; value: string | undefined; user: UserFont[]; onPick: (family: string | undefined) => void; allowDefault?: boolean }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const away = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }
+    window.addEventListener('pointerdown', away, true); window.addEventListener('keydown', key, true)
+    return () => { window.removeEventListener('pointerdown', away, true); window.removeEventListener('keydown', key, true) }
+  }, [open])
+  const options: { family: string | undefined; name: string; note: string }[] = [
+    ...(allowDefault ? [{ family: undefined, name: 'Board default', note: '' }] : []),
+    ...BUILTIN_FONTS.map((b) => ({ family: b.family, name: b.family.replace(' Variable', ''), note: KIND_WORD[b.kind] })),
+    ...user.map((u) => ({ family: u.family, name: u.family, note: 'yours' })),
+  ]
+  const current = options.find((o) => o.family === value) ?? (value ? { family: value, name: value, note: 'not here' } : options[0])
+  return (
+    <div ref={box} className="relative flex min-w-0 flex-col gap-1 text-xs">
+      <span className="text-slate-400">{label}</span>
+      <button type="button" data-font-pick={id} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)} title={`${label}: ${current.name}`}
+        className="flex items-center justify-between gap-1 rounded border border-white/15 bg-slate-900 px-2 py-1 text-left text-xs text-slate-100 hover:border-sky-400">
+        <span className="truncate" style={{ fontFamily: value ? fontStack(value) : undefined }}>{current.name}</span><ChevronDown size={12} className="shrink-0 text-slate-400" />
+      </button>
+      {open && (
+        <ul role="listbox" aria-label={label} className="absolute left-0 top-full z-10 mt-1 max-h-64 w-56 overflow-y-auto rounded border border-white/15 bg-slate-900 p-1 shadow-xl">
+          {options.map((o) => (
+            <li key={o.family ?? '__default'}>
+              <button type="button" role="option" aria-selected={o.family === value} data-font-option={o.family ?? ''} onClick={() => { onPick(o.family); setOpen(false) }}
+                className={`flex w-full items-center justify-between gap-2 rounded px-2 py-1 text-left ${o.family === value ? 'bg-sky-600 text-white' : 'hover:bg-white/10'}`}>
+                <span className="truncate text-sm" style={{ fontFamily: o.family ? fontStack(o.family) : undefined }}>{o.name}</span>
+                {o.note && <span className="shrink-0 text-meta text-slate-400">{o.note}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> }) {
   const { boards, selected, images, updateFrame, addImage, setTemplate, parked, unpark } = useBoardStore()
+  const user = useFonts((s) => s.user)
   const b: Board = boards[selected.board]
   const f = b.frames.find((x) => x.id === selected.frame)
   const set = (patch: Partial<Frame>) => f && updateFrame(selected.board, f.id, patch)
   const label = 'flex flex-col gap-1 text-xs'
-  const input = 'rounded border border-white/15 bg-slate-900 px-2 py-1 text-xs text-slate-100'
+  // Columns that can shrink below their content (the deliverable select's longest option used to widen the whole inspector past its 320 px, 17 Nov).
+  const input = 'w-full min-w-0 max-w-full rounded border border-white/15 bg-slate-900 px-2 py-1 text-xs text-slate-100'
   return (
-    <div className="grid gap-4 p-3 text-slate-200">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 p-3 text-slate-200">
       <div>
         <div className="mb-1.5 text-meta font-semibold text-slate-400">Board {selected.board + 1} layout</div>
         <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Board template">
@@ -225,9 +339,10 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
           </div>
         )}
       </div>
+      <FontPanel />
       {!f && <p className="text-xs text-slate-400">Select a frame on the board to fill it.</p>}
       {f && (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
           <div className="text-meta font-semibold text-slate-400">{f.role === 'title' ? 'Title band' : 'Frame'} · {Math.round(f.w)} × {Math.round(f.h)} mm</div>
           {f.role === 'body' && (
             <div className="grid grid-cols-4 gap-1" role="radiogroup" aria-label="Frame content">
@@ -278,6 +393,7 @@ function FrameInspector({ evidence }: { evidence: Record<string, EvidenceSet> })
                   </label>
                   <label className="flex items-center gap-1.5 pb-1 text-xs"><input type="checkbox" checked={!!c.bold} onChange={() => set({ content: { ...c, bold: !c.bold } })} />Bold</label>
                 </div>
+                <FontPick id={`frame-${f.id}`} label="Font for this frame" value={c.font} user={user} allowDefault onPick={(family) => set({ content: { ...c, font: family } })} />
               </>
             )
           })()}
@@ -328,7 +444,12 @@ function ComposerBody() {
   const overflow = useOverflow(boards, images, evidence)
   const [tab, setTab] = useState<'frame' | 'submit'>('frame')
 
-  useEffect(() => { if (open) void hydrateBoardImages() }, [open])
+  useEffect(() => { if (open) { void hydrateBoardImages(); void hydrateUserFonts() } }, [open])
+  // Every face on offer loads with the composer (small files), so the picker shows each name in its face and the
+  // previews and the fit measurement use the real font; a board's faces are loaded again before each export.
+  const fonts = useBoardStore((s) => s.fonts)
+  const user = useFonts((s) => s.user)
+  useEffect(() => { void ensureFontsLoaded([...allFamilies(user), ...boards.flatMap((b) => familiesUsed(b, fonts))]) }, [fonts, user, boards])
   // While open, keys stay in the composer (the app's 1/2/3 and P shortcuts would change stage underneath).
   useEffect(() => {
     if (!open) return
