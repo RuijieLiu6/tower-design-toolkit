@@ -29,8 +29,8 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'aria-la
    * 'icon': the icon alone, its word only in the accessible name and the hover panel (the tool rail beside the model).
    */
   layout?: 'tile' | 'inline' | 'icon'
-  /** Where the hover panel opens: under the icon, or to its right (a vertical rail). */
-  tipSide?: 'below' | 'right'
+  /** Where the hover panel opens: under the icon, or beside it (a vertical rail: toward the model). */
+  tipSide?: 'below' | 'right' | 'left'
   [data: `data-${string}`]: string | undefined
 }
 
@@ -60,7 +60,7 @@ export default function IconTile({ icon: Icon, word, label, hint, active = false
   useLayoutEffect(() => {
     if (!tip || !btn.current) { setAt(null); return }
     const r = btn.current.getBoundingClientRect(), h = panel.current?.offsetHeight ?? 72
-    if (tipSide === 'right') { setAt({ left: Math.min(r.right + 8, window.innerWidth - TIP_W - 8), top: Math.max(8, Math.min(r.top, window.innerHeight - h - 8)) }); return }
+    if (tipSide !== 'below') { setAt({ left: tipSide === 'right' ? Math.min(r.right + 8, window.innerWidth - TIP_W - 8) : Math.max(8, r.left - 8 - TIP_W), top: Math.max(8, Math.min(r.top, window.innerHeight - h - 8)) }); return }
     const left = Math.min(Math.max(8, r.left + r.width / 2 - TIP_W / 2), window.innerWidth - TIP_W - 8)
     setAt({ left, top: r.bottom + 6 + h > window.innerHeight - 8 ? r.top - 6 - h : r.bottom + 6 })
   }, [tip, tipSide])

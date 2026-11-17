@@ -3,7 +3,8 @@
 // row for the step; a tool picked in the rail opens in the panel; Mass picked in the rail switches the panel's edit mode;
 // Move from the rail switches the tower's toolbar; hover shows a name, nothing is written beside the icons; the arrow
 // keys walk the rail (one tab stop); H hides it, leaving a small Show button, the choice survives a reload, and the
-// button (or H) brings it back. Screenshots go to docs/evaluation/2026-11-16-tool-rail/.
+// button (or H) brings it back. The grip drags the rail to the model's right edge (the nearer drop zone lit), which a
+// reload keeps; Esc cancels a drag; Left on the grip brings it back. Screenshots go to docs/evaluation/2026-11-16-tool-rail/.
 import { expect, test, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -116,6 +117,65 @@ test('Tool rail: the step\'s tools beside the model, the same as the panel; H hi
   await expect(rail(p)).toHaveCount(0)
   await p.keyboard.press('h')
   await expect(rail(p)).toBeVisible()
+
+  // The grip (17 Nov): a drag to the right side of the model lifts a ghost, lights the right drop zone and snaps there.
+  const main = p.locator('main').first()
+  const grip = rail(p).getByRole('button', { name: 'Move the tool rail' })
+  const railRight = async () => { const r = (await rail(p).boundingBox())!, m = (await main.boundingBox())!; return Math.round(m.x + m.width - (r.x + r.width)) }
+  const railLeft = async () => { const r = (await rail(p).boundingBox())!, m = (await main.boundingBox())!; return Math.round(r.x - m.x) }
+  expect(await railLeft()).toBe(0)
+  const g = (await grip.boundingBox())!, m0 = (await main.boundingBox())!
+  await p.mouse.move(g.x + g.width / 2, g.y + g.height / 2)
+  await p.mouse.down()
+  for (let k = 1; k <= 10; k++) await p.mouse.move(g.x + ((m0.x + m0.width - 80 - g.x) * k) / 10, g.y + 6 * k)
+  await expect(p.getByTestId('tool-rail-ghost')).toBeVisible()
+  await expect(p.locator('[data-drop="right"][data-near]')).toBeVisible()
+  await expect(p.locator('[data-drop="left"][data-near]')).toHaveCount(0)
+  await p.screenshot({ path: join(SHOTS, '03-tool-rail-dragging.png') })
+  await p.mouse.up()
+  await expect.poll(railRight).toBe(0)
+  await expect(p.getByTestId('tool-rail-ghost')).toHaveCount(0)
+  await expect(p.locator('[data-drop]')).toHaveCount(0)
+  expect(await p.evaluate(() => localStorage.getItem('ts.toolRail.side'))).toBe('right')
+  await expect(rail(p)).toHaveAttribute('data-side', 'right')
+  // On the right, the hover panel opens toward the model (to the left of the icon).
+  await rail(p).locator('[data-tool="massing"]').hover()
+  await expect(p.getByRole('tooltip')).toContainText('Massing')
+  const tipBox = (await p.getByRole('tooltip').boundingBox())!, railBox = (await rail(p).boundingBox())!
+  expect(tipBox.x + tipBox.width).toBeLessThanOrEqual(railBox.x)
+  await p.mouse.move(m0.x + 200, m0.y + 300)
+  await p.waitForTimeout(600)
+  await p.screenshot({ path: join(SHOTS, '04-tool-rail-right.png') })
+  // Hidden on the right, the Show button is on the right too.
+  await p.keyboard.press('h')
+  await expect(rail(p)).toHaveCount(0)
+  const sb = (await p.getByRole('button', { name: 'Show the tool rail (H)' }).boundingBox())!, m1 = (await main.boundingBox())!
+  expect(Math.round(m1.x + m1.width - (sb.x + sb.width))).toBe(0)
+  await p.keyboard.press('h')
+  await expect(rail(p)).toBeVisible()
+  // A reload keeps the side.
+  await p.reload()
+  await p.waitForSelector('#root > *', { timeout: 60_000 })
+  await expect(rail(p)).toBeVisible({ timeout: 120_000 })
+  await expect.poll(railRight).toBe(0)
+  // Esc during a drag puts the rail back where it was.
+  const g2 = (await grip.boundingBox())!
+  await p.mouse.move(g2.x + g2.width / 2, g2.y + g2.height / 2)
+  await p.mouse.down()
+  for (let k = 1; k <= 6; k++) await p.mouse.move(g2.x - 60 * k, g2.y + 40)
+  await expect(p.getByTestId('tool-rail-ghost')).toBeVisible()
+  await p.keyboard.press('Escape')
+  await expect(p.getByTestId('tool-rail-ghost')).toHaveCount(0)
+  await p.mouse.up()
+  expect(await railRight()).toBe(0)
+  expect(await p.evaluate(() => localStorage.getItem('ts.toolRail.side'))).toBe('right')
+  // The keyboard: Left on the grip moves the rail back to the left side.
+  await grip.focus()
+  await p.keyboard.press('ArrowLeft')
+  await expect.poll(railLeft).toBe(0)
+  await expect(grip).toBeFocused()
+  expect(await p.evaluate(() => localStorage.getItem('ts.toolRail.side'))).toBe('left')
+  await expect(p.locator('[aria-live="polite"]')).toContainText('Tool rail on the left')
 
   // Present has no rail (the model is locked there); Massing again does.
   await p.getByRole('navigation', { name: 'Design process' }).locator('[data-step="frame"]').click()

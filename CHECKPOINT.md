@@ -1,3 +1,30 @@
+# CHECKPOINT: the tool rail moves to either side of the model (17 Nov 2026)
+
+Brief (Ruijie, 17 Nov, with a screenshot circling the rail): "I want to be able to control where it is placed with the
+mouse, and snap it, maybe to the right side as well." Same branch `tool-rail`, same worktree. Not merged, not deployed.
+- **The grip** at the top of the rail (`ToolRail.tsx`; a six-dot `GripVertical` in `icons/index.tsx`, "Move the tool
+  rail" on hover/focus) drags the rail with mouse or touch (pointer events, pointer capture): the rail dims in place and
+  a ghost of it follows the pointer over the model; the two edges of the model region show as dashed drop zones with
+  the nearer one lit in the interaction colour; release snaps to the nearer edge with a 160 ms slide of the ghost (none
+  under reduced motion); Esc during a drag puts it back. The rail keeps one place in the tree and moves by flex order
+  (`order-first` / `order-last`), so a drag never remounts it. With the grip focused, Left / Right (or Enter) move it,
+  announced in the live region ("Tool rail on the right").
+- **Remembered** as `ts.toolRail.side` beside `ts.toolRail.hidden` (`lib/toolRail.ts`, `setToolRailSide`); hidden, the
+  Show button sits on the remembered side, its chevron pointing into the model. Hover panels open toward the model
+  (`IconTile` `tipSide="left"` when the rail is on the right).
+- **No overlay shifting was needed:** the rail is a flex column of its own beside the model region on either side, never
+  over it, so the tower toolbar, the View / Legend strip, the north chip and the Layers tab keep their places and are
+  never under it (checked in the screenshots). On the right it sits between the model and the Inspector.
+- **Key hints fixed:** the onboarding card now says H hide tool rail · O hide overlays (`Onboarding.tsx`);
+  `DESIGN_HANDOFF.md` says O for the overlays and H for the rail.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,231 pass, 3 skipped (+3 in `lib/toolRail.test.ts`: default, remembered
+  side and hidden, bad value; the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e:
+  `e2e/tool-rail.e2e.ts` extended (drag the grip to the right with the mouse while the right drop zone lights, the rail's
+  box at the model region's right edge, hover panel opens to the left, the Show button on the right, a reload keeps the
+  side, Esc cancels a drag, Left on the grip brings it back and is announced) PASS · `e2e/phase-panel.e2e.ts` PASS ·
+  `e2e/massing-edit.e2e.ts` PASS. Screenshots: `docs/evaluation/2026-11-16-tool-rail/03-tool-rail-dragging.png`
+  (the ghost and the lit zone) and `04-tool-rail-right.png`.
+
 # CHECKPOINT: the tool rail beside the model (16 Nov 2026)
 
 Brief (Ruijie, 16 Nov): Sinnie Choi's build of the Toolkit put the design tools in one vertical column of icons beside

@@ -1,16 +1,25 @@
-// The tool rail: a 48 px column on the model's left edge with the step's design tools as icons, one per tool (Sinnie
-// Choi's build of the Toolkit put the tools in one vertical column beside the view; Ruijie, 16 Nov: bring that layout
-// into the main tool). Quick access beside the model, not a second panel: the same tools and the same open-tool state
-// as the left panel (tools/toolPick.ts), so a click here opens the tool there and the two never disagree. On top, the
-// ways of editing on the model: Place (store.placing, key P), Move and Rotate (lib/towerEdit.ts, keys M and R) and, while
-// the Massing tool is on the Form step, Face and Mass (lib/blockEdit.ts, key F); then the step's tools, a hairline
-// between the groups. Each tile is the icon alone: the full name and what it does show on hover or focus (IconTile.tsx);
-// nothing is written beside the icons. The open tool and a mode that is on wear the interaction colour. A toolbar: the
-// arrow keys move along it (roving tabindex), Enter or Space acts. H hides and shows the rail (lib/toolRail.ts,
-// remembered in this browser); hidden, a small button at the model's edge brings it back. Massing and Schematic only
-// (Present locks the model), on the guided route (App.tsx).
-import { Fragment, useState, type KeyboardEvent } from 'react'
-import { ChevronLeft, ChevronRight, Crosshair, Cuboid, Move, RotateCw, type LucideIcon } from './icons'
+// The tool rail: a 48 px column on the model's edge with the step's design tools as icons, one per tool (Sinnie Choi's
+// build of the Toolkit put the tools in one vertical column beside the view; Ruijie, 16 Nov: bring that layout into the
+// main tool). Quick access beside the model, not a second panel: the same tools and the same open-tool state as the
+// left panel (tools/toolPick.ts), so a click here opens the tool there and the two never disagree. On top, a grip, then
+// the ways of editing on the model: Place (store.placing, key P), Move and Rotate (lib/towerEdit.ts, keys M and R) and,
+// while the Massing tool is on the Form step, Face and Mass (lib/blockEdit.ts, key F); then the step's tools, a hairline
+// between the groups. Each tile is the icon alone: the full name and what it does show on hover or focus, opening
+// toward the model (IconTile.tsx); nothing is written beside the icons. The open tool and a mode that is on wear the
+// interaction colour. A toolbar: the arrow keys move along it (roving tabindex), Enter or Space acts.
+// Where it stands (Ruijie, 17 Nov: "control where it is placed with the mouse, and snap it, maybe to the right side as
+// well"): the grip drags the rail as a floating ghost over the model, the two edges of the model region show as drop
+// zones with the nearer one lit, and release snaps to the nearer edge with a short slide (none under reduced motion);
+// Esc puts it back. On the grip, Left and Right (or Enter) move it without a pointer, announced in the live region.
+// The rail keeps one place in the tree and moves by flex order, so dragging never remounts it. Side and hidden are
+// remembered (lib/toolRail.ts); H hides and shows the rail; hidden, a small button on the remembered side brings it back.
+// It has a column of its own beside the model region, so nothing drawn over the model (the tower's toolbar, the view
+// strip, the north chip, the Layers tab) is ever under it, on either side. Massing and Schematic only (Present locks
+// the model), on the guided route (App.tsx).
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { ChevronLeft, ChevronRight, Crosshair, Cuboid, GripVertical, Move, RotateCw, type LucideIcon } from './icons'
+import GlassIcon, { hueFor, ICON } from './GlassIcon'
 import IconTile from './IconTile'
 import { EDIT_MODES } from './MassingEditPanel'
 import { shortName } from './tools/ToolPanel'
@@ -18,7 +27,7 @@ import { placeFirstTower } from './tools/NoTower'
 import { useToolChoice } from './tools/toolPick'
 import type { DesignTool } from './tools/registry'
 import { useBlockEdit } from '../lib/blockEdit'
-import { toggleToolRail, useToolRail } from '../lib/toolRail'
+import { setToolRailSide, toggleToolRail, useToolRail, type RailSide } from '../lib/toolRail'
 import { pickTower, toggleMode, useTowerEdit } from '../lib/towerEdit'
 import { STEP_PHASE, designOf, usePhaseTools } from '../lib/workflow/phaseTools'
 import { useStore, useTowers } from '../store'
@@ -35,19 +44,35 @@ interface RailItem {
   data: Record<`data-${string}`, string>
 }
 
+/** A drag of the grip: the model region's box, the rail's size, the grab offset, the ghost's place and the nearer edge. */
+interface Drag {
+  pointerId: number
+  box: { left: number; right: number; top: number; bottom: number }
+  w: number; h: number
+  ox: number; oy: number
+  x: number; y: number
+  near: RailSide
+  /** Released: the ghost slides to the edge, then goes. */
+  landing: boolean
+}
+
+const SLIDE_MS = 160
 const railId = (key: string) => `tool-rail-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+const nearer = (d: Pick<Drag, 'box'>, x: number): RailSide => (x < (d.box.left + d.box.right) / 2 ? 'left' : 'right')
 
 /** One tile: the icon alone, the name and what it does beside it on hover or focus (IconTile.tsx). */
-function RailTile({ item, tabStop, onFocus }: { item: RailItem; tabStop: boolean; onFocus: () => void }) {
+function RailTile({ item, side, tabStop, onFocus }: { item: RailItem; side: RailSide; tabStop: boolean; onFocus: () => void }) {
   const hint = useStore((s) => (typeof item.hint === 'function' ? item.hint(s) : item.hint))
   return (
-    <IconTile layout="icon" tipSide="right" icon={item.icon} word={item.word} label={item.label} hint={hint} active={item.active}
+    <IconTile layout="icon" tipSide={side === 'left' ? 'right' : 'left'} icon={item.icon} word={item.word} label={item.label} hint={hint} active={item.active}
       id={railId(item.key)} aria-pressed={item.active} disabled={item.disabled} tabIndex={tabStop ? 0 : -1} onFocus={onFocus} onClick={item.onPick} {...item.data} />
   )
 }
 
 export default function ToolRail() {
   const hidden = useToolRail((s) => s.hidden)
+  const side = useToolRail((s) => s.side)
+  const reduced = useStore((s) => s.reducedMotion)
   const { phase, step, shown, activeId, pick } = useToolChoice()
   const placing = useStore((s) => s.placing)
   const noTower = useTowers().length === 0
@@ -56,6 +81,10 @@ export default function ToolRail() {
   const blockOn = useBlockEdit((s) => s.on)
   const blockMode = useBlockEdit((s) => s.mode)
   const [focusAt, setFocusAt] = useState<string | null>(null)
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const rail = useRef<HTMLDivElement>(null)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => clearTimeout(timer.current), [])
 
   // Open a tool: in the panel too (its phase row shows the design tools, not a check's settings), then the tool itself.
   const open = (id: string) => {
@@ -93,9 +122,9 @@ export default function ToolRail() {
   }))
   const groups = [modes, tools].filter((g) => g.length)
   const items = groups.flat()
-  // Roving tabindex: the tile last focused, else the open tool, else the first; the arrow keys move along the rail.
-  const tabStop = (items.some((i) => i.key === focusAt) ? focusAt : null) ?? tools.find((i) => i.active)?.key ?? items[0]?.key ?? 'hide'
-  const keys = [...items.map((i) => i.key), 'hide']
+  // Roving tabindex: the control last focused, else the open tool, else the grip; Up and Down (Home, End) move along the rail.
+  const keys = ['grip', ...items.map((i) => i.key), 'hide']
+  const tabStop = (keys.includes(focusAt ?? '') ? focusAt : null) ?? tools.find((i) => i.active)?.key ?? 'grip'
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const id = (e.target as HTMLElement).id
     const i = keys.findIndex((k) => railId(k) === id)
@@ -107,29 +136,101 @@ export default function ToolRail() {
     document.getElementById(railId(next))?.focus()
   }
 
+  // ---- where the rail stands
+  const moveTo = (to: RailSide) => {
+    if (to !== side) setToolRailSide(to)
+    useStore.getState().set({ announce: `Tool rail on the ${to}` })
+  }
+  const onGripDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if ((e.pointerType === 'mouse' && e.button !== 0) || drag) return
+    const main = rail.current?.parentElement
+    if (!rail.current || !main) return
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const r = rail.current.getBoundingClientRect(), m = main.getBoundingClientRect()
+    setDrag({ pointerId: e.pointerId, box: { left: m.left, right: m.right, top: m.top, bottom: m.bottom }, w: r.width, h: r.height, ox: e.clientX - r.left, oy: e.clientY - r.top, x: r.left, y: r.top, near: side, landing: false })
+  }
+  const onGripMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    setDrag((d) => (d && !d.landing && d.pointerId === e.pointerId ? { ...d, x: e.clientX - d.ox, y: e.clientY - d.oy, near: nearer(d, e.clientX) } : d))
+  }
+  const onGripUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!drag || drag.landing || drag.pointerId !== e.pointerId) return
+    moveTo(drag.near)
+    if (reduced) { setDrag(null); return }
+    // The ghost slides to the edge it snapped to (the rail is already there), then goes.
+    setDrag({ ...drag, landing: true, x: drag.near === 'left' ? drag.box.left : drag.box.right - drag.w, y: drag.box.top })
+    timer.current = setTimeout(() => setDrag(null), SLIDE_MS + 20)
+  }
+  const cancelDrag = () => setDrag((d) => (d && !d.landing ? null : d))
+  useEffect(() => {
+    if (!drag || drag.landing) return
+    const key = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); cancelDrag() } }
+    window.addEventListener('keydown', key, true)
+    return () => window.removeEventListener('keydown', key, true)
+  }, [drag])
+  const onGripKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault(); e.stopPropagation()
+    moveTo(e.key === 'ArrowLeft' ? 'left' : e.key === 'ArrowRight' ? 'right' : side === 'left' ? 'right' : 'left')
+  }
+
+  const place = side === 'left' ? 'order-first' : 'order-last'
   if (hidden) {
+    const Icon = side === 'left' ? ChevronRight : ChevronLeft
     return (
-      <button type="button" onClick={toggleToolRail} aria-label="Show the tool rail (H)" aria-keyshortcuts="H" title="Show the tool rail (H)" data-testid="tool-rail-show"
-        className="glass-edge flex h-10 w-5 shrink-0 items-center justify-center self-start rounded-lg bg-panel text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
-        <ChevronRight size={14} aria-hidden />
+      <button type="button" onClick={toggleToolRail} aria-label="Show the tool rail (H)" aria-keyshortcuts="H" title="Show the tool rail (H)" data-testid="tool-rail-show" data-side={side}
+        className={`glass-edge ${place} flex h-10 w-5 shrink-0 items-center justify-center self-start rounded-lg bg-panel text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent`}>
+        <Icon size={14} aria-hidden />
       </button>
     )
   }
+  const HideIcon = side === 'left' ? ChevronLeft : ChevronRight
   return (
-    <div role="toolbar" aria-label="Design tools" aria-orientation="vertical" data-testid="tool-rail" onKeyDown={onKey}
-      className="glass-edge flex w-12 shrink-0 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden rounded-2xl bg-panel py-1.5 [scrollbar-width:none]">
-      {groups.map((g, gi) => (
-        <Fragment key={gi}>
-          {gi > 0 && <span role="separator" aria-orientation="horizontal" className="my-0.5 h-px w-7 shrink-0 bg-line" />}
-          {g.map((item) => <RailTile key={item.key} item={item} tabStop={tabStop === item.key} onFocus={() => setFocusAt(item.key)} />)}
-        </Fragment>
-      ))}
-      {/* The pointer's way to hide the rail (H from the keyboard). */}
-      <button type="button" id={railId('hide')} onClick={toggleToolRail} onFocus={() => setFocusAt('hide')} tabIndex={tabStop === 'hide' ? 0 : -1}
-        aria-label="Hide the tool rail (H)" aria-keyshortcuts="H" title="Hide the tool rail (H)"
-        className="mt-auto flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
-        <ChevronLeft size={14} aria-hidden />
-      </button>
-    </div>
+    <>
+      <div ref={rail} role="toolbar" aria-label="Design tools" aria-orientation="vertical" data-testid="tool-rail" data-side={side} onKeyDown={onKey}
+        className={`glass-edge ${place} flex w-12 shrink-0 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden rounded-2xl bg-panel py-1.5 [scrollbar-width:none] ${drag ? 'opacity-40' : ''}`}>
+        {/* The grip: drag the rail to either side of the model; Left and Right (or Enter) do the same from the keyboard. */}
+        <button type="button" id={railId('grip')} onFocus={() => setFocusAt('grip')} tabIndex={tabStop === 'grip' ? 0 : -1}
+          aria-label="Move the tool rail" aria-keyshortcuts="ArrowLeft ArrowRight" title={`Move the tool rail: drag it to the other side of the model, or press ${side === 'left' ? 'Right' : 'Left'}`}
+          data-testid="tool-rail-grip" data-side={side}
+          onPointerDown={onGripDown} onPointerMove={onGripMove} onPointerUp={onGripUp} onPointerCancel={cancelDrag} onKeyDown={onGripKey}
+          className="flex h-6 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing">
+          <GripVertical size={14} aria-hidden />
+        </button>
+        {groups.map((g, gi) => (
+          <Fragment key={gi}>
+            {gi > 0 && <span role="separator" aria-orientation="horizontal" className="my-0.5 h-px w-7 shrink-0 bg-line" />}
+            {g.map((item) => <RailTile key={item.key} item={item} side={side} tabStop={tabStop === item.key} onFocus={() => setFocusAt(item.key)} />)}
+          </Fragment>
+        ))}
+        {/* The pointer's way to hide the rail (H from the keyboard). */}
+        <button type="button" id={railId('hide')} onClick={toggleToolRail} onFocus={() => setFocusAt('hide')} tabIndex={tabStop === 'hide' ? 0 : -1}
+          aria-label="Hide the tool rail (H)" aria-keyshortcuts="H" title="Hide the tool rail (H)"
+          className="mt-auto flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
+          <HideIcon size={14} aria-hidden />
+        </button>
+      </div>
+      {drag && createPortal(
+        <>
+          {/* The two edges of the model region as drop zones, the nearer one lit in the interaction colour. */}
+          {(['left', 'right'] as RailSide[]).map((s) => (
+            <div key={s} aria-hidden data-drop={s} data-near={drag.near === s ? '' : undefined}
+              style={{ position: 'fixed', left: s === 'left' ? drag.box.left : drag.box.right - drag.w, top: drag.box.top, width: drag.w, height: drag.box.bottom - drag.box.top, zIndex: 999 }}
+              className={`pointer-events-none rounded-2xl border-2 border-dashed ${drag.near === s ? 'border-accent bg-accent/10' : 'border-line'}`} />
+          ))}
+          {/* The rail as a ghost under the pointer; on release it slides to the edge. */}
+          <div aria-hidden data-testid="tool-rail-ghost" data-landing={drag.landing ? '' : undefined}
+            style={{ position: 'fixed', left: drag.x, top: drag.y, width: drag.w, height: drag.h, zIndex: 1000, transition: drag.landing && !reduced ? `left ${SLIDE_MS}ms ease-out, top ${SLIDE_MS}ms ease-out` : undefined }}
+            className="glass-edge pointer-events-none flex flex-col items-center gap-1 overflow-hidden rounded-2xl bg-panel py-1.5 opacity-90 shadow-lg">
+            <span className="flex h-6 w-7 shrink-0 items-center justify-center text-muted"><GripVertical size={14} aria-hidden /></span>
+            {groups.map((g, gi) => (
+              <Fragment key={gi}>
+                {gi > 0 && <span className="my-0.5 h-px w-7 shrink-0 bg-line" />}
+                {g.map((item) => <span key={item.key} className="flex h-10 w-10 shrink-0 items-center justify-center"><GlassIcon icon={item.icon} hue={hueFor(item.word)} size={ICON.tool} level={item.active ? 'on' : 'soft'} /></span>)}
+              </Fragment>
+            ))}
+          </div>
+        </>, document.body)}
+    </>
   )
 }
