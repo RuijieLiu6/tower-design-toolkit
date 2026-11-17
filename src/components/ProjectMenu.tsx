@@ -1,7 +1,8 @@
 // Project menu in the top bar: undo / redo, New, Open, Save as, and the autosave status. Projects live in this browser
 // (IndexedDB); files come and go through the transfer centre, opened by Import… and Export… here (Result B, 9 Nov; the
 // bar's own two buttons went on 17 Nov, Ruijie: "their functions are already incorporated into the project menu").
-import { ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Redo2, Save, Trash, Undo2 } from './icons'
+import { ChevronDown, FileDown, FilePlus, FileUp, FolderOpen, HardDrive, Plug, Redo2, Save, Trash, Undo2 } from './icons'
+import { openSyncDialog } from './import/SyncModelDialog'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTransfer } from '../lib/porting/transfer'
 import { redo, startHistory, undo, useHistory } from '../lib/project/history'
@@ -120,6 +121,7 @@ export default function ProjectMenu() {
             )}
             <Item icon={<FileUp size={14} />} testId="transfer-import" onClick={() => { setOpen(false); useTransfer.getState().open('import', box.current?.querySelector('button')) }} hint="A model, a saved project, a workflow package, a site boundary or a custom tool; a file dropped anywhere does the same">Import…</Item>
             <Item icon={<FileDown size={14} />} testId="transfer-export" onClick={() => { setOpen(false); useTransfer.getState().open('export', box.current?.querySelector('button')) }} hint="A backup of this project, the geometry, a workflow package, results for Sun & Wind Studio, PROV">Export…</Item>
+            <Item icon={<Plug size={14} />} testId="sync-model" onClick={() => { setOpen(false); openSyncDialog(box.current?.querySelector('button')) }} hint="Connect Rhino, SketchUp, Revit, Archicad or AutoCAD so the model here follows the one there (on your own computer; nothing is uploaded)">Sync model…</Item>
             <p className="px-2 pb-1 pt-1.5 text-meta leading-snug text-muted">Projects stay in this browser. Export… › Back up this project keeps a copy or shares it; the same design always exports the same file. Ctrl+Z / Ctrl+Shift+Z undo and redo design changes.</p>
           </div>
         )}

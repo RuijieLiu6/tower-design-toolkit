@@ -1,3 +1,35 @@
+# CHECKPOINT: the Import window simplified; Sync model in the project menu (17 Nov 2026)
+
+Ruijie, 17 Nov: "Simplify the text further, and develop an icon for each of the five options. Bring in a 3D model is
+really the same as the Import in Massing … Put a Live model or Sync model option in the Untitled project drop-down."
+Branch `import-sync` from the `phase-dots` tip. Decisions mine (approved in advance). Not merged, not deployed.
+- **Import side** (`porting/TransferDialog.tsx`, `lib/porting/capabilities.ts` `short`): the five purposes are
+  `IconTile`s with one or two words (3D model, Project, Workflow, Site boundary, My tool) and a filled glyph each
+  (Cuboid, FolderOpen, Workflow, MapPin, Package); the full name and what it does show on hover or focus; a purpose
+  the project cannot use is dimmed with its reason on hover. Each pane is its title, one line and the action; the
+  "Checked route: lib/…" line is a Fold, as is the tool pane's install note. The Export side has the same treatment
+  (Geometry, Backup, Workflow, Results, My tool). The `purpose-*` test ids are unchanged, so the existing e2e pass.
+- **3D model = the Massing import** (`ModelPane`): the six platform tiles are the Massing tool's own
+  (`import/RhinoImportPanel.tsx` now exports `PlatformPicker`, sharing the picked platform in `ts.importPlatform`),
+  with that platform's upload note and file types from `lib/interchange/platforms.ts`; the action runs the one model
+  import (`lib/import/store.ts openDialog`), the same pipeline as the tool's Upload button. The Massing tool keeps its
+  entry. The live links are not repeated in the Import window: a fold points to Sync model.
+- **Sync model…** (`ProjectMenu.tsx`, new `import/SyncModelDialog.tsx`): a dialog, not a second copy of the link UI:
+  it reuses the Import tool's `RhinoLive`, `ServerLive` and `FileLive` cards (now exported). Top: the link's state from
+  `lib/interchange/live.ts` (Not connected / Watching / Reading / Link problem, what it is linked to, last sync time,
+  the message) and Disconnect (`stopLink`). Left: the six platforms as rows with their honesty flags straight from
+  `platforms.ts` `tested`: Rhino "Tested" (run in Rhino 8 on the team laptop), Revit, Archicad, AutoCAD and SketchUp
+  "Unverified" (written to the app's documented API, not yet run inside it), Other file "upload only". Right: the
+  chosen platform's steps and Connect / Link file. Esc closes and focus returns to the menu's button. Two-way sync
+  is as each link supports; the help says so.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,243 pass (the same 2 CRLF data-file checks fail in this worktree only) ·
+  Edge e2e: `e2e/import-sync.e2e.ts` (new: five tiles with glyphs and the short words, the hover name, Site boundary
+  disabled on the competition site, 3D model's six platform tiles and per-platform notes, a Rhino fixture through the
+  window to the results, the Export tiles, Sync model's rows with Rhino tested and the others unverified, the state
+  line, Rhino's Connect, SketchUp's steps, Esc and focus) PASS · `rhino-import` (2) PASS · `transfer-centre` PASS ·
+  `model-presentation` PASS · `journeys` PASS. Screenshots: `docs/evaluation/2026-11-17-import-sync/01-import-window.png`
+  and `02-sync-model.png`.
+
 # CHECKPOINT: the top bar's Import and Export buttons go into the project menu (17 Nov 2026)
 
 Ruijie, 17 Nov: "These two buttons can also be removed, because their functions are already incorporated into the

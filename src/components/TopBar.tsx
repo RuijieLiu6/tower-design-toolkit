@@ -17,6 +17,7 @@ import { useTour } from '../lib/tour'
 import { openBuilder, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
 import ProjectMenu from './ProjectMenu'
 import TransferDialog from './porting/TransferDialog'
+import SyncModelDialog from './import/SyncModelDialog'
 import { useTransfer } from '../lib/porting/transfer'
 import NodeLibrary from './NodeLibrary'
 import { UnitSelect } from './Units'
@@ -149,6 +150,7 @@ export default function TopBar() {
       <ProjectMenu />
       {/* The transfer centre (Result B, 9 Nov): opened from the project menu's Import… and Export…, or by a file dropped anywhere. */}
       <TransferDialog />
+      <SyncModelDialog />
       <span className="mx-auto" />
       <ModeSwitch />
       <span className="mx-auto" />
