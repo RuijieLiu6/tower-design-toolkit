@@ -8,7 +8,7 @@
 import { create } from 'zustand'
 import { BUILT_NODES, MERGES, type Category } from '../../data/registry'
 import { PHASES, phaseOfNode, type PhaseId } from '../phases'
-import type { StepId } from '../step'
+import { useStep, type StepId } from '../step'
 import { edgeKey, walk, type Board, type Edge } from '../workflowGraph'
 import { designNode, DESIGN_NODES } from './designNodes'
 
@@ -102,4 +102,10 @@ export const usePhaseTools = create<ActiveState>((set, get) => ({
 }))
 
 export const designOf = (phase: PhaseId) => DESIGN_NODES.find((d) => d.phase === phase)!
+/** True while the Massing tool itself is open (the Form step with its design node active, or none picked yet). */
+export function massingToolOpen(): boolean {
+  if (STEP_PHASE[useStep.getState().step] !== 'form') return false
+  const a = usePhaseTools.getState().active.form
+  return !a || a === designOf('form').id
+}
 export const phaseIndexOf = (p: PhaseId) => PHASES.findIndex((x) => x.id === p)

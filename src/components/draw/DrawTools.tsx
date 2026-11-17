@@ -20,6 +20,7 @@ import { EMPTY_OVERLAY, HINTS, hint, setTool, toast, TOOLS, useDraw, type OvDot,
 import { breakStep } from '../../lib/project/history'
 import { useTowerPosition } from '../../lib/towerPosition'
 import { useStore } from '../../store'
+import { massingToolOpen } from '../../lib/workflow/phaseTools'
 import { towerOf } from '../TowerGizmo'
 
 const SNAPC: Record<string, string> = { corner: '#2e9e6b', mid: '#19a7c3', edge: '#cf4f58', align: '#7a7f85', par: '#b53bd0', dir: '#b53bd0' }
@@ -523,6 +524,9 @@ export default function DrawTools({ baseZ }: { baseZ: number }) {
       // block editor's (components/MassingEdit3D.tsx) for box towers and Push / pull for drawn masses.
       if (t === 'select') {
         if (e.button !== 0 || e.ctrlKey || e.metaKey) return
+        // A Select drag moves or pulls a mass only inside the Massing tool (17 Nov, Sinnie: outside it, "I shouldn't be
+        // able to move the massing around just by dragging it"); elsewhere a press just selects.
+        if (!massingToolOpen()) return
         const sh = hit(e)
         if (!sh) return
         if (tools().selMode === 'mass') t = 'move'
