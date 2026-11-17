@@ -1,7 +1,7 @@
 // Sun and shadow's settings in the left panel, as Sun & Wind Studio's Sun tab lays them out (16 Nov, Sinnie: "add these
 // parameters to the left panel under sun and shadow tool"): the time period (preset chips, From / To and a one-line
 // note), the scope (the one date shown, or the period weighted by sunshine), the date, the hour of the sun in the
-// viewport, the study hours, and Run study / PDF. Studies still re-run by themselves when a setting changes; Run study
+// viewport, the study hours, and Run study. (A PDF button was removed, 16 Nov, Sinnie.) Studies still re-run by themselves when a setting changes; Run study
 // runs this one now.
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -10,7 +10,6 @@ import { useSwInputs } from '../../lib/swInputs'
 import { runSw, useSwOut } from '../../lib/swRun'
 import { useSwStudy } from '../../lib/swStudy'
 import { PERIOD_PRESETS, periodInfo, periodLabel, presetOf } from '../../lib/sunPeriod'
-import { sunReport } from '../../lib/sunReport'
 import { useStore } from '../../store'
 
 const ID = 'built.sw-shadow' as const
@@ -32,7 +31,6 @@ export default function SunStudyPanel() {
   const s = useSwStudy()
   const inp = useSwInputs()
   const { sun, set } = useStore(useShallow((x) => ({ sun: x.sun, set: x.set })))
-  const out = useSwOut((x) => x.out[ID])
   const busy = useSwOut((x) => !!x.busy[ID])
   const info = useMemo(() => periodInfo(s.periodFrom, s.periodTo, inp.C), [s.periodFrom, s.periodTo, inp.C])
   const active = presetOf(s.periodFrom, s.periodTo)
@@ -41,20 +39,6 @@ export default function SunStudyPanel() {
   const run = () => {
     useSwOut.setState((x) => ({ out: { ...x.out, [ID]: x.out[ID] ? { ...x.out[ID]!, key: '' } : undefined } }))
     runSw(ID, inp, useSwStudy.getState())
-  }
-  const pdf = () => {
-    if (!out) return
-    const when = s.sunScope === 'date' ? `${SUN_DATES[s.sunDate].label}, ${s.h0}:00–${s.h1}:00` : `${periodLabel(s.periodFrom, s.periodTo)}, sunshine-weighted`
-    const title = [...inp.towers].sort((a, b) => b.height - a.height)[0]?.name ?? 'Tower'
-    const blob = sunReport({ title, when, period: s.sunScope === 'period', out, site: inp.site, settings: [
-      `Time period: ${periodLabel(s.periodFrom, s.periodTo)} (${info.days} day${info.days > 1 ? 's' : ''}, about ${info.sunHours.toLocaleString('en-CA')} sunshine hours).`,
-      `Scope: ${s.sunScope === 'date' ? 'the one date shown' : 'the selected time period, sunshine-weighted'}.`,
-      ...(s.sunScope === 'date' ? [`Date: ${SUN_DATES[s.sunDate].label}; study hours ${s.h0}:00–${s.h1}:00.`] : []),
-      'Climate: CWEC 2020, Vancouver Intl Airport.',
-    ] })
-    const url = URL.createObjectURL(blob), a = document.createElement('a')
-    a.href = url; a.download = `${title.replace(/[^\w-]+/g, '-')}-sun-and-shadow.pdf`; a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 4000)
   }
   const md = (v: string) => v.slice(5) // 'YYYY-MM-DD' → 'MM-DD'
   return (
@@ -91,11 +75,9 @@ export default function SunStudyPanel() {
       <Slider name="Sun in the viewport at" testid="sun-hour" value={Math.min(20, Math.max(6, Math.round(sun.hour * 2) / 2))} min={6} max={20} step={0.5} fmt={fmtHour} onChange={(v) => set({ sun: { ...sun, hour: v } })} />
       <Slider name="Study from" testid="study-from" value={Math.min(12, s.h0)} min={5} max={12} step={1} fmt={(v) => `${v}:00`} onChange={(v) => s.set({ h0: v })} />
       <Slider name="Study to" testid="study-to" value={Math.max(13, s.h1)} min={13} max={21} step={1} fmt={(v) => `${v}:00`} onChange={(v) => s.set({ h1: v })} />
-      <div className="grid grid-cols-2 gap-2 pt-1">
+      <div className="pt-1">
         <button type="button" onClick={run} disabled={!hasMass || busy} data-testid="sun-run" title={hasMass ? undefined : 'Place a mass first'}
-          className="h-10 rounded-md bg-accent text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50">{busy ? 'Running…' : 'Run study'}</button>
-        <button type="button" onClick={pdf} disabled={!out?.data || busy} data-testid="sun-pdf" title={out?.data ? 'This study as a one-page PDF' : 'Run the study first'}
-          className="h-10 rounded-md border border-line bg-white text-sm font-semibold text-ink hover:border-accent disabled:opacity-50">PDF</button>
+          className="h-10 w-full rounded-md bg-accent text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50">{busy ? 'Running…' : 'Run study'}</button>
       </div>
     </div>
   )
