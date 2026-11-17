@@ -109,7 +109,9 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
   // Ruijie, 7 Nov: "Returning to the landing page must restore the active workflow, including its nodes, connections,
   // local loops, name, and selected starting preset. A fresh default workflow should appear only when the user explicitly
   // starts a new workflow" (lib/coverWorkflow.ts; the default only on a first visit, or New / a role / a preset).
-  const [init] = useState(() => restoreCoverWorkflow((id) => idx(id) >= 0))
+  // The landing always opens with the default workflow, unedited (17 Nov, Sinnie: "it should be the unedited version of
+  // the default workflow"); edits made here still travel into the toolkit with Enter, but are not brought back next visit.
+  const [init] = useState<ReturnType<typeof restoreCoverWorkflow>>(() => null)
   const startIds = byPhase(designed(presetOf('designer')?.nodes ?? []))
   const [role, setRole] = useState<RoleId>(init?.role ?? 'designer')
   const [presetId, setPresetId] = useState<string | null>(init ? init.presetId : presetOf('designer')?.id ?? null)
