@@ -31,7 +31,7 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
 
       // UI01: one permanent phase row; Overview closed on entry; no whole-workflow strip underneath
       await expect(p.getByRole('navigation', { name: 'Design process' })).toHaveCount(1)
-      expect(await rail(p).locator('[data-phase]').count()).toBe(5)
+      expect(await rail(p).locator('[data-phase]').count()).toBe(4) // Model's four phases (17 Nov): Presentation is the top bar's switch
       await expect(p.getByTestId('workflow-overview')).toHaveCount(0)
       await expect(p.getByTestId('workflow-dock')).toHaveCount(0)
       await expect(p.getByTestId('phase-overview')).toHaveCount(0) // Overview went on 9 Nov: Edit workflow does the same
@@ -45,7 +45,7 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
           inter: document.fonts.check('14px "Inter Variable"') && [...document.fonts].some((f) => /Inter/.test(f.family) && f.status === 'loaded'),
           family: getComputedStyle(document.body).fontFamily.split(',')[0],
           phaseTab: cs('nav[aria-label="Design process"] [data-phase]'), overview: cs('[data-testid="edit-workflow-button"]'),
-          heading: cs('[data-testid="phase-panel"] h2'), importBtn: cs('[data-testid="transfer-import"]'), edit: cs('[data-testid="phase-edit"]'),
+          heading: cs('[data-testid="phase-panel"] h2'), importBtn: cs('[aria-label^="Project file"]'), edit: cs('[data-testid="phase-edit"]'),
           toolName: cs('[data-testid="phase-rows"] [data-node] > span:last-child'), view: cs('[role="radiogroup"][aria-label="View"] [role="radio"]'),
           resultsTab: cs('[data-panel="right"] [role="tab"]'), autoRun: cs('[data-testid="analysis-switch"]'),
         }
@@ -77,7 +77,7 @@ for (const vp of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
       expect(geo.issues).toEqual([])
       expect(geo.mw).toBeGreaterThanOrEqual(0.55)
       expect(geo.mh).toBeGreaterThanOrEqual(0.7)
-      expect(geo.shell).toBe('rgb(251, 248, 243)') // UI06: the warm shell
+      expect(geo.shell).toBe('rgb(255, 250, 241)') // UI06: the warm shell (Model's own gradient on ivory since 17 Nov)
 
       // UI04: a four-tool phase shows its workflow and usable controls without the page scrolling; a long one scrolls
       // inside its own region and leaves the controls in reach

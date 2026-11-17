@@ -137,6 +137,7 @@ export const MoreHorizontal = make('MoreHorizontal', '<circle cx="5.5" cy="12" r
 export const Mountain = make('Mountain', p('M2.5 19.5L9 8.5L13 15L15.5 11.5L21.5 19.5Z'))
 export const MousePointer = make('MousePointer', p('M5 3.5L18.5 12L12.3 13.4L9.2 19.5Z'))
 export const MousePointerClick = make('MousePointerClick', p('M9.5 9.5L20 13.3L15.4 14.8L19.3 18.7L17.7 20.3L13.8 16.4L12.3 21ZM4 4L6 6M9.5 2.5V5M2.5 9.5H5M13.5 5L15.3 3.2M5 13.5L3.2 15.3'))
+export const GripVertical = make('GripVertical', [6, 12, 18].map((y) => `<circle cx="9" cy="${y}" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="${y}" r="1.5" fill="currentColor" stroke="none"/>`).join(''))
 export const Move = make('Move', p('M12 2.5V21.5M2.5 12H21.5M9.5 5L12 2.5L14.5 5M9.5 19L12 21.5L14.5 19M5 9.5L2.5 12L5 14.5M19 9.5L21.5 12L19 14.5'))
 export const Network = make('Network', p('M9 3.5H15V8.5H9ZM3 15.5H9V20.5H3ZM15 15.5H21V20.5H15ZM12 8.5V12M6 15.5V12H18V15.5'))
 export const OctagonX = make('OctagonX', p('M8.3 3.5H15.7L20.5 8.3V15.7L15.7 20.5H8.3L3.5 15.7V8.3ZM9 9L15 15M15 9L9 15'))
@@ -204,6 +205,12 @@ export const Unplug = make('Unplug', p('M3.5 20.5L6.5 17.5M20.5 3.5L17.5 6.5M7 9
 export const Upload = make('Upload', p('M12 20.5V9M7 14L12 9L17 14M4 8.5V4H20V8.5'))
 export const Users = make('Users', '<circle cx="9" cy="7.5" r="3"/>' + p('M3 20C3 16.7 5.7 14 9 14C12.3 14 15 16.7 15 20M15.5 4.8C17 5.3 18 6.6 18 8C18 9.4 17 10.7 15.5 11.2M17.5 14.4C19.5 15.2 21 17.4 21 20'))
 export const Wand2 = make('Wand2', p('M3.5 19L14 8.5L15.5 10L5 20.5ZM17 3V6M15.5 4.5H18.5M20 9V11.5M18.75 10.25H21.25M10.5 3V5.5M9.25 4.25H11.75'))
+/** A tower beside a bolt: modelled energy use (Sun & Wind Studio port, 17 Nov). */
+export const EnergyMeter = make('EnergyMeter', '<rect x="3.5" y="3" width="10" height="18" rx="1.5"/>' + p('M6.5 7H10.5M6.5 11H10.5M6.5 15H10.5M19 5L16 12H19.5L17 19'))
+/** An open window with air passing (Sun & Wind Studio port, natural ventilation, 17 Nov). */
+export const WindowAir = make('WindowAir', '<rect x="3" y="4" width="10" height="16" rx="1.5"/>' + p('M8 4V20M3 12H13M15.5 8.5H21M15.5 12H19.5M15.5 15.5H21'))
+/** A kite on its string: a community-pool glyph in the slot Sailboat left (17 Nov review). */
+export const Kite = make('Kite', p('M12 2.5L18 9L12 15.5L6 9Z') + p('M6 9H18M12 2.5V15.5M12 15.5C11 17.5 13 18.5 12 21.5'))
 export const Waves = make('Waves', p('M3 7.5C5 6 7 6 9 7.5C11 9 13 9 15 7.5C17 6 19 6 21 7.5M3 12.5C5 11 7 11 9 12.5C11 14 13 14 15 12.5C17 11 19 11 21 12.5M3 17.5C5 16 7 16 9 17.5C11 19 13 19 15 17.5C17 16 19 16 21 17.5'))
 export const WifiOff = make('WifiOff', p('M3 3L21 21M8.5 16C9.5 15.1 10.7 14.6 12 14.6C13.3 14.6 14.5 15.1 15.5 16M5.5 12.5C6.9 11.2 8.6 10.3 10.5 10M14.5 10.3C16 10.8 17.3 11.6 18.5 12.5M2.5 9C4.1 7.6 6 6.6 8 6M12 5.5C15.4 5.5 18.8 6.8 21.5 9M12 18.5V20'))
 export const Wind = make('Wind', p('M3 9H14C15.7 9 17 7.7 17 6C17 4.3 15.7 3 14 3M3 13H18C19.7 13 21 14.3 21 16C21 17.7 19.7 19 18 19M3 17H11'))

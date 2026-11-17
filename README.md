@@ -8,6 +8,12 @@ An open-source, **web-first** platform for designing a tall building in Vancouve
 
 **New here, or an AI agent picking up the work?** Start with [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md): the project in the assignment brief's structure, what is built, what is left, and the rules for working on it. Planning, research and evaluation documents are in [docs/](docs/). The UI design logic, icon and colour scheme are in [DESIGN_HANDOFF.md](DESIGN_HANDOFF.md).
 
+## Demo: adding your own design tool (53 s)
+
+![Adding your own design tool to the Tower Design Toolkit: Import, preview, My tools, the Form phase, consent, the tool in the centre, Send, Proposal, Apply](docs/media/add-my-tool.gif)
+
+An independently developed tool (here [Form Studio](https://github.com/RuijieLiu6/form-studio)) joins the Toolkit as a workflow node: **Import › Add my tool**, a preview of what it reads and may change, then it sits in the Form phase like any node. You pick the tower, agree to what is sent, work in the tool inside the centre view, and it answers with a **Design Change Proposal** that is previewed as a ghost and applied as one undoable change. Full-size video: [docs/media/add-my-tool.mp4](docs/media/add-my-tool.mp4) (download or open raw). The code behind it is on the [`connected-design-tools`](https://github.com/RuijieLiu6/tower-design-toolkit/tree/connected-design-tools) branch, under review; the contract is described in its [docs/DESIGN_TOOLS.md](https://github.com/RuijieLiu6/tower-design-toolkit/blob/connected-design-tools/docs/DESIGN_TOOLS.md).
+
 ## Quick start (Windows or Mac)
 
 You need about 600 MB of disk space and 10 minutes. No account and no server: everything runs on your computer.

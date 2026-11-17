@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { registerUiPart, uiSlug, useUiScope, useUiVisible } from '../lib/ui/registry'
 import type { ReactNode } from 'react'
 import { FLAG_ICONS } from '../data/icons'
 import { fieldUnit, useUnits } from '../lib/units'
@@ -51,6 +53,12 @@ export function ConeChip({ state, label }: { state: ConeState; label: string }) 
 
 /** A titled block; `help` is what the block does, behind a "?" beside the title (Ruijie, 5 Nov). */
 export function Section({ title, children, right, help, folded = false }: { title: string; children: ReactNode; right?: ReactNode; help?: ReactNode; folded?: boolean }) {
+  // Inside a scope (a right-panel tab), the section is a part the Interface drawer lists under that tab (lib/ui/registry.ts).
+  const scope = useUiScope()
+  const id = scope ? `${scope}.${uiSlug(title)}` : null
+  useEffect(() => { if (id && scope) registerUiPart({ id, label: title, parent: scope }) }, [id, scope, title])
+  const on = useUiVisible(id ?? '')
+  if (id && !on) return null
   // Folded: a closed section the reader opens when they want the detail (Sinnie, 13 Nov: "put them into a minimized
   // tab I dont want to see all this").
   if (folded) return (

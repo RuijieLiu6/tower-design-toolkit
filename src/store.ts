@@ -160,7 +160,7 @@ interface State {
   set: (patch: Partial<State>) => void
 }
 
-const STAGE_NAME: Record<Phase, string> = { basic: 'Massing', advanced: 'Schematic', present: 'Present' }
+const STAGE_NAME: Record<Phase, string> = { basic: 'Massing', advanced: 'Schematic', present: 'Presentation' }
 
 export const useStore = create<State>((set, get) => ({
   project: 'vtc',

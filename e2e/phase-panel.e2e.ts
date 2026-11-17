@@ -7,7 +7,7 @@
 // Form and brings it back by Merge and by Replace, after a preview.
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
-import { placeStartingTower } from './helpers'
+import { openTransfer, placeStartingTower } from './helpers'
 
 const rail = (p: Page) => p.getByRole('navigation', { name: 'Design process' })
 const panel = (p: Page) => p.getByTestId('phase-panel')
@@ -17,8 +17,8 @@ const towerCount = async (p: Page) => {
   await p.getByRole('tab', { name: 'Your site' }).click().catch(() => {})
   return p.getByText(/Towers on this site/).first()
 }
-// Import and Export are the project bar's transfer centre (9 Nov): purpose first, the file, then the named action.
-const openImport = async (p: Page) => { await p.getByTestId('transfer-import').click(); await p.getByTestId('purpose-package').click() }
+// Import… and Export… in the project menu open the transfer centre (9 Nov; the bar's buttons went 17 Nov): purpose first, the file, then the named action.
+const openImport = async (p: Page) => { await openTransfer(p, 'import'); await p.getByTestId('purpose-package').click() }
 const importFile = async (p: Page, file: string) => { await openImport(p); await p.getByTestId('transfer-file').setInputFiles(file); await p.getByTestId('transfer-action').click() }
 const FORM = ['design.massing', 'built.sun', 'built.wind-screen']
 const LOOP = 'built.wind-screen>design.massing'
@@ -162,7 +162,7 @@ test('Form: Massing → Sun & shadow → Wind screen ↻ Massing; edit, rearrang
   await expect(panel(p).locator(`[data-return="${LOOP}"]`)).toHaveCount(1)
 
   // 6 · export the Form package
-  await p.getByTestId('transfer-export').click()
+  await openTransfer(p, 'export')
   await p.getByTestId('purpose-workflow').click()
   const [dl] = await Promise.all([p.waitForEvent('download'), p.getByTestId('transfer-action').click()])
   const pkg = JSON.parse(readFileSync((await dl.path())!, 'utf8'))

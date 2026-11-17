@@ -12,6 +12,7 @@ const MODEL = fileURLToPath(new URL('../../03 Vancouver Tall Competition Brief/S
 
 async function open(p: Page) {
   await p.route('**/local/vtc_context.json', (r) => r.fulfill({ status: 404, contentType: 'text/html', body: 'Not found' }))
+  await p.route('**/context/vtc/context.json', (r) => r.fulfill({ status: 404, contentType: 'text/html', body: 'Not found' })) // the included context withheld: the no-context case
   await p.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0') } catch { /* ignore */ } })
   await p.addLocatorHandler(p.getByRole('dialog').filter({ has: p.locator('#ob-title') }), async (d) => { await d.getByRole('button', { name: 'Start designing' }).click() })
   await p.goto('/#/guided')

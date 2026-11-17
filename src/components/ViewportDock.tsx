@@ -6,6 +6,7 @@
 import { ChevronDown, ChevronRight, Eye, EyeOff, Layers, PanelRightClose, X } from './icons'
 import { useEffect, type ReactNode } from 'react'
 import { create } from 'zustand'
+import { groupVisible, isVisible, registerUiItems, useUiItems, useUiVisibility } from '../lib/ui/registry'
 import { useStore } from '../store'
 
 export interface DockPrefs { open: boolean; sections: Record<string, boolean>; hints: Record<string, boolean> }
@@ -30,7 +31,7 @@ export function writeDockPrefs(storage: Pick<Storage, 'setItem'> | null, p: Dock
 const storage = () => { try { return typeof localStorage === 'undefined' ? null : localStorage } catch { return null } }
 
 interface DockState extends DockPrefs {
-  /** Every viewport overlay hidden (H): a clean view. Not remembered across reloads. */
+  /** Every viewport overlay hidden (O): a clean view. Not remembered across reloads. */
   hidden: boolean
   /** The camera is being dragged: the dock fades so the city shows through. */
   orbiting: boolean
@@ -44,14 +45,14 @@ useDock.subscribe((s, prev) => {
 
 export const toggleOverlays = () => useDock.setState((s) => ({ hidden: !s.hidden }))
 
-/** H toggles every viewport overlay (not while typing, and not with a modifier, so it never clashes with 1/2/3/P/Esc). */
+/** O toggles every viewport overlay (not while typing, and not with a modifier, so it never clashes with 1/2/3/P/H/Esc; H is the tool rail, ToolRail.tsx). */
 export function useOverlayShortcut() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
       if (e.ctrlKey || e.metaKey || e.altKey) return
-      if (e.key === 'h' || e.key === 'H') toggleOverlays()
+      if (e.key === 'o' || e.key === 'O') toggleOverlays()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -97,13 +98,20 @@ function Section({ s }: { s: DockSection }) {
  * "Layers" button in the top-right column opens and closes it, so it opens under that column and has no tab of its own.
  */
 export function ViewportDock({ sections, hint, label = 'Layers & context', anchored = false }: { sections: DockSection[]; hint?: { id: string; content: ReactNode }; label?: string; anchored?: boolean }) {
+  // Each section is a part in the Interface drawer (lib/ui/registry.ts), registered as the dock shows it; the dock goes when all are hidden.
+  useEffect(() => registerUiItems('viewport.dock', sections.map((x) => ({ id: `viewport.dock.${x.id}`, label: typeof x.title === 'string' ? x.title : x.id, parent: 'viewport.dock', mode: 'model' as const }))), [sections])
+  const hiddenUi = useUiVisibility((d) => d.hidden)
+  const uiItems = useUiItems()
+  const dockOn = groupVisible('viewport.dock', hiddenUi, uiItems)
+  const shownSections = sections.filter((x) => isVisible(`viewport.dock.${x.id}`, hiddenUi, uiItems))
   const { open: docked, menu, hidden, hints } = useDock()
   const open = anchored ? menu : docked
   const look = useOverlayLook()
   if (hidden) return null
   if (!open && anchored) return null
   if (!open) {
-    return (
+    if (!dockOn) return null
+  return (
       <button type="button" aria-expanded={false} aria-controls="vp-dock" onClick={() => useDock.setState({ open: true })}
         className={`glass absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1.5 rounded-l-md border border-r-0 border-line px-1.5 py-2.5 text-control font-medium text-ink shadow-sm hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${look}`}
         title="Show the layers panel">
@@ -119,9 +127,9 @@ export function ViewportDock({ sections, hint, label = 'Layers & context', ancho
       <div className="flex shrink-0 items-center gap-1.5 border-b border-line/80 px-2.5 py-1.5">
         <Layers size={14} aria-hidden className="text-ink" />
         <b className="text-ink">{label}</b>
-        <button type="button" onClick={toggleOverlays} title="Hide every overlay for a clean view (H)"
+        <button type="button" onClick={toggleOverlays} title="Hide every overlay for a clean view (O)"
           className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-meta text-slate-700 hover:bg-black/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-          <EyeOff size={12} aria-hidden />Hide overlays <kbd className="rounded border border-line px-1 font-sans">H</kbd>
+          <EyeOff size={12} aria-hidden />Hide overlays <kbd className="rounded border border-line px-1 font-sans">O</kbd>
         </button>
         <button type="button" aria-expanded={true} aria-controls="vp-dock" aria-label="Collapse the layers panel" title="Collapse"
           onClick={() => useDock.setState(anchored ? { menu: false } : { open: false })}
@@ -140,7 +148,7 @@ export function ViewportDock({ sections, hint, label = 'Layers & context', ancho
             </button>
           </div>
         )}
-        {sections.map((s) => <Section key={s.id} s={s} />)}
+        {shownSections.map((s) => <Section key={s.id} s={s} />)}
       </div>
     </aside>
   )
@@ -151,9 +159,9 @@ export function ShowOverlaysButton() {
   const hidden = useDock((s) => s.hidden)
   if (!hidden) return null
   return (
-    <button type="button" onClick={toggleOverlays} title="Show the overlays again (H)"
+    <button type="button" onClick={toggleOverlays} title="Show the overlays again (O)"
       className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-full border border-line bg-white/70 px-2 py-1 text-meta text-slate-700 opacity-70 backdrop-blur-md hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-      <Eye size={12} aria-hidden />Show overlays <kbd className="rounded border border-line px-1 font-sans">H</kbd>
+      <Eye size={12} aria-hidden />Show overlays <kbd className="rounded border border-line px-1 font-sans">O</kbd>
     </button>
   )
 }

@@ -1,6 +1,6 @@
 // How the app opens on another computer (Ruijie, 6 Nov: "now the competition site is missing on the other computer").
-// 1. No base model (public/local answered 404, a fresh browser): the competition view still draws the brief's
-//    144.8 x 79.2 m site and its streets, and the card offers "Add your copy of the base model".
+// 1. No context at all (public/local and the included context answered 404, a fresh browser): the view still draws the brief's
+//    144.8 x 79.2 m site and its streets, and the card offers "Add a context model".
 // 2. No WebGL at all: a card says the 3D view couldn't start, and the rest of the app keeps working.
 // Needs no competition files, so it runs anywhere. No screenshots.
 // Run: node node_modules/playwright/cli.js test e2e/view-fallbacks.e2e.ts
@@ -8,6 +8,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 async function open(p: Page) {
   await p.route('**/local/vtc_context.json', (r) => r.fulfill({ status: 404, contentType: 'text/html', body: 'Not found' }))
+  await p.route('**/context/vtc/context.json', (r) => r.fulfill({ status: 404, contentType: 'text/html', body: 'Not found' })) // the included context withheld: the no-context case
   await p.addInitScript(() => { performance.setResourceTimingBufferSize(10_000); try { localStorage.setItem('ts.landing.skip', '0') } catch { /* ignore */ } })
   await p.addLocatorHandler(p.getByRole('dialog').filter({ has: p.locator('#ob-title') }), async (d) => { await d.getByRole('button', { name: 'Start designing' }).click() })
   await p.goto('/#/guided')
@@ -20,7 +21,7 @@ test('without the base model, the competition view draws the brief\'s site block
   const card = p.getByRole('region', { name: 'Competition context not loaded' })
   await expect(card).toBeVisible({ timeout: 60_000 })
   await expect(card).toContainText('144.8 × 79.2 m')
-  await expect(card.getByRole('button', { name: 'Add your copy of the base model (.3dm)' })).toBeVisible()
+  await expect(card.getByRole('button', { name: 'Add a context model' })).toBeVisible()
 
   // The site surface (144.8 x 79.2 m) and the brief labels are in the scene.
   await p.waitForFunction(() => performance.getEntriesByType('resource').some((e) => /@react-three_fiber\.js/.test(e.name)))
@@ -33,8 +34,11 @@ test('without the base model, the competition view draws the brief\'s site block
     const scene = root.store.getState().scene
     const site = scene.getObjectByName('vtc-site')
     const brief = scene.getObjectByName('vtc-brief-site')
-    const g = site?.geometry?.parameters
-    return { site: g ? [g.width, g.height] : null, labels: brief ? brief.children.length : 0 }
+    // The site is drawn from its outline (17 Nov), so its size is the outline's box.
+    site?.geometry?.computeBoundingBox()
+    const g = site?.geometry?.boundingBox
+    const r1 = (v: number) => Math.round(v * 10) / 10
+    return { site: g ? [r1(g.max.x - g.min.x), r1(g.max.y - g.min.y)] : null, labels: brief ? brief.children.length : 0 }
   }, fiber), { timeout: 60_000 }).toEqual({ site: [144.8, 79.2], labels: 4 })
 })
 

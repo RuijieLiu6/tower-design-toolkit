@@ -84,7 +84,8 @@ export default function Guide() {
                   <span><b>{s.label}</b> <span className="text-muted">({s.subtitle}, key <Key>{s.key}</Key>)</span>: {s.purpose}</span></li>
               ) })}
             </ol>
-            <p>A stage changes how the model is drawn and which tools are offered; the checks keep running in every stage. In <b>Massing</b>, the <b>Design</b> tab sets height, footprint, podium and the program by floor band, and <b>Place on map</b> moves the tower. <b>Results &amp; evidence</b> shows every switched-on check; the <b>Trace</b> tab records how the results changed as you worked. <b>Present</b> locks the model, frames camera views and captures images for the boards.</p>
+            <p>On the Form step the tool rail has the drawing tools (after Sinnie Choi's Tower Workspace): Select <Key>S</Key>, Line <Key>N</Key>, Rectangle <Key>B</Key>, Circle <Key>I</Key>, Erase <Key>E</Key>, Move <Key>M</Key>, Copy <Key>C</Key>, Rotate <Key>R</Key>, Offset <Key>G</Key>, Push / pull <Key>U</Key>, Split <Key>X</Key>, Boolean <Key>J</Key>, Tape <Key>T</Key>; Edit length and Core have no key. Typed values commit on <Key>Enter</Key>; <Key>Esc</Key> ends the tool; <Key>Del</Key> deletes the selected mass; Alt suspends snapping, Shift locks 90°. Move and Rotate act on whatever is selected, a drawn mass or a parametric tower.</p>
+            <p>The top bar's <b>Model / Presentation</b> switch (key <Key>V</Key>) takes you from the design to the boards and back; within Model, the Workflow block's coloured line in the left panel moves between Site, Form, Program and Schematic (click a segment, or the arrows beside it). A stage changes how the model is drawn and which tools are offered; the checks keep running in every stage. In <b>Massing</b>, the <b>Design</b> tab sets height, footprint, podium and the program by floor band, and <b>Place on map</b> moves the tower. <b>Results &amp; evidence</b> shows every switched-on check; the <b>Trace</b> tab records how the results changed as you worked. <b>Presentation</b> locks the model, frames camera views and captures images for the boards.</p>
           </Section>
 
           <Section id="nodes" title="Nodes">
@@ -107,13 +108,13 @@ export default function Guide() {
           </Section>
 
           <Section id="files" title="Saving, import and export">
-            <p>Your design is saved in this browser as you work and comes back when you return. The <b>project menu</b> (top left in the guided app) has <b>New project</b>, <b>Open…</b>, <b>Save</b>, <b>Save as…</b>, <b>Export .json</b> and <b>Import .json…</b>. A project file holds the design, your decisions and the trace; send it to a teammate to share the whole state.</p>
+            <p>Your design is saved in this browser as you work and comes back when you return. The <b>project menu</b> (top left in the guided app) has <b>New project</b>, <b>Open…</b>, <b>Save as…</b>, <b>Import…</b> and <b>Export…</b> (the transfer centre: models, project backups, workflow packages, a site boundary, custom tools, results; a file dropped anywhere on the app imports too). A project file holds the design, your decisions and the trace; send it to a teammate to share the whole state.</p>
             <p>To bring in your own massing, use <b>Import</b> in the <b>Towers &amp; site</b> design tool: Rhino <code>.3dm</code>, OBJ, glTF / GLB and IFC. SketchUp and Revit files can't be read in a browser; the app tells you how to export them (OBJ from SketchUp, IFC from Revit). Imported masses are cut into storeys so the checks can read them.</p>
             <p>Browser storage belongs to one browser on one computer: export a project file to keep a copy or to move to another machine.</p>
           </Section>
 
           <Section id="options" title="Design options">
-            <p><Go to="options">Design options</Go> (top bar, Present, or Customize) saves up to four named versions of the design and compares them: a massing elevation of each at one scale, every switched-on node's state and flag with <b>Better</b> / <b>Worse</b> / <b>Changed</b> / <b>Same</b> against the first option, and a chart by jury criterion (human scale, cultural context, design excellence, urban integration).</p>
+            <p><Go to="options">Design options</Go> (top bar, Presentation, or Customize) saves up to four named versions of the design and compares them: a massing elevation of each at one scale, every switched-on node's state and flag with <b>Better</b> / <b>Worse</b> / <b>Changed</b> / <b>Same</b> against the first option, and a chart by jury criterion (human scale, cultural context, design excellence, urban integration).</p>
             <p>The chart starts from the brief's weights, 40 / 30 / 20 / 10; weights you change are flagged as a team assumption. <b>It is not the jury's score</b>, only a study aid built from the tool's checks. <b>Explain the difference</b> lists the inputs that differ and which results each one moved. Change one input at a time in the guided app and the trace can tell you exactly what each change did.</p>
           </Section>
 
@@ -132,10 +133,10 @@ export default function Guide() {
 
           <Section id="keys" title="Keyboard">
             <ul className="space-y-1">
-              <li><Key>1</Key> <Key>2</Key> <Key>3</Key> switch stage (Massing, Schematic, Present)</li>
+              <li><Key>1</Key> <Key>2</Key> <Key>3</Key> switch stage (Massing, Schematic, Presentation)</li>
               <li><Key>P</Key> place the tower on the map: a click shows a ghost of the tower there with its site fit and view cones; <Key>Enter</Key> or Confirm places it, <Key>Esc</Key> or Cancel keeps it where it was. The tower lines up with the lot under the click: it turns parallel to the lot lines (read from the lot's smallest enclosing rectangle) and sits inside them when it fits, never resized; the lines it used show in amber. On a street it turns to the nearest lot lines within 30 m; <Key>Shift</Key> places it freely. <Key>L</Key> (<b>Align to lot</b>) does the same for a tower already placed</li>
               <li>Click a tower in the 3D view to select it as one object; <Key>M</Key> <b>Move</b> and <Key>R</Key> <b>Rotate</b> show a gizmo at its base (drag the arrows or the square to move it in plan, the arc to turn it). It snaps to the site boundary and parcel edges first, then to a 1 m or 5 m grid and 5° or 15° steps; hold <Key>Shift</Key> for free. A drag leaves a ghost to <Key>Enter</Key> confirm or <Key>Esc</Key> cancel; nothing changes until you confirm, and each confirmed move is one undo step. With Move on, the arrow keys nudge it one grid step (<Key>Shift</Key>: 0.1 m); with Rotate on, <Key>[</Key> <Key>]</Key> turn it one step. <Key>Esc</Key> cancels a drag, then the pending move, then deselects. Present keeps the model locked</li>
-              <li><Key>H</Key> hides or shows everything over the 3D view (the layers dock, compass and title block) for a clean view; captures never include them</li>
+              <li><Key>O</Key> hides or shows everything over the 3D view (the layers dock, compass and title block) for a clean view; captures never include them. <Key>H</Key> hides or shows the tool rail beside the model</li>
               <li><Key>Ctrl</Key> + <Key>Z</Key> undo; opening a project or an option is one undo step</li>
             </ul>
           </Section>

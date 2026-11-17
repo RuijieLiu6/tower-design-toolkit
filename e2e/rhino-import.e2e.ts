@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { openDesignTool, openResultDetails } from './helpers'
+import { openDesignTool, openResultDetails, openTransfer } from './helpers'
 
 const FIXTURE = join(process.cwd(), 'tools', 'import-fixtures', 'typical-two-towers-mm.3dm')
 
@@ -73,8 +73,8 @@ test('the uploaded lot line and context buildings are drawn in the 3D view', asy
   await page.waitForSelector('#root > *', { timeout: 60_000 })
   await page.getByRole('button', { name: 'Start designing' }).click({ timeout: 3000 }).catch(() => {})
   await page.getByRole('tab', { name: 'Competition site' }).or(page.getByRole('button', { name: 'Competition site' })).first().click()
-  // Through the transfer centre this time (Import › Bring in a 3D model; the same model dialog follows).
-  await page.getByTestId('transfer-import').click()
+  // Through the transfer centre this time (project menu › Import… › Bring in a 3D model; the same model dialog follows).
+  await openTransfer(page, 'import')
   await page.getByTestId('purpose-model').click()
   await page.getByTestId('transfer-file').setInputFiles(FIXTURE)
   await page.getByTestId('transfer-action').click()
@@ -91,7 +91,7 @@ test('the uploaded lot line and context buildings are drawn in the 3D view', asy
     return m ? { site: m.elements.filter((e: { role: string }) => e.role === 'site').length, context: m.elements.filter((e: { role: string }) => e.role === 'context').length } : null
   })
   expect(roles).toEqual({ site: 1, context: 3 })
-  await page.keyboard.press('h')
+  await page.keyboard.press('o') // hide the overlays (O; H is the tool rail)
   await page.waitForTimeout(1500)
   await page.screenshot({ path: join(process.cwd(), 'test-results', 'rhino-overlay-vtc.png') })
 })

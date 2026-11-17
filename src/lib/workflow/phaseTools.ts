@@ -13,7 +13,7 @@ import { edgeKey, walk, type Board, type Edge } from '../workflowGraph'
 import { designNode, DESIGN_NODES } from './designNodes'
 
 export const PHASE_IDS: PhaseId[] = ['site', 'form', 'program', 'schematic', 'present']
-export const PHASE_NAME: Record<PhaseId, string> = { site: 'Site', form: 'Form', program: 'Program', schematic: 'Schematic', present: 'Present' }
+export const PHASE_NAME: Record<PhaseId, string> = { site: 'Site', form: 'Form', program: 'Program', schematic: 'Schematic', present: 'Presentation' }
 export const STEP_PHASE: Record<StepId, PhaseId> = { site: 'site', volume: 'form', program: 'program', plates: 'schematic', frame: 'present' }
 export const PHASE_STEP: Record<PhaseId, StepId> = { site: 'site', form: 'volume', program: 'program', schematic: 'plates', present: 'frame' }
 

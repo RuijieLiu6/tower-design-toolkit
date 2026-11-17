@@ -6,8 +6,10 @@ export type ImportPurpose = 'model' | 'project' | 'package' | 'site' | 'tool'
 export type ExportPurpose = 'geometry' | 'backup' | 'workflow' | 'results' | 'tool'
 
 export interface Capability {
-  /** The choice as the person reads it. */
+  /** The choice as the person reads it: the full name, shown on hover. */
   title: string
+  /** One or two key words under the tile's icon (Ruijie, 17 Nov: "simplify the text further, and develop an icon for each"). */
+  short: string
   /** One line: what it is for. */
   purpose: string
   /** File types, as the picker's accept list; empty when there is no file. */
@@ -23,19 +25,19 @@ export interface Capability {
 }
 
 export const IMPORTS: Record<ImportPurpose, Capability> = {
-  model: { title: 'Bring in a 3D model', purpose: 'Proposal geometry, existing context or a reference model from Rhino, SketchUp, Blender or IFC.', accept: '.3dm,.obj,.glb,.gltf,.ifc', available: true, verified: true, via: 'lib/import/load.ts (rhino3dm, OBJ, glTF, web-ifc); alignment and roles in components/ImportDialog.tsx' },
-  project: { title: 'Open a saved project', purpose: 'Continue a whole Tower Design Toolkit project (.json) in place of the open one.', accept: '.json,application/json', available: true, verified: true, via: 'lib/project/projectFile.ts readProject → session.ts openText (Ctrl+Z takes it back)' },
-  package: { title: 'Load a workflow or phase package', purpose: 'Reuse one phase’s tools, settings and results (tower-studio-phase@1), merged or replacing that phase.', accept: '.json,application/json', available: true, verified: true, via: 'lib/workflow/phasePackage.ts readPhasePackage + planImport; preview in components/workflow/PhasePorting.tsx' },
-  site: { title: 'Add a site boundary', purpose: 'A study-site boundary as GeoJSON (a Polygon in WGS84, BC Albers or UTM 10N), Real Vancouver only.', accept: '.geojson,.json', available: true, verified: true, via: 'engine/geoLocate.ts siteFromGeoJson (lib/siteImport.ts), the same as the Site panel’s', projects: ['city'] },
-  tool: { title: 'Add my tool', purpose: 'Install a custom tool package (tower-studio-node@1); it then appears under My tools and can be added to the workflow.', accept: '.json,application/json', available: true, verified: true, via: 'lib/nodeValidate.ts in the node builder’s Import tab (validation, preview, explicit install); a chosen file goes there as its draft' },
+  model: { short: '3D model', title: 'Bring in a 3D model', purpose: 'Proposal geometry, existing context or a reference model from Rhino, SketchUp, Blender or IFC.', accept: '.3dm,.obj,.glb,.gltf,.ifc', available: true, verified: true, via: 'lib/import/load.ts (rhino3dm, OBJ, glTF, web-ifc); alignment and roles in components/ImportDialog.tsx' },
+  project: { short: 'Project', title: 'Open a saved project', purpose: 'Continue a whole Tower Design Toolkit project (.json) in place of the open one.', accept: '.json,application/json', available: true, verified: true, via: 'lib/project/projectFile.ts readProject → session.ts openText (Ctrl+Z takes it back)' },
+  package: { short: 'Workflow', title: 'Load a workflow or phase package', purpose: 'Reuse one phase’s tools, settings and results (tower-studio-phase@1), merged or replacing that phase.', accept: '.json,application/json', available: true, verified: true, via: 'lib/workflow/phasePackage.ts readPhasePackage + planImport; preview in components/workflow/PhasePorting.tsx' },
+  site: { short: 'Site boundary', title: 'Add a site boundary', purpose: 'A study-site boundary as GeoJSON (a Polygon in WGS84, BC Albers or UTM 10N), Real Vancouver only.', accept: '.geojson,.json', available: true, verified: true, via: 'engine/geoLocate.ts siteFromGeoJson (lib/siteImport.ts), the same as the Site panel’s', projects: ['city'] },
+  tool: { short: 'My tool', title: 'Add my tool', purpose: 'Install a custom tool package (tower-studio-node@1); it then appears under My tools and can be added to the workflow.', accept: '.json,application/json', available: true, verified: true, via: 'lib/nodeValidate.ts in the node builder’s Import tab (validation, preview, explicit install); a chosen file goes there as its draft' },
 }
 
 export const EXPORTS: Record<ExportPurpose, Capability> = {
-  geometry: { title: 'Continue modelling elsewhere', purpose: 'The massing as a geometry file: Rhino .3dm, OBJ + MTL (SketchUp and most tools) or glTF .glb. Metres; one closed solid per storey.', accept: '', available: true, verified: true, via: 'lib/export/writers.ts (3dm, OBJ), lib/export/gltf.ts; IFC has no writer yet' },
-  backup: { title: 'Back up this project', purpose: 'The whole project with its editable state, imported meshes and decision trace, as a .json that opens again here.', accept: '', available: true, verified: true, via: 'lib/project/session.ts currentText (tower-studio-project@1)' },
-  workflow: { title: 'Reuse or share this workflow', purpose: 'The open phase as a package: its tools, connections and return paths, settings, units, origin and north, and results with their model revision. No geometry of other phases.', accept: '', available: true, verified: true, via: 'lib/workflow/phasePackage.ts buildPhasePackage (tower-studio-phase@1)' },
-  results: { title: 'Export results or evidence', purpose: 'The decision trace as PROV (.jsonld), or the model for Sun & Wind Studio. Boards and drawings export from the Present phase.', accept: '', available: true, verified: false, via: 'lib/trace/prov.ts traceToProv; components/SunWindSend.tsx (the Studio link is unverified on the live site)' },
-  tool: { title: 'Package my tool', purpose: 'Save one of My tools as a package to share.', accept: '', available: false, verified: false, via: 'No writer yet: the node builder keeps packages in this browser only' },
+  geometry: { short: 'Geometry', title: 'Continue modelling elsewhere', purpose: 'The massing as a geometry file: Rhino .3dm, OBJ + MTL (SketchUp and most tools) or glTF .glb. Metres; one closed solid per storey.', accept: '', available: true, verified: true, via: 'lib/export/writers.ts (3dm, OBJ), lib/export/gltf.ts; IFC has no writer yet' },
+  backup: { short: 'Backup', title: 'Back up this project', purpose: 'The whole project with its editable state, imported meshes and decision trace, as a .json that opens again here.', accept: '', available: true, verified: true, via: 'lib/project/session.ts currentText (tower-studio-project@1)' },
+  workflow: { short: 'Workflow', title: 'Reuse or share this workflow', purpose: 'The open phase as a package: its tools, connections and return paths, settings, units, origin and north, and results with their model revision. No geometry of other phases.', accept: '', available: true, verified: true, via: 'lib/workflow/phasePackage.ts buildPhasePackage (tower-studio-phase@1)' },
+  results: { short: 'Results', title: 'Export results or evidence', purpose: 'The decision trace as PROV (.jsonld), or the model for Sun & Wind Studio. Boards and drawings export from the Present phase.', accept: '', available: true, verified: false, via: 'lib/trace/prov.ts traceToProv; components/SunWindSend.tsx (the Studio link is unverified on the live site)' },
+  tool: { short: 'My tool', title: 'Package my tool', purpose: 'Save one of My tools as a package to share.', accept: '', available: false, verified: false, via: 'No writer yet: the node builder keeps packages in this browser only' },
 }
 
 /** The entries a person may choose from in the open project (an unavailable one is shown, disabled, with its reason). */

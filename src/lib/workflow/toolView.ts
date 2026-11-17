@@ -15,13 +15,14 @@ export const TOOL_VIEW: Record<string, ToolView> = {
   'design.massing': { mode: 'massing' }, 'built.sun': { mode: 'massing' },
   'built.solar-access': { mode: 'analysis', layer: 'solar' },
   'built.wind-screen': { mode: 'analysis', layer: 'wind' }, 'built.wind-study': { mode: 'analysis', layer: 'wind' },
+  'built.wind-comfort': { mode: 'analysis', layer: 'wind-comfort' },
   'built.energy-carbon': { mode: 'analysis', layer: 'surface-sun' },
   'design.program': { mode: 'program' }, 'built.fsr': { mode: 'program' }, 'built.economics': { mode: 'program' }, 'built.interior': { mode: 'program' },
   'built.pr-streetwall': { mode: 'massing' }, 'built.pr-frontage': { mode: 'massing' }, 'built.pr-ground': { mode: 'massing' }, 'built.sky-room': { mode: 'program' },
 }
 
 /** The tool that owns each analysis layer, and the tools that work with the protected view cones on screen. */
-export const LAYER_TOOLS: Record<AnalysisLayerId, string[]> = { solar: ['built.solar-access'], wind: ['built.wind-screen', 'built.wind-study'], 'surface-sun': ['built.energy-carbon'] }
+export const LAYER_TOOLS: Record<AnalysisLayerId, string[]> = { solar: ['built.solar-access'], wind: ['built.wind-screen', 'built.wind-study'], 'wind-comfort': ['built.wind-comfort'], 'surface-sun': ['built.energy-carbon'] }
 export const CONE_TOOLS = ['design.site', 'built.viewcones', 'built.heights', 'built.vista', 'built.relax-aviation']
 
 /** The tools whose working view includes the cones themselves: opening one shows them when they are all hidden (cones

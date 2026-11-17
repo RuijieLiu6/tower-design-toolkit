@@ -4,10 +4,13 @@
 import { CheckCircle2, ChevronDown, Clock, Download, FileCheck2, Loader2, ShieldAlert } from '../icons'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  DELIVERABLES, GATES, MILESTONES, boardChecks, coverage, deadlineInfo, isBoardUsed, submissionChecks, validateJpeg, type Manifest,
+  DELIVERABLES, GATES, MILESTONES, boardChecks, coverage, deadlineInfo, familiesUsed, isBoardUsed, submissionChecks, validateJpeg, type Manifest,
 } from '../../engine/boards'
+import { useBoardFonts } from './useBoardData'
 import type { RuleResult } from '../../engine/types'
-import { exportBoardJpeg, type EvidenceSet } from '../../lib/boardRender'
+import { exportBoardJpeg, exportBoardPng, type EvidenceSet } from '../../lib/boardRender'
+import { boardsPdf } from '../../lib/boardPdf'
+import { boardFileStem, boardName } from '../../engine/boards'
 import { useBoardStore } from '../../lib/boardStore'
 import { FlagChip, StateChip } from '../ui'
 import SubmissionChecklist from '../workflow/SubmissionChecklist'
@@ -35,6 +38,13 @@ function RuleRow({ r }: { r: RuleResult }) {
   )
 }
 
+const FORMAT_WORD = { jpeg: 'JPEG', png: 'PNG', pdf: 'PDF' } as const
+const FORMAT_NOTE = {
+  jpeg: 'The submission format: no metadata, highest quality under 9.5 MB (team margin under the 10 MB limit); each file is checked again after export.',
+  png: 'Lossless, for review or printing; not the submission format (the brief asks for JPEG), so these files are not checked.',
+  pdf: 'One PDF, an A2 landscape page per board, made from the same JPEGs; no author or software data. For review or printing, not the submission.',
+} as const
+
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a'); a.href = url; a.download = name; a.click()
@@ -42,13 +52,15 @@ function download(blob: Blob, name: string) {
 }
 
 export default function SubmissionPanel({ evidence, overflow }: { evidence: Record<string, EvidenceSet>; overflow: Record<string, string[]> }) {
-  const { boards, images, denyList, dpi, ticks, exports, setDeny, setDpi, tick, setExport } = useBoardStore()
+  const { boards, images, denyList, dpi, ticks, exports, setDeny, setDpi, tick, setExport, format, setFormat } = useBoardStore()
+  const [saved, setSaved] = useState('')
   const [now, setNow] = useState(() => Date.now())
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [checked, setChecked] = useState<{ manifest: Manifest; rules: RuleResult[] }[]>([])
   const [profile, setProfile] = useState<'board' | 'cover'>('board')
   const [denyText, setDenyText] = useState(denyList.join('\n'))
+  const { fonts, resolve } = useBoardFonts()
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(t) }, [])
 
   const d = deadlineInfo(now)
@@ -59,29 +71,53 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
   // Open items that block "ready to upload" (P13-M06c): rule fails, boards not exported since the last edit, gates not ticked.
   const open: string[] = []
   boards.forEach((b, i) => {
-    perBoard[i].filter((r) => r.state === 'fail').forEach((r) => open.push(`Board ${i + 1}: ${r.label.toLowerCase()}`))
-    if (isBoardUsed(b) && !exports[b.id]) open.push(`Board ${i + 1}: export the JPEG`)
-    exports[b.id]?.rules.filter((r) => r.state === 'fail').forEach((r) => open.push(`Board ${i + 1} JPEG: ${r.label.toLowerCase()}`))
+    const n = boardName(b, i)
+    perBoard[i].filter((r) => r.state === 'fail').forEach((r) => open.push(`${n}: ${r.label.toLowerCase()}`))
+    if (isBoardUsed(b) && !exports[b.id]) open.push(`${n}: export the JPEG`)
+    exports[b.id]?.rules.filter((r) => r.state === 'fail').forEach((r) => open.push(`${n} JPEG: ${r.label.toLowerCase()}`))
   })
   if (boards.filter(isBoardUsed).length < 4) open.push('Fill all four boards (or get Buildner\'s answer on fewer)')
   for (const g of GATES) {
-    if (g.perBoard) boards.forEach((b, i) => { if (!ticks[`${g.id}:${b.id}`]) open.push(`Board ${i + 1}: ${g.label}`) })
+    if (g.perBoard) boards.forEach((b, i) => { if (!ticks[`${g.id}:${b.id}`]) open.push(`${boardName(b, i)}: ${g.label}`) })
     else if (!ticks[g.id]) open.push(g.label)
   }
 
+  // Ruijie, 17 Nov: JPEG (the submission: checked against the brief after export), PNG (lossless, for review or print)
+  // or PDF (A2 pages, all chosen boards in one file). File names follow the board names and places: 01-site-strategy.jpg.
   const runExport = async (indexes: number[]) => {
-    setError('')
-    for (const i of indexes) {
-      const b = boards[i]
-      if (!isBoardUsed(b)) continue
-      setBusy(`Board ${i + 1}`)
+    setError(''); setSaved('')
+    const draw = (i: number) => ({ images, evidence, index: i, total: boards.length, fonts, resolve })
+    const chosen = indexes.filter((i) => isBoardUsed(boards[i]))
+    if (format === 'pdf') {
       try {
-        const r = await exportBoardJpeg(b, { images, evidence, index: i, total: boards.length }, dpi)
-        const name = `board-${i + 1}.jpg`
+        const pages: Uint8Array[] = []
+        for (const i of chosen) { setBusy(boardName(boards[i], i)); pages.push((await exportBoardJpeg(boards[i], draw(i), dpi)).bytes) }
+        if (pages.length) {
+          const name = chosen.length === 1 ? `${boardFileStem(boards[chosen[0]], chosen[0])}.pdf` : 'boards.pdf'
+          const blob = boardsPdf(pages)
+          download(blob, name)
+          setSaved(`Saved ${name}: ${pages.length} A2 page${pages.length === 1 ? '' : 's'}, ${(blob.size / 1e6).toFixed(1)} MB.`)
+        }
+      } catch (e) { setError(`PDF: ${(e as Error).message}`) }
+      setBusy(null); return
+    }
+    for (const i of chosen) {
+      const b = boards[i]
+      setBusy(boardName(b, i))
+      try {
+        if (format === 'png') {
+          const r = await exportBoardPng(b, draw(i), dpi)
+          const name = `${boardFileStem(b, i)}.png`
+          download(r.blob, name)
+          setSaved(`Saved ${name}: ${r.width} × ${r.height} px, ${(r.blob.size / 1e6).toFixed(1)} MB.`)
+          continue
+        }
+        const r = await exportBoardJpeg(b, draw(i), dpi)
+        const name = `${boardFileStem(b, i)}.jpg`
         const v = validateJpeg(name, r.bytes, { denyList, profile: 'board' })
-        setExport(b.id, { at: new Date().toISOString(), name, bytes: r.bytes.length, quality: r.quality, dpi: r.dpi, manifest: v.manifest, rules: v.rules })
+        setExport(b.id, { at: new Date().toISOString(), name, bytes: r.bytes.length, quality: r.quality, dpi: r.dpi, manifest: v.manifest, rules: v.rules, fonts: r.fonts, missingFonts: r.missingFonts })
         download(r.blob, name)
-      } catch (e) { setError(`Board ${i + 1}: ${(e as Error).message}`) }
+      } catch (e) { setError(`${boardName(b, i)}: ${(e as Error).message}`) }
     }
     setBusy(null)
   }
@@ -124,33 +160,40 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
       </section>
 
       {boards.map((b, i) => (
-        <section key={b.id} aria-label={`Board ${i + 1} checks`}>
-          <div className={H}>Board {i + 1}{isBoardUsed(b) ? '' : ' · empty'}</div>
+        <section key={b.id} aria-label={`${boardName(b, i)} checks`}>
+          <div className={H}>{boardName(b, i)}{isBoardUsed(b) ? '' : ' · empty'}</div>
           <div className="grid gap-1.5">
             {perBoard[i].map((r) => <RuleRow key={r.id} r={r} />)}
             {exports[b.id] && (
               <div className="rounded border border-sky-400/30 p-1.5">
-                <div className="mb-1 text-meta text-sky-200">Exported {exports[b.id].name}: {(exports[b.id].bytes / 1e6).toFixed(2)} MB at {exports[b.id].dpi} dpi, quality {Math.round(exports[b.id].quality * 100)}</div>
+                <div className="mb-1 text-meta text-sky-200" data-testid="export-line" data-export-fonts={exports[b.id].fonts?.join(', ')}>Exported {exports[b.id].name}: {(exports[b.id].bytes / 1e6).toFixed(2)} MB at {exports[b.id].dpi} dpi, quality {Math.round(exports[b.id].quality * 100)}{exports[b.id].fonts ? ` · ${exports[b.id].fonts!.map((f) => f.replace(' Variable', '')).join(', ')}` : ''}{exports[b.id].missingFonts?.length ? <span className="ml-1 text-amber-300" data-testid="export-font-fallback"> · {exports[b.id].missingFonts!.join(', ')} did not load: drawn with Inter</span> : null}</div>
                 <div className="grid gap-1">{exports[b.id].rules.map((r) => <RuleRow key={r.id} r={r} />)}</div>
               </div>
             )}
-            {isBoardUsed(b) && <button type="button" disabled={!!busy} onClick={() => runExport([i])} className="flex items-center justify-center gap-1.5 rounded border border-white/15 px-2 py-1 text-meta hover:border-sky-400 disabled:opacity-50"><Download size={12} />Export board {i + 1} as JPEG</button>}
+            {isBoardUsed(b) && <button type="button" disabled={!!busy} onClick={() => runExport([i])} className="flex items-center justify-center gap-1.5 rounded border border-white/15 px-2 py-1 text-meta hover:border-sky-400 disabled:opacity-50"><Download size={12} />Export {boardName(b, i)} as {FORMAT_WORD[format]}</button>}
           </div>
         </section>
       ))}
 
       <section aria-label="Export">
         <div className={H}>Export all</div>
+        <div role="radiogroup" aria-label="Export format" className="mb-2 flex gap-1 rounded-md border border-white/15 p-0.5" data-testid="export-format">
+          {(['jpeg', 'png', 'pdf'] as const).map((f) => (
+            <button key={f} type="button" role="radio" aria-checked={format === f} onClick={() => setFormat(f)} data-format={f}
+              className={`flex-1 rounded px-2 py-1 text-xs ${format === f ? 'bg-white/15 font-semibold text-white' : 'text-slate-300 hover:bg-white/5'}`}>{FORMAT_WORD[f]}</button>
+          ))}
+        </div>
         <div className="flex items-center gap-2">
           <select value={dpi} onChange={(e) => setDpi(Number(e.target.value) as 150 | 200)} aria-label="Export resolution" className="rounded border border-white/15 bg-slate-900 px-2 py-1 text-xs">
             <option value={150}>150 dpi (3508 × 2480 px)</option>
             <option value={200}>200 dpi (4677 × 3307 px)</option>
           </select>
           <button type="button" disabled={!!busy || used === 0} onClick={() => runExport(boards.map((_, i) => i))} className="flex flex-1 items-center justify-center gap-1.5 rounded bg-sky-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-50">
-            {busy ? <><Loader2 size={13} className="animate-spin" />{busy}…</> : <><Download size={13} />Export {used} JPEG{used === 1 ? '' : 's'}</>}
+            {busy ? <><Loader2 size={13} className="animate-spin" />{busy}…</> : <><Download size={13} />{format === 'pdf' ? `Export ${used} board${used === 1 ? '' : 's'} as one PDF` : `Export ${used} ${FORMAT_WORD[format]}${used === 1 ? '' : 's'}`}</>}
           </button>
         </div>
-        <p className="mt-1 text-meta text-slate-400">Neutral file names, no metadata, highest quality under 9.5 MB (team margin under the 10 MB limit). Each file is checked again after export.</p>
+        <p className="mt-1 text-meta text-slate-400">{FORMAT_NOTE[format]} File names come from the board names and order (01-site-strategy); keep identifying words out of them.</p>
+        {saved && <p role="status" data-testid="export-saved" className="mt-1 text-meta text-sky-200">{saved}</p>}
         {error && <p className="mt-1 text-meta text-red-300">{error}</p>}
       </section>
 

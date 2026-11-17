@@ -22,6 +22,9 @@ import { POA_RANGE } from './energyRamp'
 import { Sun } from './icons'
 import { LOSS_MAX_H } from './solarRamps'
 import { LEVEL_COLOR } from './WindScreenResults'
+import { BAND_LIMITS } from '../engine/windComfort'
+import { BAND_COLOURS, BAND_NAMES } from '../engine/windComfortInput'
+import { useWindComfortStore } from '../hooks/useWindComfort'
 
 const focusRing = 'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent'
 
@@ -187,6 +190,32 @@ export function WindKey() {
   )
 }
 
+/** Lawson comfort bands (Sun & Wind Studio port): her five band colours with the mean-speed limits, or the change view. */
+function WindComfortKey() {
+  const view = useWindComfortStore((s) => s.view)
+  const status = useWindComfortStore((s) => s.status)
+  const out = useWindComfortStore((s) => s.out)
+  const limit = (i: number) => (i < BAND_LIMITS.length ? `≤ ${BAND_LIMITS[i]}` : `> ${BAND_LIMITS[BAND_LIMITS.length - 1]}`)
+  return (
+    <figure className="m-0 grid gap-1" aria-label="Pedestrian wind comfort, Lawson bands">
+      <figcaption className="text-meta"><b className="font-semibold text-ink">Pedestrian wind comfort</b> <span className="text-muted">· Lawson band on the mean speed, m/s at pedestrian level, {view === 'with' ? 'with the tower' : view === 'without' ? 'without the tower' : 'change in band from the tower'} (indicative, not CFD)</span></figcaption>
+      {view === 'change' ? (
+        <div role="list" className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-meta">
+          <KeyItem sw={swatch({ background: BAND_COLOURS[0], opacity: 0.75 })}>Calmer (a lower band)</KeyItem>
+          <KeyItem sw={swatch({ background: BAND_COLOURS[4], opacity: 0.75 })}>Windier (a higher band)</KeyItem>
+          <KeyItem sw={swatch({ background: 'transparent', border: '1px solid rgb(32 38 48 / 0.25)' })}>Same band</KeyItem>
+        </div>
+      ) : (
+        <div role="list" className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-meta">
+          {BAND_NAMES.map((n, i) => <KeyItem key={n} sw={swatch({ background: BAND_COLOURS[i], opacity: 0.75 })} title={`${n}: mean speed ${limit(i)} m/s`}>{n[0].toUpperCase() + n.slice(1)} <span className="text-muted">{limit(i)}</span></KeyItem>)}
+        </div>
+      )}
+      {!out && <span className="text-meta text-muted">{status === 'running' ? 'Wind comfort: solving the flow…' : status === 'error' ? 'Wind comfort could not run: see its results.' : 'Wind comfort: waiting for the first run.'}</span>}
+      <span className="text-meta text-muted">Sun &amp; Wind Studio engine (Sinnie Choi), 2-D flow on 4 m cells: where the massing accelerates or shelters the wind, not absolute values.</span>
+    </figure>
+  )
+}
+
 /**
  * Analysis: which quantity is on the model (one at a time) and its scale. Showing a layer and computing it are separate
  * (overnight brief, 8 Nov): the radios only choose what is drawn; a quantity whose check is off or paused says so, with
@@ -230,6 +259,7 @@ export function AnalysisLegend({ project }: { project: ProjectKind }) {
       {layer === 'surface-sun' && <ScaleBar title="Sun on surfaces · modelled, per year" unit="kWh/m²·yr, roofs and facade bands" stops={SEQUENTIAL} lo={POA_RANGE[0]} hi={POA_RANGE[1]}
         note="Fixed scale for every option; values beyond it take the end colour." />}
       {layer === 'wind' && <WindKey />}
+      {layer === 'wind-comfort' && <WindComfortKey />}
     </div>
   )
 }

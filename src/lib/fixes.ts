@@ -119,6 +119,47 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^f1$/, (st) => (st === 'fail' ? 'Ask the structural engineer for the model frequency (enter it under Details); without it, towers of 180 m or more go to the tunnel (team default).' : 'Enter the engineer’s model frequency under Details: the code’s seismic period is not a wind frequency.')],
   [/^super-slender$/, 'Very slender: expect tuned mass dampers, shaping or windbreak floors (precedent, no sourced threshold); a wider base lowers it.'],
   [/^trigger-/, 'Plan a wind study at the level this analog city asks for; Vancouver has no numeric trigger, and a wind engineer sets the scope.'],
+  // Pedestrian wind comfort (Sun & Wind Studio port, 16 Nov): her strategies, each as the move to make; the informational lines say what they report.
+  [/^calm-ground$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): on open ground the result is optimistic.'
+    : 'Calm more of the ground: a podium reaching 10 m or more beyond the tower, or a deep entrance canopy, catches the downwash; rounded or chamfered corners cut the corner streams; planting and screens slow a sheltered plaza; turning or moving the tower away from where people sit changes which ground the wind reaches.')],
+  [/^plaza-peak$/, (st) => (st === 'unknown' ? 'No plaza or mid-block link is in the model for this check (Real Vancouver has no plaza layer yet): the competition context carries them.'
+    : 'Calm the plaza: a podium reaching 10 m or more beyond the tower, or a deep entrance canopy, catches the downwash before it reaches the plaza; rounded or chamfered corners cut the corner streams; planting and screens slow a sheltered plaza; turning or moving the tower away from the plaza changes which ground the wind reaches.')],
+  [/^uncomfortable$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): on open ground the result is optimistic.'
+    : 'Take the uncomfortable ground away from entrances and routes: a podium reaching 10 m or more beyond the tower, or a deep entrance canopy, catches the downwash; rounded or chamfered corners cut the corner streams; turning or moving the tower changes which ground the wind reaches.')],
+  [/^worse-better$/, 'Reported, not judged: where the tower makes the ground windier, a podium reaching 10 m or more beyond it, a deep entrance canopy, rounded or chamfered corners, or planting and screens on a sheltered plaza move the band back; turning or moving the tower changes which ground is reached.'],
+  [/^gusty$/, 'Reported, not judged: open ground where gusts top 6 m/s in more than 5% of hours over the period; a podium, canopy or softer corners lower it where it meets seating and entrances.'],
+  [/^downwash$/, 'Reported, not judged: the allowance for wind brought down the windward face, from the tower’s height against its neighbours; a podium or canopy under that face catches it.'],
+  [/^strategies$/, 'Reported, not judged: what the podium, canopy, corners and plaza shelter change against the bare tower; set them under Details to compare.'],
+  // Daylight sDA / ASE (Sun & Wind Studio port, 17 Nov): her levers, each as the move to make.
+  [/^sw-dl-sda$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): without neighbours nothing shades the windows, so the result is optimistic.'
+    : 'Bring more floor over 300 lux: a shallower plate or a smaller core (Massing, Schematic), more glass or clearer glass (the facade node’s WWR and VLT), a taller floor-to-floor for a higher window head, or lighter shading devices on the north; the weakest floors are usually the low ones behind neighbours.')],
+  [/^sw-dl-ase$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): without neighbours every floor sees the full sun, so the result is pessimistic for low floors.'
+    : 'Cut the direct sun: overhangs or balconies on the south, fins or egg-crates on the east and west, a lower window-to-wall ratio or a lower VLT on the sunniest faces; or document glare control (blinds) for the floors over 10%.')],
+  [/^sw-dl-df$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): on open ground the daylight factor is optimistic.'
+    : 'Raise the overcast daylight: more or clearer glass (WWR, VLT), a higher window head (floor-to-floor), shallower plates, light shelves on the deep faces, and lighter interior finishes.')],
+  [/^sw-dl-weakest$/, 'Reported, not judged: the floor with the least sDA; deepen the glass or thin the plate there first (often the low floors behind neighbours).'],
+  [/^sw-dl-udi$/, 'Reported, not judged: hours of useful daylight; a large share over 3,000 lux asks for shading, a large share under 100 lux for more glass or shallower plates.'],
+  [/^sw-dl-glazing$/, 'Reported, not judged: switch the facade node on and set its system, WWR by facing and VLT to study your own glass instead of her default facade.'],
+  // Natural ventilation potential (Sun & Wind Studio port, 17 Nov): her levers, each as the move to make.
+  [/^sw-vt-openable$/, 'Give the floor more free opening: make more faces operable (Presets), open a larger share of the glass, add glass on the operable faces (the facade node’s WWR), or a double skin so the windows can open higher up.'],
+  [/^sw-vt-within8$/, 'Bring every point within 8 m of an opening: a shallower plate or a smaller core (Massing, Schematic), operable windows on more faces, or a light well or atrium in a deep plate.'],
+  [/^sw-vt-hours$/, 'Reported, not judged: more hours come from cross-ventilated plates (two opposite operable faces), the adaptive band where the use allows it, a double skin that lets windows open in stronger wind, and a smaller indoor rise (shading, lower internal gains).'],
+  [/^sw-vt-height$/, 'Reported, not judged: above this floor the wind at height closes the windows more often; a double skin or sheltered openings (balconies, winter gardens) raise it.'],
+  [/^sw-vt-fresh$/, 'Reported, not judged: share of open hours whose airflow meets her outdoor-air rate; cross-flow or a stack shaft raises it on deep floors.'],
+  [/^sw-vt-glazing$/, 'Reported, not judged: switch the facade node on for your own glass, and set which faces open under Presets.'],
+  [/^sw-vt-method$/, 'Indicative (her note): one zone per floor; a mechanical engineer’s AirflowNetwork or CFD model with the real interior settles natural ventilation.'],
+  // Energy use (Sun & Wind Studio port, 17 Nov): her levers, each as the move to make.
+  [/^sw-en-teui$/, 'Cut the energy at the meter: a heat pump for heating and hot water, more heat recovery on the outdoor air, lower lighting and plug loads, daylight dimming, and a better envelope (lower glass U, less glass on the north); the program mix sets the target.'],
+  [/^sw-en-tedi$/, 'Cut the heating demand: better glass (lower U) and less of it where the sun does not reach, walls and roofs nearer Passive House U-values, tighter air (infiltration), and more heat recovery on the outdoor air.'],
+  [/^sw-en-ghgi$/, 'Take the gas out: an air-source heat pump for heating and hot water instead of a boiler brings GHGI down most on BC’s low-carbon grid.'],
+  [/^sw-en-uses$/, 'Reported, not judged: the largest end uses are where the next saving is.'],
+  [/^sw-en-peaks$/, 'Reported, not judged: peak loads size the plant; shading and mass lower the cooling peak, a better envelope the heating peak.'],
+  [/^sw-en-overheat$/, 'Reported, not judged: unconditioned floors over 26 °C need shading, opening windows or a little cooling.'],
+  [/^sw-en-daylight$/, 'Reported, not judged: daylight dimming saves lighting where floors are shallow and glass is clear.'],
+  [/^sw-en-inputs$/, 'Reported, not judged: set the envelope and systems under Presets, and switch the facade node on for your own glass.'],
+  [/^sw-en-method$/, 'Indicative (her note): an energy model to the City of Vancouver Energy Modelling Guidelines by an energy modeller settles TEUI, TEDI and GHGI.'],
+  [/^sw-dl-method$/, 'Indicative early-design proxy (her note): a LEED submission needs an hourly Radiance run with the real interior; a daylighting consultant settles it.'],
+  [/^method$/, 'Indicative, not CFD: a two-dimensional flow shows where the massing accelerates or shelters the wind; a wind-tunnel study by a wind engineer settles the numbers.'],
   // Code & life safety (VBBL 2019 3.2.6, 3.2.7, 3.8): obligations a high building carries, each as the move to make.
   [/^high-building$/, 'All of 3.2.6 applies above 18 m: plan stair venting, smoke control, the firefighter lift, the central alarm room and voice communication with the code consultant.'],
   [/^stair-vent$/, 'Give each exit stair a vent at its bottom of at least the area shown.'],

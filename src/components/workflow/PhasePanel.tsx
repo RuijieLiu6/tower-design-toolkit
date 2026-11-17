@@ -1,6 +1,6 @@
 // The left panel, one per phase (Ruijie, 8 Nov: "The left panel should show the selected phase's local tool workflow and,
 // below it, the active tool's parameters, controls and results"). Three parts:
-//   the phase header: its name and Hide (Import and Export are the project bar's, Result B, 9 Nov);
+//   the phase header: its name and Hide (Import… and Export… are the project menu's, Result B, 9 Nov);
 //   the phase workflow (9 Nov): the Workflow header opens the editor in the centre view (WorkflowOverview.tsx); under it a
 //     map of the whole workflow (every tool as a dot in working order, the current phase tinted, loops as arcs) and this
 //     phase's tools, which open on a click; Add tool (asks first);
@@ -12,8 +12,8 @@
 // Navigation, working order and execution stay apart: opening a tool never runs anything; editing the workflow only
 // changes the order of work (a loop is a route back, never a re-run); checks run with the model while Analysis is on.
 // The workflow is the project's, the same as the landing page's and Overview's (lib/workflow/projectWorkflow.ts).
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, Expand, PackagePlus, PencilLine, Plus, Search, Upload, X } from '../icons'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { ChevronDown, ChevronLeft, ChevronRight, Expand, PackagePlus, PencilLine, Plus, Search, Upload, X } from '../icons'
 import { canExpand, toggleAnalysis, useAnalysisView } from '../../lib/analysisView'
 import { NodeTile } from '../NodeTile'
 import { NodeArtwork } from '../nodeIcons/NodeArtwork'
@@ -25,15 +25,20 @@ import { MassingStart } from '../tools/NoTower'
 import { BUILT_NODES } from '../../data/registry'
 import { useCommunityStore } from '../../lib/communityStore'
 import { PHASE_COLOR, UI } from '../../lib/design/tokens'
-import type { PhaseId } from '../../lib/phases'
+import { PHASES, type PhaseId } from '../../lib/phases'
+import { MODE_NAME, modeOfPhase, phasesOf, type Mode } from '../../lib/mode'
+import { usePhaseCounts, type PhaseCounts } from '../../lib/workflow/phaseCounts'
+import { useNodeSummaries } from '../../hooks/useNodeSummaries'
+import { isVisible, useUiGroupVisible, useUiItems, useUiVisibility, useUiVisible } from '../../lib/ui/registry'
+import UiShow from '../ui/UiShow'
 import type { NodePackage } from '../../lib/nodePackages'
 import { togglePanel, usePanels } from '../../lib/panels'
 import { goToStep, useStep } from '../../lib/step'
 import { useStore } from '../../store'
 import { edgeKey, insertByPhase, returnEdges, type Board } from '../../lib/workflowGraph'
 import { designNode, isDesignNode } from '../../lib/workflow/designNodes'
-import { NODE_CONTROLS, PHASE_NAME, PHASE_STEP, STEP_PHASE, designOf, homePhase, phasePortion, usePhaseTools } from '../../lib/workflow/phaseTools'
-import { addNode, openBuilder, runOrder, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
+import { NODE_CONTROLS, PHASE_IDS, PHASE_NAME, PHASE_STEP, STEP_PHASE, designOf, homePhase, phasePortion, usePhaseTools } from '../../lib/workflow/phaseTools'
+import { addNode, openBuilder, openOverview, runOrder, useProjectWorkflow } from '../../lib/workflow/projectWorkflow'
 import { useInfo, type Info } from './WorkflowOverview'
 import { applyToolView, leaveToolView } from '../../lib/workflow/toolView'
 import { AddConfirm } from './AddConfirm'
@@ -69,16 +74,23 @@ export function usePhaseActive() {
   }, [placed, packages])
   const portion = useMemo(() => phasePortion(wf, phase, home), [wf, phase, home])
   const design = designOf(phase).id
+  // Model or Presentation (lib/mode.ts), and the fail / check counts per phase for the phase list.
+  const mode = modeOfPhase(phase)
+  const counts = usePhaseCounts(home)
   const inFlow = portion.nodes.includes(design)
   // The phase's own design tool always leads the list, in the workflow or not yet (it joins at the first edit).
-  const rows = useMemo(() => (inFlow ? portion.nodes : [design, ...portion.nodes]), [inFlow, portion.nodes, design])
+  // A custom tool hidden in the Interface drawer leaves the lists (it stays installed and in the workflow).
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const rows = useMemo(() => (inFlow ? portion.nodes : [design, ...portion.nodes]).filter((id) => !id.startsWith('community.') || isVisible(`addons.tools.${id}`, hiddenUi, uiItems)), [inFlow, portion.nodes, design, hiddenUi, uiItems])
+  const showWorkflow = useUiGroupVisible('left.workflow'), showTool = useUiVisible('left.tool')
   const picked = usePhaseTools((s) => s.active[phase])
   const active = picked && rows.includes(picked) ? picked : design
-  return { phase, wf, info, home, design, rows, active }
+  return { phase, wf, info, home, design, rows, active, mode, counts, showWorkflow, showTool }
 }
 
 export default function PhasePanel() {
-  const { phase, wf, info, home, design, rows, active } = usePhaseActive()
+  const { phase, info, home, design, rows, active, mode, counts, showWorkflow, showTool } = usePhaseActive()
   const collapsed = usePhaseTools((s) => s.collapsed)
   const open = (id: string) => {
     usePhaseTools.getState().setActive(phase, id)
@@ -102,20 +114,23 @@ export default function PhasePanel() {
 
   return (
     <div className="panel-slide flex w-[var(--left-w)] min-h-0 shrink-0 flex-col gap-2" data-testid="left-column">
-    {/* The workflow card on its own, as the Tower Workspace's node preview card: a separate panel above the phase panel. */}
-    {/* The phases and their tools show only here (Sinnie, 12 Nov: "remove these labels, should only show up in the node
-        panel"): the card holds the phase dots, Next, this phase's tools and Add tool; the phase row and the panel heading
-        are gone. */}
-    <WorkflowPreview board={wf} phase={phase} active={active} info={info} home={home} collapsed={collapsed} onFold={() => usePhaseTools.getState().setCollapsed(!collapsed)} onOpen={open}
-      headerExtra={<HidePanelButton side="left" />}>
-      <PhaseWorkflow phase={phase} rows={rows} design={design} active={active} open={open} info={info} home={home} />
-    </WorkflowPreview>
+    {/* 17 Nov (Sinnie, merging Ruijie's main: "keep Ruijie's workflow panel style, but function should still be mine"):
+        his phase header and Workflow fold with the phase line replace the workflow card; the rows, Add tool and the open
+        tool's controls (Start your massing on Form, the analysis expand buttons) are this panel's own. */}
     <aside aria-label="Design tools" data-testid="phase-panel" data-phase={phase} className="glass-edge flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-panel">
-      {/* Present keeps its strip of shots here; the other phases show the set-up tabs (the open tool's controls are in
-          the right panel's Properties tab, as in the Tower Workspace). */}
-      {/* 13 Nov (Sinnie: "revert it back to this version of the left panel, but keep the node preview"): the open tool's
-          controls again, in every phase; the Site / Massing / Material / Program tabs (setup/SetupPanel.tsx) are off. */}
-      <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls"><ActiveTool key={active} id={active} phase={phase} info={info} /></div>
+      {/* The phase's name and Hide. */}
+      <div className="border-b border-line px-3 pb-1.5 pt-1.5">
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: PHASE_COLOR[phase].accent }} />
+          <h2 className="min-w-0 flex-1 truncate text-section font-semibold text-ink">{PHASE_NAME[phase]}</h2>
+          <PhaseTotals counts={counts} mode={mode} />
+          <HidePanelButton side="left" />
+        </div>
+      </div>
+      {showWorkflow && <PhaseWorkflow phase={phase} mode={mode} counts={counts} rows={rows} design={design} active={active} open={open} info={info} home={home} />}
+      {showTool && <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }} data-testid="phase-controls">
+        <ActiveTool key={active} id={active} phase={phase} info={info} />
+      </div>}
     </aside>
     </div>
   )
@@ -128,8 +143,8 @@ export default function PhasePanel() {
  * view; under it, the whole workflow at a glance (PhaseMap) and this phase's tools, which open on a click. Add tool stays
  * here for a quick addition (it asks first); arranging, connecting and loops happen in the editor.
  */
-function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
-  phase: PhaseId; rows: string[]; design: string; active: string; open: (id: string) => void
+function PhaseWorkflow({ phase, mode, counts, rows, design, active, open, info, home }: {
+  phase: PhaseId; mode: Mode; counts: PhaseCounts; rows: string[]; design: string; active: string; open: (id: string) => void
   info: (id: string) => Info; home: (id: string) => PhaseId
 }) {
   const w = useProjectWorkflow()
@@ -153,14 +168,31 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
   const summary = rows.map((id) => info(id).word).join(' › ')
 
   return (
-    <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" className="-mx-3 mt-2 flex shrink-0 flex-col border-t border-line pt-1">
-      <span className="sr-only" data-testid="phase-count">{rows.length} tool{rows.length === 1 ? '' : 's'} in {PHASE_NAME[phase]}{loops ? `, ${loops} return path${loops > 1 ? 's' : ''}` : ''}</span>
+    <section aria-label={`${PHASE_NAME[phase]} workflow`} data-testid="phase-workflow" className="flex shrink-0 flex-col border-b border-line pb-2">
+      <div className="flex items-center gap-0.5 px-2 pt-2">
+        <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(!collapsed)} aria-expanded={!collapsed} data-testid="phase-collapse" aria-label={collapsed ? 'Show the workflow' : 'Hide the workflow'}
+          className="flex h-8 w-6 shrink-0 items-center justify-center rounded-lg text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
+          {collapsed ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
+        </button>
+        {/* The header is the way into the editor: the whole row is one button */}
+        <button type="button" onClick={() => openOverview('edit')} data-testid="phase-edit" title="Edit the workflow in the centre view: add tools from the shelf, drag, connect and loop them, then Confirm"
+          className="group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 text-left text-control outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent">
+          <span className="text-control font-semibold text-ink">Workflow</span>
+          <span className="sr-only" data-testid="phase-count">{rows.length} tool{rows.length === 1 ? '' : 's'} in {PHASE_NAME[phase]}{loops ? `, ${loops} return path${loops > 1 ? 's' : ''}` : ''}</span>
+          <span className="ml-auto flex items-center gap-1 rounded-lg border border-line bg-panel px-2 py-0.5 text-control text-ink group-hover:border-accent group-hover:text-accent-hover"><PencilLine size={13} aria-hidden />Edit</span>
+        </button>
+        <Help label={`About the ${PHASE_NAME[phase]} workflow`}>
+          The line is your whole workflow in working order, one coloured segment per phase; the tinted one is {PHASE_NAME[phase]}, where you are. Click a segment or use the arrows under the line to change phase; hover a dot for its tool and its results; an arc is a loop back to an earlier tool. Under them are the {PHASE_NAME[phase]} tools: click one to open its controls below (a check's results open on the right). Workflow (or Edit) opens the editor in the centre view, where you add tools from the shelf, drag them, connect them and make loops, then Confirm to come back here. A loop is a route for revisiting work: it never reruns anything on its own.
+        </Help>
+      </div>
+      <UiShow id="left.workflow.line"><PhaseLine board={board} phase={phase} mode={mode} active={active} info={info} home={home} counts={counts} /></UiShow>
+
       {collapsed
         ? <button type="button" onClick={() => usePhaseTools.getState().setCollapsed(false)} className="mx-3 mt-1 block max-w-[calc(100%-1.5rem)] truncate rounded px-1 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent" title="Show the tools">{summary}{loops ? ' ↻' : ''}</button>
         : (
           <>
             <div className="mt-1 max-h-[13.5rem] overflow-y-auto overscroll-contain" style={{ scrollbarWidth: 'thin' }} data-testid="phase-workflow-region">
-              <ol aria-label={`${PHASE_NAME[phase]} tools, in working order`} data-testid="phase-rows" className="px-2">
+              <UiShow id="left.workflow.rows"><ol aria-label={`${PHASE_NAME[phase]} tools, in working order`} data-testid="phase-rows" className="px-2">
                 {rows.map((id) => {
                   const n = info(id), isActive = active === id, inBoard = board.nodes.includes(id)
                   const kind = isDesignNode(id) ? 'Design tool' : id.startsWith('community.') ? 'Custom tool' : 'Check'
@@ -179,11 +211,11 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
                     </li>
                   )
                 })}
-              </ol>
-              <div className="px-3 pt-1.5">
+              </ol></UiShow>
+              <UiShow id="left.workflow.add"><div className="px-3 pt-1.5">
                 <button type="button" onClick={() => setAdding((v) => !v)} aria-expanded={adding} data-testid="phase-add"
                   className="flex h-8 items-center gap-1 rounded-lg border border-dashed border-line px-2.5 text-control text-ink outline-none hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"><Plus size={14} aria-hidden />Add tool</button>
-              </div>
+              </div></UiShow>
               {adding && <AddTool phase={phase} board={board} info={info} home={home} after={info(rows[rows.length - 1]).name} onAdd={add} onClose={() => setAdding(false)} />}
             </div>
           </>
@@ -193,45 +225,117 @@ function PhaseWorkflow({ phase, rows, design, active, open, info, home }: {
 }
 
 /**
- * The whole workflow at a glance: every tool as a dot in working order, coloured by its phase, on one line from start to
- * end; the dots of the phase you are in sit on a tint, the open tool is ringed, and each loop is an arc back over the
- * line. A picture, not a row of buttons: with many tools the dots are far smaller than a 24 px target (interface gate,
- * UI07), so tools open from the list under it and the editor; each dot names its tool on hover and to screen readers.
+ * The phases and the whole workflow on one line (Ruijie, 17 Nov: "remove all the Site / Form / Program / Schematic text
+ * … the left and right arrows can be the buttons for changing which phase you are in"). One coloured segment per phase
+ * of the mode, as wide as its share of tools (at least one share, so an empty phase still shows its colour), the one
+ * you are in on a tint; a click or the arrow keys on a segment go there (it is the phase navigation: the
+ * "Design process" landmark with each phase's hooks). Inside each segment, its tools as dots in working order, the
+ * open one ringed; hovering a dot names its phase and tool with the tool's pass / check / fail words (hooks/
+ * useNodeSummaries.ts), and a click on a dot goes to its phase. Loops are arcs over the line. Under it, where you are,
+ * and the arrows to the previous and the next phase of the mode (never wrapping; Presentation is the top bar's switch).
  */
-function PhaseMap({ board, phase, active, info, home }: { board: Board; phase: PhaseId; active: string; info: (id: string) => Info; home: (id: string) => PhaseId }) {
-  const order = useMemo(() => runOrder(board), [board])
-  const back = useMemo(() => returnEdges(board.edges), [board.edges])
+function PhaseLine({ board, phase, mode, active, info, home, counts }: { board: Board; phase: PhaseId; mode: Mode; active: string; info: (id: string) => Info; home: (id: string) => PhaseId; counts: PhaseCounts }) {
+  const phases = phasesOf(mode)
   const phaseOf = (id: string): PhaseId => designNode(id)?.phase ?? home(id)
-  if (!order.length) return <p className="px-3 pt-1 text-meta text-muted" data-testid="phase-map">No tools in the workflow yet: Workflow opens the editor to add some.</p>
-  const n = order.length, x = (id: string) => ((order.indexOf(id) + 0.5) / n) * 100
+  // Only this mode's phases: Presentation's tools stay out of the Model line, and the other way round.
+  const order = useMemo(() => runOrder(board).filter((id) => phases.includes(designNode(id)?.phase ?? home(id))), [board, phases, home])
+  const back = useMemo(() => returnEdges(board.edges), [board.edges])
+  const summaries = useNodeSummaries()
+  const segs = phases.map((p) => ({ p, nodes: order.filter((id) => phaseOf(id) === p) }))
+  const total = segs.reduce((acc, g) => acc + Math.max(1, g.nodes.length), 0)
+  // A node's place along the line, in per cent: its segment's start plus its share of the segment.
+  const x = (id: string) => {
+    let off = 0
+    for (const g of segs) { const w = Math.max(1, g.nodes.length), j = g.nodes.indexOf(id); if (j >= 0) return ((off + ((j + 0.5) / g.nodes.length) * w) / total) * 100; off += w }
+    return 0
+  }
   const loops = board.edges.filter((e) => back.has(edgeKey(e)) && order.includes(e.a) && order.includes(e.b))
-  const here = order.filter((id) => phaseOf(id) === phase).length
+  const n = order.length, here = order.filter((id) => phaseOf(id) === phase).length
+  const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const i = phases.indexOf(phase)
+    const j = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? i + 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? phases.length - 1 : null
+    if (j === null) return
+    e.preventDefault()
+    const next = phases[(j + phases.length) % phases.length]
+    goToStep(PHASE_STEP[next])
+    document.querySelector<HTMLElement>(`nav[aria-label="Design process"] [data-phase="${next}"]`)?.focus()
+  }
+  const words = (p: PhaseId) => { const c = counts[p]; return c && (c.fail || c.warn) ? `, ${[c.fail ? `${c.fail} fail` : '', c.warn ? `${c.warn} check` : ''].filter(Boolean).join(', ')}` : '' }
   return (
-    <div className="mx-3 mt-0.5" data-testid="phase-map">
+    <nav aria-label="Design process" data-testid="phase-line" className="mx-3 mt-0.5">
       <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="block h-2.5 w-full overflow-visible" aria-hidden>
         {loops.map((e) => <path key={edgeKey(e)} data-map-loop={edgeKey(e)} d={`M${x(e.a)},10 C${x(e.a)},0 ${x(e.b)},0 ${x(e.b)},10`} fill="none" stroke={UI.edge} strokeWidth={1.2} strokeDasharray="3 2" vectorEffect="non-scaling-stroke" />)}
       </svg>
-      <div className="relative">
-        <span aria-hidden className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-boundary" />
-        <ol className="relative flex" aria-label="The whole workflow, in working order">
-          {order.map((id, i) => {
-            const ph = phaseOf(id), on = ph === phase, open = id === active
-            const prevOn = i > 0 && phaseOf(order[i - 1]) === phase, nextOn = i < n - 1 && phaseOf(order[i + 1]) === phase
-            return (
-              <li key={id} className="min-w-0 flex-1">
-                <span data-map-node={id} data-here={on ? '' : undefined} title={`${i + 1}. ${PHASE_NAME[ph]} / ${info(id).name}`}
-                  className={`flex h-6 w-full items-center justify-center ${on && !prevOn ? 'rounded-l-full' : ''} ${on && !nextOn ? 'rounded-r-full' : ''}`}
-                  style={{ background: on ? PHASE_COLOR[ph].surface : undefined }}>
-                  <span aria-hidden className="block rounded-full" style={{ width: open ? 10 : 7, height: open ? 10 : 7, background: PHASE_COLOR[ph].accent, boxShadow: open ? `0 0 0 2px #fff, 0 0 0 3.5px ${PHASE_COLOR[ph].ink}` : undefined }} />
-                  <span className="sr-only">{i + 1} of {n}: {PHASE_NAME[ph]} / {info(id).name}{open ? ' (open)' : ''}</span>
+      <ol role="list" aria-label="The phases, each with its tools in working order" data-testid="phase-map" className="flex gap-px">
+        {segs.map(({ p, nodes }) => {
+          const lit = p === phase, about = PHASES.find((ph) => ph.id === p)?.about
+          return (
+            <li key={p} className="relative min-w-0" style={{ flex: `${Math.max(1, nodes.length)} 1 0%` }}>
+              {/* The phase itself: its hook, name and counts for the keyboard and screen readers; the tint when you are in it.
+                  Its colour line and its dots sit inside the button, so a click on a dot is a click on the phase. */}
+              <button type="button" onClick={() => goToStep(PHASE_STEP[p])} onKeyDown={onKey} aria-current={lit ? 'step' : undefined} tabIndex={lit ? 0 : -1} data-step={PHASE_STEP[p]} data-phase={p}
+                aria-label={`${PHASE_NAME[p]}: ${nodes.length} tool${nodes.length === 1 ? '' : 's'}${words(p)}`} title={`${PHASE_NAME[p]}${about ? ` · ${about}` : ''}`}
+                className={`relative block h-6 w-full rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent ${lit ? '' : 'hover:bg-subtle'}`} style={{ background: lit ? PHASE_COLOR[p].surface : undefined }}>
+                {/* Its colour, always, so the categories read without words. */}
+                <span aria-hidden className="pointer-events-none absolute inset-x-1 top-1/2 h-[2px] -translate-y-1/2 rounded-full" style={{ background: PHASE_COLOR[p].accent, opacity: lit ? 1 : 0.6 }} />
+                <span aria-hidden className="absolute inset-0 flex">
+                  {nodes.map((id) => {
+                    const open = id === active, sum = summaries[id]
+                    return (
+                      <span key={id} data-map-node={id} data-here={lit ? '' : undefined} title={`${PHASE_NAME[p]} / ${info(id).name}${sum ? ` · ${sum}` : ''}`} className="flex min-w-0 flex-1 items-center justify-center">
+                        <span className="block rounded-full" style={{ width: open ? 10 : 7, height: open ? 10 : 7, background: PHASE_COLOR[p].accent, boxShadow: open ? `0 0 0 2px #fff, 0 0 0 3.5px ${PHASE_COLOR[p].ink}` : '0 0 0 1.5px #fff' }} />
+                      </span>
+                    )
+                  })}
                 </span>
-              </li>
-            )
-          })}
-        </ol>
+              </button>
+              {/* The tools of the phase for screen readers (the dots are drawn, not read). */}
+              {nodes.length > 0 && (
+                <ul className="sr-only">
+                  {nodes.map((id) => { const sum = summaries[id]; return <li key={id}>{order.indexOf(id) + 1} of {n}: {PHASE_NAME[p]} / {info(id).name}{sum ? `, ${sum}` : ''}{id === active ? ' (open)' : ''}</li> })}
+                </ul>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+      <div className="mt-0.5 flex items-center gap-1">
+        <p className="min-w-0 flex-1 truncate text-meta text-muted">
+          {n ? <>You are in <span className="font-semibold" style={{ color: PHASE_COLOR[phase].ink }}>{PHASE_NAME[phase]}</span>: {here} of {n} tools{loops.length ? ` · ${loops.length} loop${loops.length > 1 ? 's' : ''}` : ''}</>
+            : <>You are in <span className="font-semibold" style={{ color: PHASE_COLOR[phase].ink }}>{PHASE_NAME[phase]}</span> · no tools in the workflow yet: Edit adds some</>}
+        </p>
+        <PhaseNav phase={phase} mode={mode} />
       </div>
-      <p className="mt-0.5 text-meta text-muted">You are in <span className="font-semibold" style={{ color: PHASE_COLOR[phase].ink }}>{PHASE_NAME[phase]}</span>: {here} of {n} tools{loops.length ? ` · ${loops.length} loop${loops.length > 1 ? 's' : ''}` : ''}</p>
-    </div>
+    </nav>
+  )
+}
+
+/** Fail and check totals across the mode's phases, in the panel header (none when all is clear). */
+function PhaseTotals({ counts, mode }: { counts: PhaseCounts; mode: Mode }) {
+  let fail = 0, warn = 0
+  for (const p of phasesOf(mode)) { const c = counts[p]; if (c) { fail += c.fail; warn += c.warn } }
+  if (!fail && !warn) return null
+  return <span className="flex shrink-0 items-center gap-2 text-meta tabular-nums text-muted" title={`${fail} fail, ${warn} check across ${MODE_NAME[mode]}`} data-testid="phase-totals"><Counts c={{ fail, warn }} /></span>
+}
+/** A fail count in red and a check count in amber, each with its word for screen readers. */
+function Counts({ c }: { c: { fail: number; warn: number } }) {
+  return (
+    <>
+      {c.fail > 0 && <span className="flex items-center gap-1"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-red-500" />{c.fail}<span className="sr-only"> fail</span></span>}
+      {c.warn > 0 && <span className="flex items-center gap-1"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-500" />{c.warn}<span className="sr-only"> check</span></span>}
+    </>
+  )
+}
+
+/** The previous and the next phase of the mode (Ruijie, 17 Nov): disabled at the ends, never wrapping; Presentation is the top bar's switch. */
+function PhaseNav({ phase, mode }: { phase: PhaseId; mode: Mode }) {
+  const phases = phasesOf(mode), i = phases.indexOf(phase), prev = phases[i - 1], next = phases[i + 1]
+  const btn = 'flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted outline-none hover:bg-subtle hover:text-ink focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 disabled:hover:bg-transparent'
+  return (
+    <span className="flex shrink-0 items-center">
+      <button type="button" disabled={!prev} onClick={() => prev && goToStep(PHASE_STEP[prev])} data-testid="phase-back" aria-label={prev ? `Previous phase: ${PHASE_NAME[prev]}` : 'Previous phase: none, this is the first'} title={prev ? `Previous phase: ${PHASE_NAME[prev]}` : undefined} className={btn}><ChevronLeft size={14} aria-hidden /></button>
+      <button type="button" disabled={!next} onClick={() => next && goToStep(PHASE_STEP[next])} data-testid="phase-next" aria-label={next ? `Next phase: ${PHASE_NAME[next]}` : 'Next phase: none, this is the last'} title={next ? `Next phase: ${PHASE_NAME[next]}` : undefined} className={btn}><ChevronRight size={14} aria-hidden /></button>
+    </span>
   )
 }
 
@@ -239,7 +343,9 @@ function PhaseMap({ board, phase, active, info, home }: { board: Board; phase: P
 function AddTool({ phase, board, info, home, after, onAdd, onClose }: {
   phase: PhaseId; board: Board; info: (id: string) => Info; home: (id: string) => PhaseId; after: string; onAdd: (id: string) => void; onClose: () => void
 }) {
-  const packages = useCommunityStore((s) => s.packages)
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const packages = useCommunityStore((s) => s.packages).filter((p) => isVisible(`addons.tools.${p.id}`, hiddenUi, uiItems))
   const openDialog = useCommunityStore((s) => s.openDialog)
   const [tab, setTab] = useState<'tools' | 'mine'>('tools')
   const [q, setQ] = useState('')
@@ -248,7 +354,8 @@ function AddTool({ phase, board, info, home, after, onAdd, onClose }: {
   const [ask, setAsk] = useState<string | null>(null)
   const match = (id: string) => { const n = info(id); return !q.trim() || `${n.name} ${n.word}`.toLowerCase().includes(q.trim().toLowerCase()) }
   const free = BUILT.filter((id) => !board.nodes.includes(id) && match(id))
-  const here = free.filter((id) => home(id) === phase), elsewhere = free.filter((id) => home(id) !== phase)
+  // Other phases of the same mode only (17 Nov): Presentation's tools are added in Presentation, the design tools in Model.
+  const here = free.filter((id) => home(id) === phase), elsewhere = free.filter((id) => home(id) !== phase && modeOfPhase(home(id)) === modeOfPhase(phase))
   const row = (id: string, extra?: string) => (
     <li key={id}><button type="button" data-add={id} onClick={() => setAsk(id)}
       className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1 text-left text-control outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent">
@@ -347,7 +454,7 @@ export function ActiveTool({ id, phase, info }: { id: string; phase: PhaseId; in
       {/* With a mass, a design node's editing tools are in the right panel's Design tab (useDesignOnRight). */}
       {/* Massing keeps its four ways to start here at all times (16 Nov, Sinnie: "on the left, i should always see the 4
           massing options"), also once there is a mass and its editing tools are on the right. */}
-      {d ? (phase === 'present' ? <Filmstrip tone="light" /> : phase === 'form' && id === designOf('form').id ? <MassingStart /> : <ToolPanel embedded />)
+      {d ? (phase === 'present' ? <UiShow id="present.filmstrip"><Filmstrip tone="light" /></UiShow> : phase === 'form' && id === designOf('form').id ? <MassingStart /> : <ToolPanel embedded />)
         : controls ? <ToolPanel embedded only={controls} />
           : pkg ? <div className="px-3 pb-3"><ToolFacts pkg={pkg} /></div>
             : <p className="px-3 pb-3 text-meta text-muted">This check has no settings of its own here: it reads the model and the site. Its results and evidence are in the right panel.</p>}

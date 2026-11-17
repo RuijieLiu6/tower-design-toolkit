@@ -93,6 +93,19 @@ export interface Tower {
   form?: { type: import('./towerForms').FormType; p: Record<string, number>; base: import('./towerForms').FormBase }
 }
 
+/** A drawn mass (lib/draw/mass.ts): outline rings in the project frame (metres), base above grade, storeys and their height. */
+export interface DrawnMass {
+  pts: [number, number][]
+  base: number
+  floors: number
+  f2f: number
+  holes?: [number, number][][]
+  /** The building this mass is a part of (a Boolean union, a Split); parts move together and keep their own heights. */
+  part?: string
+  /** A placed core: a plan rectangle (project frame). */
+  core?: { x: number; y: number; w: number; d: number }
+}
+
 /** One stacked block of a parametric tower: a rectangle in plan, sitting on the block below. */
 export interface Block {
   id: string

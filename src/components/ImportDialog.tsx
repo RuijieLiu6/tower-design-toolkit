@@ -130,6 +130,26 @@ export default function ImportDialog() {
   const blocked = !!built?.blocked
   const one = built?.towers[Math.min(shown, Math.max(0, (built?.towers.length ?? 1) - 1))]
 
+  // A model with no tower in it (Ruijie, 17 Nov: "let users upload any model of their own"): on the competition site it
+  // can be the context instead, every layer not set to Ignore as context buildings and the Site boundary rows as the site
+  // line (lib/vtcContextAny.ts). Kept in this browser, like the context added from the Site step.
+  const [asContextError, setAsContextError] = useState('')
+  const asContext = async () => {
+    if (!raw || !mapping) return
+    setAsContextError('')
+    try {
+      const [{ contextFromRaw }, { keepOwn }] = await Promise.all([import('../lib/vtcContextAny'), import('../lib/vtcContextSource')])
+      const items = itemsOf(raw)
+      const role = (k: number) => roleOf(items[k], mapping).role
+      const objects = raw.objects.filter((_, k) => role(k) !== 'ignore')
+      const curves = (raw.curves ?? []).flatMap((c, k) => (role(raw.objects.length + k) === 'site' ? [{ ...c, layer: 'Site' }] : []))
+      const read = contextFromRaw({ ...raw, objects, curves })
+      await keepOwn(read.ctx, { fileName: raw.fileName, kind: 'model', notes: read.notes })
+      useStore.setState({ announce: `${raw.fileName} is now the competition context (${read.ctx.buildings.length} object${read.ctx.buildings.length === 1 ? '' : 's'})` })
+      close()
+    } catch (e) { setAsContextError((e as Error)?.message || String(e)) }
+  }
+
   const use = (mode: ApplyMode) => {
     if (!raw || !built || built.blocked) return
     // Placed and confirmed before, and reused here: the new model keeps that confirmation and skips the place step.
@@ -223,7 +243,9 @@ export default function ImportDialog() {
         {raw && opts && mapping && (
           <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">
             <div className="mr-auto flex items-center gap-1.5 text-meta text-muted">
-              {step === 'map' ? <><Lock size={12} aria-hidden />Read in this browser; nothing is uploaded to a server.</>
+              {step === 'map' && asContextError ? <span className="font-medium text-red-700">{asContextError}</span>
+                : step === 'map' && project === 'vtc' && !massObjects.length ? <span>No tower is mapped: use the model as the context, or map a layer with volumes to Tower massing.</span>
+                : step === 'map' ? <><Lock size={12} aria-hidden />Read in this browser; nothing is uploaded to a server.</>
                 : needsUnit ? <span className="font-medium text-[#8a5a00]">Confirm the units first (the file does not say).</span>
                 : blocked ? <span className="font-medium text-red-700">{built?.blocked}</span>
                 : !built ? <span>Checking…</span>
@@ -231,6 +253,10 @@ export default function ImportDialog() {
                 : <span>{built.towers.length} tower{built.towers.length === 1 ? '' : 's'}, {built.towers.reduce((s, t) => s + t.tower.imported!.storeys.filter((x) => x.hasFloor).length, 0)} storeys ready. Next, you place it on the site, set its basement and confirm.</span>}
             </div>
             <button onClick={close} className="rounded-md border border-line px-3 py-1.5 text-xs hover:border-accent">Cancel</button>
+            {step === 'map' && project === 'vtc' && !massObjects.length && (
+              <button onClick={() => void asContext()} data-testid="import-as-context" title="Show this model as the competition's context, in place of the competition model (no tower is sliced)"
+                className="flex items-center gap-1 rounded-md border border-accent px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10">Use as the competition context</button>
+            )}
             {step === 'map' ? (
               <button data-autofocus disabled={!massObjects.length} title={massObjects.length ? undefined : 'Map at least one layer with volumes to Tower massing, Podium or Program'}
                 onClick={() => { setMapping({ ...mapping, confirmed: Object.keys(mapping.rules) }); setOpts(defaultOptions(raw, mapping, frame, sel?.f2f ?? 4.2)); setShown(0); setStep('check') }}

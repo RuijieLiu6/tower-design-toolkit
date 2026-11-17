@@ -78,7 +78,7 @@ export async function placeSiteAt(p: Pt, label: string, source: string, footprin
 
 export default function SitePanel() {
   const project = useStore((s) => s.project)
-  if (project !== 'city') return <Section title="Study site"><p className="text-meta text-muted">The competition site is fixed by the brief. Study sites are for the Real Vancouver project.</p></Section>
+  if (project !== 'city') return <Section title="Study site"><p className="text-meta text-muted">The competition rules read the brief's block. Study sites are for the Real Vancouver project.</p></Section>
   return <CitySite />
 }
 

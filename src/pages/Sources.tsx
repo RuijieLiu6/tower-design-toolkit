@@ -2,6 +2,7 @@
 // metadata where the packets list it; the team's editable presets with their current values; every unverified or
 // unresolved result; every false assumption in magenta with its correction. Filter by flag, category and node; each
 // entry links back to its node and rule card. Exports a bibliography for the boards (Markdown, or a numbered block).
+import { BUILTIN_FONTS, fontStack } from '../lib/fonts/catalog'
 import { projectSiteArea } from '../lib/siteArea'
 import { useSiteStore } from '../lib/siteStore'
 import { streetsCtx, useSiteStreets } from '../lib/siteStreets'
@@ -254,7 +255,32 @@ export default function Sources() {
             </>
           )}
         </div>
+        <FontLicences />
+        <Credits />
       </main>
     </div>
+  )
+}
+
+/** The fonts shipped for the boards (lib/fonts/catalog.ts), each with its licence file beside it under public/fonts/. */
+/** Where the modelling tools come from. */
+function Credits() {
+  return (
+    <section aria-label="Credits" className="mt-4 border-t border-line pt-3">
+      <h2 className="text-meta font-semibold">Modelling tools and Start your massing</h2>
+      <p className="text-meta text-muted">After Sinnie Choi's Tower Workspace (<a className="text-accent hover:underline" href="https://github.com/xubynii/towerdesigntool" target="_blank" rel="noopener noreferrer">github.com/xubynii/towerdesigntool</a>) and her build of this Toolkit (17 Nov 2026): the drawing tools (Select, Line, Rectangle, Circle, Erase, Move, Copy, Rotate, Offset, Push / pull, Split, Boolean, Edit length, Core, Tape), the snapping panel, the case-study list and the tower-form presets, rewritten in the Toolkit's code and style. Polygon booleans: polygon-clipping (MIT, Mike Fogel; forked from martinez, Alexander Milevski) with splaytree (MIT) and robust-predicates (public domain), vendored in src/vendor/polygon-clipping with their licences.</p>
+    </section>
+  )
+}
+
+function FontLicences() {
+  return (
+    <section aria-label="Fonts and their licences" className="mt-6 border-t border-line pt-3">
+      <h2 className="text-meta font-semibold">Fonts on the boards</h2>
+      <p className="text-meta text-muted">Shipped with the app for the board composer, all under the SIL Open Font Licence 1.1; each licence file sits beside its font. A font you add yourself stays in your browser and is your own responsibility to license.</p>
+      <ul className="mt-1 grid gap-0.5 text-meta">
+        {BUILTIN_FONTS.map((f) => <li key={f.id}><span style={{ fontFamily: fontStack(f.family) }}>{f.family.replace(' Variable', '')}</span><span className="text-muted"> · {f.source} · {f.licence} · </span><a className="text-accent hover:underline" href={`${import.meta.env.BASE_URL}${f.licenceFile}`} target="_blank" rel="noopener noreferrer">licence</a></li>)}
+      </ul>
+    </section>
   )
 }

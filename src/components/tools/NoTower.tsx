@@ -144,7 +144,8 @@ export function MassingStart() {
         <ul data-testid="case-studies" aria-label="Case studies" className="m-3 mt-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1">
           {CASE_STUDIES.map((c) => (
             <li key={c.id}>
-              <button type="button" data-case={c.id} onClick={() => startFromCaseStudy(c)} title={c.note}
+              <button type="button" data-case={c.id} data-flag={c.flag} onClick={() => startFromCaseStudy(c)} title={`${c.note}${c.source ? `
+Height and storeys: ${c.source.what}, read ${c.source.accessed}.${c.changed ? ` ${c.changed}` : ''}` : ''}`}
                 className="flex w-full items-center gap-2 rounded-md border border-line bg-panel px-2 py-1.5 text-left outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent">
                 <CaseGlyph c={c} />
                 <span className="min-w-0 flex-1">
@@ -155,7 +156,7 @@ export function MassingStart() {
               </button>
             </li>
           ))}
-          <li className="flex min-w-0 items-start gap-1.5 px-1 text-meta text-muted"><FlagChip flag="unverified" />Published heights and storeys; the forms, plates and podiums are approximations from drawings and photographs.</li>
+          <li className="flex min-w-0 items-start gap-1.5 px-1 text-meta text-muted"><FlagChip flag="unverified" />Heights and storeys checked against the CTBUH Skyscraper Center (17 Nov 2026; hover a row for its source); the forms, plates and podiums are approximations.</li>
         </ul>
       )}
       {way === 'import' && <div data-testid="start-import" className="mt-2 border-t border-line"><Suspense fallback={<div aria-busy="true" className="min-h-16" />}><ImportPanel /></Suspense></div>}

@@ -489,6 +489,6 @@ describe('plainWords', () => {
 
 describe('phaseName', () => {
   it('gives the five primary phase names', () => {
-    expect((['site', 'form', 'program', 'schematic', 'present'] as const).map(phaseName)).toEqual(['Site', 'Form', 'Program', 'Schematic', 'Present'])
+    expect((['site', 'form', 'program', 'schematic', 'present'] as const).map(phaseName)).toEqual(['Site', 'Form', 'Program', 'Schematic', 'Presentation']) // the present lane is labelled Presentation (17 Nov)
   })
 })

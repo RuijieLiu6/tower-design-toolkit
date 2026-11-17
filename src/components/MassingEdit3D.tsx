@@ -51,8 +51,9 @@ export function useMassingEditLive(): Tower | null {
   const hidden = useDock((s) => s.hidden)
   const viewing = useViewFromStore((s) => s.looking || s.picking)
   const moving = useTowerEdit((s) => !!s.drag || !!s.proposal)
+  const drawing = useDraw((s) => !!s.tool && s.tool !== 'select')
   const t = towers.find((x) => x.id === selected) ?? null
-  return (on || faceSelect) && phase === 'basic' && !placing && !hidden && !viewing && !moving && t && !t.imported ? t : null
+  return (on || faceSelect) && phase === 'basic' && !placing && !hidden && !viewing && !moving && !drawing && t && !t.imported ? t : null
 }
 
 export default function MassingEdit3D() {

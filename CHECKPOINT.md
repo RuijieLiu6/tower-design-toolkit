@@ -1,3 +1,640 @@
+# CHECKPOINT: the review of the chain, fixed branch by branch (17 Nov 2026)
+
+An independent read of the whole chain (tool-rail → model-presentation → board-fonts → phase-dots → import-sync →
+ui-drawer → sinnie-modelling) listed fifteen findings and eight of Ruijie's intents. Each fix went on the branch where
+its bug began, then forward through the chain with plain merges (no rebase, no force-push); every branch is pushed.
+Decisions mine (approved in advance). Not merged to main, not deployed; `sinnie-modelling` still waits for Sinnie's OK.
+- **tool-rail** `e035cd0`: the user guide said H hides the overlays; it is O, and H is the rail.
+- **model-presentation** `8e5b6b9`: the guide's "Present" stage is Presentation (three places).
+- **board-fonts** `ec957e6`: a font file whose family is one of the built-in faces is refused by the check (two entries
+  of one name clashed in the list and in React keys), and stored ones are left out (`fontFile.ts`, `fontStore.ts`).
+  Right after a reload the export found the font cache empty and drew the fallback without a word: loading now reads
+  "Your fonts" first, every face is checked with the FontFace API, and the export line names the faces actually drawn,
+  with an amber note when one fell back to Inter (`boardRender.ts`, `SubmissionPanel.tsx`, `ExportRecord.missingFonts`).
+- **phase-dots** `932e7cb`: the guide's "phase list under Workflow" is the line's segments and arrows.
+- **import-sync**: nothing of its own (the sync dialog's finding began with the drawer); the merge only.
+- **ui-drawer** `aca988a`: hiding a tool reopened Generate on an empty Form step (`toolPick.ts afterHiding`: nothing
+  open stays closed); the phases line is locked, being the only phase navigation inside Model; the Sync model dialog's
+  arrow keys walk the platforms on show; what a hidden context layer was before is kept in this browser
+  (`ts.ui.layersWere`), so a reload still brings it back as it was.
+- **sinnie-modelling** (this commit), high: the drawn mass's mesh is keyed by a hash of its shape
+  (`lib/draw/drawnMesh.ts`), so every shape keeps its own mesh and Undo finds the old one; the view and the .3dm / OBJ
+  export rebuild it from the outline when the store has none, so nothing depends on the stored copy (this also ends the
+  Real Vancouver copy overwriting it). Push / pull on a wall moves on the plane of the wall's hit height (no jump on the
+  first move). The drawing keys count only on the canvas, the body and the rail's tiles (`lib/draw/keys.ts`): Enter on
+  a dialog's button presses it, Esc closes the drawer, 1 / 2 / 3 work again. Medium: a tool ends when the step or the
+  stage changes; Rotate turns holes, core and every part about one centroid, Offset refuses to cross a courtyard; the
+  tower tools (Place, Align to lot, the gizmo, the toolbar's x, y and angle) move a drawn mass's outline and its parts
+  through `moveDrawn`; a copy, a split part or a cut piece takes its settings from its source mass (basement, interior
+  and form cleared); the parts of one building are not a separation pair (`publicRealm.ts`) and share one core (the part
+  with a placed core, else the largest: `oneCorePerBuilding`); a mass drawn on a roof starts at its base (no empty
+  storeys up from the ground). Ruijie's intents: From scratch starts the Rectangle tool (the Toolkit's starting tower is
+  a link under the tiles, keeping `place-tower`); the drawing keys work before any tower exists; Face and Mass leave
+  the rail while a drawn mass is selected; the right panel's tab row fits five tabs (narrower, truncating, titled);
+  Erase and Del take only the clicked part; Subtract and Intersect measure their change and cut nothing under 4 m²
+  (`lib/draw/boolean.ts`; the second mass used to be deleted anyway); a typology slider drag is one undo step.
+- **Top bar overflow (browser check, later on 17 Nov):** with the switch, Presentation ran to 1,615 px at 1,440 and Model to
+  1,395 px at 1,280 (a horizontal scrollbar; Edit workflow cut off). Fixed on `model-presentation` (`d4eebd0`): under 1,500 px
+  Model locked, Capture, Auto-run checks and Edit workflow keep their icons and titles and drop their words (accessible
+  names kept); on `ui-drawer` the Interface button does the same. `e2e/no-overflow.e2e.ts` measures no horizontal
+  overflow in both modes, on both projects, at 1,440 × 900 and 1,280 × 800 (PASS on model-presentation, ui-drawer and
+  this tip, with layout, model-presentation, ui-drawer and drawing-tools).
+- **Case studies checked (later on 17 Nov):** the eight named towers' height and storeys were read on the CTBUH Skyscraper
+  Center (architectural height, floors above ground; URL and date on each row, `lib/draw/caseStudies.ts`) and are now
+  verified; corrected: Shangri-La 201 → 200.9 m, 62 → 59 storeys, 2008 → 2009; Trump 188 → 187.8 m; 30 St Mary Axe 180 →
+  179.8 m, 41 → 40; Vancouver House 150 → 155.6 m, 59 → 52; One Wall Centre 150 → 149.8 m; 432 Park 426 → 425.7 m; Aqua
+  262 → 261.8 m, 82 → 86; Leadenhall 225 → 224.5 m. The point tower is a type with no source and stays unverified; plates
+  and podiums stay approximate and unverified. `caseStudies.test.ts` holds every row to a source or the unverified flag.
+- **Judged not a bug:** FSR already reads the parts of one building as one (their floor areas add, they do not
+  overlap). The Boolean union's parts keeping their own heights is Sinnie's rule, kept.
+- **Tests:** `tsc -b` PASS on every branch touched · `vitest run` 1,282 pass, 3 skipped (+19 new: `lib/draw/keys.test.ts` where a key counts; `lib/draw/boolean.test.ts` cut pieces and the 4 m² rule; `lib/draw/drawStore.test.ts` the tool ends with the step and the stage, the key map; `lib/draw/mass.test.ts` a mesh per shape found again by Undo, a copy from its source, rotate with holes and core, offset into a courtyard refused, one core per building and a move through the tower tools, a stacked mass starting at its base; `engine/publicRealm.test.ts` parts are no pair; `components/tools/toolPick.test.ts` an empty step stays closed; `lib/ui/registry.test.ts` the phases line locked, a layer's state kept; `lib/fonts/fontFile.test.ts` a built-in name refused; the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e on the `sinnie-modelling` tip: `drawing-tools` (+ From scratch starts Rectangle; a wall taken near its top and let go after a pixel stays put) PASS · `tool-rail` PASS · `massing-edit` PASS · `model-presentation` PASS · `import-sync` PASS · `ui-drawer` PASS · `board-fonts` PASS · `journeys` PASS; `board-fonts` also on its own branch, `ui-drawer` and `import-sync` on the ui-drawer branch. Screenshots refreshed: `docs/evaluation/2026-11-17-drawing-tools/01-start-massing.png` (the tiles with the starting-tower link) and `02-drawing.png`.
+
+# CHECKPOINT: Sinnie Choi's modelling tools in the Toolkit (17 Nov 2026)
+
+Ruijie, 17 Nov: port Sinnie Choi's "Start your massing" and her drawing tools from her Toolkit build and
+github.com/xubynii/towerdesigntool into the main tool. Branch `sinnie-modelling` from the `ui-drawer` tip. Decisions
+mine (approved in advance). Not merged, not deployed. **This branch stays unmerged until Sinnie gives her written OK**
+(the ask is drafted in `04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1d); she is credited in every ported file's header,
+in the Drawing tab's note and on the Sources page (Credits).
+- **Start your massing** (`components/draw/StartMassing.tsx`, in the Form step's Massing tool while the project has no
+  tower): four icon tiles. *From scratch* places the Toolkit's own starting tower and starts placing it (the step the
+  twenty existing journeys take; its `place-tower` test id is kept). *Import* opens the model import in place. *Case
+  study* lists nine towers (`lib/draw/caseStudies.ts`: Shangri-La, Trump, 30 St Mary Axe, Vancouver House, One Wall
+  Centre, …) with Sinnie's published numbers, unverified; a click places the starting tower with that height, storey
+  count, floor-to-floor and footprint. *Typology* (`components/draw/TowerForms.tsx`): none, taper, twist, tiered,
+  stacked, each with its sliders, applied as the tower's blocks; the tower remembers its `form` so the sliders read back.
+- **Drawn masses are towers** (`lib/draw/mass.ts`, `engine/types.ts` `Tower.drawn`): the outline, base, storeys,
+  floor-to-floor, holes, part and core live in `drawn`; from them the tower carries an imported-style storey stack,
+  made by extruding the outline into a closed mesh and running the same slicer as an uploaded model, so every engine
+  (VTC rules, FSR, cones, lifts, egress, energy, boards) reads it unchanged and the 3D view draws it as an import.
+  Six storeys at 3.6 m to start, named "Mass n". `part` groups the masses of one building (a union of different
+  heights, a Split): they move together and keep their own heights. A placed core sets the core share by hand.
+- **The tools** (`components/draw/DrawTools3D.tsx` in the scene's z-up group, state in `lib/draw/drawStore.ts`,
+  geometry in `lib/draw/geometry.ts`): Select; Line (freeform corners, or an offset band of a set width, centre /
+  internal / external); Rectangle; Circle; Erase; Move; Copy / array (drag, then a typed count lays the row); Rotate in
+  5° steps; Offset (drag or typed metres); Push / pull (a roof changes storeys, a wall moves; click-move-click or drag;
+  typed value); Split (a chord with corner, middle and edge snaps; in a side view, at a floor); Boolean (union,
+  subtract, intersect, Sinnie's rules: each part keeps its height); Edit length (click a wall, type); Core (drag inside
+  a mass; click a core to remove it); Tape. A live dimension tag follows the pointer; typed digits commit on Enter,
+  Backspace edits, Esc clears, then Esc ends the tool; every edit is one undo step; no confirm dialogs; short toasts
+  (`DrawToast.tsx`). The Drawing tab (`DrawPanel.tsx`) shows the tool, its modes, what to do next, the typed value,
+  Done and the snapping panel: Grid and its size (0.25–5 m), and for Line and Split endpoints, midpoints, on edges, in
+  line with corners, parallel / perpendicular and the angle step; kept per browser as `ts.draw.snap`. Alt suspends
+  snapping while held, Shift locks 90°.
+- **Boolean geometry:** `polygon-clipping` 0.15.7 (MIT) vendored as ES modules in `src/vendor/polygon-clipping/` with
+  `splaytree` (MIT) and `robust-predicates` (public domain), licences beside them; no new npm dependency.
+- **The rail** (`ToolRail.tsx`): the drawing tools sit on the Form step in Model as filled-glyph groups (draw, change,
+  cut, measure). The rail's Move and Rotate are one tool each: M and R act on whatever is selected, a drawn mass through
+  the drawing tool, a parametric tower through its gizmo (`TowerGizmo.tsx`). Each drawing tool lists itself in the
+  Interface drawer under Design tools › Drawing tools.
+- **Keys** (clashes resolved in the Toolkit's favour: V, L, R, O, F, P, H, 1/2/3 stay): Select S · Line N · Rectangle B ·
+  Circle I · Erase E · Move M · Copy C · Rotate R · Offset G · Push / pull U · Split X · Boolean J · Tape T · Edit length
+  and Core from the rail only · Esc ends · Del deletes · Ctrl+Z undoes. Listed in the user guide and the onboarding.
+- **Found on the way:** the Tower position tool's placement click fired on an Erase click and wrote a second undo step,
+  so Ctrl+Z seemed to do nothing; it stands down while a drawing tool is on (`TowerPosition3D.tsx`). Switching to Real
+  Vancouver brings the competition design along (`lib/defaultSite.ts`) but moved only x, y and rotation: a drawn mass
+  kept its outline in competition coordinates. The outline, holes and core now go the same way and the storeys are
+  sliced again (`defaultSite.test.ts`); the core stays axis-aligned, its centre moved, its size kept.
+- **Not done / limits:** the case-study numbers are Sinnie's and unverified; Sinnie's own `R` (Rectangle) and `L`
+  (Line) became B and N; a drawn mass has no gizmo of its own (the drawing tools are its handles); Rotate turns the
+  outline in plan only.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,263 pass, 3 skipped (+10 `lib/draw/geometry.test.ts`: area and winding, offset, path band, clip union / difference, split, push wall, set wall length, array copies, prism mesh; +3 `lib/draw/mass.test.ts`: tower-from-drawn, add and update as one undo step, update-many; +1 `lib/defaultSite.test.ts`: a drawn mass brought along; the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e: `e2e/drawing-tools.e2e.ts` (new: the four start tiles; a rectangle drawn on the ground; Push / pull typed to 36 m and the VTC height band reading Mass 1; Offset typed; Copy ×3 typed; Split; Boolean union; Erase; Ctrl+Z; Real Vancouver: Vancouver House placed from the case list, a mass drawn on the city) PASS · `tool-rail` PASS (its order check now allows the drawing groups) · `massing-edit` PASS · `model-presentation` PASS · `journeys` PASS. Screenshots: `docs/evaluation/2026-11-17-drawing-tools/01-start-massing.png` (the tiles and the case list) and `02-drawing.png` (Mass 1 pulled to 36 m, the toast, the rail's drawing tools).
+
+# CHECKPOINT: the Interface drawer, what the app shows as a table of contents (17 Nov 2026)
+
+Ruijie, 17 Nov: "another button whose drop-down is about personalising the interface … a drawer holding everything that
+helps model, understand the model and add information … like a library: almost all the information on the site shown
+as a table of contents … a clear hierarchy, from a few big categories down to the modules and their small components."
+Branch `ui-drawer` from the `import-sync` tip. Decisions mine (approved in advance). Not merged, not deployed.
+- **The button:** "Interface" (a drawer icon and the word), in the top bar right after the project menu
+  (`components/ui/InterfaceDrawer.tsx`). It opens a panel with a search box, Show all, Reset, a one-line note that
+  hiding is view-only, the tree, and Save / Load layout. An ARIA tree: tri-state boxes (on / mixed / off) for groups,
+  "N hidden" per group, locked parts with a lock; Up / Down move, Left / Right close and open a group, Home / End,
+  Space or Enter toggles, typing in the search box filters (ancestors of a match stay so the path reads). Every change
+  applies at once and is reversed by re-checking; Ctrl+Z is the design's undo and does not cover view choices (stated
+  in the panel's note). Reset is the default layout (everything shown), so Show all and Reset coincide today; both
+  stay for the day a part is hidden by default.
+- **One registry** (`lib/ui/registry.ts`): the static tree (Top bar, Left panel, Design tools, Viewport, Right panel,
+  Presentation, Add-ons) plus parts that register as they exist: every design tool (`tools/toolPick.ts`, so a tool
+  added later, drawing tools included, lists itself with no extra work), each dock section as the dock shows it
+  (`ViewportDock.tsx`), each right-panel section as its tab is seen (`ui.tsx` `Section` inside a `UiScopeContext` per
+  tab, ids like `right.tab.results.what-stays-with-people`), and the add-ons (`lib/ui/addons.ts`: My tools from the
+  community store, Your fonts, the sync links, Real Vancouver's context layers). Components read `useUiVisible(id)` /
+  `useUiGroupVisible(id)` or wrap in `<UiShow id>`; the drawer draws the tree from the same list.
+- **Rules:** hiding is view-only (checks keep running; a hidden Results section switches no node off). Locked: the
+  project tabs, Undo / Redo, the project menu, the drawer, the Model / Presentation switch, the More menu (it holds
+  the help). A context layer's entry turns the layer off in the view when hidden and back on as it was when shown.
+  Hiding every child hides the container (a tab with all sections hidden leaves the bar; a dock with every section
+  hidden goes). Visibility inherits down; showing a part shows its ancestors. Kept per browser as `ts.ui.visibility`
+  (the hidden ids), never in the project file; Save / Load layout writes and reads `tower-studio-ui@1` JSON (locked
+  ids in a file are ignored).
+- **Modes and projects:** the tree lists the current mode's parts under "in Model" / "in Presentation" (an item says
+  its mode); the hooks are the same in both projects.
+- **Found on the way:** a key pressed on a nested tree row also reached the parent group's row (one Space toggled the
+  Trace tab and the whole Right panel); the row handler stops propagation now.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,249 pass, 3 skipped (+6 `lib/ui/registry.test.ts`: inheritance, tri-state
+  and counts, show clearing descendants and ancestors, locked parts, persistence and layout files, the apply hook;
+  the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e: `e2e/ui-drawer.e2e.ts` (new: the tree and
+  its locked parts; the Trace tab, the Sun tool, a Results section and the dock's Site section hidden and gone, group
+  counts, search and keyboard toggling, a reload keeping four hidden ids, Reset, a My-tool package appearing under
+  Add-ons and leaving the Add tool list when hidden) PASS · `tool-rail` PASS · `model-presentation` PASS ·
+  `import-sync` PASS · `journeys` PASS. Screenshots: `docs/evaluation/2026-11-17-ui-drawer/01-drawer-open.png` and
+  `02-items-hidden.png`.
+
+# CHECKPOINT: the Import window simplified; Sync model in the project menu (17 Nov 2026)
+
+Ruijie, 17 Nov: "Simplify the text further, and develop an icon for each of the five options. Bring in a 3D model is
+really the same as the Import in Massing … Put a Live model or Sync model option in the Untitled project drop-down."
+Branch `import-sync` from the `phase-dots` tip. Decisions mine (approved in advance). Not merged, not deployed.
+- **Import side** (`porting/TransferDialog.tsx`, `lib/porting/capabilities.ts` `short`): the five purposes are
+  `IconTile`s with one or two words (3D model, Project, Workflow, Site boundary, My tool) and a filled glyph each
+  (Cuboid, FolderOpen, Workflow, MapPin, Package); the full name and what it does show on hover or focus; a purpose
+  the project cannot use is dimmed with its reason on hover. Each pane is its title, one line and the action; the
+  "Checked route: lib/…" line is a Fold, as is the tool pane's install note. The Export side has the same treatment
+  (Geometry, Backup, Workflow, Results, My tool). The `purpose-*` test ids are unchanged, so the existing e2e pass.
+- **3D model = the Massing import** (`ModelPane`): the six platform tiles are the Massing tool's own
+  (`import/RhinoImportPanel.tsx` now exports `PlatformPicker`, sharing the picked platform in `ts.importPlatform`),
+  with that platform's upload note and file types from `lib/interchange/platforms.ts`; the action runs the one model
+  import (`lib/import/store.ts openDialog`), the same pipeline as the tool's Upload button. The Massing tool keeps its
+  entry. The live links are not repeated in the Import window: a fold points to Sync model.
+- **Sync model…** (`ProjectMenu.tsx`, new `import/SyncModelDialog.tsx`): a dialog, not a second copy of the link UI:
+  it reuses the Import tool's `RhinoLive`, `ServerLive` and `FileLive` cards (now exported). Top: the link's state from
+  `lib/interchange/live.ts` (Not connected / Watching / Reading / Link problem, what it is linked to, last sync time,
+  the message) and Disconnect (`stopLink`). Left: the six platforms as rows with their honesty flags straight from
+  `platforms.ts` `tested`: Rhino "Tested" (run in Rhino 8 on the team laptop), Revit, Archicad, AutoCAD and SketchUp
+  "Unverified" (written to the app's documented API, not yet run inside it), Other file "upload only". Right: the
+  chosen platform's steps and Connect / Link file. Esc closes and focus returns to the menu's button. Two-way sync
+  is as each link supports; the help says so.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,243 pass (the same 2 CRLF data-file checks fail in this worktree only) ·
+  Edge e2e: `e2e/import-sync.e2e.ts` (new: five tiles with glyphs and the short words, the hover name, Site boundary
+  disabled on the competition site, 3D model's six platform tiles and per-platform notes, a Rhino fixture through the
+  window to the results, the Export tiles, Sync model's rows with Rhino tested and the others unverified, the state
+  line, Rhino's Connect, SketchUp's steps, Esc and focus) PASS · `rhino-import` (2) PASS · `transfer-centre` PASS ·
+  `model-presentation` PASS · `journeys` PASS. Screenshots: `docs/evaluation/2026-11-17-import-sync/01-import-window.png`
+  and `02-sync-model.png`.
+
+# CHECKPOINT: the top bar's Import and Export buttons go into the project menu (17 Nov 2026)
+
+Ruijie, 17 Nov: "These two buttons can also be removed, because their functions are already incorporated into the
+Untitled project drop-down menu." Second commit on `phase-dots`. Not merged, not deployed.
+- `TopBar.tsx` loses the two buttons; `ProjectMenu.tsx` gets two items with their icons, Import… and Export…, each opening
+  the transfer centre on its side through the same `useTransfer().open(side, opener)`; the opener is the menu's own
+  button, so Cancel and Esc give focus back to it. The items carry the old `transfer-import` / `transfer-export` test
+  ids; `e2e/helpers.ts` `openTransfer(p, side)` opens the menu and clicks one, and every e2e that clicked the bar's
+  buttons goes through it (journeys, phase-panel, rhino-import, sun-wind-link, transfer-centre; workspace-gate's
+  type check reads the menu button). A file dropped anywhere on the app still opens the centre on Import (unchanged).
+- Texts: the menu hint and its empty-list line ("Import… › Open a saved project"), the transfer centre's backup
+  "Reopens" line, the user guide's project-menu sentence (it still named "Export .json" and "Import .json…") and the
+  comments in `TopBar.tsx`, `ProjectMenu.tsx` and `PhasePanel.tsx`. The onboarding card, the status line, the Rhino
+  import tutorial and the VTC base-model panel never named the bar's buttons (checked by grep), so they are unchanged.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,243 pass (the same 2 CRLF data-file checks fail in this worktree only) ·
+  Edge e2e: `rhino-import` (2) PASS · `transfer-centre` PASS · `phase-panel` PASS · `journeys` PASS ·
+  `model-presentation` PASS · `sun-wind-link` skips itself here (it needs the sun-wind-studio checkout beside the
+  repo, which this worktree does not have). Screenshot: `docs/evaluation/2026-11-17-project-menu/01-project-menu.png`.
+
+# CHECKPOINT: the phase rows go; the line's segments and the arrows are the phase navigation (17 Nov 2026)
+
+Ruijie, 17 Nov: "remove all the Site / Form / Program / Schematic text … the left and right arrows can be the buttons
+for changing which phase you are in." Branch `phase-dots` from the `board-fonts` tip. Not merged, not deployed.
+- `PhasePanel.tsx` `PhaseLine` replaces `PhaseList` + `PhaseMap`: one coloured segment per phase of the mode (as wide as
+  its share of tools, at least one share, the current one tinted), each a 24 px button carrying the `data-phase` /
+  `data-step` / `aria-current="step"` hooks and the name with its counts as its accessible name ("Form: 3 tools, 2 fail,
+  1 check"), the arrow keys moving along it; the tools as dots inside the segment (hover: phase / tool · its pass /
+  check / fail words from the live digest; a click on a dot is a click on the phase), the open tool ringed, loop arcs
+  above; a screen-reader list of each phase's tools beside it. The `nav[aria-label="Design process"]` landmark stays,
+  so every e2e helper works unchanged. The ‹ › arrows ("Previous phase: Form", "Next phase: Program") step the design
+  phases only, disabled at Site and Schematic, never wrapping; Presentation stays on the top bar's switch. The panel
+  header keeps the phase name and its totals; Edit and Add tool stay.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,243 pass (the same 2 CRLF data-file checks fail in this worktree only) ·
+  Edge e2e: `model-presentation` (extended: no phase-name text in the landmark, the arrows' names and their disabled
+  ends) PASS · `phase-panel` PASS · `journeys` PASS · `tool-rail` PASS. Screenshot:
+  `docs/evaluation/2026-11-17-model-presentation/01-model.png`.
+
+# CHECKPOINT: board fonts in Presentation (17 Nov 2026)
+
+Brief (Ruijie, 17 Nov): "On the presentation layout, I'd like an option to change the font, and users can also download
+and upload the font type they want for their own needs." Decisions mine (approved in advance). Branch `board-fonts`
+from the `model-presentation` tip, same worktree. Not merged, not deployed.
+- **Font choice** (`BoardComposer.tsx` `FontPanel`, `FontPick`): a board-wide pair, Headings (the title band) and Text
+  (frames, captions, evidence lines), and a per-frame override on any text frame ("Board default" or a face). The
+  picker draws every name in its own face and the current one on its button; the board preview, the thumbnails and
+  the fit measurement redraw with the real face as soon as it loads. The pair lives with the boards
+  (`lib/boardStore.ts` `fonts`, persisted as `ts.boards` by family name; a change clears the board's export record, as
+  other edits do); the per-frame face is `font?` on the text content (`engine/boards.ts`). Board edits have no undo
+  stack today (Ctrl+Z is the design's), so the font choice behaves like every other board edit: it persists and the
+  picker reverts it.
+- **Built in, offline** (`lib/fonts/catalog.ts`, `public/fonts/<id>/`): Inter (the app's own, loaded by `index.css`),
+  IBM Plex Sans, Lora (serif), IBM Plex Mono and Barlow Condensed (for one-line board titles), the Latin 400 and 700
+  WOFF2 files from the Fontsource packages (one `npm pack` into a scratch folder; nothing added to node_modules), each
+  with its `LICENSE.txt` beside it, all SIL OFL 1.1; listed with their licences at the foot of the Sources page
+  (`pages/Sources.tsx` `FontLicences`). The faces are registered with the FontFace API when the composer opens, never
+  fetched from a font server. Four others rather than five: Space Grotesk was dropped from the set so a copy of it can
+  be the e2e's upload fixture without colliding with a built-in name.
+- **Find fonts**: a Fold with Google Fonts, Fontsource and the League of Moveable Type as plain links (`target=_blank`,
+  the app sends nothing).
+- **Upload your own** (`lib/fonts/fontFile.ts`, `lib/fonts/fontStore.ts`): .ttf, .otf, .woff and .woff2 by file
+  picker or drop; judged by magic bytes, not the name; up to 8 MB; the family read from the file's own `name` table
+  (TrueType, OpenType and WOFF, inflating a packed table with DecompressionStream; a WOFF2 is Brotli-packed, so its
+  file name stands in: "SpaceGrotesk-Regular.woff2" → "Space Grotesk"); a load probe through `FontFace.load()`; plain
+  words for every refusal ("not a font file", "is 9.2 MB; a font here can be up to 8.0 MB", "does not start like a
+  font", "could not be loaded"). Kept in this browser's IndexedDB (`tower-studio-fonts`), never uploaded, listed under
+  "Your fonts" with Remove; one licence line at the point of upload.
+- **Export and fallback** (`lib/boardRender.ts`): `drawBoard` takes the board's faces and a resolver; `exportBoardJpeg`
+  registers every family the board names and awaits `document.fonts.ready` before drawing, and the export record
+  says which faces it drew with (shown on the export line, `data-export-fonts`). A family not in this browser (a font
+  added elsewhere) is drawn as Inter and named in a "Not in this browser" line in the Type panel. No board export
+  writes SVG (the plan SVG is an image placed on a board), so there is nothing to embed. The fit check ("Text fits its
+  frame") measures with the real face; the "Smallest type" rule keeps the type height the user set, which is the same
+  measure in every face.
+- **Found and fixed on the way:** `useLoadedImages` restarted its load on every render (a fresh `[board]` array and a
+  new Map each time), so the composer re-rendered hundreds of times a second; it is keyed on the image ids now and
+  keeps the Map when nothing changed. The inspector's `1fr` columns let the deliverable select's longest option widen
+  the panel past 320 px; the columns are `minmax(0, 1fr)` and inputs `w-full` now.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,243 pass, 3 skipped (+9: `lib/fonts/fontFile.test.ts` formats by bytes, the
+  name table in TrueType and WOFF, file-name fallback, the refusals and a good file; `lib/fonts/catalog.test.ts` the
+  shipped set and licences, the stack, fallback and missing names, `familiesUsed`; the same 2 CRLF data-file checks
+  fail in this worktree only) · Edge e2e: `e2e/board-fonts.e2e.ts` (new: Presentation → the composer, Lora picked
+  for headings with the picker drawing names in their faces and the choice persisted, a text file refused, the Space
+  Grotesk WOFF fixture added and named from its name table, picked for headings, IBM Plex Mono for one frame, a
+  JPEG exported with those faces loaded and named on the export line, a reload keeping the font and the choice,
+  Remove leaving a "Not in this browser" note) PASS · `layout` (Massing, Schematic and Present) PASS ·
+  `model-presentation` PASS · `tool-rail` PASS. Screenshots: `docs/evaluation/2026-11-17-board-fonts/01-board-fonts.png`
+  and `02-board-fonts-exported.png`.
+
+# CHECKPOINT: Model | Presentation, the phase row folded into the left panel (17 Nov 2026)
+
+Brief (Ruijie, 17 Nov, with the reference build's screenshot): "At the very top of the page there is a Model /
+Presentation switch; one click takes you from design to layout … keep the phase colours and their categories, but make
+it simpler and save more space … the clickable Site / Form / Program / Schematic / Present row at the top should
+probably go … can all the presentation-related nodes be removed, or put entirely inside Presentation?" Decision
+(approved): nothing is deleted; the presentation tools are the competition deliverables and move entirely into
+Presentation. Branch `model-presentation` from the `tool-rail` tip, same worktree. Not merged, not deployed.
+- **The switch** (`TopBar.tsx` `ModeSwitch`, `lib/mode.ts`): a segmented Model | Presentation radiogroup in the centre
+  of the top bar. Model is Site, Form, Program and Schematic as one continuous run; Presentation is the Present stage
+  (model locked, A2 frame, boards, drawings, render, shot strip). Presentation goes to the Frame step; Model returns to
+  the design step last used (`lib/step.ts` `lastModel`, kept for the session beside `lastBasic`). It changes the view,
+  never the design (nothing to undo). **Key: V** toggles it (free of P, M, R, H, O, F, L, Esc, [ ]); the old 1 / 2 / 3
+  keys stay as jumps to Massing, Schematic and Presentation (3 now lands in Presentation mode), so no test or hint
+  that used them broke.
+- **The phase row under the top bar is gone** (`ProcessRail.tsx` deleted; its step follow and first-open start moved to
+  `App.tsx`): its 44 px and gap go to the model region. The phases are a compact list in the left panel's Workflow
+  block (`PhasePanel.tsx` `PhaseList`): one 28 px row per phase of the mode, with its colour dot, its name and its fail
+  / check counts (`lib/workflow/phaseCounts.ts`, summed from the trace's live digest per home phase, the same source as
+  the builder's card summaries); the one you are in lit; a click or the arrow keys (Up / Down / Left / Right, Home, End)
+  go there. The list keeps the `nav[aria-label="Design process"]` landmark and the `data-step` / `data-phase` /
+  `aria-current="step"` buttons, so every existing e2e helper and test that drove the old row works unchanged. Back and
+  Next (`PhaseNav`, beside the "You are in Form: 2 of 14 tools" line) walk the phases; Next from Schematic is
+  Presentation and Back from Presentation is Schematic. The panel header keeps the phase name (h2) and adds the mode's
+  fail / check totals. The Schematic x-ray lens still follows the Schematic phase through the step → stage follow.
+- **Presentation's tools only in Presentation:** the dots line (`PhaseMap`), Add tool's "other phases" list and the
+  tool rail show only the mode's phases; in Presentation the phase list is that one phase and the rail shows the five
+  presentation tools (camera, capture, drawings, boards, AI render: `ToolRail.tsx` `PRESENT_TOOLS`, opening the Present
+  or Render tab on the right through the new `lib/rightTab.ts`, or capturing). The present phase stays in every saved
+  workflow and project file (nothing changed in the formats); the landing page and the workflow editor keep their
+  present lane, now labelled **Presentation** (`PHASE_NAME`, `PHASES`, `STAGES`, the stage announcements).
+- **Updated references:** the onboarding card (phase list, the switch, keys V / 1 2 3 / H / O), the user guide's stages
+  section, `lib/step.ts` and `WorkflowOverview.tsx` comments; `e2e/tool-rail.e2e.ts` (Presentation via the switch),
+  `e2e/workspace-gate.e2e.ts` (Model's four phases), `lib/workflow/builderModel.test.ts` (the Presentation label).
+- **Both projects:** the new e2e drives the switch and the list on the competition site and on Real Vancouver.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,234 pass, 3 skipped (+5: `lib/mode.test.ts`, `lib/workflow/phaseCounts.test.ts`;
+  the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e: `e2e/model-presentation.e2e.ts` (new: the
+  switch in the top bar, no phase row and the model region right under the top bar, four phases listed in Model and
+  only Presentation in Presentation, present nodes absent from the dots line, the rail and Add tool in Model and
+  present in Presentation, a phase dot navigates, Back / Next and the arrow keys, Next from Schematic lands in
+  Presentation, Render from the rail opens the Render tab, Model returns to the last design step, V and 1 / 3 keys,
+  Real Vancouver) PASS · `tool-rail` PASS · `phase-panel` PASS · `massing-edit` PASS · `journeys` PASS · `layout`
+  (Massing, Schematic and Present at 1440 × 900, the boards / present check) PASS. Screenshots:
+  `docs/evaluation/2026-11-17-model-presentation/01-model.png` and `02-presentation.png`.
+
+# CHECKPOINT: the tool rail moves to either side of the model (17 Nov 2026)
+
+Brief (Ruijie, 17 Nov, with a screenshot circling the rail): "I want to be able to control where it is placed with the
+mouse, and snap it, maybe to the right side as well." Same branch `tool-rail`, same worktree. Not merged, not deployed.
+- **The grip** at the top of the rail (`ToolRail.tsx`; a six-dot `GripVertical` in `icons/index.tsx`, "Move the tool
+  rail" on hover/focus) drags the rail with mouse or touch (pointer events, pointer capture): the rail dims in place and
+  a ghost of it follows the pointer over the model; the two edges of the model region show as dashed drop zones with
+  the nearer one lit in the interaction colour; release snaps to the nearer edge with a 160 ms slide of the ghost (none
+  under reduced motion); Esc during a drag puts it back. The rail keeps one place in the tree and moves by flex order
+  (`order-first` / `order-last`), so a drag never remounts it. With the grip focused, Left / Right (or Enter) move it,
+  announced in the live region ("Tool rail on the right").
+- **Remembered** as `ts.toolRail.side` beside `ts.toolRail.hidden` (`lib/toolRail.ts`, `setToolRailSide`); hidden, the
+  Show button sits on the remembered side, its chevron pointing into the model. Hover panels open toward the model
+  (`IconTile` `tipSide="left"` when the rail is on the right).
+- **No overlay shifting was needed:** the rail is a flex column of its own beside the model region on either side, never
+  over it, so the tower toolbar, the View / Legend strip, the north chip and the Layers tab keep their places and are
+  never under it (checked in the screenshots). On the right it sits between the model and the Inspector.
+- **Key hints fixed:** the onboarding card now says H hide tool rail · O hide overlays (`Onboarding.tsx`);
+  `DESIGN_HANDOFF.md` says O for the overlays and H for the rail.
+- **Tests:** `tsc -b` PASS · `vitest run` 1,231 pass, 3 skipped (+3 in `lib/toolRail.test.ts`: default, remembered
+  side and hidden, bad value; the same 2 CRLF data-file checks fail in this worktree only) · Edge e2e:
+  `e2e/tool-rail.e2e.ts` extended (drag the grip to the right with the mouse while the right drop zone lights, the rail's
+  box at the model region's right edge, hover panel opens to the left, the Show button on the right, a reload keeps the
+  side, Esc cancels a drag, Left on the grip brings it back and is announced) PASS · `e2e/phase-panel.e2e.ts` PASS ·
+  `e2e/massing-edit.e2e.ts` PASS. Screenshots: `docs/evaluation/2026-11-16-tool-rail/03-tool-rail-dragging.png`
+  (the ghost and the lit zone) and `04-tool-rail-right.png`.
+
+# CHECKPOINT: the tool rail beside the model (16 Nov 2026)
+
+Brief (Ruijie, 16 Nov): Sinnie Choi's build of the Toolkit put the design tools in one vertical column of icons beside
+the view; bring that layout into the main tool. Branch `tool-rail` from `main`, in its own worktree. Not merged, not deployed.
+- **What it is:** a 48 px column on the model's left edge, between the left panel and the 3D view
+  (`src/components/ToolRail.tsx`), in Massing and Schematic on the guided route (`App.tsx`). Icon tiles only
+  (`IconTile.tsx` gains `layout="icon"` and a `tipSide="right"` hover panel): the full name and what the tool does show
+  on hover or focus, nothing is written beside the icons. On top, the ways of editing on the model: Place (`store.placing`,
+  P), Move and Rotate (`lib/towerEdit.ts`, M and R; the selected tower is picked first) and, while the Massing tool is on
+  the Form step, Face and Mass (`lib/blockEdit.ts`, F; `MassingEditPanel.tsx` exports `EDIT_MODES`); a hairline; then the
+  step's design tools. The open tool and a mode that is on wear a ring in the interaction colour. A `role="toolbar"`
+  named "Design tools", vertical, with a roving tabindex: the arrow keys walk it, Enter or Space acts.
+- **One source for the panel and the rail:** the step's tools and the open one moved out of `tools/ToolPanel.tsx` into
+  `tools/toolPick.ts` (`resolveTools`, pure, and `useToolChoice`; the pick is still `ts.tools.active`), so a click in the
+  rail opens the tool in the panel and the two never list different tools. A rail click also puts the phase panel on
+  its design node when a check's settings were open (`usePhaseTools.setActive`). The left panel is unchanged otherwise.
+- **H hides and shows the rail** (`lib/toolRail.ts`, remembered as `ts.toolRail.hidden`); hidden, a 20 px Show button
+  stays at the model's edge; the rail's own Hide button is the pointer's way. H used to hide the viewport overlays
+  (`ViewportDock.tsx`): that moved to **O** (its two buttons and `e2e/rhino-import.e2e.ts` say so).
+- **Tests:** `tsc -b` PASS · `vitest run` 1,228 pass, 3 skipped (+3 in `tools/toolPick.test.ts`; the same 2 CRLF
+  data-file checks, heightPolicy and registry, fail in this worktree only) · Edge e2e: `e2e/tool-rail.e2e.ts` (new:
+  rail geometry, tiles = the panel's tools, modes first then a divider, Massing from the rail opens in the panel and
+  back, Mass / Face / Move from the rail, hover name, arrow keys and one tab stop, H and the Show button with a reload,
+  no rail in Present) PASS · `e2e/phase-panel.e2e.ts` PASS · `e2e/massing-edit.e2e.ts` PASS. Screenshots:
+  `docs/evaluation/2026-11-16-tool-rail/01-tool-rail.png` and `02-tool-rail-hidden.png`.
+
+---
+
+<!-- Merged 17 Nov 2026: the Sun & Wind Studio log (branches sun-wind-port … sun-wind-energy), with Sinnie's OK. -->
+
+# CHECKPOINT: Sun & Wind Studio merge, engine 4 of 4: energy use, TEUI / TEDI / GHGI (17 Nov 2026)
+
+Same brief as engines 1–3 (below). Branch `sun-wind-energy`, cut from `sun-wind-ventilation` 6d39d0a, worktree
+`tower-studio-sw`. Pushed for review, **not merged, not deployed**; her written OK (§1c, status line added) still pending.
+With this, all four engines of her agreed order are ported, each on its own stacked branch.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/energySW.ts`): energy.js `modelHourly`, the ISO 13790 simple hourly method
+  (5R1C) her app runs whenever the hourly weather is loaded (her monthly model is only its fallback and is not ported):
+  one zone per program, every hour of the CWEC2020 year, Perez solar gains per face at its true azimuth × 0.9 × her
+  context shading, outdoor air with heat recovery and setbacks (±4 K) on each program's schedule, her residential and
+  hotel profiles, lighting dimmed by each floor's monthly daylight share for programs not lived in around the clock,
+  heat-pump and chiller COP following the outdoor temperature, hot water, fans / pumps / lifts; TEUI, TEDI, GHGI (her
+  factors 0.18 gas / 0.011 electricity) against her indicative City targets weighted by program area; heat-loss paths,
+  peaks, overheating of unconditioned zones. Plus core.js `finishMask` (facade length by world orientation, area, sky
+  garden) and study.js `zoneGlazing` (her solar-study transmittance per zone is not available, so the strategy modifier).
+- **Fixtures from her own code**: `tools/sunwind-energy-fixtures.cjs` at **c24addb**, four cases: 20 office floors on a
+  heat pump; a retail podium with offices and homes above on gas, heavy mass, 50% recovery, daylight dimming; a turned
+  hotel and housing tower on electric resistance, light mass, 22/24 °C, U 2.0 glass, double skin and fins by level;
+  housing under a sky garden, an amenity and a plant floor (unconditioned). `src/engine/energy.fixtures.json` (38 KB).
+  **Bit for bit (tolerance 0)**: every program row, the monthly end uses, losses, glazing, envelope, people, peaks, the
+  hourly load sums, and her finishMask facade lengths and areas (`energySW.test.ts`, 5 tests).
+- **Mapping** (`src/engine/energySWInput.ts`): every floor of the selected tower in her frame (true north), the Toolkit
+  uses as her programs (residential → resi, civic and amenity → public, mechanical → her unconditioned plant zone), facade
+  lengths and area from her finishMask on each plate, the exposed top of each floor = what the floor above does not
+  cover, glazing from the facade node when on else her default zones, her envelope and systems as presets; daylight
+  dimming runs the daylight port (with the context) in the same worker first.
+- **Node `built.energy-sw`** "Energy use: TEUI / TEDI / GHGI (Sun & Wind Studio)", ENER, Schematic, both projects, off by
+  default: worker `src/workers/energyWorker.ts`, hook + store `src/hooks/useEnergySW.ts` (`ts.energySW`), card
+  `EnergySWResults.tsx` (TEUI / TEDI / GHGI tiles against target, end uses by month, per-program table, heat-loss paths,
+  lines, presets), canvas status, trace digest group `energySW`, rule card `cov.rezoning-targets.sunwind` (unverified),
+  FIXES `sw-en-*`, evidence lint, eval cases ES-T / ES-B, Sources hub, every list, a new `EnergyMeter` icon.
+- **Relation to "Energy & carbon"**: kept as it is. That node reads the VBBL / Higher Buildings Policy limits (research
+  P04), embodied carbon and PV with team end-use presets; this one models the hourly energy. Both report TEUI / TEDI /
+  GHGI; this one's targets are hers, flagged unverified, and its TEUI line says where the researched limits live.
+
+## Choices made (recommended options)
+- The hourly 5R1C model (what her app runs), not her monthly fallback.
+- Toolkit amenity → her conditioned "public" (her "amenity" is an open sky garden); mechanical → her plant zone.
+- Daylight dimming on by default (her page credits it once daylight has run); context for it as the daylight node's.
+- Exposed roofs from the plate above; no covered voids (the Toolkit's plates are solid).
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,283 pass; only the 2 CRLF data-file checks fail, in worktrees only |
+| `energySW.test.ts` (her fixtures) | 5/5, tolerance 0 |
+| `energySWInput.test.ts` | 3/3 |
+| `e2e/energy-sw.e2e.ts` (Edge, competition site, 67 floors) | 1/1: daylight for dimming then the hourly model in seconds, tiles, monthly, programs, losses, flagged lines, no "Verified"; a gas boiler raises GHGI |
+| e2e reruns: daylight, ventilation (rerun wait made robust), wind comfort, phase-panel, node-icons | 5/5 (Edge) |
+| Real Vancouver, her app side by side | NOT RUN |
+
+Screenshots: `test-results/energy-sw.png`, `test-results/energy-sw-card.png` (worktree, not committed).
+
+## Next
+Her written OK (§1c) before any merge. Then: the four stacked branches can merge in order (wind → daylight →
+ventilation → energy); open questions for her: north on the competition model, her solar-study transmittance per zone.
+
+---
+
+# CHECKPOINT: Sun & Wind Studio merge, engine 3 of 4: natural-ventilation potential (17 Nov 2026)
+
+Same brief as engines 1 and 2 (below). Branch `sun-wind-ventilation`, cut from `sun-wind-daylight` bdf5628, worktree
+`tower-studio-sw`. Pushed for review, **not merged, not deployed**; her written OK (§1c, status line added) still pending.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/ventilationSW.ts`): study.js `ventStudy` (hour by hour over the period: windows
+  open when the room air, outdoor + ΔT, is in her fixed band or the ASHRAE 55 adaptive band 0.31 Tpma + 17.8 ± 3.5 °C, the
+  gust 1.8 × the station wind carried to the floor height (`siteWind`, ASHRAE boundary layers) is under her limit, ×1.6 for
+  a double skin, and it is not raining over 1 mm/h), `ventFlow` (wind pressure by face angle, `cpFace`, and stack pressure
+  through each operable opening, balanced by 32-step bisection; cross, single-sided with BS 5925 turbulence, or a stack
+  shaft three storeys up), `ventOpenings`, and the ASHRAE 62.1 quick check `ventFloorQuick` / `ventTowerQuick` (free area
+  over the floor, every cell within 8 m of an operable opening). The shared physics (`daylightSW.ts` `prep`) now also
+  carries her hourly wind, direction, rain, daily means and the prevailing mean outdoor temperature.
+- **Data**: `src/data/sunWindHourly.json` gains `ws`, `wd`, `rain`, monthly `temp` and `months` (200 KB, worker and lazy eval only).
+- **Fixtures from her own code**: `tools/sunwind-ventilation-fixtures.cjs` at **c24addb**, six cases: her default facade
+  with cross flow (30 floors); single-sided with the adaptive band in summer; a 70-floor stack case with an operable
+  double skin to L25, sealed above, 6 m/s gust limit; a 40 × 28 m plate turned 30° with only north and south operable,
+  15% opening, ΔT 2 K, April–September; an L plate with one operable face across the year end; a sealed facade; plus
+  her prevailing-mean temperature, Cp and site-wind values, and `ventFlow` in all three modes on one floor.
+  `src/engine/ventilation.fixtures.json` (40 KB). **Bit for bit (tolerance 0)**: monthly rows, per-floor shares, median
+  ACH, the hourly grid, the limit floor, 62.1 per floor (`ventilationSW.test.ts`, 8 tests). The daylight fixtures still
+  match after the shared `prep` change (13/13).
+- **Mapping** (`src/engine/ventilationSWInput.ts`): the daylight port's plates (occupied floors, true north, core);
+  glazing from the facade node when on, else her default zones; which faces open and her settings (mode, band, gust
+  limit, opening share, ΔT, period, north) as node presets. Her model reads no context buildings.
+- **Node `built.ventilation-sw`** "Natural ventilation potential (Sun & Wind Studio)", CLIM, Schematic, both projects, off
+  by default: worker `src/workers/ventilationWorker.ts`, hook + store `src/hooks/useVentilationSW.ts` (`ts.ventilationSW`),
+  card `VentilationSWResults.tsx` (openable area, within 8 m and hours tiles; by month against comfortable hours; by
+  floor; her week × hour carpet; lines; presets), canvas status, trace digest group `ventilationSW`, rule cards
+  `ashrae621.natvent.sunwind` and `ashrae55.adaptive.sunwind` (unverified), FIXES `sw-vt-*`, evidence lint, eval cases
+  VT-T / VT-O, Sources hub, every list, and a new `WindowAir` icon (line + filled drawing).
+- **Evidence lines** (all unverified, sourced): openable area ≥ 4% (fail below or with no operable face), within 8 m
+  (≥ 95% pass, else warn, as her app), hours the windows do the work, highest floor that can open, open hours meeting
+  her 0.35 L/s·m² outdoor air, glazing and openings used (team assumption), method.
+
+## Choices made (recommended options)
+- Plates turned to true north as daylight (her wind direction and face pressures depend on it); preset for her frame.
+- Operable faces default to all four (her default facade opens all four); the facade node has no operable field.
+- Highest floor reported with the Toolkit level number.
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,273 pass; only the 2 CRLF data-file checks fail, in worktrees only |
+| `ventilationSW.test.ts` (her fixtures) | 8/8, tolerance 0 |
+| `ventilationSWInput.test.ts` | 2/2 |
+| `e2e/ventilation-sw.e2e.ts` (Edge, competition site, 67 floors) | 1/1: on in Schematic, runs in seconds, tiles, bars, carpet, flagged lines, no "Verified", single-sided adaptive rerun changes the readings |
+| `e2e/daylight-sw.e2e.ts`, `e2e/wind-comfort.e2e.ts` reruns | 2/2 |
+| Real Vancouver, her app side by side | NOT RUN |
+
+Screenshots: `test-results/ventilation-sw.png`, `test-results/ventilation-sw-card.png` (worktree, not committed).
+
+## Next
+Engine 4: the monthly energy model (`energy.js`, ISO 13790 5R1C, TEUI / TEDI / GHGI) on `sun-wind-energy` from this branch.
+
+---
+
+# CHECKPOINT: Sun & Wind Studio merge, engine 2 of 4: daylight sDA / ASE (17 Nov 2026)
+
+Same brief as engine 1 (below): Ruijie, 16 Nov, "start merging Sinnie's tool into the platform", in her order wind comfort →
+**daylight** → ventilation → energy. Branch `sun-wind-daylight`, cut from `sun-wind-port` b40e26a, worktree `tower-studio-sw`.
+Pushed for review, **not merged, not deployed**: her written OK (`04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1c, status
+line added for engine 2) is still pending. Ruijie was away overnight and approved the recommended option on every decision;
+the decisions taken are listed under "Choices made".
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/daylightSW.ts`): physics.js (NOAA sun for every hour of the CWEC year, Perez
+  1990 sky on each vertical face, Perez luminous efficacy, LM-83 occupied hours 8:00–18:00 clock time with her monthly
+  clock offsets) and the daylight half of study.js: per 1 m mask cell, sixteen sight lines to the glass under the CIE
+  overcast sky with the BRE externally reflected component (obstruction angle per cardinal face from the context
+  buildings 15–160 m away) and the BRE split-flux internally reflected component → daylight factor; each face's Perez sky
+  hour by hour → DA300, sDA300/50%, UDI 100–3000 lux, monthly daylight share; ASE1000/250h by 2° azimuth bins through the
+  window band after her shading devices (all twelve strategies of her catalogue); her floor signature memo
+  (`floorSig`, which groups floors whose obstruction rounds alike); her tower run at 2 m cells and every second day.
+- **Her data**: `src/data/sunWindHourly.json` (110 KB), the hourly CWEC2020 year (temperature, GHI, DNI, DHI) and the
+  monthly clock offsets exactly as her page holds them after climate.js applies weather.json (elevation falls back to
+  her 4 m, as on her page). Loaded only by the worker and, lazily, by the eval cases.
+- **Fixtures from her own code**: `tools/sunwind-daylight-fixtures.cjs` runs her climate.js (fetch stubbed), physics.js
+  and the daylight functions of study.js + core.js headless at **c24addb** (her main on 16 and 17 Nov), on nine cases:
+  plain tower, her site with future towers and her default facade zones, her site without future towers with WWR 0.35 /
+  VT 0.45 and every shading strategy by level, a deep 72 × 56 m plate, a shallow 30 × 17.5 m plate at 500 lux, a plate
+  turned 30° in context, turned 120° without, an L-shaped plate with the core off centre, and a winter ASE period; plus
+  her physics (sun, Perez state, six faces). `src/engine/daylight.fixtures.json` (159 KB). **The port reproduces every
+  number bit for bit (tolerance 0)**: tower sDA / ASE / DF / DA / UDI, every floor row and monthly share, obstruction
+  angles, facade edges, sampled cell fields, ASE hours per cell, and her full-resolution run (`daylightSW.test.ts`, 13 tests, ~2 s).
+- **The Toolkit's model into her frame** (`src/engine/daylightSWInput.ts`): the selected tower's floors (`towerFloors`;
+  plant floors left out), each floor's plate (`floorRing`: the block at mid-height, or the imported hull) turned along
+  its longest edge and rasterised into her 1 m mask, its core (`coreSide`) at the tower centre; context as in the wind
+  port (competition derived context + future towers, or the City buildings with heights; other design towers as roofs),
+  reduced by her `buildSiteRaster` to each building's centre and roof; glazing from the facade node when it is on
+  (system → her strategy, WWR by facing, VLT), otherwise her default zones and VT 0.60.
+- **Node `built.daylight-sw`** "Daylight sDA / ASE (Sun & Wind Studio)", CLIM, Schematic phase (`advanced`), both projects,
+  off by default: worker (`src/workers/daylightWorker.ts`), hook + store (`src/hooks/useDaylightSW.ts`, `ts.daylightSW`),
+  results card (`DaylightSWResults.tsx`: sDA / ASE / mean DF tiles, her per-floor sDA and ASE bars, a plan of any floor
+  in her DA / DF / direct-sun ramps with core and north arrow, the evidence lines, presets with Reset), canvas status,
+  trace digest group `daylightSW`, rule cards `leed.daylight.sunwind` and `en17037.df.sunwind` (both unverified), FIXES for
+  every line (`sw-dl-*`), evidence lint, eval cases DL-T / DL-O, Sources hub, every list (registry, icons + a filled
+  `SunMedium` drawing, art, words, needs, phases, roles, missing-input, assistant keywords and checks).
+- **Evidence lines** (all unverified, each with its source): sDA with LEED points (pass ≥ 40%, as her app marks it), ASE ≤
+  10% (warn above, her "address glare"), mean DF 2% / 1% (her "EN 17037" label, no edition), weakest floor, UDI, glazing
+  used (team assumption), method. Without context the three judged lines stay "unknown" (as wind).
+
+## How it relates to "Daylight screen (plate depth)"
+Kept as it is. That node is the geometric first pass (plate depth against 2 × window head, no glass, sky or neighbours,
+SPAC). This one is the climate-based check after it: same plates and cores, plus the glass, the neighbours and the
+Vancouver sky hour by hour. The new node's limits, method line and Rules section say so.
+
+## Choices made (recommended options, Ruijie away)
+- Fixtures pinned to c24addb (her current main; unchanged since engine 1).
+- **True north**: plates turned so +y is true north (45° on the competition site), because sun and sky depend on it; a
+  preset reads the model grid as north to compare with her app (which reads a sent tower as is). Wind kept her frame.
+- Plant (mechanical) floors left out of sDA / ASE; podium floors kept (occupied).
+- "Facade node exists" = the facade node is on; then its glazing, else her defaults.
+- No 3-D overlay: the "floor overlay" is the plan in the card (cheap, and each floor differs).
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,261 pass; only the 2 CRLF data-file checks fail, in worktrees only (heightPolicy, registry) |
+| `daylightSW.test.ts` (her fixtures) | 13/13, tolerance 0 |
+| `daylightSWInput.test.ts` | 5/5 |
+| `e2e/daylight-sw.e2e.ts` (Edge, competition site, 87 floors) | 1/1: on from the library in Schematic, runs in seconds, tiles + bars + plan + flagged lines, no "Verified", winter ASE rerun |
+| `e2e/wind-comfort.e2e.ts` rerun | 1/1 |
+| Regression e2e (phase-panel, journeys, node-icons) | 3/3 (Edge) |
+| With the competition base model loaded, Real Vancouver, her app side by side | NOT RUN (e2e has no base model, so the judged lines read "unknown") |
+
+Screenshot: `test-results/daylight-sw.png` and `test-results/daylight-sw-card.png` (worktree, not committed).
+
+## Known limits
+- Her OK pending; branch unmerged. Her model: four cardinal faces per floor, context as mean roofs within 160 m, no
+  partitions, direct sun left to blinds for sDA. Proxies for early design, as her own leedCard note says.
+- LEED v4.1 / EN 17037 / LM-83 read as her code states them; none of those documents was opened.
+- One tower at a time (the selected one).
+
+## Next
+Engine 3, natural-ventilation potential (`planStudy` / `ventStudy` / `ventFlow` in study.js; needs the hourly wind, so
+`sunWindHourly.json` gains ws / wd), on `sun-wind-ventilation` from this branch; then the ISO 13790 energy model.
+
+---
+
+# CHECKPOINT: Sun & Wind Studio merge, engine 1 of 4: pedestrian wind comfort (16 Nov 2026)
+
+Ruijie, 16 Nov: "start merging Sinnie's tool into the platform." Order agreed in the mid-review notes (P1, comment 3):
+wind comfort → daylight → ventilation → energy, each a Toolkit node checked against her app's numbers. Branch
+`sun-wind-port` from main 50cadfa, worktree `tower-studio-sw`. Pushed for review, **not merged**: her written OK on reusing
+`study.js` (`04 Tool Plan/permissions/DRAFT_MESSAGES.md` §1c, status note added there) is still pending; only the dtmass
+generator reuse (6 Nov) is on file.
+
+## What was built
+- **Her engine, in TypeScript** (`src/engine/windComfort.ts`): the 2-D D2Q9 lattice-Boltzmann pedestrian flow on 4 m
+  cells over her 680 × 440 m domain (tau 0.58, free-stream target 0.05, round(max(nx, ny) × 3.2) = 544 steps, periodic
+  edges, bounce-back), ratios to the free wind beyond 24 m of any building, Lawson bands on the mean speed (2.5 / 4 / 6 /
+  8 m/s), the downwash allowance 1 + 0.45 log2(H / h̄neighbours within 120 m) capped at 2.1 over 0.22 H upwind, podium
+  (dilation + 0.8 min(1, h/30) relief), canopy (0.35 min(1, d/6)), rounded 0.78 / chamfered 0.85 corners within 14 m,
+  plaza shelter 1 − 0.4 s, the annual blend of her eight sectors (frequency-weighted mean speed map, gusty cells where
+  1.8 × mean > 6 m/s in > 5% of hours), `roseFor` / `periodInfo` over her monthly roses, `windProfile` (z/10)^0.25.
+- **Her data**: `src/data/sunWindRose.json`, the monthly 8-sector rose she distilled from the CWEC2020 typical year
+  (Vancouver Intl AP), credited to her and to climate.onebuilding.org.
+- **Fixtures from her own code**: `tools/sunwind-fixtures.cjs` slices her functions out of `study.js` / `core.js` at
+  commit c24addb (her main, 16 Nov), runs them headless on her `site.json` + `weather.json`, and records seven cases
+  (five one-case runs including podium + canopy + rounded corners + plaza shelter, two annual: whole year and winter) into
+  `src/engine/windComfort.fixtures.json`. **The port reproduces every band area exactly and the ratio fields to four
+  decimals** (`windComfort.test.ts`, 9 tests, ~55 s).
+- **The Toolkit's model into her frame** (`src/engine/windComfortInput.ts`): competition site = her site.json layers from
+  our own derived context (buildings, heritage, plazas, mid-block links, the three future towers when shown); Real
+  Vancouver = the City buildings whose outline touches the domain around the selected tower at roof − project ground,
+  footprints without a height counted and left out (never guessed); the other design towers as roofs; the tower as its
+  turned plan outline; the Toolkit podium → her uniform podium reach = the smaller overhang (team mapping); canopy,
+  corners, plaza shelter and the future-towers switch as node presets.
+- **Node `built.wind-comfort`** "Pedestrian wind comfort (Sun & Wind Studio)", CLIM, form phase, both projects, defaults
+  off (a run takes seconds): worker (`src/workers/windWorker.ts`), hook + store (`src/hooks/useWindComfort.ts`,
+  `ts.windComfort`), results card (`WindComfortResults.tsx`: Lawson bars with / without the tower, key lines, downwash
+  sentence, sectors table, overlay switch, presets with Reset), ground overlay as the Analysis layer `wind-comfort`
+  (`WindComfortOverlay.tsx`, her band colours, with / without / change) with its legend, canvas status, trace digest
+  group `windComfort`, rule card `lawson.sunwind` (unverified: no Lawson edition cited in her code), FIXES for every
+  warn/fail, evidence lint, two eval cases (WC-T, WC-O), Sources hub, lists (icons, art, words, needs, phases, roles,
+  missing-input, assistant keywords).
+- **Evidence lines**: calm ground ≥ 80% good / ≥ 60% fair (her thresholds), plaza peak ≤ 4 / ≤ 6 m/s, uncomfortable
+  ground ≤ 1%, worse/better area, gusty share (annual), downwash allowance, strategies vs the bare tower, method. All
+  flagged **unverified** (her 2-D flow is indicative, not CFD, as her own note says), sources named per line.
+
+## Tests run
+| | |
+|---|---|
+| `tsc -b` | PASS |
+| `vitest run` | 1,240 pass; the 2 CRLF data-file checks fail in worktrees only (heightPolicy, registry); evidenceLint now has a 60 s budget for its flow solve |
+| `windComfort.test.ts` (her fixtures) | 9/9 |
+| `windComfortInput.test.ts` | 5/5 |
+| `e2e/wind-comfort.e2e.ts` (Edge, competition site) | 1/1: switch the node on, one case solves, bands + lines + "Sun & Wind Studio" credit, no "Verified"; seasonal rose runs eight sectors with progress, Gusty ground + sectors table |
+| Regression e2e (phase-panel, journeys, node-icons) | 3/3 (Edge) |
+| Real Vancouver run, the deployed site, her app side by side in a browser | NOT RUN |
+
+## Known limits
+- Her OK pending: the branch is not merged and the Pages site is unchanged.
+- North: her domain takes +y as north; on the competition site the Toolkit's true north is 45° from +y (open question
+  3 to Sinnie, 6 Nov). The port follows her frame exactly so the fixtures match; a sector named "W" is her "W".
+- Real Vancouver: no plaza layer yet (plaza lines unknown); heights relative to the project ground; no terrain.
+- The competition context must be loaded for a judged result (on main the entrant adds the base model; the
+  `competition-context-included` branch ships it); without it the calm-ground line is "unknown" and says so.
+- One worker, one tower at a time (the selected tower); an annual run is 16–24 flow solves (about 20–40 s).
+
+## Next
+Daylight (sDA / ASE / UDI per floor, `study.js` + `physics.js`) the same way: fixture recorder on her code, TS port,
+node. Then ventilation, then the ISO 13790 energy model. And the tool rail beside the viewport from Sinnie's artifact
+(separate session, waiting for the repository trust button).
+
+---
+
 # CHECKPOINT: Result B step 1, the transfer centre's entry and registry (9 Nov 2026)
 
 Brief: Block 3 (Import/Export Centre), `04 Tool Plan/workflow-builder/BLOCK3-import-export.md`. Same branch as Result A

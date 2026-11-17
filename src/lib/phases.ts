@@ -41,7 +41,7 @@ export const PHASES: Phase[] = [
     nodes: ['built.core-lifts', 'built.egress', 'built.life-safety', 'built.structure', 'built.wind-procedure', 'built.interior', 'built.daylight-depth', 'built.facade', 'built.energy-carbon', 'built.sw-glazing', 'built.sw-daylight', 'built.sw-light-hour', 'built.sw-natvent', 'built.sw-airflow', 'built.sw-energy', 'built.sw-indoor-temp', 'built.sw-pv'],
   },
   {
-    id: 'present', name: 'Present', step: 'frame', about: 'Frame views, capture and compose the boards, with the claims and AI use on record.',
+    id: 'present', name: 'Presentation', step: 'frame', about: 'Frame views, capture and compose the boards, with the claims and AI use on record.',
     tools: ['camera', 'capture', 'boards', 'drawings', 'render'],
     nodes: ['built.culture-claims', 'built.provenance'],
   },

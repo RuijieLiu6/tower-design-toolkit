@@ -3,14 +3,15 @@
 // (they are too large for localStorage). Nothing here is uploaded anywhere.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { BOARD_COUNT, DEFAULT_DENY, MAX_SHEETS, applyTemplate, newBoard, sheetNumbers, type SheetSize, type Board, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
+import { BOARD_COUNT, DEFAULT_DENY, MAX_SHEETS, applyTemplate, moveBoard, newBoard, sheetNumbers, sortBoardsByName, type SheetSize, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
 import type { StyleId } from './boardDrawings'
+import { DEFAULT_FONTS } from './fonts/catalog'
 
 /** The drawings of one workflow phase for the Architectural set (lib/boardCapture.ts). */
 export interface ArchGroup { title: string; items: { imageId: string; caption: string }[] }
 
-export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[] }
+export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[]; /** The families the JPEG was drawn with (after any fallback). */ fonts?: string[]; /** Families the board names that did not load, drawn as the fallback. */ missingFonts?: string[] }
 
 interface BoardState {
   open: boolean
@@ -18,6 +19,8 @@ interface BoardState {
   images: Record<string, BoardImage>
   denyList: string[]
   dpi: 150 | 200
+  /** The heading and body faces of the boards (Ruijie, 17 Nov; lib/fonts): family names, Inter behind each. */
+  fonts: BoardFonts
   /** Ticks for the upload gates: `${gateId}` or `${gateId}:${boardId}` for per-board gates. */
   ticks: Record<string, boolean>
   exports: Record<string, ExportRecord>
@@ -32,7 +35,6 @@ interface BoardState {
   setSheet: (s: SheetSize) => void
   addBoard: () => void
   removeBoard: (i: number) => void
-  renameBoard: (i: number, name: string) => void
   /** Makes the five sheets of the drawing set (site plan, floor plans, elevations, section, axonometric and analysis); what was on them is kept aside. */
   makeDrawingSet: (typicalLevel: number, topLevel: number) => void
   /** The Architectural set: the drawing set's sheets, then analysis sheets (six drawings each) for every workflow phase. */
@@ -45,9 +47,19 @@ interface BoardState {
   removeImage: (id: string) => void
   setDeny: (terms: string[]) => void
   setDpi: (dpi: 150 | 200) => void
+  setFonts: (patch: Partial<BoardFonts>) => void
   tick: (key: string) => void
   setExport: (boardId: string, rec: ExportRecord | null) => void
   unpark: (i: number, board: number, frame: string) => void
+  /** Name a board (Ruijie, 17 Nov); empty goes back to "Board n". */
+  renameBoard: (board: number, name: string) => void
+  /** Move a board to another place; the selection follows it. */
+  moveBoard: (from: number, to: number) => void
+  /** Order the boards by their names. */
+  sortByName: () => void
+  /** The export format chosen last: JPEG (the submission), PNG or PDF. */
+  format: 'jpeg' | 'png' | 'pdf'
+  setFormat: (f: 'jpeg' | 'png' | 'pdf') => void
   reset: () => void
 }
 
@@ -87,6 +99,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   images: {},
   denyList: DEFAULT_DENY,
   dpi: 150,
+  fonts: DEFAULT_FONTS,
   ticks: {},
   exports: {},
   selected: { board: 0, frame: null },
@@ -107,7 +120,6 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     const ex = { ...s.exports }; delete ex[s.boards[i].id]
     return { boards, parked: [...s.parked, ...kept], exports: ex, selected: { board: Math.min(s.selected.board > i ? s.selected.board - 1 : s.selected.board, boards.length - 1), frame: null } }
   }),
-  renameBoard: (i, name) => set((s) => ({ boards: s.boards.map((b, k) => (k === i ? { ...b, name } : b)) })),
   makeDrawingSet: (typ, top) => set((s) => {
     const boards = s.boards.slice()
     while (boards.length < 5) boards.push({ ...newBoard(boards.length, 'grid'), id: `board-${Date.now().toString(36)}${boards.length}` })
@@ -200,6 +212,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   }) },
   setDeny: (denyList) => set({ denyList }),
   setDpi: (dpi) => set({ dpi, exports: {} }),
+  setFonts: (patch) => set((s) => ({ fonts: { ...s.fonts, ...patch }, exports: {} })),
   tick: (key) => set((s) => ({ ticks: { ...s.ticks, [key]: !s.ticks[key] } })),
   setExport: (id, rec) => set((s) => { const ex = { ...s.exports }; if (rec) ex[id] = rec; else delete ex[id]; return { exports: ex } }),
   unpark: (k, i, id) => set((s) => {
@@ -208,6 +221,26 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     boards[i] = { ...boards[i], frames: boards[i].frames.map((f) => (f.id === id ? { ...f, content: p.content, caption: p.caption, tag: p.tag } : f)) }
     return { boards, parked: s.parked.filter((_, j) => j !== k) }
   }),
+  renameBoard: (i, name) => set((s) => {
+    const boards = s.boards.slice(); boards[i] = { ...boards[i], name: name.slice(0, 80) || undefined }
+    const ex = { ...s.exports }; delete ex[boards[i].id]
+    return { boards, exports: ex }
+  }),
+  // The board number printed in each title band follows the order, so a move or sort asks for fresh exports.
+  moveBoard: (from, to) => set((s) => {
+    const boards = moveBoard(s.boards, from, to)
+    if (boards === s.boards) return {}
+    const id = s.boards[s.selected.board]?.id
+    return { boards, exports: {}, selected: { board: Math.max(0, boards.findIndex((b) => b.id === id)), frame: s.selected.frame } }
+  }),
+  sortByName: () => set((s) => {
+    const boards = sortBoardsByName(s.boards)
+    if (boards.every((b, i) => b === s.boards[i])) return {}
+    const id = s.boards[s.selected.board]?.id
+    return { boards, exports: {}, selected: { board: Math.max(0, boards.findIndex((b) => b.id === id)), frame: s.selected.frame } }
+  }),
+  format: 'jpeg',
+  setFormat: (format) => set({ format }),
   reset: () => set({ boards: freshBoards(), parked: [], exports: {}, ticks: {}, selected: { board: 0, frame: null } }),
 }), {
   name: 'ts.boards',
@@ -227,7 +260,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     try { return localStorage } catch { return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } }
   }),
   // Image pixels live in IndexedDB; exports are re-made on demand.
-  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, ticks: s.ticks, parked: s.parked, style: s.style, sheet: s.sheet }),
+  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, parked: s.parked, style: s.style, sheet: s.sheet, format: s.format }),
 }))
 
 let hydrated = false

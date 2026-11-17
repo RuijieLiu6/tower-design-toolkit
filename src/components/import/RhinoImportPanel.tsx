@@ -3,7 +3,9 @@
 // like how you did with rhino"). Pick the software the model comes from (lib/interchange/platforms.ts); its card has
 // Upload (the file it exports) and its live link: Rhino's plugin (public/rhino/tdt_link.py, Connect), SketchUp's
 // (public/plugins/sketchup, Connect), or a script that rewrites one file the Toolkit links (Revit, Archicad, AutoCAD).
-// Once a model is in: what it brought, and the place-and-basement guide.
+// Once a model is in: what it brought, and the place-and-basement guide. The platform picker and the live-link cards
+// are exported: the project menu's Import… › 3D model shows the same platforms (porting/TransferDialog.tsx) and its
+// Sync model… the same links (SyncModelDialog.tsx), so there is one copy of each (Ruijie, 17 Nov).
 import { Check, Copy, Download, FileUp, Link2, Loader2, Plug, Unplug } from '../icons'
 import { useState, type ReactNode } from 'react'
 import { useImportStore } from '../../lib/import/store'
@@ -19,7 +21,9 @@ import PlaceModelGuide from './PlaceModelGuide'
 import SoftwareBadge from './SoftwareBadge'
 
 const PICKED = 'ts.importPlatform'
-const readPicked = (): PlatformId => { try { return platformById(localStorage.getItem(PICKED) ?? 'rhino').id } catch { return 'rhino' } }
+export const readPickedPlatform = (): PlatformId => { try { return platformById(localStorage.getItem(PICKED) ?? 'rhino').id } catch { return 'rhino' } }
+export const writePickedPlatform = (id: PlatformId) => { try { localStorage.setItem(PICKED, id) } catch { /* private mode */ } }
+const readPicked = readPickedPlatform
 
 export default function RhinoImportPanel() {
   const present = useStore((s) => s.phase === 'present')
@@ -27,7 +31,7 @@ export default function RhinoImportPanel() {
   const towers = useTowers()
   const live = useLiveLink()
   const [pid, setPid] = useState<PlatformId>(readPicked)
-  const pick = (id: PlatformId) => { setPid(id); try { localStorage.setItem(PICKED, id) } catch { /* private mode */ } }
+  const pick = (id: PlatformId) => { setPid(id); writePickedPlatform(id) }
   const p = platformById(pid)
   const ours = model ? towers.filter((t) => t.imported?.source?.modelId === model.id).length : 0
   const site = model?.elements.some((e) => e.role === 'site'), context = model?.elements.filter((e) => e.role === 'context').length ?? 0
@@ -43,15 +47,22 @@ export default function RhinoImportPanel() {
         </div>
       )}
       {model && !present && <PlaceModelGuide />}
-      <div role="radiogroup" aria-label="Where the model comes from" className="grid grid-cols-3 gap-1">
-        {PLATFORMS.map((x) => (
-          <button key={x.id} type="button" role="radio" aria-checked={x.id === pid} onClick={() => pick(x.id)} data-platform={x.id} title={`${x.name}: ${x.versions}`}
-            className={`flex flex-col items-center gap-1 rounded-md border px-1 py-1.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${x.id === pid ? 'border-accent bg-accent/[0.07] font-semibold text-ink' : 'border-line text-muted hover:border-accent hover:text-ink'}`}>
-            <SoftwareBadge p={x} />{x.name}
-          </button>
-        ))}
-      </div>
+      <PlatformPicker value={pid} onPick={pick} />
       <PlatformCard p={p} model={!!model} disabled={present} />
+    </div>
+  )
+}
+
+/** The six platforms as tiles (badge and name; versions on hover). */
+export function PlatformPicker({ value, onPick, columns = 3 }: { value: PlatformId; onPick: (id: PlatformId) => void; columns?: 3 | 6 }) {
+  return (
+    <div role="radiogroup" aria-label="Where the model comes from" className={`grid gap-1 ${columns === 6 ? 'grid-cols-3 sm:grid-cols-6' : 'grid-cols-3'}`}>
+      {PLATFORMS.map((x) => (
+        <button key={x.id} type="button" role="radio" aria-checked={x.id === value} onClick={() => onPick(x.id)} data-platform={x.id} title={`${x.name}: ${x.versions}`}
+          className={`flex flex-col items-center gap-1 rounded-md border px-1 py-1.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${x.id === value ? 'border-accent bg-accent/[0.06] font-semibold text-ink' : 'border-line hover:border-accent/60'}`}>
+          <SoftwareBadge p={x} />{x.name}
+        </button>
+      ))}
     </div>
   )
 }
@@ -78,7 +89,7 @@ function PlatformCard({ p, model, disabled }: { p: Platform; model: boolean; dis
 }
 
 /** A script inside the app serves the model; Connect (SketchUp). */
-function ServerLive({ p, disabled }: { p: Platform; disabled: boolean }) {
+export function ServerLive({ p, disabled }: { p: Platform; disabled: boolean }) {
   const l = p.link!
   const live = useLiveLink()
   const last = useServerLinks((s) => s[p.name])
@@ -103,7 +114,7 @@ function ServerLive({ p, disabled }: { p: Platform; disabled: boolean }) {
 }
 
 /** A script inside the app rewrites one file; Link the file once (Revit, Archicad, AutoCAD). */
-function FileLive({ p, disabled }: { p: Platform; disabled: boolean }) {
+export function FileLive({ p, disabled }: { p: Platform; disabled: boolean }) {
   const live = useLiveLink()
   const linked = live.status !== 'off' && !!live.name && !live.name.endsWith('(live link)')
   const [note, setNote] = useState<string | null>(null)
@@ -197,7 +208,7 @@ function RhinoSyncLine() {
 }
 
 /** Link Rhino live: the three steps, the plugin to download, what to type in Rhino, and the link's state. */
-function RhinoLive({ disabled }: { disabled: boolean }) {
+export function RhinoLive({ disabled }: { disabled: boolean }) {
   const live = useLiveLink()
   const linked = live.name === RHINO_LINK_NAME && live.status !== 'off'
   const [busy, setBusy] = useState(false)

@@ -71,6 +71,9 @@ describe('the filled icons', () => {
   const book: Record<string, unknown>[] = [CATEGORY_ICONS, NODE_ICONS, TOOL_ICONS, STEP_ICONS, Object.fromEntries(STAGES.map((s) => [s.id, s.icon])),
     TYPE_ICONS, WAY_ICONS, PRESET_ICONS, PROGRAM_ICONS, FLAG_ICONS, SOURCE_ICONS, LOGIC_ICONS, LIBRARY_TAB_ICONS]
   const names = [...new Set([...book.flatMap((m) => Object.values(m)), ...COMMUNITY_ICON_POOL].map((i) => (i as { displayName?: string }).displayName))]
+  it('keeps the community pool at 35 glyphs, so existing community icons keep their hash slot (17 Nov review, 9)', () => {
+    expect(COMMUNITY_ICON_POOL).toHaveLength(35)
+  })
   it('draws every icon in the book filled', () => {
     expect(names.filter((n) => !filledIcon(n))).toEqual([])
   })

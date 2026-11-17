@@ -20,6 +20,8 @@ import RightPanel from './components/RightPanel'
 import TowerRail from './components/TowerRail'
 import StatusBar from './components/StatusBar'
 import TopBar from './components/TopBar'
+import { toggleToolRail, useToolRail } from './lib/toolRail'
+import { useBoardStore } from './lib/boardStore'
 import { stageDef } from './data/stages'
 import { useStore } from './store'
 import { goToStep, startOnSite, startStepFollow } from './lib/step'
@@ -49,6 +51,7 @@ export default function App() {
   const analysisNode = useAnalysisView((s) => s.node)
   const analysisOpen = !!analysisNode && !present && (view === '3d' || view === 'split')
   const half = view === 'split' || analysisOpen
+  const railHidden = useToolRail((s) => s.hidden)
   const panels = usePanels()
   const widths = usePanelWidths()
   // #/workflow: the guided app with the workflow builder open (Result A, 9 Nov); it closes to the design as usual.
@@ -69,13 +72,17 @@ export default function App() {
       if ((e.key === '[' || e.key === ']') && !e.ctrlKey && !e.metaKey && !e.altKey) { togglePanel(e.key === '[' ? 'left' : 'right'); return }
       // P is Push / pull now (the design tools, components/draw/DrawTools.tsx); Place a tower is A.
       void s
+      // H hides and shows the design tool rail beside the model (TowerRail.tsx; Ruijie's key, 17 Nov).
+      if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && route === 'guided') { toggleToolRail(); return }
+      // V: Model / Presentation, the top bar's page switch (PageToggle.tsx; Ruijie's key, 17 Nov).
+      if ((e.key === 'v' || e.key === 'V') && !e.ctrlKey && !e.metaKey && !e.altKey) { const b = useBoardStore.getState(); b.setOpen(!b.open); return }
       // 1-5 move along the phase row (Site, Form, Program, Schematic, Present), like clicking it.
       const k = ['1', '2', '3', '4', '5'].indexOf(e.key)
       if (k >= 0 && !e.ctrlKey && !e.metaKey && !e.altKey) goToStep((['site', 'volume', 'program', 'plates', 'frame'] as const)[k])
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [set, setPhase])
+  }, [set, setPhase, route])
 
   return (
     // One hierarchy in every phase (overnight brief, 8 Nov; DESIGN_SYSTEM.md §5.1): the project bar, the one phase row,
@@ -120,7 +127,7 @@ export default function App() {
         </main>
         {/* Right: the analysis results (and Present's own tabs). */}
         {/* The design tool rail stands on its own beside the right panel (13 Nov, Sinnie: "should be on the side"). */}
-        {!present && (view === '3d' || view === 'split') && <TowerRail />}
+        {!present && (view === '3d' || view === 'split') && !railHidden && <TowerRail />}
         {panels.right ? <><PanelResizer side="right" /><RightPanel /></> : <PanelRail side="right" label={present ? 'Present and results' : 'Results'} />}
         </>)}
       </div>

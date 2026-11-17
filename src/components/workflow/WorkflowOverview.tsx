@@ -1,7 +1,7 @@
 // The workflow editor: the whole project workflow, on demand, in the centre view (Ruijie, 9 Nov: "when they click on
 // edit … the central viewport will turn into the workflow edit, like how the landing page was … drawers and the workflow
 // streams … once the user added and fixed it, they can click enter or confirm. And then exit out to … work on each part
-// of the process"). It opens from the Workflow header in the phase panel, the phase row's Overview and the bar's Edit
+// of the process"). It opens from the Workflow header in the phase panel and the bar's Edit
 // workflow, over the model only: the phase panel and the results stay beside it and follow every change. It shows the
 // same five phase lanes as the landing page, every tool in working order from left to right, return paths as dashed arcs.
 //   Add:      drag a tool up from the shelf under the lanes: the best place lights up (after the last tool of its phase),

@@ -27,6 +27,10 @@ import { useLifeSafety } from './LifeSafetyPanel'
 import { useSiteLimits } from './SiteLimitsPanel'
 import { useRelaxAviation } from './RelaxAviationPanel'
 import { windStudyRules } from '../engine/windStructure'
+import type { RuleResult } from '../engine/types'
+
+/** No wind comfort run yet: one stable empty list, so the store selector never hands React a fresh array. */
+const NO_RULES: RuleResult[] = []
 import { FlagChip, Section, StateChip } from './ui'
 import { ResultCounts } from './ResultState'
 

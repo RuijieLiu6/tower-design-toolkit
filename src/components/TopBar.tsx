@@ -1,10 +1,11 @@
 // The project bar (overnight brief, 8 Nov: "Project/context, file actions, Undo/Redo and a compact Assistant entry.
 // Consolidate secondary controls in a discoverable menu. Keep the project identity visible; do not build another phase
 // selector here"). 52 px tall, every control 14/20 px. Left: the toolkit's name, the project (Competition site / Real
-// Vancouver), the project file menu with Undo / Redo, Export model. Right: the view (model, model + data graph, data
+// Vancouver), the project file menu with Undo / Redo (its Import… and Export… open the transfer centre; the bar's own
+// Import and Export buttons went on 17 Nov, Ruijie: "their functions are already incorporated into the project menu"). Right: the view (model, model + data graph, data
 // graph), Auto-run checks (what the old "Analysis On/Off" really controls: checks recompute with the model, or pause),
 // Edit workflow (the workflow editor, 9 Nov; it was "Assistant"), and More (the check library, role, units, motion, Customize, Options, guide, tour, build status,
-// sources). Present adds Model locked and Capture. The phase row under this bar is the only phase selector.
+// sources). Present adds Model locked and Capture. In the centre, the Model | Presentation page switch (PageToggle; key V).
 import PageToggle from './PageToggle'
 import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, Library, ListChecks, LockKeyhole, MoreHorizontal, Network, PlayCircle, Scale, Waves, Workflow, X } from './icons'
 import { useEffect, useRef, useState } from 'react'
@@ -15,9 +16,11 @@ import { navigate } from '../lib/route'
 import { useTour } from '../lib/tour'
 import { openBuilder, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
 import ProjectMenu from './ProjectMenu'
+import InterfaceDrawer from './ui/InterfaceDrawer'
+import UiShow from './ui/UiShow'
 import TransferDialog from './porting/TransferDialog'
+import SyncModelDialog from './import/SyncModelDialog'
 import { useTransfer } from '../lib/porting/transfer'
-import { FileDown, FileUp } from './icons'
 import NodeLibrary from './NodeLibrary'
 import { UnitSelect } from './Units'
 import { RoleSelect } from './RolePicker'
@@ -35,15 +38,16 @@ const VIEWS: { id: ViewMode; icon: typeof Axis3d; label: string }[] = [
 ]
 const icon = 'flex h-8 w-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
+
 /** Auto-run checks: on, checks recompute whenever the model changes; off, they pause (choices and results kept). */
 function AutoRun() {
   const analysis = useStore((s) => s.analysis)
   const setAnalysis = useStore((s) => s.setAnalysis)
   return (
-    <button type="button" role="switch" aria-checked={analysis} onClick={() => setAnalysis(!analysis)} data-testid="analysis-switch"
+    <button type="button" role="switch" aria-checked={analysis} aria-label="Auto-run checks" onClick={() => setAnalysis(!analysis)} data-testid="analysis-switch"
       title={analysis ? 'Checks recompute whenever the model changes. Turn off to pause them while you sketch (your checks and choices are kept).' : 'Checks are paused: results wait. Turn on to recompute them with the model.'}
       className={`flex h-8 shrink-0 items-center gap-2 rounded-lg border px-2.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${analysis ? 'border-line bg-panel text-ink' : 'border-warning/40 bg-warning-surface text-warning'}`}>
-      <span className="whitespace-nowrap">Auto-run checks</span>
+      <span className="hidden whitespace-nowrap min-[1500px]:inline">Auto-run checks</span>
       <span aria-hidden className={`relative h-4 w-7 rounded-full transition-colors ${analysis ? 'bg-accent' : 'bg-boundary'}`}><span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all ${analysis ? 'left-[0.875rem]' : 'left-0.5'}`} /></span>
       <span className="sr-only">{analysis ? 'On' : 'Off'}</span>
     </button>
@@ -106,45 +110,44 @@ export default function TopBar() {
   // its file menu, Export and Auto-run (the evaluation mode the builder must keep) stay (Result A brief §3).
   const building = useProjectWorkflow((s) => s.mode === 'builder')
   return (
-    <header className="glass-edge stage-fade flex h-[52px] shrink-0 items-center gap-2 rounded-2xl bg-chrome px-3 text-control text-chrome-ink">
+    <header data-testid="top-bar" className={`glass-edge stage-fade flex h-[52px] shrink-0 items-center gap-2 rounded-2xl px-3 text-control ${present ? 'bar-present' : 'bg-chrome text-chrome-ink'}`}>
       <button onClick={showIntro} aria-label="Tower Design Toolkit" title="Back to the start" className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-0.5 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent">
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden><rect x="7" y="2" width="6" height="16" rx="1" fill="currentColor" /><rect x="3" y="11" width="14" height="7" rx="1" fill="currentColor" opacity=".35" /></svg>
-        <span className="hidden whitespace-nowrap font-semibold min-[1500px]:inline">Tower Design Toolkit</span>
+        <span className={`hidden whitespace-nowrap font-semibold ${present ? "min-[1800px]:inline" : "min-[1500px]:inline"}`}>Tower Design Toolkit</span>
       </button>
-      <div role="tablist" aria-label="Project" className={`flex shrink-0 rounded-lg p-0.5 ${present ? 'bg-white/10' : 'bg-subtle'}`}>
+      <div role="tablist" aria-label="Project" className={`flex shrink-0 rounded-lg p-0.5 ${present ? 'bar-track' : 'bg-subtle'}`}>
         {PROJECTS.map((p) => (
           <button key={p.id} role="tab" aria-selected={project === p.id} title={p.hint} onClick={() => (p.id === 'city' && project !== 'city' ? openCity() : setProject(p.id))}
-            className={`h-7 whitespace-nowrap rounded-md px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${project === p.id ? (present ? 'bg-white/90 text-ink' : 'bg-panel text-ink shadow-sm') : present ? 'text-chrome-ink hover:bg-white/10' : 'text-muted hover:text-ink'}`}>{p.label}</button>
+            className={`h-7 whitespace-nowrap rounded-md px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${project === p.id ? (present ? 'bar-on' : 'bg-panel text-ink shadow-sm') : present ? 'bar-off' : 'text-muted hover:text-ink'}`}>{p.label}</button>
         ))}
       </div>
       <ProjectMenu />
-      {/* One Import and one Export (Result B, 9 Nov): both open the transfer centre on their tab; nothing is downloaded by the click. */}
-      {(['import', 'export'] as const).map((t) => (
-        <button key={t} type="button" onClick={(e) => useTransfer.getState().open(t, e.currentTarget)} data-testid={`transfer-${t}`} title={t === 'import' ? 'Bring in a model, a project, a workflow package, a site boundary or a custom tool' : 'Take out geometry, a project backup, a workflow package or results'}
-          className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-control font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10'}`}>
-          {t === 'import' ? <FileUp size={13} aria-hidden /> : <FileDown size={13} aria-hidden />}{t === 'import' ? 'Import' : 'Export'}</button>
-      ))}
+      {/* Interface (Ruijie, 17 Nov): the drawer of everything the app shows, from the registry (lib/ui/registry.ts). */}
+      <InterfaceDrawer />
+      {/* The transfer centre (Result B, 9 Nov): opened from the project menu's Import… and Export…, or by a file dropped anywhere. */}
       <TransferDialog />
+      <SyncModelDialog />
       <span className="mx-auto" />
       {!building && <PageToggle dark={present} />}
       <span className="mx-auto" />
       {present && (
-        <>
-          <span title="Model locked: go back to Form or Schematic to change it" className="flex items-center gap-1 whitespace-nowrap rounded-full bg-white/10 px-2 py-1 text-meta"><LockKeyhole size={13} aria-hidden />Model locked</span>
-          <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-2.5 font-medium text-ink hover:bg-white/90"><Aperture size={14} aria-hidden />Capture</button>
-        </>
+        <UiShow id="topbar.capture">
+          {/* Under 1500 px the top bar keeps its words only where they are needed: the chips and buttons fall back to their icons (titles say the rest). */}
+          <span role="img" title="Model locked: go back to Form or Schematic to change it" aria-label="Model locked" data-testid="model-locked" className="flex items-center gap-1 whitespace-nowrap rounded-full bar-track px-2 py-1 text-meta"><LockKeyhole size={13} aria-hidden /><span className="hidden min-[1500px]:inline">Model locked</span></span>
+          <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bar-cta px-2.5 font-medium"><Aperture size={14} aria-hidden /><span className="hidden min-[1500px]:inline">Capture</span></button>
+        </UiShow>
       )}
-      {!building && <div className="flex items-center gap-0.5" role="group" aria-label="Screen: model, data graph or both" title="Screen: what fills the middle (the model, the data graph, or both). The display of the model itself is the View bar under it.">
+      {!building && <UiShow id="topbar.view-buttons"><div className="flex items-center gap-0.5" role="group" aria-label="Screen: model, data graph or both" title="Screen: what fills the middle (the model, the data graph, or both). The display of the model itself is the View bar under it.">
         {VIEWS.map(({ id, icon: Icon, label }) => (
           <button key={id} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}
-            className={`${icon} ${view === id ? (present ? 'bg-white/15' : 'bg-selected text-accent-hover') : present ? 'text-chrome-ink opacity-80 hover:opacity-100' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
+            className={`${icon} ${view === id ? (present ? 'bar-view-on' : 'bg-selected text-accent-hover') : present ? 'bar-off' : 'text-muted hover:text-ink'}`}><Icon size={16} /></button>
         ))}
-      </div>}
-      <AutoRun />
+      </div></UiShow>}
+      <UiShow id="topbar.autorun"><AutoRun /></UiShow>
       {/* Edit workflow (Ruijie, 9 Nov: "I didn't know what does assistant mean … this is more about editing the project
           workflow. So definitely rename it"): opens the workflow editor in the centre view; its Suggest field takes words. */}
-      {!building && <button type="button" onClick={() => openBuilder()} data-testid="edit-workflow-button" title="Edit the project workflow: arrange the tools you will use, add return paths, open any tool"
-        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden />Edit workflow</button>}
+      {!building && <UiShow id="topbar.edit-workflow"><button type="button" onClick={() => openBuilder()} data-testid="edit-workflow-button" aria-label="Edit workflow" title="Edit the project workflow: arrange the tools you will use, add return paths, open any tool"
+        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'bar-ghost' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden /><span className="hidden min-[1500px]:inline">Edit workflow</span></button></UiShow>}
       <MoreMenu />
     </header>
   )

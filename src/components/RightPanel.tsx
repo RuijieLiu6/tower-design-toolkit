@@ -5,6 +5,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 'react'
 import ClimateDrawings from './ClimateDrawings'
 import SwResults from './sw/SwResults'
+import { groupVisible, UiScopeContext, useUiItems, useUiVisibility } from '../lib/ui/registry'
 import { useShallow } from 'zustand/react/shallow'
 import { ALL_NODES, BUILT_NODES, CATEGORIES, MERGES, canonicalNode } from '../data/registry'
 import { useCommunityNodeDefs } from '../lib/communityStore'
@@ -146,14 +147,18 @@ export default function RightPanel() {
   useEffect(() => watchSiteFocus(), [])
   const siteSeq = useSiteFocus((s) => s.seq)
   useEffect(() => { if (siteSeq && !drawing) setTab('site') }, [siteSeq]) // eslint-disable-line react-hooks/exhaustive-deps
-  const tabs: { id: Tab; label: string }[] = present
+  const hiddenUi = useUiVisibility((s) => s.hidden)
+  const uiItems = useUiItems()
+  const tabsAll: { id: Tab; label: string }[] = present
     ? [{ id: 'present', label: 'Present' }, ...(RenderTab ? [{ id: 'render' as Tab, label: 'Render' }] : []), { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
     : [...(designOpen ? [{ id: 'design' as Tab, label: 'Design' }] : []), ...(positioning ? [{ id: 'properties' as Tab, label: 'Properties' }] : []), { id: 'site', label: 'Your site' }, { id: 'results', label: 'Results' }, { id: 'trace', label: 'Trace' }]
+  // A tab hidden in the Interface drawer (Ruijie, 17 Nov), or one whose every section is hidden, leaves the bar (lib/ui/registry.ts).
+  const tabs = tabsAll.filter((t) => groupVisible(`right.tab.${t.id}`, hiddenUi, uiItems))
   const analysis = useStore((s) => s.analysis)
   // No tower: the banner, unless the picked check already says it needs a model (no message twice).
   // Not over Site limits either: it reads the site, and its tabs say themselves what waits for a tower (17 Nov).
   const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && (canonicalNode(s.selectedNode) === 'built.viewcones' || (s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))))
-  const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0].id
+  const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0]?.id ?? tab
   return (
     <aside data-panel="right" className="glass-edge flex h-full w-[var(--right-w)] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>
       <div className="flex border-b border-line">
@@ -165,18 +170,20 @@ export default function RightPanel() {
               const i = tabs.findIndex((x) => x.id === shown), next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]
               setTab(next.id); document.getElementById(`rp-tab-${next.id}`)?.focus()
             }}
-            className={`flex-1 px-2 py-2.5 text-control font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${shown === t.id ? 'border-b-2 border-accent text-ink' : 'text-muted hover:text-ink'}`}>{t.label}{t.id === 'site' && unseen && shown !== 'site' && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 align-middle" aria-label="new tower" />}</button>
+            title={t.label} className={`min-w-0 flex-1 truncate px-1.5 py-2.5 text-control font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${shown === t.id ? 'border-b-2 border-accent text-ink' : 'text-muted hover:text-ink'}`}>{t.label}{t.id === 'site' && unseen && shown !== 'site' && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 align-middle" aria-label="new tower" />}</button>
         ))}
       </div>
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>
       </div>
       <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
+        <UiScopeContext.Provider value={`right.tab.${shown}`}>
         {shown === 'properties' && (drawing ? <DrawToolPanel /> : <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>)}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}
         {shown === 'results' && (analysis ? <>{noTower && <NothingToAnalyse />}<ResultsPicker /><ResultFreshness /><SwResults /><ClimateDrawings /><Inspector /></> : <><AnalysisOff /><ResultFreshness /></>)}
         {shown === 'present' && <PresentPanel />}
         {shown === 'render' && RenderTab && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Render…</p>}><RenderTab /></Suspense>}
         {shown === 'trace' && <TracePanel />}
+        </UiScopeContext.Provider>
       </div>
     </aside>
   )

@@ -269,6 +269,10 @@ body {
   --f3: hsl(calc(var(--gh) - 14) calc(72% * var(--gs)) 38%); --fa: hsl(calc(var(--gh) + 140) calc(88% * var(--gs)) 57%); }
 .gicon[data-level="off"], .ficon[data-off] { --gs: 0.22; }
 .ficon[data-off] { opacity: 0.8; }
+/* Grey until chosen (IconTile greyUnlit; Ruijie, 17 Nov: the transfer dialog's purposes, the chosen one vivid, the rest
+   grey): no hue at all, a hint of it back on hover. */
+.gicon.gicon-grey { --gs: 0; color: hsl(0 0% 42%); }
+.group:hover .gicon.gicon-grey { --gs: 0.45; color: hsl(var(--gh) 30% 40%); }
 .gicon[data-filled] .gicon-glow { filter: blur(calc(var(--gi) * 0.07)) saturate(1.3); opacity: 0.16; transform: translateY(calc(var(--gi) * 0.05)); }
 .gicon[data-filled][data-level="soft"] .gicon-glow { opacity: 0.08; }
 .gicon[data-filled][data-level="off"] .gicon-glyph { opacity: 0.75; }
@@ -390,15 +394,57 @@ body {
   --right-w: 17.5rem;
 }
 @media (min-width: 1400px) { :root { --left-w: 18rem; --right-w: 19rem; } }
-.workspace-shell {
-  background-color: var(--color-shell);
-  background-image:
-    radial-gradient(38% 34% at -4% 104%, rgb(255 196 160 / 0.30), rgb(255 196 160 / 0) 70%),
-    radial-gradient(30% 50% at 104% 60%, rgb(200 182 243 / 0.26), rgb(200 182 243 / 0) 70%),
-    radial-gradient(40% 18% at 60% -4%, rgb(253 240 225 / 0.9), rgb(253 240 225 / 0) 72%);
+/* Ruijie, 17 Nov: each mode gets its own gradient, a sibling of the landing page's (the same clean, warm, colourful light
+   from the edges, an ivory middle), in other colours, so the mode reads at a glance. Mood only, like --atmo-*: never a
+   phase, action, selection, status, material or data colour. Panels and the model stay opaque on top; only the frame
+   around them shows it. Mirrored in lib/design/tokens.ts MODE_ATMOSPHERE.
+   Model, "morning garden": honey and apricot at the lower left, fresh mint along the lower right, clear sky at the top
+   right, on warm ivory.
+   Presentation, "golden hour": amber at the lower left, terracotta rose along the bottom, sage teal at the right, a
+   pale butter light at the top, on warm sand (the board still reads as a print on a wall). */
+:root {
+  --model-base: #fffaf1; --model-honey: #ffd27f; --model-apricot: #ffb488; --model-mint: #a9e3c4; --model-sky: #b9dcf6;
+  --present-base: #f8efe3; --present-amber: #ffbe6b; --present-terracotta: #ee9a86; --present-sage: #9fd3c6; --present-butter: #fff0c4;
 }
-[data-stage="present"].workspace-shell { background-color: var(--color-paper); background-image: none; }
+.workspace-shell {
+  background-color: var(--model-base);
+  background-image:
+    radial-gradient(44% 46% at -6% 106%, var(--model-honey), rgb(255 210 127 / 0) 70%),
+    radial-gradient(34% 40% at 24% 108%, var(--model-apricot), rgb(255 180 136 / 0) 72%),
+    radial-gradient(40% 46% at 104% 104%, var(--model-mint), rgb(169 227 196 / 0) 70%),
+    radial-gradient(42% 40% at 102% -6%, var(--model-sky), rgb(185 220 246 / 0) 70%),
+    radial-gradient(40% 24% at 40% -8%, rgb(255 239 214 / 0.95), rgb(255 239 214 / 0) 72%);
+}
+[data-stage="present"].workspace-shell {
+  background-color: var(--present-base);
+  background-image:
+    radial-gradient(44% 48% at -6% 106%, var(--present-amber), rgb(255 190 107 / 0) 70%),
+    radial-gradient(42% 36% at 50% 114%, var(--present-terracotta), rgb(238 154 134 / 0) 70%),
+    radial-gradient(38% 60% at 106% 56%, var(--present-sage), rgb(159 211 198 / 0) 70%),
+    radial-gradient(50% 26% at 40% -8%, var(--present-butter), rgb(255 240 196 / 0) 72%);
+}
 @media (prefers-contrast: more) { .workspace-shell { background-image: none; } }
+
+/* The top bar in Presentation (Ruijie, 17 Nov: the dark bar was too heavy; keep the sense of switching). Golden glass,
+   chosen from three looks: the bar takes the mode's golden-hour light (after Arc, whose toolbar takes the space's colour). */
+[data-stage="present"] {
+  --bar-bg: linear-gradient(100deg, #fff3df 0%, #fde7dc 52%, #e4f2ec 100%);
+  --bar-line: rgb(214 160 110 / 0.4); --bar-ink: #2e2620; --bar-off-ink: #6a5546;
+  --bar-track: rgb(255 255 255 / 0.6); --bar-on-bg: #fff; --bar-on-shadow: 0 1px 2px rgb(120 70 30 / 0.18);
+  --bar-view-on-bg: rgb(255 255 255 / 0.9); --bar-view-on-ink: #a1501f; --bar-hover: rgb(255 255 255 / 0.55);
+  --bar-ghost-bg: rgb(255 255 255 / 0.5); --bar-cta: #3a2a20; --bar-cta-ink: #fff7ec;
+}
+.bar-present { background: var(--bar-bg); color: var(--bar-ink); border-color: var(--bar-line) !important; }
+.bar-present, .bar-present :is(button, a, span, div) { transition: background-color 300ms var(--ease-standard), color 300ms var(--ease-standard), border-color 300ms; }
+.bar-track { background: var(--bar-track); }
+.bar-on { background: var(--bar-on-bg); color: var(--bar-ink); box-shadow: var(--bar-on-shadow); }
+.bar-off { color: var(--bar-off-ink); }
+.bar-off:hover { color: var(--bar-ink); background: var(--bar-hover); }
+.bar-view-on { background: var(--bar-view-on-bg); color: var(--bar-view-on-ink); }
+.bar-ghost { border-color: var(--bar-line); background: var(--bar-ghost-bg); color: var(--bar-ink); }
+.bar-ghost:hover, .bar-hover:hover { background: var(--bar-hover); }
+.bar-cta { background: var(--bar-cta); color: var(--bar-cta-ink); }
+.bar-cta:hover { filter: brightness(1.06); }
 
 /* Field values in the open tool's controls and the results are 14/20 (overnight brief, 8 Nov: "14/20 px for primary
    controls … buttons, selects and field values"): whatever size a tool's own markup gave its inputs and selects. */

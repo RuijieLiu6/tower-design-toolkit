@@ -18,7 +18,7 @@ import NodeLibrary, { stageOf } from './NodeLibrary'
 
 const CAT_ORDER = Object.keys(CATEGORIES) as Category[]
 const byCategory = (a: NodeDef, b: NodeDef) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category)
-const STAGE_NAME: Record<string, string> = { basic: 'Massing', advanced: 'Schematic', present: 'Present' }
+const STAGE_NAME: Record<string, string> = { basic: 'Massing', advanced: 'Schematic', present: 'Presentation' }
 
 /** The bar's groups for a stage: the stage's own checks first; Schematic and Present keep the Massing checks too. */
 function barGroups(phase: Phase): { label: string; nodes: NodeDef[] }[] {

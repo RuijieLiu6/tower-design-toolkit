@@ -20,13 +20,13 @@ const SITE_W = 144.8, SITE_D = 79.2
 const R = (v: number) => Math.round(v * 100) / 100
 const local = (x: number, y: number): [number, number] => [R(x - SITE_CENTRE[0]), R(y - SITE_CENTRE[1])]
 
-/** The file opened, but it is not the competition base model (or its site block has moved). */
+/** The file opened, but it is not the competition base model: lib/vtcContextSource then reads it as any model. */
 export class NotTheBaseModel extends Error {}
 
 /** Python's polyline_points: polylines exactly (closing point kept), other curves at 33 points. */
 const ring = (c: Rh) => curvePoints(c, 32, true)
 
-/** Builds the competition context from the bytes of the base model. Throws NotTheBaseModel for any other .3dm. */
+/** Builds the competition context from the bytes of the base model. Throws NotTheBaseModel for a .3dm without its buildings. */
 export function buildVtcContext(rh: Rh, bytes: Uint8Array): VtcContext {
   const doc = rh.File3dm.fromByteArray(bytes)
   if (!doc) throw new NotTheBaseModel('This file could not be opened as a Rhino model.')
@@ -45,7 +45,7 @@ function build(rh: Rh, doc: Rh): VtcContext {
   }
   const out: VtcContext = {
     meta: {
-      source: 'Vancouver Tall Challenge base model (Buildner). Not for redistribution.',
+      source: 'Derived from the Vancouver Tall Challenge base model (Buildner): outlines, heights and simplified meshes, not the model file.',
       true_north_deg_clockwise_from_plus_y: 45.0,
       north_note: 'Read from the drawn north arrow. FALSE ASSUMPTION in the file: its saved north is +Y and its saved location is 49.16 N, -123.07 W (Richmond).',
     },
@@ -122,7 +122,8 @@ function build(rh: Rh, doc: Rh): VtcContext {
     out.future_towers.push({ footprint: r.slice(0, -1), z0, z1: tops.length ? Math.max(...tops) : null })
   }
 
-  if (!out.site) throw new NotTheBaseModel(`This doesn't look like the Vancouver Tall base model: its "3D Model::Block" layer has no ${SITE_W} × ${SITE_D} m site block at the expected place. Add the unchanged "Vancouver Tall Base Model.3dm" from the competition download.`)
+  // No block at the expected place (an edited copy): the context is kept, without a site line (Ruijie, 17 Nov: no block
+  // is required). The competition rules still read the brief's block.
   if (!out.buildings.length && !out.heritage.length) throw new NotTheBaseModel('This doesn\'t look like the Vancouver Tall base model: it has no context buildings on the "3D Model::Existing Buildings" or "3D Model::Heritage" layers.')
   return out
 }

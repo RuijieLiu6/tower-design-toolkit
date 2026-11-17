@@ -70,3 +70,10 @@ export const LANDING = {
     surface: '#fffdf9',
   },
 } as const
+
+/** Each mode's frame gradient (Ruijie, 17 Nov): siblings of the landing atmosphere in other colours, mood only, like it.
+ *  Same values as src/index.css --model-* and --present-*. */
+export const MODE_ATMOSPHERE = {
+  model: { base: '#fffaf1', honey: '#ffd27f', apricot: '#ffb488', mint: '#a9e3c4', sky: '#b9dcf6' },
+  presentation: { base: '#f8efe3', amber: '#ffbe6b', terracotta: '#ee9a86', sage: '#9fd3c6', butter: '#fff0c4' },
+} as const

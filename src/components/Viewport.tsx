@@ -36,12 +36,15 @@ import PlanDrawing from './PlanDrawing'
 import PublicRealmOverlay from './PublicRealmOverlay'
 import EnergyOverlay from './EnergyOverlay'
 import WindScreenOverlay from './WindScreenOverlay'
+import WindComfortOverlay from './WindComfortOverlay'
 import HiResCapture from './HiResCapture'
 import SolarOverlay from './SolarOverlay'
 import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import RelaxationMasks from './RelaxationMasks'
 import TowerGizmo, { TowerMover, outlineSegments } from './TowerGizmo'
 import TowerToolbar from './TowerToolbar'
+import UiShow from './ui/UiShow'
+import { useUiVisible } from '../lib/ui/registry'
 import MassingEdit3D from './MassingEdit3D'
 import TowerPosition3D from './TowerPosition3D'
 import Help from './Help'
@@ -119,8 +122,10 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
   // every other mode the neutral model.
   const lookId: VtcLookId = useModeColours().context === 'use' ? 'program' : 'plain'
   const look = useMemo(() => vtcSceneLook(stageLook, lookId, xray), [stageLook, lookId, xray])
-  // Without the base model (another computer, before the entrant adds their copy): the brief's block is the site.
-  const site = ctx?.site ?? BRIEF_SITE
+  // Without any context: the brief's block is the site. With your own model (Ruijie, 17 Nov): its site line, or none, so
+  // no block bounds the model; the competition rules still read the brief's block.
+  const site = ctx ? ctx.site : BRIEF_SITE
+  const siteShape = useMemo(() => (site ? new THREE.Shape(site.outline.map(([x, y]) => new THREE.Vector2(x, y))) : null), [site])
   const towers = useTowers()
   const hiddenTowers = useHiddenTowers((s) => s.hidden)
   // A physical-model base the size of the context model; the camera stays above its flat street level (0 m).
@@ -136,10 +141,10 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
     <>
       <Ground rect={plinth} color={look.ground} onPick={onPick} />
       <PlinthBase plinth={plinth} ring={ring} look={look} pad={0.1} />
-      {site && (
+      {site && siteShape && (
         <>
           <mesh name="vtc-site" position={[0, 0, 0.02]} receiveShadow onPointerDown={(e) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
-            <planeGeometry args={[site.width_m, site.depth_m]} />
+            <shapeGeometry args={[siteShape]} />
             <meshStandardMaterial color={massing ? LOT_TINT : look.site} />
           </mesh>
           {/* The site boundary: a constraint, drawn as a clear dark line (blue is kept for selection); in Massing the whole
@@ -172,6 +177,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
       <PublicRealmOverlay />
       <EnergyOverlay />
       <WindScreenOverlay />
+      <WindComfortOverlay />
       <SolarOverlay />
     </>
   )
@@ -203,6 +209,7 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
       <ConeOverlays base={ground} xray={xray} />
       <EnergyOverlay base={ground} />
       <WindScreenOverlay base={ground} />
+      <WindComfortOverlay base={ground} />
       <SolarOverlay />
       <SolarEnvelopeOverlay />
       <RelaxationMasks />
@@ -683,7 +690,7 @@ export default function Viewport() {
   // The display mode and the older switches it absorbed stay in step (components/DisplayMode.tsx).
   useDisplaySync()
   return (
-    <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'bg-paper p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
+    <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
       <div className="flex h-full w-full items-center justify-center" style={{ containerType: 'size' }}>
         <div data-viewport onPointerEnter={() => useHoverLabels.getState().setInView(true)} onPointerLeave={() => useHoverLabels.getState().setInView(false)} className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
           style={present ? { width: 'min(100cqw, 141.4cqh)', aspectRatio: '1.414 / 1' } : { width: '100%', height: '100%' }}>
@@ -717,6 +724,8 @@ export default function Viewport() {
             <CameraClamp />
           </Canvas>
           </ViewGuard>
+          {/* Under the board's lower right corner, close to it (Ruijie, 17 Nov). */}
+          {present && <div data-testid="board-size-caption" className="pointer-events-none absolute right-0 top-full mt-2 whitespace-nowrap text-meta text-muted">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
           {present && boardView === 'plan' ? <PlanDrawing /> : !hidden && !(project === 'city' && !present) && <NorthCompass north={north} />}
           {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
           {project === 'city' && !present && !hidden && <><SitePlaceLabels /><VistaChrome /></>}
@@ -727,22 +736,22 @@ export default function Viewport() {
       {/* While the Real Vancouver map is still downloading: how much has arrived (Ruijie, 7 Nov). */}
       {project === 'city' && <LoadingBar />}
       {/* The open tool's working view, and anything else drawn as pinned context (8 Nov). */}
-      {!present && !hidden && !looking && <ContextPins project={project} top="top-16" />}
+      {!present && !hidden && !looking && <UiShow id="viewport.working-view"><ContextPins project={project} top="top-16" /></UiShow>}
       {/* Every control over the view lives in one dock on the right (ViewportDock); H hides all overlays. */}
-      {project === 'city' && !present && <CityLegend />}
+      {project === 'city' && !present && <UiShow id="viewport.city-legend"><CityLegend /></UiShow>}
       {project === 'vtc' && !present && <VtcDock />}
-      {project === 'vtc' && !present && !hidden && <VtcContextCard />}
-      {project === 'vtc' && !present && !hidden && <VtcLookBar />}
+      {project === 'vtc' && !present && !hidden && <UiShow id="viewport.context-card"><VtcContextCard /></UiShow>}
+      {project === 'vtc' && !present && !hidden && <UiShow id="viewport.strip"><VtcLookBar /></UiShow>}
       {/* The view bar (DisplayModeSwitch.tsx ViewModeMenu): Capture, Frame, the view angles and the View mode, bottom centre. */}
       {!present && !hidden && <div className="pointer-events-none absolute left-3 top-3 z-20 flex [&>*]:pointer-events-auto"><ViewMenuSlot /></div>}
-      {project === 'city' && !present && !hidden && <VistaInset />}
+      {project === 'city' && !present && !hidden && <UiShow id="viewport.vista-inset"><VistaInset /></UiShow>}
       {!present && <DrawChrome />}
       {present && <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-meta text-ink">A2 landscape · 594 × 420 mm · the capture is exactly this frame</div>}
       {/* Real Vancouver: below the map's mode tabs, which cover the top edge. */}
       {placing && !hidden && !picked && <div className={`pointer-events-none absolute left-1/2 ${project === 'city' && !present ? 'top-14' : 'top-3'} -translate-x-1/2 rounded-full bg-ink/85 px-3 py-1 text-xs text-white`}>Click the ground where the tower should stand · Esc keeps it where it is</div>}
       {!present && <ShowOverlaysButton />}
-      <TowerToolbar />
-      <MassingEditReadout />
+      <UiShow id="viewport.tower-toolbar"><TowerToolbar /></UiShow>
+      <UiShow id="viewport.edit-readout"><MassingEditReadout /></UiShow>
     </div>
   )
 }
@@ -791,6 +800,8 @@ function NorthCompass({ north }: { north: number }) {
     northView.invalidate?.()
     return () => { northView.arrows.delete(el) }
   }, [north])
+  const northOn = useUiVisible('viewport.north')
+  if (!northOn) return null
   return (
     <button type="button" onClick={() => faceNorth(upNorthDeg())} data-testid="north-arrow"
       aria-label={`Turn the view to face north. ${label}${north ? ". False assumption corrected: the file's saved north is the grid." : '.'}`} title={`Face north · ${label}`}
@@ -809,6 +820,7 @@ function NorthCompass({ north }: { north: number }) {
 function VtcDock() {
   const { ctx, missing, status } = useVtcContext()
   const source = useVtcSource((s) => s.source)
+  const own = useVtcSource((s) => s.own)
   return (
     <ViewportDock sections={[
       { id: 'vtc-site', title: 'Site, north & datum', defaultOpen: true, summary: `true north ${VTC_NORTH_DEG}°`, children: (
@@ -842,7 +854,7 @@ function VtcDock() {
         </div>
       ) },
       { id: 'vtc-sun', title: 'Sun', defaultOpen: true, summary: <VtcSunSummary />, children: <VtcSun /> },
-      { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? 'your copy · this browser' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
+      { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? (own === 'model' ? 'your model · this browser' : 'your copy · this browser') : source === 'included' ? 'included' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
     ]} />
   )
 }

@@ -59,7 +59,7 @@ export const imageSource = (img: BoardImage | undefined): ImageSource | undefine
 export type FrameContent =
   | { kind: 'empty' }
   | { kind: 'image'; imageId: string; fit: 'cover' | 'contain' }
-  | { kind: 'text'; text: string; sizeMm: number; bold?: boolean }
+  | { kind: 'text'; text: string; sizeMm: number; bold?: boolean; /** A family of its own (lib/fonts); the board's heading or body face otherwise. */ font?: string }
   | { kind: 'evidence'; nodeId: string }
   /** A vector drawing of the design at true scale (lib/boardDrawings.ts, from the Tower Workspace's Presentation page). */
   | { kind: 'drawing'; vt: 'site' | 'plan' | 'elev' | 'section' | 'context' | 'roof' | 'axo' | 'program'; level?: number; dir?: 'N' | 'E' | 'S' | 'W'; scale?: number; axis?: 'long' | 'cross'; label?: string }
@@ -69,7 +69,7 @@ export type FrameContent =
 export interface Frame { id: string; x: number; y: number; w: number; h: number; role: 'title' | 'body'; content: FrameContent; caption?: string; tag?: DeliverableId | null }
 
 export type TemplateId = 'hero' | 'grid' | 'plans' | 'story'
-export interface Board { id: string; template: TemplateId; frames: Frame[]; /** The sheet's name in the sheet list (else its title text). */ name?: string }
+export interface Board { id: string; template: TemplateId; frames: Frame[]; /** The board's own name (Ruijie, 17 Nov): shown on its tab, used for the file name and to order the boards. */ name?: string }
 
 /** Sheet sizes (ISO A, landscape): all share one proportion, so a board laid out on A2 prints on the others to scale. */
 export const SHEET_SIZES = { A3: { label: 'A3 landscape', k: 420 / 594 }, A2: { label: 'A2 landscape (competition)', k: 1 }, A1: { label: 'A1 landscape', k: 841 / 594 } } as const
@@ -95,6 +95,32 @@ export function sheetNumbers(boards: Board[]): string[] {
     return `A-${series}${String(seen[series]).padStart(2, '0')}`
   })
 }
+
+/** The name shown and written: the board's own, else "Board n" by its place. */
+export const boardName = (b: Board, i: number) => sheetName(b, i) // one naming rule for both: own name, else the title line, else "Sheet n"
+/** A neutral file name from the board's place and name: "01-site-strategy". A number leading the name (the way people
+ *  order boards by name, "1 Site strategy") gives way to the place, which already leads the file name. */
+export function boardFileStem(b: Board, i: number): string {
+  const slug = boardName(b, i).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/^\d+(?:-|$)/, '').slice(0, 48)
+  return `${String(i + 1).padStart(2, '0')}-${slug || 'board'}`
+}
+/** Move one board to another place; the others keep their order. */
+export function moveBoard<T>(list: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list
+  const out = list.slice(); const [b] = out.splice(from, 1); out.splice(to, 0, b); return out
+}
+/** The boards ordered by their names, numbers read as numbers ("2 Plans" before "10 Views"); unnamed boards keep their order after the named ones. */
+export function sortBoardsByName(list: Board[]): Board[] {
+  const all = list.map((b, i) => ({ b, i }))
+  const named = all.filter((x) => x.b.name?.trim())
+  const rest = all.filter((x) => !x.b.name?.trim())
+  named.sort((x, y) => x.b.name!.trim().localeCompare(y.b.name!.trim(), undefined, { numeric: true, sensitivity: 'base' }) || x.i - y.i)
+  return [...named, ...rest].map((x) => x.b)
+}
+/** The board-wide pair (Ruijie, 17 Nov): headings (the title band) and text (frames, captions, evidence), as CSS family names. */
+export interface BoardFonts { heading: string; body: string }
+/** Every family a board names: the pair and each text frame's own, in use order (the first is the heading). */
+export const familiesUsed = (b: Board, fonts: BoardFonts): string[] => [...new Set([fonts.heading, fonts.body, ...b.frames.flatMap((f) => (f.content.kind === 'text' && f.content.font ? [f.content.font] : []))])]
 
 export const TEMPLATES: Record<TemplateId, { label: string; hint: string }> = {
   hero: { label: 'Hero + two', hint: 'One large view, two smaller, a text block' },
