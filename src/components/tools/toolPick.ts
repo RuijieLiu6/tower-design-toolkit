@@ -44,6 +44,17 @@ export interface ToolChoice {
  * Pure: the tools offered and the open one. `tools` are the stage's tools in panel order (registry.ts toolsFor); `all`
  * every tool, for a check's own control set (`only`, lib/workflow/phaseTools.ts NODE_CONTROLS).
  */
+/**
+ * The choice after the Interface drawer: a hidden tool leaves the row, and an open tool that was hidden gives way to
+ * the first one left. A step with nothing open (an empty Volume, until a tool is picked) stays that way: hiding must
+ * not open Generate by itself.
+ */
+export function afterHiding(c: ToolChoice, visible: (id: string) => boolean): ToolChoice {
+  const shown = c.shown.filter((t) => visible(t.id))
+  const activeId = c.activeId === undefined ? undefined : shown.some((t) => t.id === c.activeId) ? c.activeId : shown[0]?.id
+  return { ...c, shown, activeId }
+}
+
 export function resolveTools(tools: DesignTool[], { all = tools, phase, step, only, noTower, picked }: {
   all?: DesignTool[]; phase: Phase; step: StepId; only?: string[]; noTower: boolean; picked: Record<string, string>
 }): ToolChoice {
@@ -75,9 +86,7 @@ export function useToolChoice(only?: string[]) {
   const choice = useMemo(() => {
     const c = resolveTools(tools, { all: DESIGN_TOOLS, phase, step, only, noTower, picked })
     // A tool hidden in the Interface drawer leaves the row and the rail (the panel and the rail read the same list).
-    const shown = c.shown.filter((t) => isVisible(`tools.${t.id}`, hiddenUi, uiItems))
-    const activeId = shown.some((t) => t.id === c.activeId) ? c.activeId : shown[0]?.id
-    return { ...c, shown, activeId }
+    return afterHiding(c, (id) => isVisible(`tools.${id}`, hiddenUi, uiItems))
   }, [tools, phase, step, only, noTower, picked, hiddenUi, uiItems])
   return { ...choice, phase, step, pick: (id: string) => pickTool(choice.where, id) }
 }

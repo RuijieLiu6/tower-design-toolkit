@@ -10,7 +10,24 @@ const TREE = [T('a', null), T('a.1', 'a'), T('a.2', 'a'), T('a.2.x', 'a.2'), T('
 
 // The drawer's logic, pure: visibility inherits down, groups read on / off / mixed, locked parts never hide, and the
 // choice is kept in this browser as the hidden ids.
+describe('a hidden layer remembers what it was', () => {
+  beforeEach(() => { vi.stubGlobal('localStorage', storage()) })
+  afterEach(() => vi.unstubAllGlobals())
+  it('keeps the earlier state in this browser until the layer is shown again', async () => {
+    const a = await import('./addons')
+    a.rememberLayer('trees', true); a.rememberLayer('zoning', false)
+    expect(a.layersWere()).toEqual({ trees: true, zoning: false })
+    a.rememberLayer('trees', undefined)
+    expect(a.layersWere()).toEqual({ zoning: false })
+  })
+})
+
 describe('the interface registry', () => {
+  it('keeps the phases line: the only phase navigation in Model is locked, like the switch and the project menu', async () => {
+    const line = r.STATIC_ITEMS.find((x) => x.id === 'left.workflow.line')
+    expect(line?.locked).toBe(true)
+    expect(r.isVisible('left.workflow.line', r.withVisible({}, 'left.workflow.line', false, r.STATIC_ITEMS), r.STATIC_ITEMS)).toBe(true)
+  })
   let r: R
   beforeEach(async () => { vi.resetModules(); vi.stubGlobal('localStorage', storage()); vi.stubGlobal('window', {}); r = await import('./registry') })
   afterEach(() => vi.unstubAllGlobals())

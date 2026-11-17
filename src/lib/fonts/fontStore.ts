@@ -42,7 +42,8 @@ export function hydrateUserFonts(): Promise<void> {
     try {
       const all = ((await idb('readonly', (s) => s.getAll())) as Stored[] | undefined) ?? []
       for (const x of all) bytesCache.set(x.meta.id, x.bytes)
-      useFonts.setState({ user: all.map((x) => x.meta).sort((a, b) => a.addedAt.localeCompare(b.addedAt)), hydrated: true })
+      // A font stored under a built-in family's name (before 17 Nov the check let it through) is left out: the built-in face wins.
+      useFonts.setState({ user: all.map((x) => x.meta).filter((m) => !isBuiltin(m.family)).sort((a, b) => a.addedAt.localeCompare(b.addedAt)), hydrated: true })
     } catch { useFonts.setState({ hydrated: true }) }
   })()
   return hydrating
@@ -77,10 +78,16 @@ export async function removeUserFont(id: string) {
 const faces = new Map<string, FontFace[]>()
 const base = () => { try { return import.meta.env.BASE_URL || './' } catch { return './' } }
 
-/** Register a family's faces with the document (once) and wait for them; unknown families are left to the fallback. */
-export async function ensureFontsLoaded(families: string[]): Promise<void> {
-  if (typeof document === 'undefined' || !('fonts' in document)) return
-  const wanted = [...new Set(families)].filter((f) => f && !faces.has(f))
+/**
+ * Register a family's faces with the document (once) and wait for them. "Your fonts" are read from this browser first
+ * when one is asked for (an export right after a reload used to find the cache empty and draw the fallback). Returns
+ * the families the document still cannot draw (unknown, or a face that failed to load): the caller says so.
+ */
+export async function ensureFontsLoaded(families: string[]): Promise<string[]> {
+  const asked = [...new Set(families)].filter((f) => f)
+  if (typeof document === 'undefined' || !('fonts' in document)) return asked.filter((f) => !isBuiltin(f))
+  if (asked.some((f) => !isBuiltin(f))) await hydrateUserFonts()
+  const wanted = asked.filter((f) => !faces.has(f))
   const jobs: Promise<unknown>[] = []
   for (const family of wanted) {
     const builtin = BUILTIN_FONTS.find((b) => b.family === family)
@@ -99,14 +106,25 @@ export async function ensureFontsLoaded(families: string[]): Promise<void> {
     document.fonts.add(face)
     jobs.push(face.load().catch(() => undefined))
   }
-  if (!jobs.length) return
-  await Promise.all(jobs)
-  try { await document.fonts.ready } catch { /* ignore */ }
-  useFonts.setState((s) => ({ loaded: s.loaded + 1 }))
+  if (jobs.length) {
+    await Promise.all(jobs)
+    try { await document.fonts.ready } catch { /* ignore */ }
+    useFonts.setState((s) => ({ loaded: s.loaded + 1 }))
+  }
+  return asked.filter((f) => !fontReady(f))
+}
+/** Can the document draw this family now? Inter is the app's own CSS face; the rest are checked with the FontFace API. */
+export function fontReady(family: string): boolean {
+  if (family === DEFAULT_FAMILY) return true
+  if (typeof document === 'undefined' || !('fonts' in document)) return isBuiltin(family)
+  const list = faces.get(family)
+  if (!list) return false
+  if (list.some((f) => f.status === 'loaded')) return true
+  try { return document.fonts.check(`12px "${family}"`) } catch { return false }
 }
 
 /** Every family on offer: the built-in set, then the viewer's own. */
-export const allFamilies = (user: UserFont[] = useFonts.getState().user) => [...BUILTIN_FONTS.map((b) => b.family), ...user.map((u) => u.family)]
+export const allFamilies = (user: UserFont[] = useFonts.getState().user) => [...new Set([...BUILTIN_FONTS.map((b) => b.family), ...user.map((u) => u.family)])]
 export const familyAvailable = (family: string, user: UserFont[] = useFonts.getState().user) => isBuiltin(family) || user.some((u) => u.family === family)
 /** The family to draw with: itself when it is on offer, else Inter (pure). */
 export const resolveFamily = (family: string | undefined, available: (f: string) => boolean = (f) => familyAvailable(f)): string => (family && available(family) ? family : DEFAULT_FAMILY)

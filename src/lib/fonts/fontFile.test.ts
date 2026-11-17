@@ -1,3 +1,4 @@
+import { BUILTIN_FONTS } from './catalog'
 import { describe, expect, it } from 'vitest'
 import { checkFontFile, familyFromFileName, familyNameOf, formatOf, FONT_MAX_BYTES } from './fontFile'
 
@@ -56,6 +57,11 @@ describe('a font file', () => {
   it('falls back to a family made from the file name', () => {
     expect(familyFromFileName('SpaceGrotesk-Regular.woff2')).toBe('Space Grotesk')
     expect(familyFromFileName('my_board_font-700.ttf')).toBe('my board font')
+  })
+  it('refuses a file whose family is one of the built-in faces (two entries of one name would clash)', async () => {
+    const r = await checkFontFile(file('inter.ttf', sfnt([{ id: 1, text: BUILTIN_FONTS[0].family }])), okProbe)
+    expect(r).toMatchObject({ ok: false, error: expect.stringContaining('own faces') })
+    expect(await checkFontFile(file('studio.ttf', sfnt([{ id: 1, text: 'Studio Sans' }])), okProbe)).toMatchObject({ ok: true, family: 'Studio Sans' })
   })
   it('refuses what is not a font, in plain words, and passes a good one with its name', async () => {
     expect(await checkFontFile(file('notes.txt', 10), okProbe)).toMatchObject({ ok: false, error: expect.stringContaining('not a font file') })
