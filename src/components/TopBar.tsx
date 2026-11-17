@@ -70,10 +70,10 @@ function AutoRun() {
   const analysis = useStore((s) => s.analysis)
   const setAnalysis = useStore((s) => s.setAnalysis)
   return (
-    <button type="button" role="switch" aria-checked={analysis} onClick={() => setAnalysis(!analysis)} data-testid="analysis-switch"
+    <button type="button" role="switch" aria-checked={analysis} aria-label="Auto-run checks" onClick={() => setAnalysis(!analysis)} data-testid="analysis-switch"
       title={analysis ? 'Checks recompute whenever the model changes. Turn off to pause them while you sketch (your checks and choices are kept).' : 'Checks are paused: results wait. Turn on to recompute them with the model.'}
       className={`flex h-8 shrink-0 items-center gap-2 rounded-lg border px-2.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${analysis ? 'border-line bg-panel text-ink' : 'border-warning/40 bg-warning-surface text-warning'}`}>
-      <span className="whitespace-nowrap">Auto-run checks</span>
+      <span className="hidden whitespace-nowrap min-[1500px]:inline">Auto-run checks</span>
       <span aria-hidden className={`relative h-4 w-7 rounded-full transition-colors ${analysis ? 'bg-accent' : 'bg-boundary'}`}><span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all ${analysis ? 'left-[0.875rem]' : 'left-0.5'}`} /></span>
       <span className="sr-only">{analysis ? 'On' : 'Off'}</span>
     </button>
@@ -156,8 +156,9 @@ export default function TopBar() {
       <span className="mx-auto" />
       {present && (
         <>
-          <span title="Model locked: go back to Form or Schematic to change it" className="flex items-center gap-1 whitespace-nowrap rounded-full bg-white/10 px-2 py-1 text-meta"><LockKeyhole size={13} aria-hidden />Model locked</span>
-          <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-2.5 font-medium text-ink hover:bg-white/90"><Aperture size={14} aria-hidden />Capture</button>
+          {/* Under 1500 px the top bar keeps its words only where they are needed: the chips and buttons fall back to their icons (titles say the rest). */}
+          <span title="Model locked: go back to Form or Schematic to change it" aria-label="Model locked" data-testid="model-locked" className="flex items-center gap-1 whitespace-nowrap rounded-full bg-white/10 px-2 py-1 text-meta"><LockKeyhole size={13} aria-hidden /><span className="hidden min-[1500px]:inline">Model locked</span></span>
+          <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-2.5 font-medium text-ink hover:bg-white/90"><Aperture size={14} aria-hidden /><span className="hidden min-[1500px]:inline">Capture</span></button>
         </>
       )}
       {!building && <div className="flex items-center gap-0.5" role="group" aria-label="View">
@@ -169,8 +170,8 @@ export default function TopBar() {
       <AutoRun />
       {/* Edit workflow (Ruijie, 9 Nov: "I didn't know what does assistant mean … this is more about editing the project
           workflow. So definitely rename it"): opens the workflow editor in the centre view; its Suggest field takes words. */}
-      {!building && <button type="button" onClick={() => openBuilder()} data-testid="edit-workflow-button" title="Edit the project workflow: arrange the tools you will use, add return paths, open any tool"
-        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden />Edit workflow</button>}
+      {!building && <button type="button" onClick={() => openBuilder()} data-testid="edit-workflow-button" aria-label="Edit workflow" title="Edit the project workflow: arrange the tools you will use, add return paths, open any tool"
+        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent ${present ? 'border-white/20 text-chrome-ink hover:bg-white/10' : 'border-line bg-panel text-ink hover:bg-subtle'}`}><Workflow size={15} aria-hidden /><span className="hidden min-[1500px]:inline">Edit workflow</span></button>}
       <MoreMenu />
     </header>
   )
