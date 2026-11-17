@@ -665,7 +665,7 @@ export default function Viewport() {
   // The display mode and the older switches it absorbed stay in step (components/DisplayMode.tsx).
   useDisplaySync()
   return (
-    <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'bg-paper p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
+    <div className={`board-frame relative isolate h-full w-full overflow-hidden ${present ? 'present-wall p-10' : 'p-0'} ${placing ? 'cursor-crosshair' : ''}`}>
       <div className="flex h-full w-full items-center justify-center" style={{ containerType: 'size' }}>
         <div data-viewport onPointerEnter={() => useHoverLabels.getState().setInView(true)} onPointerLeave={() => useHoverLabels.getState().setInView(false)} className={`relative ${present ? 'crop-marks shadow-[0_12px_40px_rgba(0,0,0,0.28)]' : ''}`}
           style={present ? { width: 'min(100cqw, 141.4cqh)', aspectRatio: '1.414 / 1' } : { width: '100%', height: '100%' }}>
