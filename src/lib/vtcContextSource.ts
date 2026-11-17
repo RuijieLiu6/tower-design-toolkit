@@ -1,9 +1,10 @@
 // Where the competition context comes from, in this order:
-//   1. public/local/vtc_context.json on a developer's computer (tools/build_vtc_context.py, git-ignored; never on the
+//   1. your own model, read in this browser and kept in its own storage (IndexedDB; nothing is uploaded): a copy of
+//      Buildner's "Vancouver Tall Base Model.3dm" (lib/vtcContextBuild.ts), or since 17 Nov any other 3DM, OBJ, glTF or
+//      IFC model (lib/vtcContextAny.ts; Ruijie: "let users upload any model of their own", no block required). You chose
+//      it, so it comes first, also on a developer's computer;
+//   2. public/local/vtc_context.json on a developer's computer (tools/build_vtc_context.py, git-ignored; never on the
 //      published site);
-//   2. the entrant's own copy of "Vancouver Tall Base Model.3dm", read in this browser (lib/vtcContextBuild.ts) and kept
-//      in its own storage (IndexedDB). Nothing is uploaded. It is kept as an option (Ruijie, 13 Nov): a newer download
-//      replaces the included context in this browser;
 //   3. the included context, public/context/vtc/context.json: the same derived outlines, heights and simplified meshes,
 //      shipped with the app so the competition site opens with its context without a download (Ruijie, 13 Nov). The
 //      brief (p.36) gives the materials "for the sole purpose of an academic exercise", to be used "at the participant's
@@ -29,9 +30,14 @@ interface VtcSourceState {
   addedAt: string
   /** Why the last file was refused, or a note that this browser could not keep it. */
   error: string
+  /** For source 'browser': 'base' = a copy of Buildner's base model (its own reader); 'model' = any other model, read by
+   *  lib/vtcContextAny.ts (Ruijie, 17 Nov). */
+  own: 'base' | 'model' | null
+  /** What was assumed while reading your own model (units, up axis, where it was placed, the site line). */
+  notes: string[]
 }
 
-export const useVtcSource = create<VtcSourceState>(() => ({ ctx: null, status: 'idle', source: null, version: 0, fileName: '', addedAt: '', error: '' }))
+export const useVtcSource = create<VtcSourceState>(() => ({ ctx: null, status: 'idle', source: null, version: 0, fileName: '', addedAt: '', error: '', own: null, notes: [] }))
 
 /**
  * The competition block from the brief (p.15: 144.8 x 79.2 m), centred on the model origin like the containment rule
@@ -51,7 +57,7 @@ const DB = 'tower-studio-local', STORE = 'vtc', KEY = 'base-model'
 /** Bump when vtcContextBuild changes its output: a saved context is then rebuilt from the saved file. 2: ground uses. */
 const BUILD_VERSION = 2
 
-interface Saved { buildVersion: number; ctx: VtcContext; bytes: ArrayBuffer; fileName: string; addedAt: string }
+interface Saved { buildVersion: number; ctx: VtcContext; bytes: ArrayBuffer; fileName: string; addedAt: string; kind?: 'base' | 'model'; notes?: string[] }
 
 function db(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {
@@ -115,45 +121,70 @@ async function build(bytes: Uint8Array): Promise<VtcContext> {
 
 const set = (p: Partial<VtcSourceState>, changed = true) => useVtcSource.setState((s) => ({ ...p, ...(changed ? { version: s.version + 1 } : {}) }))
 
-/** The competition context, loaded once: the dev file, else this browser's own copy, else the included one, else null ("missing"). */
+/** The context without your own model: the developer's file on this computer, else the one included with the app. */
+async function fallback(): Promise<{ ctx: VtcContext; source: 'dev-file' | 'included'; fileName: string } | null> {
+  const dev = await devFile()
+  if (dev) return { ctx: dev, source: 'dev-file', fileName: 'public/local/vtc_context.json' }
+  const included = await includedFile()
+  return included ? { ctx: included, source: 'included', fileName: INCLUDED_FILE } : null
+}
+
+/**
+ * The competition context, loaded once: your own model kept in this browser first (you chose it), else the developer's
+ * file, else the included one, else null ("missing").
+ */
 export function loadVtcContext(): Promise<VtcContext | null> {
   return (loading ??= (async () => {
     if (useVtcSource.getState().status === 'idle') set({ status: 'loading' }, false)
-    const dev = await devFile()
-    if (dev) { set({ ctx: dev, status: 'ready', source: 'dev-file', fileName: 'public/local/vtc_context.json', addedAt: '', error: '' }); return dev }
     const saved = await readSaved()
     if (saved?.ctx) {
       let ctx = saved.ctx
-      if (saved.buildVersion !== BUILD_VERSION && saved.bytes) {
+      // Only the base model has a reader that changes with BUILD_VERSION; any other model keeps what was read.
+      if (saved.kind !== 'model' && saved.buildVersion !== BUILD_VERSION && saved.bytes) {
         try { ctx = await build(new Uint8Array(saved.bytes)); await idb('readwrite', (s) => { s.put({ ...saved, ctx, buildVersion: BUILD_VERSION }, KEY) }).catch(() => undefined) } catch { /* keep the saved context */ }
       }
-      set({ ctx, status: 'ready', source: 'browser', fileName: saved.fileName, addedAt: saved.addedAt, error: '' })
+      set({ ctx, status: 'ready', source: 'browser', fileName: saved.fileName, addedAt: saved.addedAt, error: '', own: saved.kind ?? 'base', notes: saved.notes ?? [] })
       return ctx
     }
-    const included = await includedFile()
-    if (included) { set({ ctx: included, status: 'ready', source: 'included', fileName: INCLUDED_FILE, addedAt: '', error: '' }); return included }
+    const f = await fallback()
+    if (f) { set({ ...f, status: 'ready', addedAt: '', error: '', own: null, notes: [] }); return f.ctx }
     set({ status: 'missing' }, false)
     return null
   })())
 }
 
-/** Reads the entrant's copy of the base model, keeps it in this browser and shows it. Resolves false when refused. */
+/** Model files the context accepts: the base model, or any model the massing import reads. */
+export const CONTEXT_ACCEPT = '.3dm,.obj,.glb,.gltf,.ifc'
+
+/** True when the bytes are a Rhino file. */
+const isRhino = (bytes: Uint8Array) => new TextDecoder().decode(bytes.slice(0, 32)).startsWith('3D Geometry File Format')
+
+/**
+ * Reads a model as the competition context (Ruijie, 17 Nov: any model, no block required): Buildner's base model through
+ * its own reader, every other Rhino, OBJ, glTF or IFC file through lib/vtcContextAny.ts. Kept in this browser and shown
+ * in place of the included context. Resolves false when the file cannot be read.
+ */
 export async function addVtcModel(file: File): Promise<boolean> {
   const before = useVtcSource.getState()
   set({ status: 'reading', error: '' }, false)
   // Let the "Reading" state paint before rhino3dm takes the main thread.
   await new Promise((r) => setTimeout(r, 30))
   try {
-    if (!/\.3dm$/i.test(file.name)) throw new Error(`"${file.name}" is not a Rhino file. Add "Vancouver Tall Base Model.3dm" from the competition download.`)
+    if (!/\.(3dm|obj|glb|gltf|ifc)$/i.test(file.name)) throw new Error(`"${file.name}" is not a model this app reads. Use a 3DM, OBJ, glTF / GLB or IFC file.`)
     const bytes = new Uint8Array(await file.arrayBuffer())
-    if (!new TextDecoder().decode(bytes.slice(0, 32)).startsWith('3D Geometry File Format')) throw new Error(`"${file.name}" could not be read as a Rhino .3dm file.`)
-    const ctx = await build(bytes)
-    const addedAt = new Date().toISOString()
-    let kept = true
-    try { await idb('readwrite', (s) => { s.put({ buildVersion: BUILD_VERSION, ctx, bytes: bytes.buffer, fileName: file.name, addedAt } satisfies Saved, KEY) }) } catch { kept = false }
-    loading = Promise.resolve(ctx)
-    set({ ctx, status: 'ready', source: 'browser', fileName: file.name, addedAt, error: kept ? '' : 'Shown for this visit only: this browser would not keep it (a private window, or site storage is blocked). Add it again next time.' })
-    return true
+    let ctx: VtcContext | null = null, kind: 'base' | 'model' = 'base', notes: string[] = []
+    if (isRhino(bytes)) {
+      try { ctx = await build(bytes) } catch (e) {
+        const { NotTheBaseModel } = await import('./vtcContextBuild')
+        if (!(e instanceof NotTheBaseModel)) throw e
+      }
+    }
+    if (!ctx) {
+      const [{ readModelFile }, { contextFromRaw }] = await Promise.all([import('./import/load'), import('./vtcContextAny')])
+      const read = contextFromRaw(await readModelFile(file))
+      ctx = read.ctx; notes = read.notes; kind = 'model'
+    }
+    return await keepOwn(ctx, { fileName: file.name, kind, notes, bytes })
   } catch (e) {
     const msg = (e as Error)?.message || String(e)
     set({ status: before.ctx ? 'ready' : 'error', error: msg }, false)
@@ -161,13 +192,28 @@ export async function addVtcModel(file: File): Promise<boolean> {
   }
 }
 
-/** Forgets the copy kept in this browser and goes back to the included context (the dev file, if any, stays: it is not
- *  this browser's to remove). */
+/**
+ * Shows a context read elsewhere (the import dialog's "Use as the context", from a file it has already read) and keeps
+ * it in this browser like an added file.
+ */
+export async function keepOwn(ctx: VtcContext, o: { fileName: string; kind: 'base' | 'model'; notes: string[]; bytes?: Uint8Array }): Promise<boolean> {
+  const addedAt = new Date().toISOString()
+  let kept = true
+  // The base model's bytes are kept so a newer reader can rebuild it; any other model keeps only what was read.
+  const bytes = o.kind === 'base' && o.bytes ? o.bytes.buffer as ArrayBuffer : new ArrayBuffer(0)
+  try { await idb('readwrite', (s) => { s.put({ buildVersion: BUILD_VERSION, ctx, bytes, fileName: o.fileName, addedAt, kind: o.kind, notes: o.notes } satisfies Saved, KEY) }) } catch { kept = false }
+  loading = Promise.resolve(ctx)
+  set({ ctx, status: 'ready', source: 'browser', fileName: o.fileName, addedAt, own: o.kind, notes: o.notes, error: kept ? '' : 'Shown for this visit only: this browser would not keep it (a private window, or site storage is blocked). Add it again next time.' })
+  return true
+}
+
+/** Forgets your own model kept in this browser and goes back to the competition model (the developer's file, else the
+ *  included context). */
 export async function removeVtcModel(): Promise<void> {
   await idb('readwrite', (s) => { s.delete(KEY) }).catch(() => undefined)
   if (useVtcSource.getState().source !== 'browser') return
-  const included = await includedFile()
-  loading = Promise.resolve(included)
-  if (included) set({ ctx: included, status: 'ready', source: 'included', fileName: INCLUDED_FILE, addedAt: '', error: '' })
-  else set({ ctx: null, status: 'missing', source: null, fileName: '', addedAt: '', error: '' })
+  const f = await fallback()
+  loading = Promise.resolve(f?.ctx ?? null)
+  if (f) set({ ...f, status: 'ready', addedAt: '', error: '', own: null, notes: [] })
+  else set({ ctx: null, status: 'missing', source: null, fileName: '', addedAt: '', error: '', own: null, notes: [] })
 }

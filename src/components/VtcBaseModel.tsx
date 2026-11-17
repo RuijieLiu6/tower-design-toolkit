@@ -1,15 +1,20 @@
 // The competition context on the live website. The derived context (outlines, heights, simplified meshes) is included
-// with the app, so the competition site opens with it (Ruijie, 13 Nov). Adding your own copy of "Vancouver Tall Base
-// Model.3dm" from the competition download stays an option: it is read in this browser, kept on this computer
-// (lib/vtcContextSource.ts) and replaces the included context here. Two places: the card on the competition view while
+// with the app, so the competition site opens with it (Ruijie, 13 Nov). Your own model stays an option: a copy of
+// "Vancouver Tall Base Model.3dm", or since 17 Nov any 3DM, OBJ, glTF or IFC model with no block required (Ruijie: "let
+// users upload any model of their own"). It is read in this browser, kept on this computer (lib/vtcContextSource.ts)
+// and replaces the competition model here until you go back to it. Two places: the card on the competition view while
 // the context is missing (the included file failed to load), and the "Competition context model" section of the dock.
 import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { Building2, CircleAlert, FileUp, Landmark, Loader2, LockKeyhole, TowerOnSite, Trash2, X } from './icons'
 import Help from './Help'
-import { BRIEF_SITE, addVtcModel, removeVtcModel, useVtcSource } from '../lib/vtcContextSource'
+import { BRIEF_SITE, CONTEXT_ACCEPT, addVtcModel, removeVtcModel, useVtcSource } from '../lib/vtcContextSource'
 import { useStore } from '../store'
 
-const NOTE = 'Read in this browser and kept on this computer only. Never uploaded. Context © Buildner.'
+const NOTE = 'Read in this browser and kept on this computer only. Never uploaded.'
+/** The button that brings in your own model, in place of the competition model shown. */
+export const OWN = 'Use your own model instead'
+/** The same, while no context is shown. */
+const ADD = 'Add a context model'
 const INCLUDED_NOTE = 'Derived from the brief download (outlines, heights, simplified massing). Context © Buildner, Vancouver Tall Challenge.'
 
 function HelpText() {
@@ -17,7 +22,8 @@ function HelpText() {
     <Help label="About the competition base model">
       <p>The competition's 3D context (neighbouring buildings, heritage, plazas, curbs and the three future towers) comes from Buildner's <b>Vancouver Tall Base Model.3dm</b>, part of the brief download every entrant receives.</p>
       <p className="mt-1.5">The app includes a derived copy of that context (building outlines, heights and simplified massing, not the model file), so the competition site opens with it. The brief gives its materials for an academic exercise, to be used at the participant's discretion; the model itself is Buildner's and is not shipped.</p>
-      <p className="mt-1.5">Prefer your own copy, or a newer download? Add the .3dm once: the app reads it here with rhino3dm and keeps the result in this browser's own storage. It is not sent anywhere, and other people who open the site don't see it.</p>
+      <p className="mt-1.5">Prefer your own model? Add any 3DM, OBJ, glTF or IFC file: a newer copy of the base model, your edited version of it, or a context model of your own. No block or layer names are needed: every solid becomes a context building, and a closed curve on a Site, Block or Lot layer becomes the site line. The app reads it here and keeps the result in this browser's own storage. It is not sent anywhere, and other people who open the site don't see it.</p>
+      <p className="mt-1.5">The competition rules (VTC hard rules, public realm) still read the brief's 144.8 × 79.2 m block, whatever model is shown.</p>
       <p className="mt-1.5">The site, north arrow and every check still work without any context. With it, the separation, PV shading, wind screen and sun-hours checks count the context and future towers.</p>
     </Help>
   )
@@ -34,7 +40,7 @@ function usePicker() {
     // Handled here: stopPropagation and preventDefault keep ImportHost from opening the file as a massing upload.
     onDrop: (e: DragEvent) => { e.preventDefault(); e.stopPropagation(); setOver(false); take(e.dataTransfer.files?.[0]) },
   }
-  const field = <input ref={input} type="file" accept=".3dm" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => { take(e.target.files?.[0]); e.target.value = '' }} />
+  const field = <input ref={input} type="file" accept={CONTEXT_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => { take(e.target.files?.[0]); e.target.value = '' }} />
   return { open: () => input.current?.click(), drop, over, field }
 }
 
@@ -62,24 +68,33 @@ function Privacy() {
 
 /** The dock section's body. */
 export function VtcBaseModelPanel() {
-  const { status, source, fileName, addedAt } = useVtcSource()
+  const { status, source, fileName, addedAt, own, notes } = useVtcSource()
   const pick = usePicker()
-  if (source === 'dev-file') {
-    return <p>Competition context © Buildner, loaded from <code>public/local/</code> on this computer only (git-ignored, never published). Context buildings ghost in x-ray; future towers are drawn translucent with their heights.</p>
-  }
   return (
     <div {...pick.drop} className={`space-y-2 rounded-md ${pick.over ? 'outline-dashed outline-2 outline-accent' : ''}`}>
       {pick.field}
-      {source === 'browser' ? (
+      {source === 'dev-file' ? (
         <>
-          <p>Your copy of the base model{fileName ? <> (<span className="break-all">{fileName}</span>)</> : null}{addedAt ? `, added ${new Date(addedAt).toLocaleDateString()}` : ''}, in place of the included context. Context buildings ghost in x-ray; future towers are drawn translucent with their heights.</p>
+          <p>Competition context © Buildner, loaded from <code>public/local/</code> on this computer only (git-ignored, never published). Context buildings ghost in x-ray; future towers are drawn translucent with their heights.</p>
+          <ErrorLine />
+          <AddButton open={pick.open}>{OWN}</AddButton>
+        </>
+      ) : source === 'browser' ? (
+        <>
+          <p>{own === 'model' ? 'Your model' : 'Your copy of the base model'}{fileName ? <> (<span className="break-all">{fileName}</span>)</> : null}{addedAt ? `, added ${new Date(addedAt).toLocaleDateString()}` : ''}, in place of the competition model. Context buildings ghost in x-ray{own === 'model' ? '.' : '; future towers are drawn translucent with their heights.'}</p>
+          {notes.length > 0 && (
+            <details className="rounded-md border border-line px-2 py-1" data-testid="vtc-own-notes">
+              <summary className="cursor-pointer text-muted hover:text-ink">How it was read ({notes.length})</summary>
+              <ul className="mt-1 grid gap-0.5 pl-3">{notes.map((n, i) => <li key={i} className="list-disc">{n}</li>)}</ul>
+            </details>
+          )}
           <Privacy />
           <ErrorLine />
           <div className="flex flex-wrap items-center gap-2">
             <AddButton open={pick.open}>Replace</AddButton>
             <button type="button" onClick={() => void removeVtcModel()} data-testid="vtc-remove-copy"
               className="inline-flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-paper">
-              <Trash2 size={14} aria-hidden />Remove from this browser
+              <Trash2 size={14} aria-hidden />Back to the competition model
             </button>
           </div>
         </>
@@ -91,18 +106,18 @@ export function VtcBaseModelPanel() {
           </div>
           <p className="flex gap-1.5 text-muted"><LockKeyhole size={13} className="mt-0.5 shrink-0" aria-hidden />{INCLUDED_NOTE}</p>
           <ErrorLine />
-          <AddButton open={pick.open}>Use your own copy instead (.3dm)</AddButton>
+          <AddButton open={pick.open}>{OWN}</AddButton>
         </>
       ) : status === 'idle' || status === 'loading' ? (
         <p>Looking for the context model…</p>
       ) : (
         <>
           <div className="flex items-start gap-1">
-            <p className="flex-1">The included context could not be loaded. Add your copy of the base model (<b className="text-ink">.3dm</b>) from the competition download, or drop it here.</p>
+            <p className="flex-1">The included context could not be loaded. Add a context model: the base model from the competition download, or any 3DM, OBJ, glTF or IFC model of your own. Or drop it here.</p>
             <HelpText />
           </div>
           <ErrorLine />
-          <AddButton open={pick.open}>Add your copy of the base model (.3dm)</AddButton>
+          <AddButton open={pick.open}>{ADD}</AddButton>
           <Privacy />
         </>
       )}
@@ -138,8 +153,8 @@ export function VtcContextCard() {
           <figcaption className="text-meta tabular-nums">{BRIEF_SITE.width_m} × {BRIEF_SITE.depth_m} m</figcaption>
         </figure>
         <div className="grid gap-1">
-          <span className="text-meta text-muted">The base model adds:</span>
-          <ul className="flex flex-wrap gap-1" aria-label="What the base model adds">
+          <span className="text-meta text-muted">A context model adds:</span>
+          <ul className="flex flex-wrap gap-1" aria-label="What a context model adds">
             {[[Building2, 'Neighbours'], [Landmark, 'Heritage'], [TowerOnSite, 'Future towers']].map(([I, w]) => {
               const Icon = I as typeof Building2
               return <li key={w as string} className="flex items-center gap-1 rounded border border-line px-1.5 py-0.5 text-meta text-ink"><Icon size={12} className="text-accent" aria-hidden />{w as string}</li>
@@ -149,8 +164,8 @@ export function VtcContextCard() {
       </div>
       <div className="mt-2.5 space-y-2">
         <ErrorLine announce />
-        <AddButton open={pick.open}>Add your copy of the base model (.3dm)</AddButton>
-        <p className="flex items-center gap-1.5 text-meta text-muted"><LockKeyhole size={12} className="shrink-0" aria-hidden />{NOTE} Or drop the .3dm on this card.</p>
+        <AddButton open={pick.open}>{ADD}</AddButton>
+        <p className="flex items-center gap-1.5 text-meta text-muted"><LockKeyhole size={12} className="shrink-0" aria-hidden />{NOTE} Or drop the file on this card.</p>
       </div>
     </section>
   )

@@ -36,13 +36,13 @@ test('the website reads the entrant\'s own copy of the base model and keeps it i
   expect(await source(p)).toMatchObject({ source: 'included', buildings: 99 })
   await expect(card).toHaveCount(0)
 
-  // Your own copy stays an option: the dock's section says the context is included and offers "Use your own copy instead".
+  // Your own copy stays an option: the dock's section says the context is included and offers "Use your own model instead".
   await p.getByTitle('Show the layers panel').click()
   const section = p.getByRole('button', { name: /^Competition context model/ })
   await expect(section).toContainText('included')
   if ((await section.getAttribute('aria-expanded')) !== 'true') await section.click()
   await expect(section).toHaveAttribute('aria-expanded', 'true')
-  const useOwn = p.getByRole('button', { name: 'Use your own copy instead (.3dm)' })
+  const useOwn = p.getByRole('button', { name: 'Use your own model instead' })
   await expect(useOwn).toBeVisible()
   await expect(p.getByText(/Included with the app/)).toBeVisible()
   await useOwn.locator('xpath=ancestor::div[1]').locator('input[type=file]').setInputFiles(MODEL)
@@ -64,7 +64,7 @@ test('the website reads the entrant\'s own copy of the base model and keeps it i
   await expect(section).toContainText('your copy')
   if ((await section.getAttribute('aria-expanded')) !== 'true') await section.click()
   await expect(section).toHaveAttribute('aria-expanded', 'true')
-  const remove = p.getByRole('button', { name: 'Remove from this browser' })
+  const remove = p.getByTestId('vtc-remove-copy') // the Site step has a Back tile with the same name
   await remove.click()
   await expect(section).toContainText('included')
   await expect.poll(async () => (await source(p)).source, { timeout: 30_000 }).toBe('included')

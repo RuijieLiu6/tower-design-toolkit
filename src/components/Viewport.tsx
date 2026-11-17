@@ -108,8 +108,10 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
   // every other mode the neutral model.
   const lookId: VtcLookId = useModeColours().context === 'use' ? 'program' : 'plain'
   const look = useMemo(() => vtcSceneLook(stageLook, lookId, xray), [stageLook, lookId, xray])
-  // Without the base model (another computer, before the entrant adds their copy): the brief's block is the site.
-  const site = ctx?.site ?? BRIEF_SITE
+  // Without any context: the brief's block is the site. With your own model (Ruijie, 17 Nov): its site line, or none, so
+  // no block bounds the model; the competition rules still read the brief's block.
+  const site = ctx ? ctx.site : BRIEF_SITE
+  const siteShape = useMemo(() => (site ? new THREE.Shape(site.outline.map(([x, y]) => new THREE.Vector2(x, y))) : null), [site])
   const towers = useTowers()
   // A physical-model base the size of the context model; the camera stays above its flat street level (0 m).
   // A thick ground (at least 30 m, 10 m under the deepest basement) that basements are dug into (engine/basement.ts).
@@ -122,10 +124,10 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
     <>
       <Ground rect={plinth} color={look.ground} onPick={onPick} />
       <PlinthBase plinth={plinth} ring={ring} look={look} pad={0.1} />
-      {site && (
+      {site && siteShape && (
         <>
           <mesh name="vtc-site" position={[0, 0, 0.02]} receiveShadow onPointerDown={(e) => { e.stopPropagation(); onPick(e.point.x, -e.point.z) }}>
-            <planeGeometry args={[site.width_m, site.depth_m]} />
+            <shapeGeometry args={[siteShape]} />
             <meshStandardMaterial color={look.site} />
           </mesh>
           {/* The site boundary: a constraint, drawn as a clear dark line (blue is kept for selection). */}
@@ -786,6 +788,7 @@ function NorthCompass({ north }: { north: number }) {
 function VtcDock() {
   const { ctx, missing, status } = useVtcContext()
   const source = useVtcSource((s) => s.source)
+  const own = useVtcSource((s) => s.own)
   return (
     <ViewportDock sections={[
       { id: 'vtc-site', title: 'Site, north & datum', defaultOpen: true, summary: `true north ${VTC_NORTH_DEG}°`, children: (
@@ -818,7 +821,7 @@ function VtcDock() {
           </Help>
         </div>
       ) },
-      { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? 'your copy · this browser' : source === 'included' ? 'included' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
+      { id: 'vtc-context', title: 'Competition context model', summary: status === 'reading' ? 'reading…' : ctx ? (source === 'browser' ? (own === 'model' ? 'your model · this browser' : 'your copy · this browser') : source === 'included' ? 'included' : 'local only') : missing ? 'not loaded' : 'loading…', children: <VtcBaseModelPanel /> },
     ]} />
   )
 }

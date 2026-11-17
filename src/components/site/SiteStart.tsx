@@ -5,7 +5,9 @@
 // 4 Nov (Ruijie): the neighbourhood list ("Or start from a neighbourhood") is gone; the names on the map do its job.
 // 6 Nov (Ruijie): the actions are icons with a key word under each (Replace, Combine, Upload, Next), the full name and
 // what each does on hover (components/IconTile.tsx), like the design tools.
-import { ArrowRight, Combine, Crosshair, FileUp, MousePointerClick } from '../icons'
+import { useRef } from 'react'
+import { ArrowRight, Building2, Combine, Crosshair, FileUp, Loader2, MousePointerClick, Undo2 } from '../icons'
+import { CONTEXT_ACCEPT, addVtcModel, removeVtcModel, useVtcSource } from '../../lib/vtcContextSource'
 import type { Pt } from '../../engine/site'
 import { tell, useSiteStep } from '../../lib/siteActions'
 import { useSiteStore } from '../../lib/siteStore'
@@ -43,22 +45,44 @@ export default function SiteStart() {
 }
 
 /**
- * The competition project's Site tool (Ruijie, 5 Nov: "for competition, keep the site tab but remove site selection"):
- * nothing to choose, the VTC block is fixed by the brief (shown in Your site, the right panel); the way on from here.
+ * The competition project's Site tool (Ruijie, 5 Nov: "for competition, keep the site tab but remove site selection").
+ * 17 Nov (Ruijie): the competition model is shown from the start, like the city, and no block bounds what you bring in:
+ * any model of your own can replace the context (Context), next to a massing of your own (Upload).
  */
 function VtcSite() {
+  const own = useVtcSource((s) => s.source === 'browser')
   return (
     <>
-      <p className="px-3 pt-1 text-muted">The competition block is fixed by the brief: see Your site on the right.</p>
-      <SiteFooter />
+      <p className="px-3 pt-1 text-muted">{own ? 'Your own context model is shown.' : 'The competition model is shown.'} Bring any model of your own: as the context, or as your massing.</p>
+      <SiteFooter context />
+    </>
+  )
+}
+
+/** Your own model as the competition context: any 3DM, OBJ, glTF or IFC file, no block needed (lib/vtcContextSource). */
+function ContextTiles() {
+  const input = useRef<HTMLInputElement>(null)
+  const { source, status } = useVtcSource()
+  const reading = status === 'reading'
+  return (
+    <>
+      <input ref={input} type="file" accept={CONTEXT_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden data-testid="vtc-context-file"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) void addVtcModel(f); e.target.value = '' }} />
+      <IconTile size="sm" icon={reading ? Loader2 : Building2} word="Context" label="Use your own context model" disabled={reading} onClick={() => input.current?.click()}
+        hint="Any 3DM, OBJ, glTF or IFC model in place of the competition model: no block or layer names needed. A closed curve on a Site, Block or Lot layer becomes the site line. Read in this browser; nothing is uploaded." />
+      {source === 'browser' && (
+        <IconTile size="sm" icon={Undo2} word="Back" label="Back to the competition model" onClick={() => void removeVtcModel()}
+          hint="Show the competition model again; your model is removed from this browser." />
+      )}
     </>
   )
 }
 
 /** The way on from the Site tool: a massing made elsewhere (the import dialog, as the Import tool), or the Form step. */
-function SiteFooter() {
+function SiteFooter({ context = false }: { context?: boolean }) {
   return (
     <div className="mt-1 flex flex-wrap items-start gap-1 border-t border-line px-2 py-2">
+      {context && <ContextTiles />}
       <IconTile size="sm" icon={FileUp} word="Upload" label="Upload a massing model" onClick={() => useImportStore.getState().openDialog()}
         hint="Start from a massing made elsewhere (Rhino, SketchUp, Revit…): 3DM, OBJ, glTF or IFC. Read in this browser; nothing is uploaded to a server." />
       <IconTile size="sm" icon={ArrowRight} word="Next" label="Next: Form" primary className="ml-auto" onClick={() => goToStep('volume')}

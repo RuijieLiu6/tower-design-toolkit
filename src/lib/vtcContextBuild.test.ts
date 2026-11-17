@@ -69,8 +69,8 @@ describe.skipIf(!have)('competition context built in the browser (rhino3dm.js) m
   })
 })
 
-describe('competition context: any other Rhino file is refused', () => {
-  it('says the file is not the base model', async () => {
+describe('competition context: any other Rhino file is not read as the base model', () => {
+  it('says the file is not the base model (vtcContextSource then reads it as any model)', async () => {
     const rh = await rhino3dm()
     const doc = new rh.File3dm()
     const layer = doc.layers().addLayer('3D Model::Block', { r: 0, g: 0, b: 0, a: 255 })

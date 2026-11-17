@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Flag } from '../engine/types'
 import { useStore } from '../store'
 import { useCityModel } from '../lib/cityModel'
+import { useVtcSource } from '../lib/vtcContextSource'
 import { FlagChip } from './ui'
 import { Info } from './icons'
 
@@ -19,6 +20,8 @@ const MEANING: Record<Flag, string> = {
 
 export default function StatusBar() {
   const project = useStore((s) => s.project)
+  // Your own context model (Ruijie, 17 Nov) is yours, not Buildner's: the footer says so.
+  const ownModel = useVtcSource((s) => (s.own === 'model' ? s.fileName : ''))
   const vista = useCityModel((s) => s.model === 'vista')
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
@@ -46,7 +49,7 @@ export default function StatusBar() {
         )}
       </div>
       <span className="mx-auto" />
-      <span className="min-w-0 truncate" title="Data sources and licences">{project === 'vtc' ? 'Competition context © Buildner (derived from the brief download) · metres · true north 45° from grid' : `City of Vancouver open data (OGL-Vancouver)${vista ? ' · buildings © OpenStreetMap contributors (ODbL), via Vista' : ''} · EPSG:26910 · heights geodetic, CGVD28 assumed`}</span>
+      <span className="min-w-0 truncate" title="Data sources and licences">{project === 'vtc' ? `${ownModel ? `Context: your own model (${ownModel})` : 'Competition context © Buildner (derived from the brief download)'} · metres · true north 45° from grid` : `City of Vancouver open data (OGL-Vancouver)${vista ? ' · buildings © OpenStreetMap contributors (ODbL), via Vista' : ''} · EPSG:26910 · heights geodetic, CGVD28 assumed`}</span>
       <span className="shrink-0">Study tool, not a compliance determination</span>
     </footer>
   )
