@@ -76,7 +76,11 @@ export function faceOffset(rot: number): number { const d = (((rot * 180) / Math
 export function cardinalOf(nx: number, ny: number, rot: number): Face {
   const a = Math.atan2(ny, nx) + rot
   const deg = (((a * 180) / Math.PI) % 360 + 360) % 360
-  return deg < 45 || deg >= 315 ? 'E' : deg < 135 ? 'N' : deg < 225 ? 'W' : 'S'
+  // A face exactly on a diagonal (the competition site's true north is 45° off the grid) takes the name its project-grid
+  // direction has, the same side faceOffset() measures from: so the right face in project north is East and its sun
+  // azimuth is right (17 Nov, Sinnie: the façade "is not applying on the right face"; the tie used to fall the other way).
+  const e = 1e-6
+  return deg <= 45 + e || deg > 315 + e ? 'E' : deg <= 135 + e ? 'N' : deg <= 225 + e ? 'W' : 'S'
 }
 
 export interface PlateEdge { o: Face; L: number; mx: number; my: number; ux: number; uy: number; ox: number; oy: number; /** compass azimuth of the outward normal (deg) */ az: number }
