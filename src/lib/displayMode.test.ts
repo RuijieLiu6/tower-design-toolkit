@@ -13,8 +13,8 @@ import {
 const MODES = DISPLAY_MODES.map((m) => m.id)
 
 describe('display modes (design system §9)', () => {
-  it('offers Massing, Program, Analysis and Materials, each saying what it shows', () => {
-    expect(MODES).toEqual(['massing', 'program', 'analysis', 'materials'])
+  it('offers Massing, Program, Analysis, Materials and Facade, each saying what it shows', () => {
+    expect(MODES).toEqual(['massing', 'program', 'analysis', 'materials', 'facade'])
     for (const m of DISPLAY_MODES) expect(m.hint.length).toBeGreaterThan(20)
   })
 
