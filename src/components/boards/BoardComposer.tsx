@@ -1,9 +1,8 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
-import { ArrowUpDown, Camera, ChevronDown, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, Upload, X } from '../icons'
+import { ArrowUpDown, ChevronDown, FileImage, LayoutPanelTop, ListChecks, Sparkles, Trash2, Upload, X } from '../icons'
 import { useEffect, useRef, useState, type ReactNode, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { createPortal } from 'react-dom'
 import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, MAX_SHEETS, SHEET_SIZES, SOURCE_LABEL, TEMPLATES, boardName, templateRects, familiesUsed, imageSource, sheetName, sheetNumbers, type FrameContent, type SheetSize, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
 import { drawBoard, imageSize, type EvidenceSet } from '../../lib/boardRender'
 import { hydrateBoardImages, useBoardStore } from '../../lib/boardStore'
@@ -13,8 +12,6 @@ import { addUserFont, allFamilies, ensureFontsLoaded, familyAvailable, hydrateUs
 import Fold from '../Fold'
 import UiShow from '../ui/UiShow'
 import { isVisible, useUiItems, useUiVisibility } from '../../lib/ui/registry'
-import { planSvgText } from '../../lib/capture'
-import { captureHiRes } from '../../lib/hiresCapture'
 import { useStore, type Shot } from '../../store'
 import SubmissionPanel from './SubmissionPanel'
 import { useBoardFonts, useDrawData, useEvidence, useLoadedImages, useOverflow } from './useBoardData'
@@ -176,85 +173,6 @@ function Thumb({ index, evidence, active, onClick, rev }: { index: number; evide
   )
 }
 
-function Library({ onPick }: { onPick: (imageId: string) => void }) {
-  const shots = useStore((s) => s.shots)
-  const images = useBoardStore((s) => s.images)
-  const { addImage, removeImage } = useBoardStore()
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [msg, setMsg] = useState('')
-  const lib = Object.values(images)
-  const addPlan = async () => {
-    setMsg('')
-    const s = useStore.getState()
-    if (s.boardView !== 'plan') { s.set({ boardView: 'plan' }); await new Promise((r) => setTimeout(r, 400)) }
-    const text = planSvgText()
-    if (!text) { setMsg('The floor plan is drawn in the 3D view area: show the 3D view (not the canvas only) and try again.'); return }
-    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`
-    const { w, h } = await imageSize(dataUrl)
-    const level = useStore.getState().planLevel
-    addImage({ id: `plan-${Date.now()}`, dataUrl, w, h, source: 'capture', label: `Floor plan${level !== null ? `, level ${level}` : ', typical floor'} (vector)`, vector: true })
-  }
-  const add3d = async () => {
-    setMsg('')
-    const s = useStore.getState()
-    if (s.boardView !== '3d') { s.set({ boardView: '3d' }); await new Promise((r) => setTimeout(r, 400)) }
-    const dataUrl = captureHiRes(3508)
-    if (!dataUrl) { setMsg('The 3D view is not showing: switch the main view to 3D (not the canvas only) and try again.'); return }
-    const { w, h } = await imageSize(dataUrl)
-    const rep = s.presentRep === 'xray' ? 'X-ray view' : 'Clay view'
-    addImage({ id: `view-${Date.now()}`, dataUrl, w, h, source: 'capture', label: `${rep} at print size, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` })
-  }
-  const drag = (e: DragEvent, payload: { shot?: string; image?: string }) => { e.dataTransfer.setData(DRAG, JSON.stringify(payload)); e.dataTransfer.effectAllowed = 'copy' }
-  return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 text-slate-200">
-      <div>
-        <div className="mb-1.5 text-meta font-semibold text-slate-400">Add</div>
-        <div className="grid gap-1.5">
-          <button type="button" onClick={add3d} title="Re-renders the current Present camera at about 3500 px wide" className="flex items-center gap-2 rounded border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400"><Camera size={13} />Current 3D view, print size</button>
-          <button type="button" onClick={addPlan} className="flex items-center gap-2 rounded border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400"><LayoutPanelTop size={13} />Floor plan (vector, stays sharp)</button>
-          <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-2 rounded border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400"><ImagePlus size={13} />Image file (render, drawing, photo)</button>
-          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { if (e.target.files) await importFiles(e.target.files); e.target.value = '' }} />
-        </div>
-        {msg && <p className="mt-1 text-meta text-amber-300">{msg}</p>}
-      </div>
-      <div>
-        <div className="mb-1.5 text-meta font-semibold text-slate-400">Shots from Present ({shots.length})</div>
-        {shots.length === 0 && <p className="text-meta text-slate-400">Capture views with the camera presets; they appear here.</p>}
-        <div className="grid grid-cols-2 gap-1.5">
-          {shots.map((s) => (
-            <button key={s.id} type="button" draggable onDragStart={(e) => drag(e, { shot: s.id })} onClick={async () => onPick(await importShot(s))}
-              title="Click to place in the selected frame, or drag onto the board" className="overflow-hidden rounded border border-white/15 hover:border-sky-400">
-              <img src={s.dataUrl} alt={`Shot ${s.representation}`} className="aspect-[1.414] w-full object-cover" draggable={false} />
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <div className="mb-1.5 text-meta font-semibold text-slate-400">On the boards ({lib.length})</div>
-        <div className="grid gap-1.5">
-          {lib.map((img) => <LibraryItem key={img.id} img={img} onPick={() => onPick(img.id)} onDrag={(e) => drag(e, { image: img.id })} onRemove={() => removeImage(img.id)} />)}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function LibraryItem({ img, onPick, onDrag, onRemove }: { img: BoardImage; onPick: () => void; onDrag: (e: DragEvent) => void; onRemove: () => void }) {
-  return (
-    <div className="flex items-center gap-2 rounded border border-white/10 p-1">
-      <button type="button" draggable onDragStart={onDrag} onClick={onPick} className="shrink-0" title="Place in the selected frame">
-        <img src={img.dataUrl} alt="" className="h-9 w-12 rounded-[2px] bg-white object-cover" draggable={false} />
-      </button>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-meta">{img.label}</div>
-        <div className={`text-meta ${imageSource(img) === 'ai' ? 'text-fuchsia-300' : 'text-slate-400'}`}>{img.vector ? 'Vector · ' : `${img.w} × ${img.h} px · `}{SOURCE_LABEL[imageSource(img) ?? img.source]}</div>
-      </div>
-      <button type="button" onClick={onRemove} aria-label={`Remove ${img.label}`} className="p-1 text-slate-400 hover:text-red-300"><Trash2 size={12} /></button>
-    </div>
-  )
-}
-
-
 /**
  * The board's type (Ruijie, 17 Nov: "an option to change the font, and users can also download and upload the font
  * type they want"): a heading and a text face for the whole board (each text frame may name its own), the built-in
@@ -404,6 +322,7 @@ function SheetLibrary({ evidence }: { evidence: Record<string, EvidenceSet> }) {
     if (!seen.has(key)) { seen.add(key); entries.push({ key, label: contentWord(c), content: c }) }
   }
   for (const img of Object.values(images)) entries.push({ key: img.id, label: img.label, image: img })
+  const removeImage = useBoardStore((s) => s.removeImage)
   const imported = new Set(Object.keys(images))
   for (const s of shots) if (!imported.has(`shot-${s.id}`)) entries.push({ key: `shot-${s.id}`, label: `Shot, ${s.representation}`, shot: s })
   const target = boards[selected.board]?.frames.find((x) => x.id === selected.frame && x.role === 'body')
@@ -429,12 +348,15 @@ function SheetLibrary({ evidence }: { evidence: Record<string, EvidenceSet> }) {
           <button type="button" onClick={() => fileRef.current?.click()} data-testid="library-upload" aria-label="Upload images" title="Upload your own images (PNG, JPEG, WebP, SVG), or drop files here"
             className="flex aspect-[1.414] w-full items-center justify-center rounded border border-dashed border-white/25 text-slate-400 hover:border-sky-400 hover:text-sky-300"><Upload size={16} aria-hidden /></button>
           {entries.map((e) => (
-            <button key={e.key} type="button" draggable onDragStart={(ev) => drag(ev, e)} onClick={() => void pick(e)} data-lib={'content' in e ? e.content.kind : 'image' in e ? 'image' : 'shot'}
+            <div key={e.key} className="group relative">
+            <button type="button" draggable onDragStart={(ev) => drag(ev, e)} onClick={() => void pick(e)} data-lib={'content' in e ? e.content.kind : 'image' in e ? 'image' : 'shot'}
               title={`${e.label}. Drag onto a frame${target ? ', or click to fill the selected frame' : ''}`} aria-label={e.label}
               className="cursor-grab overflow-hidden rounded border border-white/15 bg-white hover:border-sky-400 active:cursor-grabbing">
               {'content' in e ? <DrawingThumb c={e.content} evidence={evidence} d={d} />
                 : <img src={'image' in e ? e.image.dataUrl : e.shot.dataUrl} alt="" draggable={false} className={`block aspect-[1.414] w-full ${'image' in e && e.image.vector ? 'object-contain' : 'object-cover'}`} />}
             </button>
+            {'image' in e && <button type="button" onClick={() => removeImage(e.image.id)} aria-label={`Remove ${e.label}`} title="Remove from the library" className="absolute right-0.5 top-0.5 hidden rounded bg-slate-900/80 p-0.5 text-slate-200 hover:text-red-300 group-hover:block focus-visible:block"><X size={11} /></button>}
+            </div>
           ))}
         </div>
     </div>
@@ -603,7 +525,7 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
 // The Tower Workspace's "Drawing space" panel (Sinnie, 13 Nov: "add this tab to the current set"): Sheets = the drawing
 // set (style, sheet size), the sheet list (number, name, remove, blank sheet) and Create drawing set; Add = what goes on
 // a sheet (a drawing, the results table, text, an image from the library).
-function SheetsPanel({ levels, onPick, onCreate, msg, preset, setPreset, busy }: { levels: number; onPick: (imageId: string) => void; onCreate: () => void; msg: string; preset: 'drawings' | 'arch'; setPreset: (p: 'drawings' | 'arch') => void; busy: boolean }) {
+function SheetsPanel({ levels, onCreate, msg, preset, setPreset, busy }: { levels: number; onCreate: () => void; msg: string; preset: 'drawings' | 'arch'; setPreset: (p: 'drawings' | 'arch') => void; busy: boolean }) {
   const [tab, setTab] = useState<'sheets' | 'add'>('sheets')
   const boards = useBoardStore((s) => s.boards)
   const selected = useBoardStore((s) => s.selected)
@@ -684,11 +606,10 @@ function SheetsPanel({ levels, onPick, onCreate, msg, preset, setPreset, busy }:
           <div className="border-b border-white/10 p-3">
             <div className="text-xs font-semibold">On {nos[selected.board]}</div>
             <div className="mt-2 grid grid-cols-2 gap-1" data-testid="space-add-list">
-              {ADD.map(([word, c]) => <button key={word} type="button" onClick={() => put(c, word)} data-add={word} className="rounded-lg border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400">{word}</button>)}
+              {ADD.map(([word, c]) => <button key={word} type="button" draggable onDragStart={(e) => { e.dataTransfer.setData(DRAG, JSON.stringify({ content: c })); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => put(c, word)} data-add={word} title="Click to add to this sheet, or drag onto a frame" className="cursor-grab rounded-lg border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400 active:cursor-grabbing">{word}</button>)}
             </div>
             {note && <p role="status" className="mt-2 text-meta text-emerald-300">{note}</p>}
           </div>
-          <div className="min-h-0 flex-1"><Library onPick={onPick} /></div>
         </div>
       )}
     </aside>
@@ -699,11 +620,24 @@ function SheetsPanel({ levels, onPick, onCreate, msg, preset, setPreset, busy }:
 // separate one"): the sheets ARE the Present page, inside the workspace under the top bar. The old page's 3D view is
 // the centre's second view (to frame and capture shots) and its Present / Render / Results / Trace panel is the right
 // side's third tab.
-export default function BoardComposer({ viewport, tools }: { viewport?: ReactNode; tools?: ReactNode }) {
+/** The right side's tabs (18 Nov, one row, no tabs inside tabs): Compose and Check are the sheets'; the others are the old Present panel's. */
+type PanelTab = 'frame' | 'views' | 'render' | 'results' | 'trace' | 'submit'
+const PANEL_TABS: { id: PanelTab; word: string; hint: string }[] = [
+  { id: 'frame', word: 'Compose', hint: 'Layout, library and the selected frame' },
+  { id: 'views', word: 'Views', hint: 'Representation, camera presets and capture; shows the 3D view' },
+  { id: 'render', word: 'Render', hint: 'AI render from a capture; shows the 3D view' },
+  { id: 'results', word: 'Results', hint: 'The analysis results and their drawings' },
+  { id: 'trace', word: 'Trace', hint: 'Where each number comes from' },
+  { id: 'submit', word: 'Check and export', hint: 'Submission checks, deliverables and the JPEG export' },
+]
+const TOOL_TAB = { views: 'present', render: 'render', results: 'results', trace: 'trace' } as const
+type ToolTab = (typeof TOOL_TAB)[keyof typeof TOOL_TAB]
+
+export default function BoardComposer({ viewport, tools }: { viewport?: ReactNode; tools?: (tab: ToolTab) => ReactNode }) {
   return <ComposerBody viewport={viewport} tools={tools} />
 }
 
-function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: ReactNode }) {
+function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: (tab: ToolTab) => ReactNode }) {
   const open = true
   const boards = useBoardStore((s) => s.boards)
   const images = useBoardStore((s) => s.images)
@@ -745,8 +679,10 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
     setSetMsg(used ? 'Five sheets now hold the drawing set; earlier images stay in the library.' : 'Drawing set created: five sheets.')
     setTimeout(() => setSetMsg(''), 5000)
   }
-  const [tab, setTab] = useState<'frame' | 'submit' | 'tools'>('frame')
   const [centre, setCentre] = useState<'sheet' | '3d'>('sheet')
+  const [tab, setTabRaw] = useState<PanelTab>('frame')
+  // Views and Render work on the 3D view, Compose and Check on the sheet: the centre follows (the Sheet | 3D switch stays).
+  const setTab = (k: PanelTab) => { setTabRaw(k); if (k === 'views' || k === 'render') setCentre('3d'); else if (k === 'frame' || k === 'submit') setCentre('sheet') }
 
   useEffect(() => { if (open) { void hydrateBoardImages(); void hydrateUserFonts() } }, [open])
   // Every face on offer loads with the composer (small files), so the picker shows each name in its face and the
@@ -773,7 +709,6 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
     else if (p.image) place(board, frame, p.image)
     else if (p.shot) { const shot = useStore.getState().shots.find((s) => s.id === p.shot); if (shot) place(board, frame, await importShot(shot)) }
   }
-  const pick = (imageId: string) => { if (selected.frame) place(selected.board, selected.frame, imageId) }
 
   return (
     <div role="region" aria-label="Presentation" data-testid="present-page" className="flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl bg-[#15181c] text-slate-100">
@@ -794,13 +729,14 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
           {([['sheet', 'Sheet'], ['3d', '3D view']] as const).map(([k, w]) => <button key={k} type="button" role="tab" aria-selected={centre === k} onClick={() => setCentre(k)} data-testid={`centre-${k}`} title={k === '3d' ? 'Frame the model and capture shots for the sheets' : 'The sheet being composed'} className={`rounded px-2 py-1 text-xs ${centre === k ? 'bg-white/15' : 'text-slate-300'}`}>{w}</button>)}
         </div>
         <div className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
-          <button type="button" role="tab" aria-selected={tab === 'frame'} onClick={() => setTab('frame')} className={`rounded px-2 py-1 text-xs ${tab === 'frame' ? 'bg-white/15' : 'text-slate-300'}`}>Compose</button>
-          <button type="button" role="tab" aria-selected={tab === 'submit'} onClick={() => setTab('submit')} className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${tab === 'submit' ? 'bg-white/15' : 'text-slate-300'}`}><ListChecks size={12} />Check and export</button>
-          <button type="button" role="tab" aria-selected={tab === 'tools'} onClick={() => setTab('tools')} data-testid="present-tools" title="Camera presets, shots, drawings, render, results and trace" className={`rounded px-2 py-1 text-xs ${tab === 'tools' ? 'bg-white/15' : 'text-slate-300'}`}>Views and results</button>
+          {PANEL_TABS.filter((x) => x.id === 'frame' || x.id === 'submit' || tools).map((x) => (
+            <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)} data-testid={`panel-${x.id}`} title={x.hint}
+              className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${tab === x.id ? 'bg-white/15' : 'text-slate-300'}`}>{x.id === 'submit' && <ListChecks size={12} />}{x.word}</button>
+          ))}
         </div>
       </header>
       <div className="flex min-h-0 flex-1">
-        <SheetsPanel levels={levels} onPick={pick} onCreate={createSet} msg={setMsg} preset={preset} setPreset={setPreset} busy={capturing} />
+        <SheetsPanel levels={levels} onCreate={createSet} msg={setMsg} preset={preset} setPreset={setPreset} busy={capturing} />
         {/* While the Architectural set is made, the results of each workflow tool are drawn here, out of sight. */}
         {centre === '3d' && viewport
           ? <main className="min-w-0 flex-1 overflow-hidden bg-panel text-ink" data-testid="present-3d">{viewport}</main>
@@ -809,7 +745,7 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
             <BoardCanvas index={selected.board} evidence={evidence} onFrame={onFrame} rev={draw} />
           </div>
         </main>}
-        {tab === 'tools' && tools ? <div className="flex shrink-0 text-ink" data-testid="present-tools-panel">{tools}</div> : (
+        {tab !== 'frame' && tab !== 'submit' && tools ? <div className="flex shrink-0 text-ink" data-testid="present-tools-panel">{tools(TOOL_TAB[tab])}</div> : (
         <UiShow id="present.composer.inspector"><aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={tab === 'frame' ? 'Frame' : 'Check and export'}>
           {tab === 'frame' ? <FrameInspector evidence={evidence} levels={levels} /> : <SubmissionPanel evidence={evidence} overflow={overflow} />}
         </aside></UiShow>

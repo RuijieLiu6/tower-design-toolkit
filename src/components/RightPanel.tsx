@@ -57,7 +57,7 @@ function NothingToAnalyse() {
   )
 }
 
-type Tab = 'design' | 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
+export type Tab = 'design' | 'properties' | 'site' | 'results' | 'present' | 'render' | 'trace'
 
 /** Picks which node's results to read, without switching anything on or off (the bottom bar does that). */
 function ResultsPicker() {
@@ -96,7 +96,8 @@ function ResultsPicker() {
   )
 }
 
-export default function RightPanel() {
+/** `only`: one tab, no tab bar (the Presentation page puts its own tabs in its header: 18 Nov, one row of tabs). */
+export default function RightPanel({ only }: { only?: Tab } = {}) {
   const phase = useStore((s) => s.phase)
   const step = useStep((s) => s.step)
   const present = phase === 'present'
@@ -158,10 +159,10 @@ export default function RightPanel() {
   // No tower: the banner, unless the picked check already says it needs a model (no message twice).
   // Not over Site limits either: it reads the site, and its tabs say themselves what waits for a tower (17 Nov).
   const noTower = useStore((s) => s.towers[s.project].length === 0 && !(s.selectedNode && (canonicalNode(s.selectedNode) === 'built.viewcones' || (s.enabled[s.selectedNode] && NEEDS_MODEL.has(s.selectedNode)))))
-  const shown = tabs.some((t) => t.id === tab) ? tab : tabs[0]?.id ?? tab
+  const shown = only ?? (tabs.some((t) => t.id === tab) ? tab : tabs[0]?.id ?? tab)
   return (
     <aside data-panel="right" className="glass-edge flex h-full w-[var(--right-w)] shrink-0 flex-col overflow-hidden rounded-2xl bg-panel" aria-label={present ? 'Present and results' : 'Results and evidence'}>
-      <div className="flex border-b border-line">
+      {!only && <div className="flex border-b border-line">
       <div role="tablist" aria-label={present ? 'Present and results' : 'Results'} className="flex min-w-0 flex-1">
         {tabs.map((t) => (
           <button key={t.id} id={`rp-tab-${t.id}`} role="tab" aria-selected={shown === t.id} aria-controls="rp-panel" tabIndex={shown === t.id ? 0 : -1} onClick={() => setTab(t.id)}
@@ -174,8 +175,8 @@ export default function RightPanel() {
         ))}
       </div>
         <div className="flex items-center px-1"><HidePanelButton side="right" /></div>
-      </div>
-      <div id="rp-panel" role="tabpanel" aria-labelledby={`rp-tab-${shown}`} className="flex-1 overflow-y-auto">
+      </div>}
+      <div id="rp-panel" role={only ? undefined : 'tabpanel'} aria-labelledby={only ? undefined : `rp-tab-${shown}`} className="flex-1 overflow-y-auto">
         <UiScopeContext.Provider value={`right.tab.${shown}`}>
         {shown === 'properties' && (drawing ? <DrawToolPanel /> : <Suspense fallback={<p className="p-4 text-xs text-muted">Loading Properties…</p>}><TowerProperties /></Suspense>)}
         {shown === 'site' && <Suspense fallback={<p className="p-4 text-xs text-muted">Loading your site…</p>}><SiteInfo /></Suspense>}

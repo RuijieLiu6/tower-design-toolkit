@@ -1,23 +1,18 @@
 // Present's panel (Ruijie, 6 Nov: tools as icons with a key word, long text behind "?"): the board (3D view or floor
 // plan), the representation, camera presets and capture, each an icon tile with its full name on hover (IconTile.tsx).
-import { Box, Building, Building2, Camera, Cuboid, Download, FileDown, Globe, LayoutPanelTop, Mountain, PersonStanding, ScanEye, type LucideIcon } from './icons'
+import { Box, Building, Building2, Camera, Cuboid, Download, Globe, Mountain, PersonStanding, ScanEye, type LucideIcon } from './icons'
 import { VTC_NORTH_DEG } from '../context'
-import { captureShot, downloadPlanSvg } from '../lib/capture'
-import { towerFloors } from '../engine/massing'
-import { typicalFloor } from '../engine/plan'
-import { USES } from '../engine/types'
+import { captureShot } from '../lib/capture'
 import { useStore, useTowers, type Representation } from '../store'
-import DrawingsSection from './drawings/DrawingsSection'
-import BoardsSection from './BoardsSection'
+import { useEffect } from 'react'
 import { captureHiResShot } from '../lib/hiresCapture'
 import { Section } from './ui'
 import { useShallow } from 'zustand/react/shallow'
 import { DisplayModeSwitch } from './DisplayModeSwitch'
-import Help from './Help'
 import IconTile from './IconTile'
 
 export default function PresentPanel() {
-  const { project, set, presentRep, groundElevation, selectedTower, boardView, planLevel, planGrid } = useStore(useShallow((s) => ({ project: s.project, set: s.set, presentRep: s.presentRep, groundElevation: s.groundElevation, selectedTower: s.selectedTower, boardView: s.boardView, planLevel: s.planLevel, planGrid: s.planGrid })))
+  const { project, set, presentRep, groundElevation, selectedTower, boardView } = useStore(useShallow((s) => ({ project: s.project, set: s.set, presentRep: s.presentRep, groundElevation: s.groundElevation, selectedTower: s.selectedTower, boardView: s.boardView })))
   const towers = useTowers()
   const t = towers.find((x) => x.id === selectedTower) ?? towers[0]
 
@@ -50,46 +45,14 @@ export default function PresentPanel() {
     { id: 'clay', label: 'Clay', icon: Box, hint: 'Solid massing with program colours' },
     { id: 'xray', label: 'X-ray', icon: ScanEye, hint: 'Ghosted shell with plates, core and plant' },
   ]
-  // Floor plan levels to offer: the typical floor, the middle floor of each use, sky lobbies, a podium floor and the top.
-  const floors = t ? towerFloors(t) : []
-  const typical = t ? typicalFloor(t) : null
-  const levelOptions: { level: number; label: string }[] = []
-  const seen = new Set<number>()
-  const addLevel = (level: number | undefined, label: string) => { if (level === undefined || seen.has(level)) return; seen.add(level); levelOptions.push({ level, label }) }
-  for (const use of [...new Set(floors.filter((f) => !f.podium && !f.skyLobby && f.z0 > 0.5).map((f) => f.use))]) {
-    const of = floors.filter((f) => f.use === use && !f.podium && !f.skyLobby && f.z0 > 0.5)
-    addLevel(of[Math.floor(of.length / 2)]?.level, `${USES[use].label} (middle floor)`)
-  }
-  for (const f of floors.filter((x) => x.skyLobby)) addLevel(f.level, t?.skyRoom?.level === f.level ? 'Public sky room' : 'Sky lobby')
-  addLevel(floors.find((f) => f.podium && f.z0 > 0.5)?.level, 'Podium')
-  addLevel(floors[floors.length - 1]?.level, 'Top floor')
-  levelOptions.sort((a, b) => a.level - b.level)
 
   const row = 'flex flex-wrap gap-0.5'
+  // 18 Nov (Sinnie: "combine/merge functions … right now there's repeating functions"): this is the Views tab of the
+  // Presentation page. Floor plans and the other drawings go on the sheets from Add (true-scale vectors), the board
+  // status is Check and export, and captures land in the sheet Library; so the board is always the 3D view here.
+  useEffect(() => { if (boardView !== '3d') set({ boardView: '3d' }) }, [boardView, set])
   return (
     <div>
-      <Section title="Board" help="What the board shows: the 3D view, or a floor plan drawn to a standard scale. No names or logos on the boards (brief p.27).">
-        <div role="radiogroup" aria-label="Board content" className={row}>
-          <IconTile size="sm" role="radio" aria-checked={boardView === '3d'} active={boardView === '3d'} icon={Box} word="3D" label="3D view on the board" hint="The board shows the 3D view, framed as captured." onClick={() => set({ boardView: '3d' })} />
-          <IconTile size="sm" role="radio" aria-checked={boardView === 'plan'} active={boardView === 'plan'} icon={LayoutPanelTop} word="Plan" label="Floor plan on the board" hint="The board shows a floor plan, drawn at the largest standard scale that fits A2." onClick={() => set({ boardView: 'plan' })} />
-        </div>
-        {boardView === 'plan' && (
-          <div className="mt-2 grid gap-2">
-            <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Level</span>
-              <select value={planLevel ?? ''} onChange={(e) => set({ planLevel: e.target.value === '' ? null : Number(e.target.value) })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs" aria-label="Floor plan level">
-                <option value="">Typical floor (level {typical?.level ?? '—'})</option>
-                {levelOptions.map((o) => <option key={o.level} value={o.level}>Level {o.level} · {o.label}</option>)}
-              </select>
-            </label>
-            <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={planGrid} onChange={() => set({ planGrid: !planGrid })} />Indicative structural grid</label>
-            <div className={row}>
-              <IconTile size="sm" icon={FileDown} word="SVG" label="Download the plan as SVG, to scale" hint="Prints at the drawing's standard scale." onClick={() => downloadPlanSvg()} />
-            </div>
-            <p className="text-meta text-muted">The plan as an image: PNG under Capture below. No names or logos on the boards (brief p.27).</p>
-          </div>
-        )}
-      </Section>
-      {boardView === '3d' && <>
       <Section title="Representation" help="The model is locked in Present: change it in Form or Schematic.">
         <div role="radiogroup" aria-label="Representation" className={row}>
           {REPS.map(({ id, label, icon, hint }) => (
@@ -108,15 +71,12 @@ export default function PresentPanel() {
           ))}
         </div>
       </Section>
-      </>}
-      <Section title="Capture" help="The capture is the board frame (A2 landscape, 1.414:1), and each shot also collects in the strip on the left. A screen capture is about 1,000–1,500 px: use print size for images that fill a board.">
+      <Section title="Capture" help="The capture is the board frame (A2 landscape, 1.414:1). Each shot goes to the sheet Library under Compose, ready to drag onto a sheet. A screen capture is about 1,000–1,500 px: use print size for images that fill a board.">
         <div className={row}>
           <IconTile size="sm" primary icon={Download} word="PNG" label={boardView === '3d' ? 'Capture and download (PNG)' : 'Download the plan as PNG'} hint={boardView === '3d' ? 'Saves the board frame as it is on screen.' : 'The board frame, with the plan, as an image.'} onClick={() => captureShot(true)} />
           {boardView === '3d' && <IconTile size="sm" icon={Camera} word="Print" label="Capture at print size (3508 px)" hint="Re-renders this camera at about 3500 px wide, enough for a full A2 board at 150 dpi." onClick={() => captureHiResShot()} />}
         </div>
       </Section>
-      <DrawingsSection />
-      <BoardsSection />
     </div>
   )
 }
