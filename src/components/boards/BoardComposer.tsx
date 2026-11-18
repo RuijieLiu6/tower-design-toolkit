@@ -393,6 +393,8 @@ function SheetLibrary({ evidence }: { evidence: Record<string, EvidenceSet> }) {
   const updateFrame = useBoardStore((s) => s.updateFrame)
   const shots = useStore((s) => s.shots)
   const d = useDrawData()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [dropping, setDropping] = useState(false)
   const seen = new Set<string>()
   const entries: LibEntry[] = []
   for (const b of boards) for (const fr of b.frames) {
@@ -417,11 +419,15 @@ function SheetLibrary({ evidence }: { evidence: Record<string, EvidenceSet> }) {
     ev.dataTransfer.effectAllowed = 'copy'
   }
   return (
-    <div data-testid="sheet-library">
+    <div data-testid="sheet-library" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDropping(true) } }} onDragLeave={() => setDropping(false)}
+      onDrop={(e) => { setDropping(false); if (e.dataTransfer.files.length) { e.preventDefault(); void importFiles(e.dataTransfer.files) } }}
+      className={dropping ? 'rounded ring-2 ring-sky-400' : ''}>
       <div className="mb-1.5 flex items-center justify-between text-meta font-semibold text-slate-400"><span>Library</span><span className="font-normal">{entries.length}</span></div>
-      {entries.length === 0
-        ? <p className="text-meta text-slate-400">Drawings and images you add to the sheets collect here.</p>
-        : <div className="grid grid-cols-3 gap-1.5">
+      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" multiple className="hidden" data-testid="library-upload-input"
+        onChange={async (e) => { if (e.target.files) await importFiles(e.target.files); e.target.value = '' }} />
+      <div className="grid grid-cols-3 gap-1.5">
+          <button type="button" onClick={() => fileRef.current?.click()} data-testid="library-upload" aria-label="Upload images" title="Upload your own images (PNG, JPEG, WebP, SVG), or drop files here"
+            className="flex aspect-[1.414] w-full items-center justify-center rounded border border-dashed border-white/25 text-slate-400 hover:border-sky-400 hover:text-sky-300"><Upload size={16} aria-hidden /></button>
           {entries.map((e) => (
             <button key={e.key} type="button" draggable onDragStart={(ev) => drag(ev, e)} onClick={() => void pick(e)} data-lib={'content' in e ? e.content.kind : 'image' in e ? 'image' : 'shot'}
               title={`${e.label}. Drag onto a frame${target ? ', or click to fill the selected frame' : ''}`} aria-label={e.label}
@@ -430,7 +436,7 @@ function SheetLibrary({ evidence }: { evidence: Record<string, EvidenceSet> }) {
                 : <img src={'image' in e ? e.image.dataUrl : e.shot.dataUrl} alt="" draggable={false} className={`block aspect-[1.414] w-full ${'image' in e && e.image.vector ? 'object-contain' : 'object-cover'}`} />}
             </button>
           ))}
-        </div>}
+        </div>
     </div>
   )
 }
@@ -451,7 +457,7 @@ function LayoutThumb({ t }: { t: TemplateId }) {
 }
 
 function FrameInspector({ evidence, levels }: { evidence: Record<string, EvidenceSet>; levels: number }) {
-  const { boards, selected, images, updateFrame, addImage, setTemplate, parked, unpark } = useBoardStore()
+  const { boards, selected, images, updateFrame, addImage, setTemplate } = useBoardStore()
   const user = useFonts((s) => s.user)
   const b: Board = boards[selected.board]
   const f = b.frames.find((x) => x.id === selected.frame)
@@ -477,16 +483,6 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
             </button>
           ))}
         </div>
-        {parked.length > 0 && (
-          <div className="mt-2 rounded border border-amber-400/40 p-2 text-meta">
-            <div className="mb-1 text-amber-200">{parked.length} item{parked.length > 1 ? 's' : ''} moved off a board by a layout change. Select an empty frame, then put one back:</div>
-            {parked.map((p, i) => (
-              <button key={i} type="button" disabled={!f || f.role === 'title'} onClick={() => f && unpark(i, selected.board, f.id)} className="mr-1 mt-1 rounded border border-white/20 px-1.5 py-0.5 disabled:opacity-40">
-                {p.content.kind === 'image' ? images[p.content.imageId]?.label ?? 'Image' : p.content.kind === 'text' ? `“${p.content.text.slice(0, 18)}…”` : 'Evidence'}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
       <SheetLibrary evidence={evidence} />
       <FontPanel />
@@ -746,7 +742,7 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
     if (preset === 'arch') { void createArch(); return }
     const used = boards.slice(0, 5).some((b) => b.frames.some((f) => f.role === 'body' && f.content.kind !== 'empty'))
     makeDrawingSet(Math.max(2, Math.round(levels / 2)), levels)
-    setSetMsg(used ? 'Five sheets now hold the drawing set; what was on them is kept aside.' : 'Drawing set created: five sheets.')
+    setSetMsg(used ? 'Five sheets now hold the drawing set; earlier images stay in the library.' : 'Drawing set created: five sheets.')
     setTimeout(() => setSetMsg(''), 5000)
   }
   const [tab, setTab] = useState<'frame' | 'submit' | 'tools'>('frame')

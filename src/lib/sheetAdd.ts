@@ -51,21 +51,15 @@ export function canvasImage(canvas: HTMLCanvasElement, title: string, caption: s
   return titled(canvas, canvas.width, canvas.height, title, caption)
 }
 
-/** Puts the image on the first empty picture frame of the boards (or keeps it in the boards' library). */
+/**
+ * Keeps the image in the sheets' library (18 Nov, Sinnie: "it shouldnt automatically be added onto the sheet"):
+ * nothing is placed; the user drags it from the library in Present onto a frame.
+ */
 export function addToSheet(img: { dataUrl: string; w: number; h: number }, label: string): SheetPlace {
-  const b = useBoardStore.getState()
   const id = `analysis-${Date.now().toString(36)}`
-  b.addImage({ id, dataUrl: img.dataUrl, w: img.w, h: img.h, source: 'capture', label })
-  for (let i = 0; i < b.boards.length; i++) {
-    const f = b.boards[i].frames.find((x) => x.role === 'body' && x.content.kind === 'empty')
-    if (f) {
-      b.updateFrame(i, f.id, { content: { kind: 'image', imageId: id, fit: 'contain' }, caption: label })
-      useStore.setState({ announce: `${label} added to board ${i + 1}.` })
-      return { board: i, frame: f.id }
-    }
-  }
-  useStore.setState({ announce: `${label} added to the boards' images: every frame is full, so place it in Present.` })
+  useBoardStore.getState().addImage({ id, dataUrl: img.dataUrl, w: img.w, h: img.h, source: 'capture', label })
+  useStore.setState({ announce: `${label} added to the sheet library in Presentation.` })
   return { board: -1, frame: null }
 }
 
-export const placeText = (p: SheetPlace) => (p.board >= 0 ? `On board ${p.board + 1}` : 'In the board images')
+export const placeText = (p: SheetPlace) => (p.board >= 0 ? `On board ${p.board + 1}` : 'In the library')

@@ -118,7 +118,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     const kept = s.boards[i].frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty')
     const boards = s.boards.filter((_, k) => k !== i)
     const ex = { ...s.exports }; delete ex[s.boards[i].id]
-    return { boards, parked: [...s.parked, ...kept], exports: ex, selected: { board: Math.min(s.selected.board > i ? s.selected.board - 1 : s.selected.board, boards.length - 1), frame: null } }
+    return { boards, parked: [], exports: ex, selected: { board: Math.min(s.selected.board > i ? s.selected.board - 1 : s.selected.board, boards.length - 1), frame: null } }
   }),
   makeDrawingSet: (typ, top) => set((s) => {
     const boards = s.boards.slice()
@@ -142,7 +142,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     fill(3, 'hero', 'Section', [{ kind: 'drawing', vt: 'section' }, { kind: 'drawing', vt: 'plan', level: typ }, { kind: 'table' }, null])
     // The last sheet is left for the 3D view and the analysis drawings (Add to sheet fills its frames).
     fill(4, 'grid', 'Analysis', [null, null, null, null])
-    return { boards, parked: [...s.parked, ...kept], exports: {}, selected: { board: 0, frame: null } }
+    return { boards, parked: [], exports: {}, selected: { board: 0, frame: null } }
   }),
   makeArchSet: (typ, top, groups, o = {}) => set((s) => {
     // The Architectural set (17 Nov 2026, Sinnie): cover, context plan, site plan, the analysis drawings, the program
@@ -190,7 +190,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     const index = ['SHEETS', '', ...all.map((b, i) => `${nos[i]}   ${b.name}`)].join(String.fromCharCode(10))
     all[0] = { ...all[0], frames: all[0].frames.map((f) => (f.id === 'f2' ? { ...f, content: { kind: 'text', text: index, sizeMm: 3.6 } } : f)) }
     const kept = s.boards.filter((b) => !b.id.startsWith('arch-')).flatMap((b) => b.frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty' && f.content.kind !== 'drawing'))
-    return { boards: all, parked: [...s.parked, ...kept], exports: {}, style: 'architectural' as StyleId, selected: { board: 0, frame: null } }
+    return { boards: all, parked: [], exports: {}, style: 'architectural' as StyleId, selected: { board: 0, frame: null } }
   }),
   setOpen: (open) => set({ open }),
   select: (board, frame = null) => set({ selected: { board, frame } }),
@@ -198,7 +198,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     const { board, dropped } = applyTemplate(s.boards[i], t)
     const boards = s.boards.slice(); boards[i] = board
     const ex = { ...s.exports }; delete ex[board.id]
-    return { boards, parked: [...s.parked, ...dropped], selected: { board: i, frame: null }, exports: ex }
+    return { boards, parked: [], selected: { board: i, frame: null }, exports: ex }
   }),
   updateFrame: (i, id, patch) => set((s) => {
     const boards = s.boards.slice()
@@ -248,9 +248,11 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   name: 'ts.boards',
   // v2 (17 Nov, Sinnie: "all the analysis drawing should only appear if the user presses (add on sheet) … remove all the
   // analysis page by default"): sheets filled by the old automatic capture (images 'arch-…') are dropped from saved sets.
-  version: 2,
+  // v3 (18 Nov, Sinnie): the "moved off a board" list is gone; its images stay in the library.
+  version: 3,
   migrate: (state, from) => {
-    const st = state as { boards?: { frames: { content?: { kind: string; imageId?: string } }[] }[] }
+    const st = state as { boards?: { frames: { content?: { kind: string; imageId?: string } }[] }[]; parked?: unknown[] }
+    delete st.parked
     if (from < 2 && Array.isArray(st.boards)) {
       const auto = (b: (typeof st.boards)[number]) => b.frames.some((f) => f.content?.kind === 'image' && f.content.imageId?.startsWith('arch-'))
       const kept = st.boards.filter((b) => !auto(b))
@@ -262,7 +264,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     try { return localStorage } catch { return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } }
   }),
   // Image pixels live in IndexedDB; exports are re-made on demand.
-  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, parked: s.parked, style: s.style, sheet: s.sheet, format: s.format }),
+  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, style: s.style, sheet: s.sheet, format: s.format }),
 }))
 
 let hydrated = false
