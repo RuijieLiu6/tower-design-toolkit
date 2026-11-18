@@ -539,7 +539,7 @@ function drawAxo(c: CanvasRenderingContext2D, k: number, f: Rect, d: DrawData, s
   c.save()
   c.beginPath(); c.rect(K.mm(f.x + 2), K.mm(f.y + 2), K.mm(f.w - 4), K.mm(f.h - 10)); c.clip()
   // the ground: streets, the lots, the site stippled
-  c.fillStyle = AXO.road; c.fillRect(K.mm(f.x + 2), K.mm(f.y + 2), K.mm(f.w - 4), K.mm(f.h - 10)) // streets to the frame's edge
+  c.fillStyle = st.streets ?? AXO.road; c.fillRect(K.mm(f.x + 2), K.mm(f.y + 2), K.mm(f.w - 4), K.mm(f.h - 10)) // streets to the frame's edge
   for (const r of lots) { path(r, 0); c.fillStyle = AXO.lot; c.fill(); c.strokeStyle = AXO.lotEdge; lw(0.1); c.stroke() }
   if (site) { path(site, 0); c.fillStyle = stipple(c, '#f7f7f8'); c.fill() }
   // shadows on the ground from a south-east sun: they fall back and to the left, as in the reference

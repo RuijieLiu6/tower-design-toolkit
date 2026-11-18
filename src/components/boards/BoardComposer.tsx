@@ -1,9 +1,9 @@
 // Board composer (research P13-M06a, thin form): four A2 landscape boards in templates; drop shots, renders and vector
 // floor plans into frames, write titles and text, add evidence frames from the checks, tag each frame with the brief's
 // deliverable it shows. Checks and export are in SubmissionPanel.
-import { ArrowUpDown, ChevronDown, FileImage, LayoutPanelTop, ListChecks, Sparkles, Trash2, Upload, X } from '../icons'
+import { ArrowUpDown, ChevronDown, FileImage, LayoutPanelTop, Sparkles, Trash2, Upload, X } from '../icons'
 import { useEffect, useRef, useState, type ReactNode, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, MAX_SHEETS, SHEET_SIZES, SOURCE_LABEL, TEMPLATES, boardName, templateRects, familiesUsed, imageSource, sheetName, sheetNumbers, type FrameContent, type SheetSize, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
+import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, type Orientation, MAX_SHEETS, SHEET_SIZES, SOURCE_LABEL, TEMPLATES, boardName, templateRects, familiesUsed, imageSource, sheetName, sheetNumbers, type FrameContent, type SheetSize, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
 import { drawBoard, imageSize, type EvidenceSet } from '../../lib/boardRender'
 import { hydrateBoardImages, useBoardStore } from '../../lib/boardStore'
 import { BUILTIN_FONTS, FONT_SOURCES, KIND_WORD, fontStack } from '../../lib/fonts/catalog'
@@ -162,7 +162,7 @@ function Thumb({ index, evidence, active, onClick, rev }: { index: number; evide
           if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); move(index, index + (e.key === 'ArrowLeft' ? -1 : 1)) }
         }}
         className="rounded-[2px] outline-none focus-visible:ring-2 focus-visible:ring-sky-400">
-        <canvas ref={ref} className={`h-[52px] w-[74px] rounded-[2px] ${active ? 'ring-2 ring-sky-500' : 'ring-1 ring-white/20'}`} />
+        <canvas ref={ref} style={{ height: 52, width: Math.round(52 * A2_RATIO) }} className={`rounded-[2px] ${active ? 'ring-2 ring-sky-500' : 'ring-1 ring-white/20'}`} />
       </button>
       {editing
         ? <input autoFocus defaultValue={board.name ?? ''} placeholder={boardName({ ...board, name: undefined }, index)} aria-label={`Name of board ${index + 1}`} maxLength={80} data-testid="board-name-input"
@@ -287,15 +287,18 @@ type LibEntry = { key: string; label: string } & ({ image: BoardImage } | { shot
 function DrawingThumb({ c, evidence, d }: { c: FrameContent; evidence: Record<string, EvidenceSet>; d: DrawData }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const style = useBoardStore((s) => s.style)
+  const streetsWhite = useBoardStore((s) => s.streetsWhite)
   useEffect(() => {
     const el = ref.current, ctx = el?.getContext('2d')
     if (!el || !ctx) return
-    const W = 150, H = W / A2_RATIO, k = el.width / W, st = BOARD_STYLES[style] ?? BOARD_STYLES.competition
+    // A fixed landscape tile whatever the sheet's orientation, so the library grid stays even.
+    const W = 150, H = (W * el.height) / el.width, k = el.width / W
+    const st = { ...(BOARD_STYLES[style] ?? BOARD_STYLES.competition), ...(streetsWhite ? { streets: '#ffffff' } : {}) }
     ctx.fillStyle = st.paper; ctx.fillRect(0, 0, el.width, el.height)
     const f = { x: 0, y: 0, w: W, h: H }
     if (c.kind === 'drawing') drawDrawing(ctx, k, f, c, d, st, 1)
     else if (c.kind === 'table') drawTable(ctx, k, f, Object.values(evidence).map((s) => [s.name, '', s.rules.some((r) => r.state === 'fail') ? 'fail' : 'pass'] as [string, string, 'pass' | 'fail']), st)
-  }, [c, style, d, evidence])
+  }, [c, style, d, evidence, streetsWhite])
   return <canvas ref={ref} width={192} height={136} className="block aspect-[1.414] w-full bg-white" />
 }
 
@@ -379,7 +382,7 @@ function LayoutThumb({ t }: { t: TemplateId }) {
 }
 
 function FrameInspector({ evidence, levels }: { evidence: Record<string, EvidenceSet>; levels: number }) {
-  const { boards, selected, images, updateFrame, addImage, setTemplate } = useBoardStore()
+  const { boards, selected, images, updateFrame, addImage } = useBoardStore()
   const user = useFonts((s) => s.user)
   const b: Board = boards[selected.board]
   const f = b.frames.find((x) => x.id === selected.frame)
@@ -388,30 +391,13 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
   // Columns that can shrink below their content (the deliverable select's longest option used to widen the whole inspector past its 320 px, 17 Nov).
   const input = 'w-full min-w-0 max-w-full rounded border border-white/15 bg-slate-900 px-2 py-1 text-xs text-slate-100'
   return (
-    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 p-3 text-slate-200">
-      <div>
-        <label className={`${label} mb-3`}>Sheet name
-          <input key={b.id} defaultValue={b.name ?? ''} placeholder={boardName({ ...b, name: undefined }, selected.board)} maxLength={80} data-testid="board-name"
-            onBlur={(e) => useBoardStore.getState().renameBoard(selected.board, e.target.value.trim())} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-            className={input} />
-          <span className="text-meta text-slate-400">Shown on its tab and used for the file name; Sort by name orders the boards by it. Not printed on the board.</span>
-        </label>
-        <div className="mb-1.5 text-meta font-semibold text-slate-400">{boardName(b, selected.board)} layout</div>
-        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Board template">
-          {(Object.keys(TEMPLATES) as TemplateId[]).map((t) => (
-            <button key={t} type="button" role="radio" aria-checked={b.template === t} aria-label={TEMPLATES[t].label} title={`${TEMPLATES[t].label}: ${TEMPLATES[t].hint}`} onClick={() => setTemplate(selected.board, t)} data-layout={t}
-              className={`rounded border p-1 transition-colors ${b.template === t ? 'border-sky-400 bg-sky-500/15 text-sky-300' : 'border-white/15 text-slate-400 hover:border-sky-400 hover:text-slate-200'}`}>
-              <LayoutThumb t={t} />
-            </button>
-          ))}
-        </div>
+    f ? (
+    <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 border-b border-white/10 p-3 text-slate-200" data-testid="frame-panel" aria-label="Selected frame">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold">{f.role === 'title' ? 'Title band' : 'Frame'} <span className="font-normal text-slate-400">· {Math.round(f.w)} × {Math.round(f.h)} mm</span></span>
+        <button type="button" onClick={() => useBoardStore.getState().select(selected.board, null)} aria-label="Done with this frame" title="Done" className="rounded p-0.5 text-slate-400 hover:bg-white/10 hover:text-slate-100"><X size={13} /></button>
       </div>
-      <SheetLibrary evidence={evidence} />
-      <FontPanel />
-      {!f && <p className="text-xs text-slate-400">Select a frame on the board to fill it.</p>}
-      {f && (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
-          <div className="text-meta font-semibold text-slate-400">{f.role === 'title' ? 'Title band' : 'Frame'} · {Math.round(f.w)} × {Math.round(f.h)} mm</div>
           {f.role === 'body' && (
             <div className="grid grid-cols-3 gap-1" role="radiogroup" aria-label="Frame content">
               {([['image', 'Image'], ['drawing', 'Drawing'], ['text', 'Text'], ['table', 'Table'], ['evidence', 'Evidence'], ['empty', 'Empty']] as const).map(([k, l]) => (
@@ -449,7 +435,7 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
             )
           })()}
           {f.content.kind === 'table' && <p className="text-meta text-slate-400">One line per check with its reading and PASS / CHECK / NEAR, from the checks that are on.</p>}
-          {f.content.kind === 'empty' && f.role === 'body' && <p className="text-meta text-slate-400">Click a shot or image on the left, or drag it onto this frame.</p>}
+          {f.content.kind === 'empty' && f.role === 'body' && <p className="text-meta text-slate-400">Drag a drawing or an image from the left onto this frame.</p>}
           {f.content.kind === 'image' && (() => {
             const c = f.content, img = images[c.imageId]
             return (
@@ -517,35 +503,24 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
             </label>
           )}
         </div>
-      )}
-    </div>
+    </section>
+    ) : null
   )
 }
 
-// The Tower Workspace's "Drawing space" panel (Sinnie, 13 Nov: "add this tab to the current set"): Sheets = the drawing
-// set (style, sheet size), the sheet list (number, name, remove, blank sheet) and Create drawing set; Add = what goes on
-// a sheet (a drawing, the results table, text, an image from the library).
-function SheetsPanel({ levels, onCreate, msg, preset, setPreset, busy }: { levels: number; onCreate: () => void; msg: string; preset: 'drawings' | 'arch'; setPreset: (p: 'drawings' | 'arch') => void; busy: boolean }) {
-  const [tab, setTab] = useState<'sheets' | 'add'>('sheets')
+// The left panel (18 Nov, Sinnie: "sheet | style | render | export"): what goes on a sheet. The drawings, drawn from
+// the model and always current, then the Library (uploads, captures from Model mode, renders, drawings already placed).
+function AddPanel({ levels, evidence }: { levels: number; evidence: Record<string, EvidenceSet> }) {
   const boards = useBoardStore((s) => s.boards)
   const selected = useBoardStore((s) => s.selected)
-  const select = useBoardStore((s) => s.select)
-  const style = useBoardStore((s) => s.style)
-  const setStyle = useBoardStore((s) => s.setStyle)
-  const sheet = useBoardStore((s) => s.sheet)
-  const setSheet = useBoardStore((s) => s.setSheet)
-  const addBoard = useBoardStore((s) => s.addBoard)
-  const removeBoard = useBoardStore((s) => s.removeBoard)
-  const renameBoard = useBoardStore((s) => s.renameBoard)
   const updateFrame = useBoardStore((s) => s.updateFrame)
   const nos = sheetNumbers(boards)
   const [note, setNote] = useState('')
-  const sel = 'w-full rounded-lg border border-white/15 bg-slate-900 px-2 py-1.5 text-xs text-slate-100'
   // Put a drawing, the table or text in the selected frame, else in the sheet's first empty frame.
   const put = (content: FrameContent, word: string) => {
     const b = boards[selected.board]
     const f = b.frames.find((x) => x.id === selected.frame && x.role === 'body') ?? b.frames.find((x) => x.role === 'body' && x.content.kind === 'empty')
-    if (!f) { setNote('This sheet has no empty frame: select a frame to replace, or add a blank sheet.'); return }
+    if (!f) { setNote('No empty frame here: drag it onto a frame instead.'); return }
     updateFrame(selected.board, f.id, { content })
     setNote(`${word} added to ${nos[selected.board]}.`)
   }
@@ -557,132 +532,244 @@ function SheetsPanel({ levels, onCreate, msg, preset, setPreset, busy }: { level
     ['Results table', { kind: 'table' }], ['Text', { kind: 'text', text: '', sizeMm: 4.5 }],
   ]
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-white/10" aria-label="Drawing space" data-testid="drawing-space">
-      <div className="flex gap-1 border-b border-white/10 p-2" role="tablist" aria-label="Drawing space">
-        {(['sheets', 'add'] as const).map((k) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} data-testid={`space-${k}`} className={`rounded-md px-2.5 py-1 text-xs ${tab === k ? 'bg-white/15' : 'text-slate-300 hover:bg-white/5'}`}>{k === 'sheets' ? 'Sheets' : 'Add'}</button>)}
+    <aside className="flex w-64 shrink-0 flex-col overflow-y-auto border-r border-white/10" aria-label="Add to a sheet" data-testid="drawing-space">
+      <div className="border-b border-white/10 p-3">
+        <div className="mb-2 text-meta font-semibold text-slate-400">Drawings</div>
+        <div className="grid grid-cols-2 gap-1" data-testid="space-add-list">
+          {ADD.map(([word, c]) => <button key={word} type="button" draggable onDragStart={(e) => { e.dataTransfer.setData(DRAG, JSON.stringify({ content: c })); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => put(c, word)} data-add={word} title="Drag onto a frame, or click to add to this sheet" className="cursor-grab rounded-lg border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400 active:cursor-grabbing">{word}</button>)}
+        </div>
+        {note && <p role="status" className="mt-2 text-meta text-emerald-300">{note}</p>}
       </div>
-      {tab === 'sheets' ? (
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <details open className="border-b border-white/10 p-3">
-              <summary className="cursor-pointer text-xs font-semibold">Drawing set</summary>
-              <label className="mt-2 grid gap-1 text-meta text-slate-400">Architectural style
-                <select value={style} onChange={(e) => setStyle(e.target.value as StyleId)} data-testid="board-style" className={sel}>{(Object.keys(BOARD_STYLES) as StyleId[]).map((k) => <option key={k} value={k}>{BOARD_STYLES[k].name}</option>)}</select>
-              </label>
-              <label className="mt-2 grid gap-1 text-meta text-slate-400">Sheet size
-                <select value={sheet} onChange={(e) => setSheet(e.target.value as SheetSize)} data-testid="sheet-size" className={sel}>{(Object.keys(SHEET_SIZES) as SheetSize[]).map((k) => <option key={k} value={k}>{SHEET_SIZES[k].label}</option>)}</select>
-              </label>
-              {sheet !== 'A2' && <p className="mt-1 text-meta text-amber-300">The competition takes A2 only; this size is for your own prints.</p>}
-            </details>
-            <details open className="border-b border-white/10 p-3">
-              <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold"><span>Sheets</span><span className="font-normal text-slate-400" data-testid="sheet-count">{boards.length}</span></summary>
-              <ul className="mt-2 grid gap-0.5" data-testid="sheet-list">
-                {boards.map((b, i) => (
-                  <li key={b.id} className={`flex items-center gap-2 rounded-lg px-2 py-1 ${selected.board === i ? 'bg-white/10 ring-1 ring-white/20' : 'hover:bg-white/5'}`} data-sheet={i}>
-                    <button type="button" onClick={() => select(i, null)} className="shrink-0 font-mono text-meta text-slate-400" aria-label={`Open sheet ${nos[i]}`}>{nos[i]}</button>
-                    <input value={sheetName(b, i)} onFocus={() => select(i, null)} onChange={(e) => renameBoard(i, e.target.value)} aria-label={`Name of sheet ${nos[i]}`} className="min-w-0 flex-1 truncate bg-transparent text-xs text-slate-100 outline-none focus:underline" />
-                    <button type="button" onClick={() => removeBoard(i)} disabled={boards.length <= 1} aria-label={`Remove sheet ${nos[i]}`} title="Remove the sheet (its contents are kept aside)" className="shrink-0 rounded px-1 text-slate-400 hover:bg-white/10 hover:text-slate-100 disabled:opacity-30">×</button>
-                  </li>
-                ))}
-              </ul>
-              <button type="button" onClick={addBoard} disabled={boards.length >= MAX_SHEETS} data-testid="sheet-add" className="mt-2 w-full rounded-lg border border-white/15 py-1.5 text-xs hover:border-sky-400 disabled:opacity-40">+ Blank sheet</button>
-              {boards.length !== 4 && <p className="mt-1 text-meta text-amber-300">The competition asks for four boards; you have {boards.length}.</p>}
-            </details>
-            {msg && <p role="status" className="p-3 text-meta text-emerald-300">{msg}</p>}
-          </div>
-          <div className="grid gap-1.5 border-t border-white/10 p-2">
-            <label className="grid gap-1 text-meta text-slate-400">Preset
-              <select value={preset} onChange={(e) => setPreset(e.target.value as 'drawings' | 'arch')} data-testid="set-preset" className={sel}>
-                <option value="drawings">Drawing set · five sheets</option>
-                <option value="arch">Architectural set · cover to renders, black and white</option>
-              </select>
-            </label>
-            <button type="button" onClick={onCreate} disabled={busy} data-testid="drawing-set" title={preset === 'arch' ? 'Cover, context plan, site plan, analysis drawings, program diagram, floor plans (ground, typical mid, typical high, roof), two sections, exterior axonometric and renders, in black and white with poché walls' : 'An axonometric cover with the site plan, floor plans, elevations, section, and a sheet for analysis: five sheets drawn from the model in this style'}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/10 py-2 text-xs font-medium hover:bg-white/15"><LayoutPanelTop size={13} />{busy ? 'Working…' : preset === 'arch' ? 'Create architectural set' : 'Create drawing set'}</button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="border-b border-white/10 p-3">
-            <div className="text-xs font-semibold">On {nos[selected.board]}</div>
-            <div className="mt-2 grid grid-cols-2 gap-1" data-testid="space-add-list">
-              {ADD.map(([word, c]) => <button key={word} type="button" draggable onDragStart={(e) => { e.dataTransfer.setData(DRAG, JSON.stringify({ content: c })); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => put(c, word)} data-add={word} title="Click to add to this sheet, or drag onto a frame" className="cursor-grab rounded-lg border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400 active:cursor-grabbing">{word}</button>)}
-            </div>
-            {note && <p role="status" className="mt-2 text-meta text-emerald-300">{note}</p>}
-          </div>
-        </div>
-      )}
+      <div className="p-3"><SheetLibrary evidence={evidence} /></div>
     </aside>
   )
 }
 
-// One Present page (Sinnie, 13 Nov: "merge the presentation layout into the old toolkit present page, i dont want two
-// separate one"): the sheets ARE the Present page, inside the workspace under the top bar. The old page's 3D view is
-// the centre's second view (to frame and capture shots) and its Present / Render / Results / Trace panel is the right
-// side's third tab.
-/** The right side's tabs (18 Nov, one row, no tabs inside tabs): Compose and Check are the sheets'; the others are the old Present panel's. */
-type PanelTab = 'frame' | 'views' | 'render' | 'results' | 'trace' | 'submit'
-const PANEL_TABS: { id: PanelTab; word: string; hint: string }[] = [
-  { id: 'frame', word: 'Compose', hint: 'Layout, library and the selected frame' },
-  { id: 'views', word: 'Views', hint: 'Representation, camera presets and capture; shows the 3D view' },
-  { id: 'render', word: 'Render', hint: 'AI render from a capture; shows the 3D view' },
-  { id: 'results', word: 'Results', hint: 'The analysis results and their drawings' },
-  { id: 'trace', word: 'Trace', hint: 'Where each number comes from' },
-  { id: 'submit', word: 'Check and export', hint: 'Submission checks, deliverables and the JPEG export' },
-]
-const TOOL_TAB = { views: 'present', render: 'render', results: 'results', trace: 'trace' } as const
-type ToolTab = (typeof TOOL_TAB)[keyof typeof TOOL_TAB]
-
-export default function BoardComposer({ viewport, tools }: { viewport?: ReactNode; tools?: (tab: ToolTab) => ReactNode }) {
-  return <ComposerBody viewport={viewport} tools={tools} />
+/** A sheet drawn small in an orientation: the choice is the picture. */
+function PageIcon({ o }: { o: Orientation }) {
+  const w = o === 'landscape' ? 28 : 20, h = o === 'landscape' ? 20 : 28
+  return <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden="true"><rect x={(32 - w) / 2} y={(32 - h) / 2} width={w} height={h} rx={2} fill="none" stroke="currentColor" strokeWidth={1.6} /><rect x={(32 - w) / 2 + 3} y={(32 - h) / 2 + 3} width={w * 0.45} height={2.4} rx={1} fill="currentColor" /></svg>
 }
 
-function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: (tab: ToolTab) => ReactNode }) {
+const sectionCls = 'border-b border-white/10 p-3'
+const headCls = 'mb-2 text-meta font-semibold text-slate-400'
+const inputCls = 'w-full min-w-0 rounded border border-white/15 bg-slate-900 px-2 py-1 text-xs text-slate-100'
+function Toggle({ on, onChange, label, testid }: { on: boolean; onChange: (v: boolean) => void; label: string; testid?: string }) {
+  return (
+    <label className="flex items-center justify-between gap-2 py-0.5 text-xs">
+      <span>{label}</span>
+      <button type="button" role="switch" aria-checked={on} aria-label={label} data-testid={testid} onClick={() => onChange(!on)}
+        className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${on ? 'bg-sky-500' : 'bg-white/20'}`}><span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all ${on ? 'left-3.5' : 'left-0.5'}`} /></button>
+    </label>
+  )
+}
+
+// Sheet (18 Nov): the selected frame when there is one, then the sheet itself: its name, the sheet list, its layout,
+// the page, the title block and how the drawings read.
+function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>; levels: number }) {
+  const boards = useBoardStore((s) => s.boards)
+  const selected = useBoardStore((s) => s.selected)
+  const select = useBoardStore((s) => s.select)
+  const setTemplate = useBoardStore((s) => s.setTemplate)
+  const addBoard = useBoardStore((s) => s.addBoard)
+  const removeBoard = useBoardStore((s) => s.removeBoard)
+  const renameBoard = useBoardStore((s) => s.renameBoard)
+  const sheet = useBoardStore((s) => s.sheet)
+  const setSheet = useBoardStore((s) => s.setSheet)
+  const orientation = useBoardStore((s) => s.orientation)
+  const setOrientation = useBoardStore((s) => s.setOrientation)
+  const tb = useBoardStore((s) => s.titleBlock)
+  const setTitleBlock = useBoardStore((s) => s.setTitleBlock)
+  const streetsWhite = useBoardStore((s) => s.streetsWhite)
+  const setStreetsWhite = useBoardStore((s) => s.setStreetsWhite)
+  const b = boards[selected.board]
+  const nos = sheetNumbers(boards)
+  if (!b) return null
+  return (
+    <div className="text-slate-200">
+      <FrameInspector evidence={evidence} levels={levels} />
+      <section className={sectionCls}>
+        <label className="grid gap-1 text-xs"><span className={headCls.replace('mb-2 ', '')}>Sheet name</span>
+          <input key={b.id} defaultValue={b.name ?? ''} placeholder={boardName({ ...b, name: undefined }, selected.board)} maxLength={80} data-testid="board-name"
+            onBlur={(e) => renameBoard(selected.board, e.target.value.trim())} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }} className={inputCls} />
+        </label>
+      </section>
+      <section className={sectionCls}>
+        <div className={`${headCls} flex items-center justify-between`}><span>Sheets</span><span className="font-normal" data-testid="sheet-count">{boards.length}</span></div>
+        <ul className="grid gap-0.5" data-testid="sheet-list">
+          {boards.map((x, i) => (
+            <li key={x.id} className={`flex items-center gap-2 rounded-lg px-2 py-1 ${selected.board === i ? 'bg-white/10 ring-1 ring-white/20' : 'hover:bg-white/5'}`} data-sheet={i}>
+              <button type="button" onClick={() => select(i, null)} className="shrink-0 font-mono text-meta text-slate-400" aria-label={`Open sheet ${nos[i]}`}>{nos[i]}</button>
+              <button type="button" onClick={() => select(i, null)} className="min-w-0 flex-1 truncate text-left text-xs">{sheetName(x, i)}</button>
+              <button type="button" onClick={() => removeBoard(i)} disabled={boards.length <= 1} aria-label={`Remove sheet ${nos[i]}`} title="Remove the sheet" className="shrink-0 rounded px-1 text-slate-400 hover:bg-white/10 hover:text-slate-100 disabled:opacity-30">×</button>
+            </li>
+          ))}
+        </ul>
+        <button type="button" onClick={addBoard} disabled={boards.length >= MAX_SHEETS} data-testid="sheet-add" className="mt-2 w-full rounded-lg border border-white/15 py-1.5 text-xs hover:border-sky-400 disabled:opacity-40">+ Add sheet</button>
+        {boards.length !== 4 && <p className="mt-1 text-meta text-amber-300">The competition asks for four boards; you have {boards.length}.</p>}
+      </section>
+      <section className={sectionCls}>
+        <div className={headCls}>Layout</div>
+        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Board template">
+          {(Object.keys(TEMPLATES) as TemplateId[]).map((k) => (
+            <button key={k} type="button" role="radio" aria-checked={b.template === k} aria-label={TEMPLATES[k].label} title={`${TEMPLATES[k].label}: ${TEMPLATES[k].hint}`} onClick={() => setTemplate(selected.board, k)} data-layout={k}
+              className={`rounded border p-1 transition-colors ${b.template === k ? 'border-sky-400 bg-sky-500/15 text-sky-300' : 'border-white/15 text-slate-400 hover:border-sky-400 hover:text-slate-200'}`}>
+              <LayoutThumb t={k} />
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className={sectionCls}>
+        <div className={headCls}>Page</div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-white/15 p-0.5" role="radiogroup" aria-label="Page size">
+            {(Object.keys(SHEET_SIZES) as SheetSize[]).map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={sheet === k} onClick={() => setSheet(k)} data-size={k} title={SHEET_SIZES[k].label}
+                className={`rounded px-2 py-1 text-xs ${sheet === k ? 'bg-white/15 text-white' : 'text-slate-300'}`}>{k}</button>
+            ))}
+          </div>
+          <div className="flex rounded-md border border-white/15 p-0.5" role="radiogroup" aria-label="Orientation">
+            {(['landscape', 'portrait'] as Orientation[]).map((o) => (
+              <button key={o} type="button" role="radio" aria-checked={orientation === o} aria-label={o === 'landscape' ? 'Landscape' : 'Portrait'} title={o === 'landscape' ? 'Landscape' : 'Portrait'} onClick={() => setOrientation(o)} data-orientation={o}
+                className={`rounded px-1 ${orientation === o ? 'bg-white/15 text-white' : 'text-slate-400'}`}><PageIcon o={o} /></button>
+            ))}
+          </div>
+        </div>
+        {(sheet !== 'A2' || orientation !== 'landscape') && <p className="mt-1.5 text-meta text-amber-300">The competition takes A2 landscape only.</p>}
+      </section>
+      <section className={sectionCls} data-testid="title-block-options">
+        <div className={headCls}>Title block</div>
+        <Toggle on={tb.show} onChange={(show) => setTitleBlock({ show })} label="Show" testid="tb-show" />
+        {tb.show && <>
+          <input value={tb.project} onChange={(e) => setTitleBlock({ project: e.target.value })} placeholder="Project name" aria-label="Project name" maxLength={60} className={`${inputCls} my-1`} data-testid="tb-project" />
+          <Toggle on={tb.date} onChange={(date) => setTitleBlock({ date })} label="Date" />
+          <Toggle on={tb.number} onChange={(number) => setTitleBlock({ number })} label="Sheet number" />
+        </>}
+      </section>
+      <section className={sectionCls}>
+        <div className={headCls}>Drawings</div>
+        <Toggle on={streetsWhite} onChange={setStreetsWhite} label="Streets in white" testid="streets-white" />
+      </section>
+    </div>
+  )
+}
+
+/** One style drawn as a corner of a sheet in its own paper, ink and cut colours. */
+function StyleSwatch({ id }: { id: StyleId }) {
+  const s = BOARD_STYLES[id]
+  const cut = s.cut === 'hatch' || s.cut === 'use' ? s.ink : s.cut
+  return (
+    <svg viewBox="0 0 60 42" className="block w-full" aria-hidden="true">
+      <rect width={60} height={42} rx={3} fill={s.paper} />
+      <rect x={6} y={8} width={22} height={26} fill={s.ctx} stroke={s.soft} strokeWidth={0.6} />
+      <rect x={12} y={14} width={10} height={14} fill={cut} stroke={s.ink} strokeWidth={s.w} />
+      <path d="M34 34 V14 h8 v-6 h8 v26" fill={s.mass === 'use' ? '#e9c46a' : s.mass} stroke={s.ink} strokeWidth={s.w} />
+      <line x1={4} y1={38} x2={56} y2={38} stroke={s.ink} strokeWidth={0.8} />
+    </svg>
+  )
+}
+
+type SetId = 'presentation' | 'drawings' | 'arch'
+const SETS: { id: SetId; name: string; sheets: string; hint: string }[] = [
+  { id: 'presentation', name: 'Presentation set', sheets: '4 boards', hint: 'The four competition boards in colour: the idea, the plans, section and elevations, performance. Uses your renders and the analysis you added.' },
+  { id: 'arch', name: 'Architectural set', sheets: 'Cover to renders', hint: 'Cover, context and site plans, your analysis, program, floor plans, sections, axonometric and renders, in black and white with poché walls.' },
+  { id: 'drawings', name: 'Drawing set', sheets: '5 sheets', hint: 'An axonometric cover with the site plan, floor plans, elevations, section and a sheet for analysis.' },
+]
+
+// Style (18 Nov): a ready set of sheets, the drawing style and the type.
+function StyleTab({ onCreate, busy, msg }: { onCreate: (id: SetId) => void; busy: boolean; msg: string }) {
+  const style = useBoardStore((s) => s.style)
+  const setStyle = useBoardStore((s) => s.setStyle)
+  const [pick, setPick] = useState<SetId>('presentation')
+  return (
+    <div className="text-slate-200">
+      <section className={sectionCls}>
+        <div className={headCls}>Sets</div>
+        <div className="grid gap-1.5" role="radiogroup" aria-label="Sheet set">
+          {SETS.map((x) => (
+            <button key={x.id} type="button" role="radio" aria-checked={pick === x.id} onClick={() => setPick(x.id)} title={x.hint} data-set={x.id}
+              className={`flex items-center justify-between rounded-lg border px-2.5 py-2 text-left ${pick === x.id ? 'border-sky-400 bg-sky-500/15' : 'border-white/15 hover:border-sky-400'}`}>
+              <span className="text-xs font-medium">{x.name}</span><span className="text-meta text-slate-400">{x.sheets}</span>
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={() => onCreate(pick)} disabled={busy} data-testid="drawing-set"
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-sky-600 py-2 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-50"><LayoutPanelTop size={13} />{busy ? 'Working…' : `Create ${SETS.find((x) => x.id === pick)!.name.toLowerCase()}`}</button>
+        <p className="mt-1 text-meta text-slate-400">Replaces the sheets; your images stay in the Library.</p>
+        {msg && <p role="status" className="mt-1 text-meta text-emerald-300">{msg}</p>}
+      </section>
+      <section className={sectionCls}>
+        <div className={headCls}>Drawing style</div>
+        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Drawing style" data-testid="board-style">
+          {(Object.keys(BOARD_STYLES) as StyleId[]).map((k) => (
+            <button key={k} type="button" role="radio" aria-checked={style === k} aria-label={BOARD_STYLES[k].name} title={BOARD_STYLES[k].name} onClick={() => setStyle(k)} data-style={k}
+              className={`overflow-hidden rounded border p-0.5 ${style === k ? 'border-sky-400 ring-2 ring-sky-400/40' : 'border-white/15 hover:border-sky-400'}`}><StyleSwatch id={k} /></button>
+          ))}
+        </div>
+      </section>
+      <div className="p-3"><FontPanel /></div>
+    </div>
+  )
+}
+
+// One Present page (Sinnie, 13 Nov), reorganised 18 Nov ("sheet | style | render | export"): the sheets in the
+// middle, what goes on them on the left, and four tabs on the right. No 3D view here: views are captured in Model mode.
+type PanelTab = 'sheet' | 'style' | 'render' | 'export'
+const PANEL_TABS: { id: PanelTab; word: string; hint: string }[] = [
+  { id: 'sheet', word: 'Sheet', hint: 'Name, sheets, layout, page, title block' },
+  { id: 'style', word: 'Style', hint: 'Sets, drawing style and type' },
+  { id: 'render', word: 'Render', hint: 'AI render from a view captured in Model mode' },
+  { id: 'export', word: 'Export', hint: 'Submission checks and the export' },
+]
+type ToolTab = 'render'
+
+export default function BoardComposer({ tools }: { tools?: (tab: ToolTab) => ReactNode }) {
+  return <ComposerBody tools={tools} />
+}
+
+function ComposerBody({ tools }: { tools?: (tab: ToolTab) => ReactNode }) {
   const open = true
   const boards = useBoardStore((s) => s.boards)
   const images = useBoardStore((s) => s.images)
   const selected = useBoardStore((s) => s.selected)
   const select = useBoardStore((s) => s.select)
   const updateFrame = useBoardStore((s) => s.updateFrame)
+  const orientation = useBoardStore((s) => s.orientation)
   const evidence = useEvidence()
   const overflow = useOverflow(boards, images, evidence)
   const draw = useDrawData()
   const makeDrawingSet = useBoardStore((s) => s.makeDrawingSet)
   const levels = Math.max(1, ...draw.towers.map((t) => t.floors.length))
   const [setMsg, setSetMsg] = useState('')
-  // Presets (13 Nov): the five-sheet drawing set, or the Architectural set with every workflow tool's drawings.
-  const [preset, setPreset] = useState<'drawings' | 'arch'>('drawings')
   const [capturing, setCapturing] = useState(false)
-  const createArch = async () => {
+  const say = (m: string, ms = 7000) => { setSetMsg(m); setTimeout(() => setSetMsg(''), ms) }
+  // Analysis drawings only when the user added them from the model (17 Nov); renders: the AI renders, else the captures.
+  const collect = async () => {
+    const added = Object.values(useBoardStore.getState().images).filter((i) => i.id.startsWith('analysis-')).sort((a, b) => a.id.localeCompare(b.id))
+    const shots = useStore.getState().shots
+    const ai = [...await Promise.all(shots.filter((x) => x.ai).map(importShot)), ...Object.values(useBoardStore.getState().images).filter((i) => i.ai || i.source === 'ai').map((i) => i.id)]
+    const renders = [...new Set(ai)].length ? [...new Set(ai)] : await Promise.all(shots.filter((x) => !x.ai && x.representation !== 'plan').slice(0, 4).map(importShot))
+    return { added, renders }
+  }
+  const createSet = async (id: SetId) => {
     if (capturing) return
-    setCapturing(true); setSetMsg('Collecting the drawings…')
-    await new Promise((r) => setTimeout(r, 300))
+    const typ = Math.max(2, Math.round(levels / 2))
+    if (id === 'drawings') { makeDrawingSet(typ, levels); say('Drawing set: five sheets.'); return }
+    setCapturing(true)
     try {
-      // 17 Nov (Sinnie): analysis drawings only when the user added them from the model ("Sheet" on a drawing).
-      const added = Object.values(useBoardStore.getState().images).filter((i) => i.id.startsWith('analysis-')).sort((a, b) => a.id.localeCompare(b.id))
-      const groups = added.length ? [{ title: 'Analysis', items: added.map((i) => ({ imageId: i.id, caption: i.label })) }] : []
-      // Renders: the AI renders among the shots and the library, else the 3D views captured (never plans).
-      const shots = useStore.getState().shots
-      const ai = [...await Promise.all(shots.filter((x) => x.ai).map(importShot)), ...Object.values(useBoardStore.getState().images).filter((i) => i.ai || i.source === 'ai').map((i) => i.id)]
-      const renders = [...new Set(ai)].length ? [...new Set(ai)] : await Promise.all(shots.filter((x) => !x.ai && x.representation !== 'plan').slice(0, 4).map(importShot))
-      useBoardStore.getState().makeArchSet(Math.max(2, Math.round(levels / 2)), levels, groups, { title: `${draw.towers[0]?.name ?? 'Tower'}: architectural set`, renders })
-      const n = groups.reduce((a, g) => a + g.items.length, 0)
-      setSetMsg(`Architectural set: ${useBoardStore.getState().boards.length} sheets${n ? `, ${n} analysis drawing${n > 1 ? 's' : ''} you added` : ', no analysis sheet (add drawings with Sheet in the model)'}${renders.length ? `, ${renders.length} render${renders.length > 1 ? 's' : ''}` : ', render frames left empty'}.`)
-    } catch (e) { setSetMsg(`The set stopped: ${e instanceof Error ? e.message : String(e)}`) }
+      const { added, renders } = await collect()
+      if (id === 'presentation') {
+        useBoardStore.getState().makePresentationSet(typ, levels, { renders, analysis: added.map((i) => ({ imageId: i.id, caption: i.label })) })
+        say(`Presentation set: four boards${renders.length ? `, ${renders.length} render${renders.length > 1 ? 's' : ''}` : ''}${added.length ? `, ${Math.min(4, added.length)} analysis drawing${added.length > 1 ? 's' : ''}` : ''}.`)
+      } else {
+        const groups = added.length ? [{ title: 'Analysis', items: added.map((i) => ({ imageId: i.id, caption: i.label })) }] : []
+        useBoardStore.getState().makeArchSet(typ, levels, groups, { title: `${draw.towers[0]?.name ?? 'Tower'}: architectural set`, renders })
+        say(`Architectural set: ${useBoardStore.getState().boards.length} sheets.`)
+      }
+    } catch (e) { say(`The set stopped: ${e instanceof Error ? e.message : String(e)}`) }
     setCapturing(false)
-    setTimeout(() => setSetMsg(''), 9000)
   }
-  const createSet = () => {
-    if (preset === 'arch') { void createArch(); return }
-    const used = boards.slice(0, 5).some((b) => b.frames.some((f) => f.role === 'body' && f.content.kind !== 'empty'))
-    makeDrawingSet(Math.max(2, Math.round(levels / 2)), levels)
-    setSetMsg(used ? 'Five sheets now hold the drawing set; earlier images stay in the library.' : 'Drawing set created: five sheets.')
-    setTimeout(() => setSetMsg(''), 5000)
-  }
-  const [centre, setCentre] = useState<'sheet' | '3d'>('sheet')
-  const [tab, setTabRaw] = useState<PanelTab>('frame')
-  // Views and Render work on the 3D view, Compose and Check on the sheet: the centre follows (the Sheet | 3D switch stays).
-  const setTab = (k: PanelTab) => { setTabRaw(k); if (k === 'views' || k === 'render') setCentre('3d'); else if (k === 'frame' || k === 'submit') setCentre('sheet') }
+  const [tab, setTab] = useState<PanelTab>('sheet')
 
   useEffect(() => { if (open) { void hydrateBoardImages(); void hydrateUserFonts() } }, [open])
   // Every face on offer loads with the composer (small files), so the picker shows each name in its face and the
@@ -699,7 +786,7 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: (tab:
   }
   const onFrame = async (board: number, frame: string, e?: DragEvent) => {
     select(board, frame)
-    setTab('frame')
+    setTab('sheet')
     if (!e) return
     if (e.dataTransfer.files.length) { const ids = await importFiles(e.dataTransfer.files); if (ids[0]) place(board, frame, ids[0]); return }
     const raw = e.dataTransfer.getData(DRAG)
@@ -725,29 +812,23 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: (tab:
           title="Order the sheets by their names (numbers read as numbers: 2 before 10); unnamed sheets stay after the named ones"
           className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-white/15 px-2 py-1 text-xs text-slate-200 hover:border-sky-400 disabled:opacity-40"><ArrowUpDown size={12} aria-hidden />Sort by name</button>
         <span className="mx-auto" />
-        <div className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Centre view">
-          {([['sheet', 'Sheet'], ['3d', '3D view']] as const).map(([k, w]) => <button key={k} type="button" role="tab" aria-selected={centre === k} onClick={() => setCentre(k)} data-testid={`centre-${k}`} title={k === '3d' ? 'Frame the model and capture shots for the sheets' : 'The sheet being composed'} className={`rounded px-2 py-1 text-xs ${centre === k ? 'bg-white/15' : 'text-slate-300'}`}>{w}</button>)}
-        </div>
         <div className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-white/15 p-0.5" role="tablist" aria-label="Panel">
-          {PANEL_TABS.filter((x) => x.id === 'frame' || x.id === 'submit' || tools).map((x) => (
+          {PANEL_TABS.filter((x) => x.id !== 'render' || tools).map((x) => (
             <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)} data-testid={`panel-${x.id}`} title={x.hint}
-              className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${tab === x.id ? 'bg-white/15' : 'text-slate-300'}`}>{x.id === 'submit' && <ListChecks size={12} />}{x.word}</button>
+              className={`rounded px-2.5 py-1 text-xs ${tab === x.id ? 'bg-white/15' : 'text-slate-300'}`}>{x.word}</button>
           ))}
         </div>
       </header>
       <div className="flex min-h-0 flex-1">
-        <SheetsPanel levels={levels} onCreate={createSet} msg={setMsg} preset={preset} setPreset={setPreset} busy={capturing} />
-        {/* While the Architectural set is made, the results of each workflow tool are drawn here, out of sight. */}
-        {centre === '3d' && viewport
-          ? <main className="min-w-0 flex-1 overflow-hidden bg-panel text-ink" data-testid="present-3d">{viewport}</main>
-          : <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
+        <AddPanel levels={levels} evidence={evidence} />
+        <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-[#2a2e34] p-6">
           <div className="flex h-full w-full items-center justify-center">
-            <BoardCanvas index={selected.board} evidence={evidence} onFrame={onFrame} rev={draw} />
+            <BoardCanvas key={orientation} index={selected.board} evidence={evidence} onFrame={onFrame} rev={draw} />
           </div>
-        </main>}
-        {tab !== 'frame' && tab !== 'submit' && tools ? <div className="flex shrink-0 text-ink" data-testid="present-tools-panel">{tools(TOOL_TAB[tab])}</div> : (
-        <UiShow id="present.composer.inspector"><aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={tab === 'frame' ? 'Frame' : 'Check and export'}>
-          {tab === 'frame' ? <FrameInspector evidence={evidence} levels={levels} /> : <SubmissionPanel evidence={evidence} overflow={overflow} />}
+        </main>
+        {tab === 'render' && tools ? <div className="flex shrink-0 text-ink" data-testid="present-tools-panel">{tools('render')}</div> : (
+        <UiShow id="present.composer.inspector"><aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={PANEL_TABS.find((x) => x.id === tab)!.word}>
+          {tab === 'sheet' ? <SheetTab evidence={evidence} levels={levels} /> : tab === 'style' ? <StyleTab onCreate={(id) => void createSet(id)} busy={capturing} msg={setMsg} /> : <SubmissionPanel evidence={evidence} overflow={overflow} />}
         </aside></UiShow>
         )}
       </div>

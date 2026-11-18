@@ -122,11 +122,18 @@ export function drawBoard(ctx: CanvasRenderingContext2D, board: Board, o: DrawOp
   const bodyFont = face(fonts.body)
   ctx.save()
   // The sheet style (the Tower Workspace's): paper, ink, border and title block.
-  const st = BOARD_STYLES[o.style ?? useBoardStore.getState().style] ?? BOARD_STYLES.competition
+  const bs = useBoardStore.getState()
+  const st = { ...(BOARD_STYLES[o.style ?? bs.style] ?? BOARD_STYLES.competition), ...(bs.streetsWhite ? { streets: '#ffffff' } : {}) }
   ctx.fillStyle = st.paper
   ctx.fillRect(0, 0, BOARD_W * k, BOARD_H * k)
   const titleText = board.frames.find((f) => f.role === 'title' && f.content.kind === 'text')
-  drawTitleBlock(ctx, k, BOARD_W, BOARD_H, st, [['Board', titleText && titleText.content.kind === 'text' && titleText.content.text.trim() ? titleText.content.text.trim().split(String.fromCharCode(10))[0] : `Board ${o.index + 1}`], ['Sheet', `${o.index + 1} of ${o.total}`], ['Style', st.name], ['Date', new Date().toISOString().slice(0, 10)]], sheetNumbers(useBoardStore.getState().boards)[useBoardStore.getState().boards.findIndex((b) => b.id === board.id)] ?? `A-${String(o.index + 1).padStart(2, '0')}`)
+  // The title block (18 Nov, Sinnie: "title block options"): on or off, the project's name, the date, the sheet number.
+  const tb = bs.titleBlock ?? { show: true, project: '', date: true, number: true }
+  if (tb.show) {
+    const drawingTitle = titleText && titleText.content.kind === 'text' && titleText.content.text.trim() ? titleText.content.text.trim().split(String.fromCharCode(10))[0] : `Board ${o.index + 1}`
+    const cells: [string, string][] = [...(tb.project.trim() ? [['Project', tb.project.trim()] as [string, string]] : []), ['Drawing', drawingTitle], ['Sheet', `${o.index + 1} of ${o.total}`], ...(tb.date ? [['Date', new Date().toISOString().slice(0, 10)] as [string, string]] : [])]
+    drawTitleBlock(ctx, k, BOARD_W, BOARD_H, st, cells, tb.number ? (sheetNumbers(bs.boards)[bs.boards.findIndex((b) => b.id === board.id)] ?? `A-${String(o.index + 1).padStart(2, '0')}`) : null)
+  }
   let drawingNo = 0
   for (const f of board.frames) {
     const c = f.content

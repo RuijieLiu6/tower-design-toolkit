@@ -102,7 +102,7 @@ export default function App() {
         {/* Present is one page: the sheets, with the 3D view and the old Present panel inside it (BoardComposer). */}
         {present ? (
           <Suspense fallback={<div aria-busy="true" aria-label="Loading the presentation" className="h-full w-full" />}>
-            <BoardComposer viewport={LoadedViewport ? <LoadedViewport /> : <Suspense fallback={null}><Viewport /></Suspense>} tools={(t) => <RightPanel only={t} />} />
+            <BoardComposer tools={(t) => <RightPanel only={t} />} />
           </Suspense>
         ) : (<>
         {/* Left: the phase panel (8 Nov): the phase's own workflow, then the open tool's controls. */}

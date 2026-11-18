@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   A2_RATIO, BOARD_H, BOARD_W, DEADLINE_UTC, DELIVERABLES, applyTemplate, boardChecks, coverage, deadlineInfo, effectivePpi, findTerms,
-  imagePlacement, needsGlyphCheck, newBoard, parseJpeg, printedCaption, pxForDpi, searchQuality, submissionChecks, templateRects, TEMPLATES,
+  imagePlacement, needsGlyphCheck, newBoard, parseJpeg, printedCaption, pxForDpi, searchQuality, submissionChecks, templateRects, TEMPLATES, setOrientation, reorientBoard,
   tzOffsetMinutes, validateJpeg, type Board, type BoardImage, type TemplateId,
 } from './boards'
 
@@ -41,6 +41,24 @@ describe('board layout (A2 landscape)', () => {
         }
       }
     }
+  })
+
+  it('turns to portrait: every layout fits the 420 × 594 sheet, and a board scales into it', async () => {
+    const before = newBoard(0, 'hero')
+    setOrientation('portrait')
+    try {
+      const m = await import('./boards')
+      expect([m.BOARD_W, m.BOARD_H]).toEqual([420, 594])
+      for (const t of Object.keys(TEMPLATES) as TemplateId[]) {
+        const r = templateRects(t)
+        for (const a of r) {
+          expect(a.x + a.w).toBeLessThanOrEqual(420 - 12 + 1e-6); expect(a.y + a.h).toBeLessThanOrEqual(594 - 12 + 1e-6)
+          for (const b of r) if (a !== b) expect(a.x < b.x + b.w - 1e-6 && b.x < a.x + a.w - 1e-6 && a.y < b.y + b.h - 1e-6 && b.y < a.y + a.h - 1e-6).toBe(false)
+        }
+      }
+      const turned = reorientBoard(before, { w: 594, h: 420 }, { w: 420, h: 594 })
+      for (const f of turned.frames) { expect(f.x + f.w).toBeLessThanOrEqual(420 - 12 + 1e-6); expect(f.y + f.h).toBeLessThanOrEqual(594 - 12 + 1e-6) }
+    } finally { setOrientation('landscape') }
   })
 
   it('moves contents in order when the template changes, and returns what no longer fits', () => {

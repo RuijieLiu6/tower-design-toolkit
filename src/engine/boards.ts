@@ -10,10 +10,29 @@ const TERMS = (clause: string): Source => ({ label: 'Buildner Terms (read in res
 const TEAM: Source = { label: 'Team assumption (research P13)' }
 
 // ---------------------------------------------------------------- sheet
-/** A2 landscape in millimetres (brief p.27: four A2 landscape boards; ISO 216 size). */
-export const BOARD_W = 594
-export const BOARD_H = 420
-export const A2_RATIO = BOARD_W / BOARD_H
+/**
+ * The sheet in millimetres: A2 landscape by default (brief p.27: four A2 landscape boards; ISO 216 size). Portrait
+ * (18 Nov, Sinnie: "page size, orientation") swaps the two; these are live bindings, so every importer sees the change.
+ */
+export let BOARD_W = 594
+export let BOARD_H = 420
+export let A2_RATIO = BOARD_W / BOARD_H
+export type Orientation = 'landscape' | 'portrait'
+export function setOrientation(o: Orientation) {
+  BOARD_W = o === 'portrait' ? 420 : 594
+  BOARD_H = o === 'portrait' ? 594 : 420
+  A2_RATIO = BOARD_W / BOARD_H
+}
+/** A board's frames moved and sized to the other orientation, in proportion (the title band keeps its height). */
+export function reorientBoard(b: Board, from: { w: number; h: number }, to: { w: number; h: number }): Board {
+  // Inside the 12 mm margins: across from margin to margin, down from under the title band to the bottom margin.
+  const sx = (to.w - 24) / (from.w - 24), sy = (to.h - TITLE_BAND - 12) / (from.h - TITLE_BAND - 12)
+  const x = (f: Frame) => ({ x: 12 + (f.x - 12) * sx, w: f.w * sx })
+  return { ...b, frames: b.frames.map((f) => f.role === 'title'
+    ? { ...f, ...x(f) }
+    : { ...f, ...x(f), y: TITLE_BAND + (f.y - TITLE_BAND) * sy, h: f.h * sy }) }
+}
+const TITLE_BAND = 38 // the top of the body frames: margin + title band + gutter
 export const MAX_BYTES = 10_000_000 // brief p.27 "must not exceed 10MB"; MB is not defined, so the stricter 10^7 bytes
 export const TARGET_BYTES = 9_500_000 // team margin for MB/MiB and portal overhead (research P13 HR-02t)
 export const BOARD_COUNT = 4
@@ -72,7 +91,7 @@ export type TemplateId = 'hero' | 'grid' | 'plans' | 'story' | 'single' | 'halve
 export interface Board { id: string; template: TemplateId; frames: Frame[]; /** The board's own name (Ruijie, 17 Nov): shown on its tab, used for the file name and to order the boards. */ name?: string }
 
 /** Sheet sizes (ISO A, landscape): all share one proportion, so a board laid out on A2 prints on the others to scale. */
-export const SHEET_SIZES = { A3: { label: 'A3 landscape', k: 420 / 594 }, A2: { label: 'A2 landscape (competition)', k: 1 }, A1: { label: 'A1 landscape', k: 841 / 594 } } as const
+export const SHEET_SIZES = { A3: { label: 'A3', k: 420 / 594 }, A2: { label: 'A2 (competition)', k: 1 }, A1: { label: 'A1', k: 841 / 594 } } as const
 export type SheetSize = keyof typeof SHEET_SIZES
 export const MAX_SHEETS = 40
 
@@ -142,15 +161,14 @@ const M = 12 // margin, mm
 const G = 6 // gutter, mm
 const TITLE_H = 20
 const BODY_Y = M + TITLE_H + G
-const BODY_H = BOARD_H - BODY_Y - M
-const BODY_W = BOARD_W - 2 * M
 
-/** Frame rectangles (mm) for a template. Frame 0 is always the title band. */
+/** Frame rectangles (mm) for a template, on the sheet as it is now oriented. Frame 0 is always the title band. */
 export function templateRects(t: TemplateId): { x: number; y: number; w: number; h: number; role: 'title' | 'body' }[] {
+  const BODY_H = BOARD_H - BODY_Y - M, BODY_W = BOARD_W - 2 * M
   const title = { x: M, y: M, w: BODY_W, h: TITLE_H, role: 'title' as const }
   const r = (x: number, y: number, w: number, h: number) => ({ x, y, w, h, role: 'body' as const })
   if (t === 'hero') {
-    const hw = Math.round((BODY_W - G) * 0.64), sw = BODY_W - hw - G, sx = M + hw + G, ih = 130
+    const hw = Math.round((BODY_W - G) * 0.64), sw = BODY_W - hw - G, sx = M + hw + G, ih = Math.round((BODY_H - 2 * G) * 0.355)
     return [title, r(M, BODY_Y, hw, BODY_H), r(sx, BODY_Y, sw, ih), r(sx, BODY_Y + ih + G, sw, ih), r(sx, BODY_Y + 2 * (ih + G), sw, BODY_H - 2 * (ih + G))]
   }
   if (t === 'grid') {
@@ -158,7 +176,7 @@ export function templateRects(t: TemplateId): { x: number; y: number; w: number;
     return [title, r(M, BODY_Y, w, h), r(M + w + G, BODY_Y, w, h), r(M, BODY_Y + h + G, w, h), r(M + w + G, BODY_Y + h + G, w, h)]
   }
   if (t === 'plans') {
-    const w = (BODY_W - 2 * G) / 3, h = 270
+    const w = (BODY_W - 2 * G) / 3, h = Math.round(BODY_H * 0.75)
     return [title, r(M, BODY_Y, w, h), r(M + w + G, BODY_Y, w, h), r(M + 2 * (w + G), BODY_Y, w, h), r(M, BODY_Y + h + G, BODY_W, BODY_H - h - G)]
   }
   if (t === 'single') return [title, r(M, BODY_Y, BODY_W, BODY_H)]
@@ -175,14 +193,14 @@ export function templateRects(t: TemplateId): { x: number; y: number; w: number;
     return [title, ...[0, 1].flatMap((row) => [0, 1, 2].map((c) => r(M + c * (w + G), BODY_Y + row * (h + G), w, h)))]
   }
   if (t === 'sidebar') {
-    const tw = 150, iw = BODY_W - tw - G
+    const tw = Math.round(BODY_W * 0.26), iw = BODY_W - tw - G
     return [title, r(M, BODY_Y, iw, BODY_H), r(M + iw + G, BODY_Y, tw, BODY_H)]
   }
   if (t === 'mosaic') {
     const hw = Math.round((BODY_W - G) * 0.55), sw = (BODY_W - hw - 2 * G) / 2, sh = (BODY_H - G) / 2, sx = M + hw + G
     return [title, r(M, BODY_Y, hw, BODY_H), r(sx, BODY_Y, sw, sh), r(sx + sw + G, BODY_Y, sw, sh), r(sx, BODY_Y + sh + G, sw, sh), r(sx + sw + G, BODY_Y + sh + G, sw, sh)]
   }
-  const tw = 180, iw = BODY_W - tw - G, ih = (BODY_H - G) / 2
+  const tw = Math.round(BODY_W * 0.32), iw = BODY_W - tw - G, ih = (BODY_H - G) / 2
   return [title, r(M, BODY_Y, tw, BODY_H), r(M + tw + G, BODY_Y, iw, ih), r(M + tw + G, BODY_Y + ih + G, iw, ih)]
 }
 

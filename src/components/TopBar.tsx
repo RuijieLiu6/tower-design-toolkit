@@ -7,11 +7,12 @@
 // Edit workflow (the workflow editor, 9 Nov; it was "Assistant"), and More (the check library, role, units, motion, Customize, Options, guide, tour, build status,
 // sources). Present adds Model locked and Capture. In the centre, the Model | Presentation page switch (PageToggle; key V).
 import PageToggle from './PageToggle'
-import { Aperture, Axis3d, BookOpen, CircleQuestionMark, Columns2, Library, ListChecks, LockKeyhole, MoreHorizontal, Network, PlayCircle, Scale, Waves, Workflow, X } from './icons'
+import { Aperture, Axis3d, Camera, BookOpen, CircleQuestionMark, Columns2, Library, ListChecks, MoreHorizontal, Network, PlayCircle, Scale, Waves, Workflow, X } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { showIntro } from '../lib/intro'
 import { openCity } from '../lib/openCity'
 import { captureShot } from '../lib/capture'
+import { captureHiResShot } from '../lib/hiresCapture'
 import { navigate } from '../lib/route'
 import { useTour } from '../lib/tour'
 import { openBuilder, useProjectWorkflow } from '../lib/workflow/projectWorkflow'
@@ -110,6 +111,8 @@ export default function TopBar() {
   // While the workflow builder covers the workspace, the view switch and the editor button step aside; the project,
   // its file menu, Export and Auto-run (the evaluation mode the builder must keep) stay (Result A brief §3).
   const building = useProjectWorkflow((s) => s.mode === 'builder')
+  const [captured, setCapturedRaw] = useState('')
+  const setCaptured = (m: string) => { setCapturedRaw(m); setTimeout(() => setCapturedRaw(''), 2500) }
   const analysisOn = useAnalysisView((s) => !!s.node) && !present
   return (
     <header data-testid="top-bar" className={`glass-edge stage-fade flex h-[52px] shrink-0 items-center gap-2 rounded-2xl px-3 text-control ${present ? 'bar-present' : 'bg-chrome text-chrome-ink'}`}>
@@ -132,11 +135,16 @@ export default function TopBar() {
       <span className="mx-auto" />
       {!building && <PageToggle dark={present} />}
       <span className="mx-auto" />
-      {present && (
+      {/* Capture (18 Nov, Sinnie: "select captured view from model mode … remove 3d view in presentation mode"): the views are
+          taken here, in Model mode, and wait in the sheet Library and the Render tab. Presentation has no 3D view to capture. */}
+      {!present && !building && (
         <UiShow id="topbar.capture">
           {/* Under 1500 px the top bar keeps its words only where they are needed: the chips and buttons fall back to their icons (titles say the rest). */}
-          <span role="img" title="Model locked: go back to Form or Schematic to change it" aria-label="Model locked" data-testid="model-locked" className="flex items-center gap-1 whitespace-nowrap rounded-full bar-track px-2 py-1 text-meta"><LockKeyhole size={13} aria-hidden /><span className="hidden min-[1500px]:inline">Model locked</span></span>
-          <button onClick={() => captureShot(false)} aria-label="Capture" className="flex h-8 items-center gap-1.5 rounded-lg bar-cta px-2.5 font-medium"><Aperture size={14} aria-hidden /><span className="hidden min-[1500px]:inline">Capture</span></button>
+          <div className="flex items-center gap-0.5">
+            <button onClick={() => { if (captureShot(false)) setCaptured('Captured: in the sheet Library and Render') }} aria-label="Capture" title="Capture the view as it is on screen; it goes to the sheet Library and the Render tab" data-testid="capture-view" className="flex h-8 items-center gap-1.5 rounded-lg bar-cta px-2.5 font-medium"><Aperture size={14} aria-hidden /><span className="hidden min-[1500px]:inline">Capture</span></button>
+            <button onClick={() => { if (captureHiResShot()) setCaptured('Print-size capture: in the sheet Library and Render') }} aria-label="Capture at print size" title="Capture at print size (about 3500 px wide, a full A2 board at 150 dpi)" data-testid="capture-print" className="flex h-8 items-center rounded-lg px-1.5 hover:bg-subtle"><Camera size={14} aria-hidden /></button>
+          </div>
+          {captured && <span role="status" className="whitespace-nowrap text-meta text-muted">{captured}</span>}
         </UiShow>
       )}
       {!building && <UiShow id="topbar.view-buttons"><div className="flex items-center gap-0.5" role="group" aria-label="Screen: model, data graph or both" title="Screen: what fills the middle (the model, the data graph, or both). The display of the model itself is the View bar under it.">

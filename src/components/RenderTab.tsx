@@ -2,11 +2,11 @@
 // helper (render.plugin.ts) runs the user's own Codex CLI and ChatGPT plan after asking; on the published site the
 // capture and its prompt file are downloaded and rendered with tools/render.mjs, then imported. Every render is
 // labelled AI-generated, linked to its capture, and needs the four review checks before it can be accepted.
-import { Camera, Check, Copy, Download, FileUp, Loader2, Sparkles, Wand2, X } from './icons'
+import { Check, Copy, Download, FileUp, Loader2, Sparkles, Wand2, X } from './icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { STYLES, buildPrompt, checkSize, fitSize, pairFiles, type StyleId } from '../engine/renderPrompt'
+import { STYLES, buildPrompt, fitSize, pairFiles, type StyleId } from '../engine/renderPrompt'
 import {
-  RENDER_COMMANDS, aiLabel, cameraNote, captureFor, clock, decideRender, downloadJob, helperImage, helperJob, helperStatus,
+  RENDER_COMMANDS, aiLabel, captureFor, clock, decideRender, downloadJob, helperImage, helperJob, helperStatus,
   importRender, jobFor, parseResult, programNote, recordJob, sendToHelper, type HelperJob, type HelperStatus,
 } from '../lib/aiRender'
 import { REVIEW_CHECKS, useRenderStore, type RenderRecord } from '../lib/renderStore'
@@ -50,10 +50,12 @@ function Compare({ before, after }: { before: string | null; after: string }) {
 
 export default function RenderTab() {
   const towers = useTowers()
-  const { project, shots, cameraRequest } = useStore(useShallow((s) => ({ project: s.project, shots: s.shots, cameraRequest: s.cameraRequest })))
+  const { project, shots } = useStore(useShallow((s) => ({ project: s.project, shots: s.shots })))
   const { style, notes, jobs, results, set, updateResult } = useRenderStore()
   const [helper, setHelper] = useState<HelperStatus | null>(null)
-  const [source, setSource] = useState<string>('view')
+  // 18 Nov (Sinnie: "select captured view from model mode and prompting to render, remove 3d view in presentation
+  // mode"): the source is always a view captured in Model mode; the latest one is picked until you choose another.
+  const [picked, setSource] = useState<string | null>(null)
   const [asking, setAsking] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ text: string; bad?: boolean } | null>(null)
@@ -62,13 +64,12 @@ export default function RenderTab() {
   const [running, setRunning] = useState<HelperJob | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const north = project === 'vtc' ? 45 : 0
   const prog = useMemo(() => programNote(towers), [towers])
-  const fields = { style, cameraNote: source === 'view' ? cameraNote(cameraRequest, north) : 'as in the attached image', programNote: prog, notes }
+  const fields = { style, cameraNote: 'as in the attached image', programNote: prog, notes }
   const prompt = buildPrompt(fields)
   const size = fitSize(1.414)
-  const sizeCheck = checkSize(size.w, size.h)
   const captures = shots.filter((x) => !x.ai && x.project === project)
+  const source = picked && captures.some((x) => x.id === picked) ? picked : captures[captures.length - 1]?.id ?? ''
   const canRender = !!helper?.available && !!helper.codex
 
   useEffect(() => { let live = true; helperStatus().then((h) => { if (live) setHelper(h) }); return () => { live = false } }, [])
@@ -103,6 +104,7 @@ export default function RenderTab() {
 
   const prepare = async () => {
     setMsg(null)
+    if (!source) { setMsg({ text: 'Capture a view in Model mode first (Capture in the top bar).', bad: true }); return null }
     const cap = await captureFor(source, size.w)
     if (typeof cap === 'string') { setMsg({ text: cap, bad: true }); return null }
     return { cap, job: jobFor(cap, fields, size) }
@@ -156,20 +158,17 @@ export default function RenderTab() {
         </p>
       </div>
 
-      <Step n={1} title="Frame">
-        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Image to render">
-          <button type="button" role="radio" aria-checked={source === 'view'} onClick={() => setSource('view')}
-            className={`flex aspect-[1.414] flex-col items-center justify-center gap-1 rounded border text-meta ${source === 'view' ? 'border-accent bg-accent/10 text-ink' : 'border-line text-muted hover:border-accent'}`}>
-            <Camera size={14} />Current view
-          </button>
-          {captures.slice(-8).reverse().map((x) => (
-            <button key={x.id} type="button" role="radio" aria-checked={source === x.id} onClick={() => setSource(x.id)} title={`Shot at ${clock(x.at)} (${x.representation})`}
-              className={`overflow-hidden rounded border ${source === x.id ? 'border-accent ring-2 ring-accent/30' : 'border-line hover:border-accent'}`}>
-              <img src={x.dataUrl} alt={`Shot at ${clock(x.at)}`} className="aspect-[1.414] w-full object-cover" />
-            </button>
-          ))}
-        </div>
-        <p className="mt-1.5 text-meta text-muted">{source === 'view' ? `The view is captured at ${size.w} × ${size.h} px (${sizeCheck.ok ? 'within' : 'outside'} the image model's size rules) and filed in the shot strip.` : 'A shot from the strip, sent as it is.'}</p>
+      <Step n={1} title="View">
+        {captures.length === 0
+          ? <p className="text-meta text-muted" data-testid="render-no-capture">Capture a view in Model mode (Capture in the top bar); it appears here.</p>
+          : <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Image to render" data-testid="render-sources">
+            {captures.slice(-12).reverse().map((x) => (
+              <button key={x.id} type="button" role="radio" aria-checked={source === x.id} onClick={() => setSource(x.id)} title={`Captured at ${clock(x.at)} (${x.representation})`}
+                className={`overflow-hidden rounded border ${source === x.id ? 'border-accent ring-2 ring-accent/30' : 'border-line hover:border-accent'}`}>
+                <img src={x.dataUrl} alt={`Captured at ${clock(x.at)}`} className="aspect-[1.414] w-full object-cover" />
+              </button>
+            ))}
+          </div>}
       </Step>
 
       <Step n={2} title="Style">
@@ -199,13 +198,13 @@ export default function RenderTab() {
               </div>
             </div>
           ) : (
-            <button type="button" disabled={busy || !!running} onClick={() => setAsking(true)} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50">
+            <button type="button" disabled={busy || !!running || !source} onClick={() => setAsking(true)} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50">
               <Wand2 size={13} />Render with my ChatGPT plan
             </button>
           )
         ) : (
           <>
-            <button type="button" onClick={prepareFiles} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"><Download size={13} />Prepare the files</button>
+            <button type="button" onClick={prepareFiles} disabled={!source} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"><Download size={13} />Prepare the files</button>
             <ol className="mt-2 grid gap-1.5 text-meta text-slate-700">
               {RENDER_COMMANDS.map((c, i) => (
                 <li key={c.cmd}>

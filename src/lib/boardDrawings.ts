@@ -9,7 +9,7 @@ import { ARCH_KINDS, drawArch } from './archDrawings'
 
 type Pt = [number, number]
 export type StyleId = 'architectural' | 'competition' | 'technical' | 'concept' | 'blueprint'
-export interface BoardStyle { name: string; paper: string; ink: string; soft: string; mass: string; cut: string; ctx: string; mono: boolean; shadow?: boolean; dims?: boolean; w: number; /** Plans and sections in black poché (lib/archDrawings.ts). */ poche?: boolean }
+export interface BoardStyle { name: string; paper: string; ink: string; soft: string; mass: string; cut: string; ctx: string; mono: boolean; shadow?: boolean; dims?: boolean; w: number; /** Plans and sections in black poché (lib/archDrawings.ts). */ poche?: boolean; /** The street colour where a drawing paints streets (the axonometric); its own grey when absent. */ streets?: string }
 /** The Workspace's four architectural styles ('use' = the use's colour, 'hatch' = a diagonal hatch). */
 export const BOARD_STYLES: Record<StyleId, BoardStyle> = {
   // 17 Nov (Sinnie): simple black and white, black poché walls in plans and sections.
@@ -217,16 +217,18 @@ export function drawTable(c: CanvasRenderingContext2D, k: number, f: { x: number
 }
 
 /** The Workspace's sheet border and title block, in the board's bottom margin. */
-export function drawTitleBlock(c: CanvasRenderingContext2D, k: number, W: number, H: number, st: BoardStyle, cells: [string, string][], no: string) {
+export function drawTitleBlock(c: CanvasRenderingContext2D, k: number, W: number, H: number, st: BoardStyle, cells: [string, string][], no: string | null) {
   const mm = (v: number) => v * k, font = (sz: number, b?: boolean) => `${b ? '600 ' : ''}${mm(sz)}px ${styleFont(st)}`
   c.save(); c.strokeStyle = st.ink; c.lineWidth = mm(0.35); c.strokeRect(mm(5), mm(5), mm(W - 10), mm(H - 10))
-  const ty = H - 11, xs = [5, W * 0.36, W * 0.62, W * 0.78, W - 40]
+  // The cells share the width; the sheet number, when shown, takes the last 35 mm.
+  const ty = H - 11, n = cells.length, span = (W - 10 - (no !== null ? 35 : 0)) / Math.max(1, n)
+  const xs = [...cells.map((_, i) => 5 + i * span), ...(no !== null ? [W - 40] : [])]
   c.lineWidth = mm(0.25); c.beginPath(); c.moveTo(mm(5), mm(ty)); c.lineTo(mm(W - 5), mm(ty)); for (const x of xs.slice(1)) { c.moveTo(mm(x), mm(ty)); c.lineTo(mm(x), mm(H - 5)) } c.stroke()
   c.textBaseline = 'alphabetic'; c.textAlign = 'left'
-  ;[...cells, ['No.', no] as [string, string]].forEach(([lab, val], i) => {
+  ;[...cells, ...(no !== null ? [['No.', no] as [string, string]] : [])].forEach(([lab, val], i) => {
     const x = xs[i] ?? xs[xs.length - 1]
     c.fillStyle = st.soft; c.font = font(1.8); c.fillText(lab.toUpperCase(), mm(x + 2.5), mm(ty + 2.6))
-    c.fillStyle = st.ink; c.font = font(i === 4 ? 3.2 : 2.6, true); c.fillText(val, mm(x + 2.5), mm(ty + 5.4))
+    c.fillStyle = st.ink; c.font = font(i === n ? 3.2 : 2.6, true); c.fillText(val, mm(x + 2.5), mm(ty + 5.4))
   })
   c.restore()
 }

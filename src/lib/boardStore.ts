@@ -3,13 +3,17 @@
 // (they are too large for localStorage). Nothing here is uploaded anywhere.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { BOARD_COUNT, DEFAULT_DENY, MAX_SHEETS, applyTemplate, moveBoard, newBoard, sheetNumbers, sortBoardsByName, type SheetSize, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
+import { BOARD_COUNT, BOARD_H, BOARD_W, DEFAULT_DENY, MAX_SHEETS, applyTemplate, reorientBoard, setOrientation as setSheetOrientation, type Orientation, moveBoard, newBoard, sheetNumbers, sortBoardsByName, type SheetSize, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
 import type { StyleId } from './boardDrawings'
 import { DEFAULT_FONTS } from './fonts/catalog'
 
 /** The drawings of one workflow phase for the Architectural set (lib/boardCapture.ts). */
 export interface ArchGroup { title: string; items: { imageId: string; caption: string }[] }
+
+/** What the title block along the bottom of every sheet shows (18 Nov, Sinnie: "title block options"). */
+export interface TitleBlock { show: boolean; project: string; date: boolean; number: boolean }
+export const DEFAULT_TITLE_BLOCK: TitleBlock = { show: true, project: '', date: true, number: true }
 
 export interface ExportRecord { at: string; name: string; bytes: number; quality: number; dpi: number; manifest: Manifest; rules: RuleResult[]; /** The families the JPEG was drawn with (after any fallback). */ fonts?: string[]; /** Families the board names that did not load, drawn as the fallback. */ missingFonts?: string[] }
 
@@ -33,12 +37,22 @@ interface BoardState {
   /** Sheet size for export (the layout is drawn on A2; A3 and A1 print it to scale). */
   sheet: SheetSize
   setSheet: (s: SheetSize) => void
+  /** Landscape (the competition) or portrait; every sheet turns, its frames scaled to the new shape. */
+  orientation: Orientation
+  setOrientation: (o: Orientation) => void
+  titleBlock: TitleBlock
+  setTitleBlock: (patch: Partial<TitleBlock>) => void
+  /** Streets drawn white in the drawings (the axonometric's streets were mid grey). */
+  streetsWhite: boolean
+  setStreetsWhite: (on: boolean) => void
   addBoard: () => void
   removeBoard: (i: number) => void
   /** Makes the five sheets of the drawing set (an axonometric cover with the site plan, floor plans, elevations, section, analysis); what was on them is kept aside. */
   makeDrawingSet: (typicalLevel: number, topLevel: number) => void
   /** The Architectural set: the drawing set's sheets, then analysis sheets (six drawings each) for every workflow phase. */
   makeArchSet: (typicalLevel: number, topLevel: number, groups: ArchGroup[], o?: { title?: string; renders?: string[] }) => void
+  /** The Presentation set: four competition boards in colour, with the renders, the drawings and the analysis you added. */
+  makePresentationSet: (typicalLevel: number, topLevel: number, o: { renders: string[]; analysis: { imageId: string; caption: string }[] }) => void
   setOpen: (open: boolean) => void
   select: (board: number, frame?: string | null) => void
   setTemplate: (board: number, t: TemplateId) => void
@@ -106,6 +120,18 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   parked: [],
   style: 'competition',
   setStyle: (style) => set({ style, exports: {} }),
+  orientation: 'landscape',
+  setOrientation: (o) => set((s) => {
+    if (o === s.orientation) return {}
+    const from = { w: BOARD_W, h: BOARD_H }
+    setSheetOrientation(o)
+    const to = { w: BOARD_W, h: BOARD_H }
+    return { orientation: o, boards: s.boards.map((b) => reorientBoard(b, from, to)), exports: {} }
+  }),
+  titleBlock: DEFAULT_TITLE_BLOCK,
+  setTitleBlock: (patch) => set((s) => ({ titleBlock: { ...s.titleBlock, ...patch }, exports: {} })),
+  streetsWhite: true,
+  setStreetsWhite: (streetsWhite) => set({ streetsWhite, exports: {} }),
   sheet: 'A2',
   setSheet: (sheet) => set({ sheet, exports: {} }),
   addBoard: () => set((s) => {
@@ -115,7 +141,6 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   }),
   removeBoard: (i) => set((s) => {
     if (s.boards.length <= 1 || !s.boards[i]) return {}
-    const kept = s.boards[i].frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty')
     const boards = s.boards.filter((_, k) => k !== i)
     const ex = { ...s.exports }; delete ex[s.boards[i].id]
     return { boards, parked: [], exports: ex, selected: { board: Math.min(s.selected.board > i ? s.selected.board - 1 : s.selected.board, boards.length - 1), frame: null } }
@@ -123,10 +148,8 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   makeDrawingSet: (typ, top) => set((s) => {
     const boards = s.boards.slice()
     while (boards.length < 5) boards.push({ ...newBoard(boards.length, 'grid'), id: `board-${Date.now().toString(36)}${boards.length}` })
-    const kept: Frame[] = []
     const fill = (i: number, t: TemplateId, title: string, contents: (FrameContent | null)[]) => {
       const { board } = applyTemplate({ ...boards[i], frames: boards[i].frames.filter((f) => f.role === 'title') }, t)
-      kept.push(...boards[i].frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty'))
       let n = 0
       boards[i] = { ...board, name: title, frames: board.frames.map((f) => {
         if (f.role === 'title') return { ...f, content: { kind: 'text', text: title, sizeMm: 9, bold: true } }
@@ -148,7 +171,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     // The Architectural set (17 Nov 2026, Sinnie): cover, context plan, site plan, the analysis drawings, the program
     // diagram, floor plans (ground, typical mid, typical high, roof), two sections, the exterior axonometric and the
     // renders, in the black-and-white poche style. It replaces the sheets; what was placed on them is kept aside.
-    const M = 12, G = 6, TITLE_H = 20, W = 594, H = 420, y0 = M + TITLE_H + G, BW = W - 2 * M, BH = H - y0 - M
+    const M = 12, G = 6, TITLE_H = 20, W = BOARD_W, H = BOARD_H, y0 = M + TITLE_H + G, BW = W - 2 * M, BH = H - y0 - M
     const stamp = Date.now().toString(36)
     const mk = (key: string, name: string, frames: Omit<Frame, 'id' | 'role' | 'tag'>[]): Board => ({
       id: `arch-${key}-${stamp}`, template: 'grid', name,
@@ -189,13 +212,34 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     const nos = sheetNumbers(all)
     const index = ['SHEETS', '', ...all.map((b, i) => `${nos[i]}   ${b.name}`)].join(String.fromCharCode(10))
     all[0] = { ...all[0], frames: all[0].frames.map((f) => (f.id === 'f2' ? { ...f, content: { kind: 'text', text: index, sizeMm: 3.6 } } : f)) }
-    const kept = s.boards.filter((b) => !b.id.startsWith('arch-')).flatMap((b) => b.frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty' && f.content.kind !== 'drawing'))
     return { boards: all, parked: [], exports: {}, style: 'architectural' as StyleId, selected: { board: 0, frame: null } }
+  }),
+  makePresentationSet: (typ, top, o) => set((s) => {
+    // 18 Nov (Sinnie: "style: architectural set, presentation set, etc."): the four boards the competition asks for,
+    // in the competition style: the idea, the plans, the section and elevations, then the performance.
+    const r = o.renders, an = o.analysis
+    const img = (id: string | undefined, fit: 'cover' | 'contain' = 'cover'): FrameContent | null => (id ? { kind: 'image', imageId: id, fit } : null)
+    const mk = (i: number, t: TemplateId, name: string, contents: (FrameContent | null)[], captions: (string | undefined)[] = []): Board => {
+      const { board } = applyTemplate({ ...newBoard(i, t), id: `pres-${i}-${Date.now().toString(36)}` }, t)
+      let n = 0
+      return { ...board, name, frames: board.frames.map((f) => {
+        if (f.role === 'title') return { ...f, content: { kind: 'text', text: name, sizeMm: 9, bold: true } }
+        const k = n++, c = contents[k]
+        return c ? { ...f, content: c, caption: captions[k] } : f
+      }) }
+    }
+    const boards = [
+      mk(0, 'hero', 'The idea', [img(r[0]) ?? { kind: 'drawing', vt: 'axo' }, { kind: 'drawing', vt: 'context' }, { kind: 'drawing', vt: 'site' }, { kind: 'text', text: '', sizeMm: 4.5 }]),
+      mk(1, 'plans', 'Plans', [{ kind: 'drawing', vt: 'plan', level: 1 }, { kind: 'drawing', vt: 'plan', level: typ }, { kind: 'drawing', vt: 'plan', level: top }, { kind: 'drawing', vt: 'program' }]),
+      mk(2, 'mosaic', 'Section and elevations', [{ kind: 'drawing', vt: 'section' }, { kind: 'drawing', vt: 'elev', dir: 'N' }, { kind: 'drawing', vt: 'elev', dir: 'E' }, { kind: 'drawing', vt: 'elev', dir: 'S' }, { kind: 'drawing', vt: 'elev', dir: 'W' }]),
+      mk(3, 'six', 'Performance', [img(r[1]) ?? { kind: 'drawing', vt: 'axo' }, { kind: 'table' }, ...an.slice(0, 4).map((a) => img(a.imageId, 'contain'))], [undefined, undefined, ...an.slice(0, 4).map((a) => a.caption)]),
+    ]
+    return { boards, parked: [], exports: {}, style: 'competition' as StyleId, selected: { board: 0, frame: null } }
   }),
   setOpen: (open) => set({ open }),
   select: (board, frame = null) => set({ selected: { board, frame } }),
   setTemplate: (i, t) => set((s) => {
-    const { board, dropped } = applyTemplate(s.boards[i], t)
+    const { board } = applyTemplate(s.boards[i], t)
     const boards = s.boards.slice(); boards[i] = board
     const ex = { ...s.exports }; delete ex[board.id]
     return { boards, parked: [], selected: { board: i, frame: null }, exports: ex }
@@ -264,7 +308,9 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     try { return localStorage } catch { return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } }
   }),
   // Image pixels live in IndexedDB; exports are re-made on demand.
-  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, style: s.style, sheet: s.sheet, format: s.format }),
+  partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, style: s.style, sheet: s.sheet, format: s.format, orientation: s.orientation, titleBlock: s.titleBlock, streetsWhite: s.streetsWhite }),
+  // The sheet's shape is module state in engine/boards: set it from what was saved.
+  onRehydrateStorage: () => (s) => { if (s?.orientation) setSheetOrientation(s.orientation) },
 }))
 
 let hydrated = false
