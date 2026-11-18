@@ -7,7 +7,7 @@
 import { create } from 'zustand'
 import { DATA, MODEL } from './design/tokens'
 
-export type DisplayMode = 'massing' | 'program' | 'analysis' | 'materials'
+export type DisplayMode = 'massing' | 'program' | 'analysis' | 'materials' | 'facade'
 export type ProjectKind = 'vtc' | 'city'
 
 // Labels (overnight brief, 8 Nov): "View: Geometry / Building use / Analysis / Materials", so a view never shares a name
@@ -17,6 +17,8 @@ export const DISPLAY_MODES: { id: DisplayMode; word: string; hint: string }[] = 
   { id: 'program', word: 'Building use', hint: 'Building uses in one labelled palette: your towers by floor, the context by type' },
   { id: 'analysis', word: 'Analysis', hint: 'One measured or calculated quantity on a neutral model, with its units, range and legend' },
   { id: 'materials', word: 'Materials', hint: 'Illustrative material textures, where the model has them' },
+  // 17 Nov (Sinnie): the tower's exterior as the Façade zones set it: glass, spandrels, mullions and shading devices.
+  { id: 'facade', word: 'Façade', hint: 'Your towers as built outside: each zone\u2019s glass, spandrels, mullions and shading devices (illustrative materials)' },
 ]
 
 /** Whether a project can show a mode; when not, the reason in plain words (shown, never hidden). */

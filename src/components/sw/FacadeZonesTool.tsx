@@ -3,7 +3,8 @@
 // Under it the unrolled elevation: one column per face, each zone a band from its first to its last level, later zones
 // on top (they win where they overlap). The zone cards are compact: face · strategy (a picker of glyph tiles) · levels,
 // then glass, SHGC and depth as three short sliders with their values, and the openable-windows switch as an icon.
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useDisplayMode } from '../../lib/displayMode'
 import { towerFloors } from '../../engine/massing'
 import { DEFAULT_ZONES, FACE_NAME, ORI, STRATS, zonesOf, type Face, type FacadeZone, type StratId } from '../../engine/sw/plate'
 import { useStore, useTowers } from '../../store'
@@ -127,7 +128,20 @@ function StratPicker({ value, onPick }: { value: StratId; onPick: (s: StratId) =
   )
 }
 
+/** While the tool is open the model shows the façade as built (View › Façade, 17 Nov); closing it puts the View back,
+ *  unless the user changed the View meanwhile or pinned it. */
+function useFacadeView() {
+  useEffect(() => {
+    const d = useDisplayMode.getState()
+    if (d.pinned || d.mode === 'facade') return
+    const prev = d.mode
+    d.setMode('facade')
+    return () => { const now = useDisplayMode.getState(); if (now.mode === 'facade' && !now.pinned) now.setMode(prev) }
+  }, [])
+}
+
 export default function FacadeZonesTool() {
+  useFacadeView()
   const towers = useTowers()
   const selected = useStore((s) => s.selectedTower)
   const update = useStore((s) => s.updateTower)

@@ -68,7 +68,8 @@ import { groundThickness } from '../engine/basement'
 import BelowGrade from './BelowGrade'
 import { VISTA_LOOK, VISTA_OVERVIEW, useVistaLook, vistaShaded } from '../lib/vistaLook'
 import { MODEL, STATUS, UI } from '../lib/design/tokens'
-import { NEUTRAL_TOWER, useDisplayMode } from '../lib/displayMode'
+import { NEUTRAL_TOWER, shownMode, useDisplayMode } from '../lib/displayMode'
+import FacadeSkin from './FacadeSkin'
 import { useModeColours } from '../lib/displayModeHooks'
 import { useDisplaySync } from './DisplayMode'
 import { useViewFromStore } from '../lib/viewFromStore'
@@ -116,7 +117,7 @@ function Ground({ rect, color, onPick, vista = false }: { rect: Plinth; color: s
 /** Massing's lot highlight (the site orange of components/SiteRig.tsx). */
 const LOT_EDGE = '#ea580c', LOT_TINT = '#f6d9c4'
 
-function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
+function VtcScene({ onPick, look: stageLook, xray, facade = false, north = 0 }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean; facade?: boolean; north?: number }) {
   const { ctx } = useVtcContext()
   // The display mode (lib/displayMode.ts): Program draws the buildings in their ground-level use (components/VtcLook),
   // every other mode the neutral model.
@@ -172,7 +173,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
         <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold quiet />
       ))}
       <DrawTools baseZ={0} />
-      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}</TowerMover>)}
+      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}{facade && !t.imported && <FacadeSkin t={t} baseZ={0} north={north} />}</TowerMover>)}
       <ModelOverlay base={0} xray={xray} />
       <PublicRealmOverlay />
       <EnergyOverlay />
@@ -183,7 +184,7 @@ function VtcScene({ onPick, look: stageLook, xray }: { onPick: (x: number, y: nu
   )
 }
 
-function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean }) {
+function CityScene({ onPick, look, xray, facade = false, north = 0 }: { onPick: (x: number, y: number) => void; look: Look; xray: boolean; facade?: boolean; north?: number }) {
   const towers = useTowers()
   const hiddenTowers = useHiddenTowers((s) => s.hidden)
   const ground = useStore((s) => s.groundElevation)
@@ -204,7 +205,7 @@ function CityScene({ onPick, look, xray }: { onPick: (x: number, y: number) => v
       <ViewFromRig />
       <VistaRig />
       <DrawTools baseZ={ground} />
-      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} vista={vista} />}</TowerMover>)}
+      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} vista={vista} />}{facade && !t.imported && <FacadeSkin t={t} baseZ={ground} north={north} />}</TowerMover>)}
       <ModelOverlay base={ground} xray={xray} />
       <ConeOverlays base={ground} xray={xray} />
       <EnergyOverlay base={ground} />
@@ -674,7 +675,9 @@ export default function Viewport() {
   // Real Vancouver in clay and the Plain style takes Vista's Plain look (lib/vistaLook.ts); x-ray and Context keep theirs.
   const style = useSceneStyle((s) => s.style)
   const look = project === 'city' && rep === 'clay' && style === 'plain' ? VISTA_LOOK : LOOKS[rep]
-  const xray = rep === 'xray'
+  // View › Façade: the solid exterior with its façade, in place of Schematic's ghost and core (17 Nov).
+  const facadeView = useDisplayMode((s) => shownMode(s.mode, project)) === 'facade' && phase !== 'present'
+  const xray = rep === 'xray' && !facadeView
   const present = phase === 'present'
   const boardView = useStore((s) => s.boardView)
   const north = project === 'vtc' ? VTC_NORTH_DEG : 0
@@ -709,7 +712,7 @@ export default function Viewport() {
             <hemisphereLight args={[LIGHT.sky, LIGHT.bounce, sunOn ? look.hemi : look.hemi + LIGHT.inspectionLift]} />
             {sunOn ? <Sun north={north} /> : <directionalLight name="inspection-key" position={[600, 1200, 400]} intensity={LIGHT.inspectionKey} />}
             <group rotation={[-Math.PI / 2, 0, 0]}>
-              {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} /> : <CityScene onPick={onPick} look={look} xray={xray} />}
+              {project === 'vtc' ? <VtcScene onPick={onPick} look={look} xray={xray} facade={facadeView} north={north} /> : <CityScene onPick={onPick} look={look} xray={xray} facade={facadeView} north={north} />}
               <TowerGizmo />
               <MassingEdit3D />
               <TowerPosition3D />
@@ -730,7 +733,7 @@ export default function Viewport() {
           {/* Real Vancouver outside Present: Vista's viewport layout (mode tabs, compass column, caption, legend, place labels). */}
           {project === 'city' && !present && !hidden && <><SitePlaceLabels /><VistaChrome /></>}
           {/* Not at eye level (Observer: its corner map takes the bottom right, and the view is not an axonometric). */}
-          {phase === 'advanced' && sel && !hidden && !looking && <TitleBlock t={sel} clear={dockOpen ? 'right-[21.5rem]' : project === 'city' ? 'right-3' : 'right-12'} />}
+          {phase === 'advanced' && sel && !hidden && !looking && <TitleBlock t={sel} facade={facadeView} clear={dockOpen ? 'right-[21.5rem]' : project === 'city' ? 'right-3' : 'right-12'} />}
         </div>
       </div>
       {/* While the Real Vancouver map is still downloading: how much has arrived (Ruijie, 7 Nov). */}
@@ -757,7 +760,7 @@ export default function Viewport() {
 }
 
 /** Schematic: a drafting title block that names the drawing and its assumptions. */
-function TitleBlock({ t, clear }: { t: Tower; clear: string }) {
+function TitleBlock({ t, clear, facade = false }: { t: Tower; clear: string; facade?: boolean }) {
   const presets = useStore((s) => s.liftPresets)
   const egressP = useStore((s) => s.egressPresets)
   const lifts = useMemo(() => liftCheck(t, presets, egressP), [t, presets, egressP])
@@ -765,7 +768,7 @@ function TitleBlock({ t, clear }: { t: Tower; clear: string }) {
   const fade = useOverlayLook().split(' ').filter((c) => c.startsWith('opacity') || c.startsWith('transition') || c.startsWith('duration')).join(' ')
   const rows: [string, string][] = [
     ['View', 'Isometric, near-parallel'],
-    ['Shell', `Ghosted ${Math.round(XRAY_OPACITY * 100)}%`],
+    ['Shell', facade ? `Façade · ${(t.facadeZones?.length ? t.facadeZones.length : 4)} zone${(t.facadeZones?.length ?? 4) === 1 ? '' : 's'}, illustrative materials` : `Ghosted ${Math.round(XRAY_OPACITY * 100)}%`],
     ['Core', `${Math.round(t.coreShare * 1000) / 10}% of plate · ${coreSide(t).toFixed(1)} m sq`],
     ['Plant', t.plantEvery ? `Every ${t.plantEvery} floors` : 'None set'],
     ['Lifts', `${lifts.totalCars} cars, ${lifts.rises.length} groups · core ${lifts.modelledCore + 0.5 >= lifts.requiredMax ? 'fits' : `short ${Math.round(lifts.requiredMax - lifts.modelledCore)} m²`}${t.coreAuto ? ' (auto)' : ''}`],
@@ -776,7 +779,7 @@ function TitleBlock({ t, clear }: { t: Tower; clear: string }) {
   return (
     // At most 17.5 rem wide, so Real Vancouver's legend (which leaves 19 rem in Schematic, VistaLook.tsx) never runs under it.
     <div className={`pointer-events-none absolute bottom-3 ${clear} max-w-[17.5rem] border border-[#2b3f55]/40 bg-panel/75 font-mono text-meta text-[#2b3f55] backdrop-blur-md ${fade}`}>
-      <div className="border-b border-[#2b3f55]/30 px-2 py-1 font-semibold">Schematic · x-ray axonometric</div>
+      <div className="border-b border-[#2b3f55]/30 px-2 py-1 font-semibold">{facade ? 'Schematic · façade' : 'Schematic · x-ray axonometric'}</div>
       <div className="grid grid-cols-[auto_auto] gap-x-3 px-2 py-1">
         {rows.flatMap(([k, v]) => [<span key={`${k}k`} className="uppercase opacity-70">{k}</span>, <span key={`${k}v`} className="truncate" title={v}>{v}</span>])}
       </div>

@@ -18,6 +18,8 @@ export const TOOL_VIEW: Record<string, ToolView> = {
   'built.wind-comfort': { mode: 'analysis', layer: 'wind-comfort' },
   'built.energy-carbon': { mode: 'analysis', layer: 'surface-sun' },
   'design.program': { mode: 'program' }, 'built.fsr': { mode: 'program' }, 'built.economics': { mode: 'program' }, 'built.interior': { mode: 'program' },
+  // The façade tools show the façade as built (17 Nov, Sinnie: "I want to actually see the changes apply to the 3d model").
+  'built.facade': { mode: 'facade' }, 'built.sw-glazing': { mode: 'facade' },
   'built.pr-streetwall': { mode: 'massing' }, 'built.pr-frontage': { mode: 'massing' }, 'built.pr-ground': { mode: 'massing' }, 'built.sky-room': { mode: 'program' },
 }
 
@@ -68,6 +70,8 @@ export async function leaveToolView(prev: string, next: string, newStep = false)
   if (drop.includes('surface')) { const { useHeightSurface } = await import('../../components/HeightSurface'); useHeightSurface.setState({ on: false, hover: null }) }
   // The old tool's analysis colours: the next tool's own View replaces them (applyToolView); a tool without one goes
   // back to Geometry rather than keeping another tool's results on the model.
+  // Leaving a façade tool for one with no View of its own: back to the working view of the step (not the façade).
+  if (TOOL_VIEW[prev]?.mode === 'facade' && !TOOL_VIEW[next] && d.mode === 'facade') d.setMode('massing')
   const owned = TOOL_VIEW[prev]?.layer
   if (owned && !TOOL_VIEW[next] && d.mode === 'analysis' && d.layer === owned) d.setMode('massing')
 }
