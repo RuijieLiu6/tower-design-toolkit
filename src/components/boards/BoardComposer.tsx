@@ -510,6 +510,20 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
 
 // The left panel (18 Nov, Sinnie: "sheet | style | render | export"): what goes on a sheet. The drawings, drawn from
 // the model and always current, then the Library (uploads, captures from Model mode, renders, drawings already placed).
+// Each drawing as a small picture of itself (Sinnie, 18 Nov: "ICONs and not text"); the name is the tooltip.
+const DRAWING_ICONS: Record<string, ReactNode> = {
+  'Site plan': <><rect x={3} y={4} width={18} height={16} strokeDasharray="2 1.6" /><rect x={8} y={8} width={7} height={8} fill="currentColor" /><path d="M18.5 6.5 v4 M17 8 l1.5-1.5 1.5 1.5" /></>,
+  'Floor plan': <><rect x={3.5} y={4.5} width={17} height={15} strokeWidth={2.2} /><path d="M12 4.5 v8 M3.5 12.5 h5" strokeWidth={1.4} /><path d="M12 19.5 a5 5 0 0 0 -5 -5" strokeWidth={1} /></>,
+  'Elevation': <><path d="M2 20.5 h20" strokeWidth={2.2} /><rect x={7.5} y={3.5} width={9} height={17} /><path d="M9.5 7 h5 M9.5 10 h5 M9.5 13 h5 M9.5 16 h5" strokeWidth={1} /></>,
+  'Section': <><path d="M2 20.5 h20" strokeWidth={2.2} /><g fill="currentColor" stroke="none"><rect x={6.5} y={3} width={2.2} height={17.5} /><rect x={15.3} y={3} width={2.2} height={17.5} /><rect x={6.5} y={3} width={11} height={1.8} /><rect x={6.5} y={9} width={11} height={1.6} /><rect x={6.5} y={14.6} width={11} height={1.6} /></g><path d="M1.5 3 v3 M22.5 3 v3" strokeWidth={1} strokeDasharray="1.5 1" /></>,
+  'Context plan': <><path d="M2 12 h20 M12 2 v20" strokeWidth={1} /><rect x={4} y={4} width={5} height={5} /><rect x={15} y={4} width={5} height={5} /><rect x={4} y={15} width={5} height={5} /><rect x={15} y={15} width={5} height={5} fill="currentColor" /></>,
+  'Roof plan': <><rect x={3.5} y={5.5} width={17} height={13} /><path d="M3.5 5.5 l5 6.5 h7 l5 -6.5 M3.5 18.5 l5 -6.5 M15.5 12 l5 6.5" strokeWidth={1} /></>,
+  'Axonometric': <><path d="M12 3 l8 4 v10 l-8 4 l-8 -4 V7 z" /><path d="M4 7 l8 4 l8 -4 M12 11 v10" /></>,
+  'Program diagram': <><rect x={7} y={3} width={10} height={4.5} fill="currentColor" fillOpacity={0.35} /><rect x={7} y={7.5} width={10} height={6} fill="currentColor" fillOpacity={0.6} /><rect x={5} y={13.5} width={14} height={7} fill="currentColor" /></>,
+  'Results table': <><rect x={3.5} y={4.5} width={17} height={15} /><path d="M3.5 9 h17 M3.5 14 h17 M10 4.5 v15" strokeWidth={1} /></>,
+  'Text': <><path d="M4 5 h16 M12 5 v14" strokeWidth={2.2} /><path d="M9 19 h6" /></>,
+}
+
 function AddPanel({ levels, evidence }: { levels: number; evidence: Record<string, EvidenceSet> }) {
   const boards = useBoardStore((s) => s.boards)
   const selected = useBoardStore((s) => s.selected)
@@ -535,8 +549,8 @@ function AddPanel({ levels, evidence }: { levels: number; evidence: Record<strin
     <aside className="flex w-64 shrink-0 flex-col overflow-y-auto border-r border-white/10" aria-label="Add to a sheet" data-testid="drawing-space">
       <div className="border-b border-white/10 p-3">
         <div className="mb-2 text-meta font-semibold text-slate-400">Drawings</div>
-        <div className="grid grid-cols-2 gap-1" data-testid="space-add-list">
-          {ADD.map(([word, c]) => <button key={word} type="button" draggable onDragStart={(e) => { e.dataTransfer.setData(DRAG, JSON.stringify({ content: c })); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => put(c, word)} data-add={word} title="Drag onto a frame, or click to add to this sheet" className="cursor-grab rounded-lg border border-white/15 px-2 py-1.5 text-left text-xs hover:border-sky-400 active:cursor-grabbing">{word}</button>)}
+        <div className="grid grid-cols-5 gap-1" data-testid="space-add-list">
+          {ADD.map(([word, c]) => <button key={word} type="button" draggable onDragStart={(e) => { e.dataTransfer.setData(DRAG, JSON.stringify({ content: c })); e.dataTransfer.effectAllowed = 'copy' }} onClick={() => put(c, word)} data-add={word} aria-label={word} title={`${word}: drag onto a frame, or click`} className="flex aspect-square cursor-grab items-center justify-center rounded-lg border border-white/15 text-slate-200 hover:border-sky-400 hover:text-sky-300 active:cursor-grabbing"><svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="miter" aria-hidden="true">{DRAWING_ICONS[word]}</svg></button>)}
         </div>
         {note && <p role="status" className="mt-2 text-meta text-emerald-300">{note}</p>}
       </div>
