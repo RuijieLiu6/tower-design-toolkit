@@ -18,7 +18,7 @@ import { captureHiRes } from '../../lib/hiresCapture'
 import { useStore, type Shot } from '../../store'
 import SubmissionPanel from './SubmissionPanel'
 import { useBoardFonts, useDrawData, useEvidence, useLoadedImages, useOverflow } from './useBoardData'
-import { BOARD_STYLES, SCALES, type DrawData, type StyleId } from '../../lib/boardDrawings'
+import { BOARD_STYLES, SCALES, drawDrawing, drawTable, type DrawData, type StyleId } from '../../lib/boardDrawings'
 
 const DRAG = 'application/x-board-image'
 /** A board tab being dragged to a new place (Ruijie, 17 Nov). */
@@ -360,6 +360,81 @@ function FontPick({ id, label, value, user, onPick, allowDefault = false }: { id
   )
 }
 
+const DRAW_WORD: Record<string, string> = { site: 'Site plan', plan: 'Floor plan', elev: 'Elevation', section: 'Section', context: 'Context plan', roof: 'Roof plan', axo: 'Axonometric', program: 'Program diagram' }
+const contentWord = (c: FrameContent) => c.kind === 'table' ? 'Results table' : c.kind === 'drawing'
+  ? c.label ?? `${DRAW_WORD[c.vt] ?? 'Drawing'}${c.vt === 'plan' && c.level ? `, level ${c.level}` : ''}${c.vt === 'elev' && c.dir ? ` ${c.dir}` : ''}` : ''
+type LibEntry = { key: string; label: string } & ({ image: BoardImage } | { shot: Shot } | { content: FrameContent })
+
+/** A drawing or the results table drawn small, in the sheet style, from the same code that draws the sheet. */
+function DrawingThumb({ c, evidence, d }: { c: FrameContent; evidence: Record<string, EvidenceSet>; d: DrawData }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const style = useBoardStore((s) => s.style)
+  useEffect(() => {
+    const el = ref.current, ctx = el?.getContext('2d')
+    if (!el || !ctx) return
+    const W = 150, H = W / A2_RATIO, k = el.width / W, st = BOARD_STYLES[style] ?? BOARD_STYLES.competition
+    ctx.fillStyle = st.paper; ctx.fillRect(0, 0, el.width, el.height)
+    const f = { x: 0, y: 0, w: W, h: H }
+    if (c.kind === 'drawing') drawDrawing(ctx, k, f, c, d, st, 1)
+    else if (c.kind === 'table') drawTable(ctx, k, f, Object.values(evidence).map((s) => [s.name, '', s.rules.some((r) => r.state === 'fail') ? 'fail' : 'pass'] as [string, string, 'pass' | 'fail']), st)
+  }, [c, style, d, evidence])
+  return <canvas ref={ref} width={192} height={136} className="block aspect-[1.414] w-full bg-white" />
+}
+
+/**
+ * Everything already on the sheets, in one place (Sinnie, 18 Nov: "after users add an image to sheets, these diagrams
+ * should show up in the right panel with all the other images and act as a library"): images, shots and every
+ * drawing or table placed on any sheet. Drag one onto a frame, or click it to fill the selected frame.
+ */
+function SheetLibrary({ evidence }: { evidence: Record<string, EvidenceSet> }) {
+  const boards = useBoardStore((s) => s.boards)
+  const images = useBoardStore((s) => s.images)
+  const selected = useBoardStore((s) => s.selected)
+  const updateFrame = useBoardStore((s) => s.updateFrame)
+  const shots = useStore((s) => s.shots)
+  const d = useDrawData()
+  const seen = new Set<string>()
+  const entries: LibEntry[] = []
+  for (const b of boards) for (const fr of b.frames) {
+    const c = fr.content
+    if (c.kind !== 'drawing' && c.kind !== 'table') continue
+    const key = JSON.stringify(c)
+    if (!seen.has(key)) { seen.add(key); entries.push({ key, label: contentWord(c), content: c }) }
+  }
+  for (const img of Object.values(images)) entries.push({ key: img.id, label: img.label, image: img })
+  const imported = new Set(Object.keys(images))
+  for (const s of shots) if (!imported.has(`shot-${s.id}`)) entries.push({ key: `shot-${s.id}`, label: `Shot, ${s.representation}`, shot: s })
+  const target = boards[selected.board]?.frames.find((x) => x.id === selected.frame && x.role === 'body')
+  const pick = async (e: LibEntry) => {
+    if (!target) return
+    const content: FrameContent = 'content' in e ? e.content
+      : 'image' in e ? { kind: 'image', imageId: e.image.id, fit: e.image.vector ? 'contain' : 'cover' }
+      : { kind: 'image', imageId: await importShot(e.shot), fit: 'cover' }
+    updateFrame(selected.board, target.id, { content })
+  }
+  const drag = (ev: DragEvent, e: LibEntry) => {
+    ev.dataTransfer.setData(DRAG, JSON.stringify('content' in e ? { content: e.content } : 'image' in e ? { image: e.image.id } : { shot: e.shot.id }))
+    ev.dataTransfer.effectAllowed = 'copy'
+  }
+  return (
+    <div data-testid="sheet-library">
+      <div className="mb-1.5 flex items-center justify-between text-meta font-semibold text-slate-400"><span>Library</span><span className="font-normal">{entries.length}</span></div>
+      {entries.length === 0
+        ? <p className="text-meta text-slate-400">Drawings and images you add to the sheets collect here.</p>
+        : <div className="grid grid-cols-3 gap-1.5">
+          {entries.map((e) => (
+            <button key={e.key} type="button" draggable onDragStart={(ev) => drag(ev, e)} onClick={() => void pick(e)} data-lib={'content' in e ? e.content.kind : 'image' in e ? 'image' : 'shot'}
+              title={`${e.label}. Drag onto a frame${target ? ', or click to fill the selected frame' : ''}`} aria-label={e.label}
+              className="cursor-grab overflow-hidden rounded border border-white/15 bg-white hover:border-sky-400 active:cursor-grabbing">
+              {'content' in e ? <DrawingThumb c={e.content} evidence={evidence} d={d} />
+                : <img src={'image' in e ? e.image.dataUrl : e.shot.dataUrl} alt="" draggable={false} className={`block aspect-[1.414] w-full ${'image' in e && e.image.vector ? 'object-contain' : 'object-cover'}`} />}
+            </button>
+          ))}
+        </div>}
+    </div>
+  )
+}
+
 /** A layout drawn as the sheet it makes: title band, image frames filled, text frames as lines. */
 function LayoutThumb({ t }: { t: TemplateId }) {
   const text = new Set(TEMPLATES[t].text ?? [])
@@ -413,6 +488,7 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
           </div>
         )}
       </div>
+      <SheetLibrary evidence={evidence} />
       <FontPanel />
       {!f && <p className="text-xs text-slate-400">Select a frame on the board to fill it.</p>}
       {f && (
@@ -696,8 +772,9 @@ function ComposerBody({ viewport, tools }: { viewport?: ReactNode; tools?: React
     if (e.dataTransfer.files.length) { const ids = await importFiles(e.dataTransfer.files); if (ids[0]) place(board, frame, ids[0]); return }
     const raw = e.dataTransfer.getData(DRAG)
     if (!raw) return
-    const p = JSON.parse(raw) as { shot?: string; image?: string }
-    if (p.image) place(board, frame, p.image)
+    const p = JSON.parse(raw) as { shot?: string; image?: string; content?: FrameContent }
+    if (p.content) { const t = boards[board].frames.find((x) => x.id === frame); if (t?.role === 'body') updateFrame(board, frame, { content: p.content }) }
+    else if (p.image) place(board, frame, p.image)
     else if (p.shot) { const shot = useStore.getState().shots.find((s) => s.id === p.shot); if (shot) place(board, frame, await importShot(shot)) }
   }
   const pick = (imageId: string) => { if (selected.frame) place(selected.board, selected.frame, imageId) }
