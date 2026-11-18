@@ -173,7 +173,7 @@ function VtcScene({ onPick, look: stageLook, xray, facade = false, north = 0 }: 
         <Label key={`l${i}`} text={l.text} position={[l.at[0], l.at[1], 2]} size={0.014} background={null} color="#6b6f76" bold quiet />
       ))}
       <DrawTools baseZ={0} />
-      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}{facade && !t.imported && <FacadeSkin t={t} baseZ={0} north={north} />}</TowerMover>)}
+      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={0}>{t.imported ? <ImportedMass t={t} baseZ={0} xray={xray} /> : <TowerMesh t={t} baseZ={0} xray={xray} />}{facade && <FacadeSkin t={t} baseZ={0} north={north} />}</TowerMover>)}
       <ModelOverlay base={0} xray={xray} />
       <PublicRealmOverlay />
       <EnergyOverlay />
@@ -205,7 +205,7 @@ function CityScene({ onPick, look, xray, facade = false, north = 0 }: { onPick: 
       <ViewFromRig />
       <VistaRig />
       <DrawTools baseZ={ground} />
-      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} vista={vista} />}{facade && !t.imported && <FacadeSkin t={t} baseZ={ground} north={north} />}</TowerMover>)}
+      {towers.filter((t) => !hiddenTowers[t.id]).map((t) => <TowerMover key={t.id} t={t} baseZ={ground}>{t.imported ? <ImportedMass t={t} baseZ={ground} xray={xray} /> : <TowerMesh t={t} baseZ={ground} xray={xray} vista={vista} />}{facade && <FacadeSkin t={t} baseZ={ground} north={north} />}</TowerMover>)}
       <ModelOverlay base={ground} xray={xray} />
       <ConeOverlays base={ground} xray={xray} />
       <EnergyOverlay base={ground} />

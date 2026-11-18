@@ -13,9 +13,9 @@ import { useStore } from '../store'
 
 type Mat = 'glass' | 'spandrel' | 'mullion' | 'device' | 'wall' | 'slab' | 'pv' | 'green' | 'rail'
 const MATS: Record<Mat, () => THREE.Material> = {
-  glass: () => new THREE.MeshStandardMaterial({ color: '#6f9ab8', metalness: 0.35, roughness: 0.12, transparent: true, opacity: 0.88 }),
-  spandrel: () => new THREE.MeshStandardMaterial({ color: '#9aa3ab', metalness: 0.4, roughness: 0.45 }),
-  mullion: () => new THREE.MeshStandardMaterial({ color: '#3d4247', metalness: 0.5, roughness: 0.4 }),
+  glass: () => new THREE.MeshStandardMaterial({ color: '#4f86b0', metalness: 0.3, roughness: 0.1, emissive: '#16324a', emissiveIntensity: 0.25 }),
+  spandrel: () => new THREE.MeshStandardMaterial({ color: '#7d8791', metalness: 0.35, roughness: 0.5 }),
+  mullion: () => new THREE.MeshStandardMaterial({ color: '#2a2e33', metalness: 0.4, roughness: 0.45 }),
   device: () => new THREE.MeshStandardMaterial({ color: '#d9d6cf', metalness: 0.25, roughness: 0.5 }),
   wall: () => new THREE.MeshStandardMaterial({ color: '#cfc8bd', roughness: 0.85 }),
   slab: () => new THREE.MeshStandardMaterial({ color: '#e9e6e0', roughness: 0.8 }),
@@ -47,8 +47,9 @@ export function faceBoxes(z: FacadeZone, f: { z: number; h: number }, e: { L: nu
   if (sill > 0.02) put(spMat, 0, 0.05, f.z + sill / 2, L, 0.08, sill)
   if (f.h - head > 0.02) put(spMat, 0, 0.05, f.z + head + (f.h - head) / 2, L, 0.08, f.h - head)
   put('glass', 0, 0.06, f.z + sill + gh / 2, L, 0.04, gh)
-  for (let i = 0; i <= n; i++) put('mullion', -L / 2 + i * step, 0.12, f.z + f.h / 2, 0.07, 0.16, f.h)
-  put('mullion', 0, 0.1, f.z + 0.03, L, 0.14, 0.06) // the slab edge
+  // Mullions and the slab edge sized to read at a whole-tower zoom (17 Nov: 7 cm ones did not show).
+  for (let i = 0; i <= n; i++) put('mullion', -L / 2 + i * step, 0.18, f.z + f.h / 2, 0.16, 0.3, f.h)
+  put('mullion', 0, 0.16, f.z + 0.12, L, 0.28, 0.24) // the slab edge
   switch (z.strat) {
     case 'fins': for (let i = 0; i <= n; i++) put('device', -L / 2 + i * step, d / 2 + 0.12, f.z + f.h / 2, 0.08, d, f.h); break
     case 'overhang': put('device', 0, d / 2 + 0.1, f.z + head + 0.06, L, d, 0.12); break
