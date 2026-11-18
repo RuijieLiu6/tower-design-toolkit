@@ -35,7 +35,7 @@ interface BoardState {
   setSheet: (s: SheetSize) => void
   addBoard: () => void
   removeBoard: (i: number) => void
-  /** Makes the five sheets of the drawing set (site plan, floor plans, elevations, section, axonometric and analysis); what was on them is kept aside. */
+  /** Makes the five sheets of the drawing set (an axonometric cover with the site plan, floor plans, elevations, section, analysis); what was on them is kept aside. */
   makeDrawingSet: (typicalLevel: number, topLevel: number) => void
   /** The Architectural set: the drawing set's sheets, then analysis sheets (six drawings each) for every workflow phase. */
   makeArchSet: (typicalLevel: number, topLevel: number, groups: ArchGroup[], o?: { title?: string; renders?: string[] }) => void
@@ -134,12 +134,14 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
         return c ? { ...f, content: c } : f
       }) }
     }
-    fill(0, 'hero', 'Site plan', [{ kind: 'drawing', vt: 'site' }, { kind: 'table' }, { kind: 'drawing', vt: 'elev', dir: 'S' }, null])
+    // The cover (17 Nov, Sinnie: "bring back the axo drawing as the cover sheet"): the exterior axonometric large, the
+    // analysis summary and the site plan beside it.
+    fill(0, 'hero', 'Cover', [{ kind: 'drawing', vt: 'axo' }, { kind: 'table' }, { kind: 'drawing', vt: 'site' }, null])
     fill(1, 'plans', 'Floor plans', [{ kind: 'drawing', vt: 'plan', level: 1 }, { kind: 'drawing', vt: 'plan', level: typ }, { kind: 'drawing', vt: 'plan', level: top }, null])
     fill(2, 'grid', 'Elevations', [{ kind: 'drawing', vt: 'elev', dir: 'N' }, { kind: 'drawing', vt: 'elev', dir: 'E' }, { kind: 'drawing', vt: 'elev', dir: 'S' }, { kind: 'drawing', vt: 'elev', dir: 'W' }])
     fill(3, 'hero', 'Section', [{ kind: 'drawing', vt: 'section' }, { kind: 'drawing', vt: 'plan', level: typ }, { kind: 'table' }, null])
     // The last sheet is left for the 3D view and the analysis drawings (Add to sheet fills its frames).
-    fill(4, 'grid', 'Axonometric and analysis', [null, null, null, null])
+    fill(4, 'grid', 'Analysis', [null, null, null, null])
     return { boards, parked: [...s.parked, ...kept], exports: {}, selected: { board: 0, frame: null } }
   }),
   makeArchSet: (typ, top, groups, o = {}) => set((s) => {

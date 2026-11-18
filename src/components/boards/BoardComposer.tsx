@@ -586,7 +586,7 @@ function SheetsPanel({ levels, onPick, onCreate, msg, preset, setPreset, busy }:
                 <option value="arch">Architectural set · cover to renders, black and white</option>
               </select>
             </label>
-            <button type="button" onClick={onCreate} disabled={busy} data-testid="drawing-set" title={preset === 'arch' ? 'Cover, context plan, site plan, analysis drawings, program diagram, floor plans (ground, typical mid, typical high, roof), two sections, exterior axonometric and renders, in black and white with poché walls' : 'Site plan, floor plans, elevations, section, and a sheet for the axonometric and analysis: five sheets drawn from the model in this style'}
+            <button type="button" onClick={onCreate} disabled={busy} data-testid="drawing-set" title={preset === 'arch' ? 'Cover, context plan, site plan, analysis drawings, program diagram, floor plans (ground, typical mid, typical high, roof), two sections, exterior axonometric and renders, in black and white with poché walls' : 'An axonometric cover with the site plan, floor plans, elevations, section, and a sheet for analysis: five sheets drawn from the model in this style'}
               className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/10 py-2 text-xs font-medium hover:bg-white/15"><LayoutPanelTop size={13} />{busy ? 'Working…' : preset === 'arch' ? 'Create architectural set' : 'Create drawing set'}</button>
           </div>
         </div>

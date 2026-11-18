@@ -86,8 +86,10 @@ export function sheetName(b: Board, i: number): string {
 /** Sheet numbers as a drawing set has them: A-0xx site, A-1xx plans, A-2xx elevations, A-3xx sections, A-9xx everything else. */
 export function sheetNumbers(boards: Board[]): string[] {
   const seen: Record<number, number> = {}
-  return boards.map((b) => {
-    if (b.id.startsWith('arch-cover')) return 'A-000'
+  return boards.map((b, i) => {
+    const first = b.frames.find((f) => f.content.kind === 'drawing')
+    // The cover: the architectural set's, or a first sheet that leads with the axonometric (the drawing set's).
+    if (b.id.startsWith('arch-cover') || (i === 0 && first?.content.kind === 'drawing' && first.content.vt === 'axo')) return 'A-000'
     const d = b.frames.find((f) => f.content.kind === 'drawing')
     const vt = d && d.content.kind === 'drawing' ? d.content.vt : null
     const series = vt === 'site' || vt === 'context' ? 0 : vt === 'plan' || vt === 'roof' ? 1 : vt === 'elev' ? 2 : vt === 'section' ? 3 : vt === 'axo' || vt === 'program' ? 4 : 9
