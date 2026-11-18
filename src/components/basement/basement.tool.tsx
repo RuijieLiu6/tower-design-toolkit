@@ -6,7 +6,7 @@ import { Layers2 } from '../icons'
 import type { DesignTool } from '../tools/registry'
 
 export default {
-  id: 'basement', label: 'Basement (below grade)', short: 'Basement', icon: TOOL_ICONS['basement'], stages: ['basic', 'advanced'], steps: ['volume'], order: { basic: 24, advanced: 128 },
+  id: 'basement', label: 'Basement (below grade)', short: 'Basement', icon: TOOL_ICONS['basement'], stages: ['basic'], steps: ['volume'], order: { basic: 24 },
   hint: 'Basement levels dug into the ground: parking, the ramp and how deep it goes',
   component: lazy(() => import('./BasementTool')),
 } satisfies DesignTool

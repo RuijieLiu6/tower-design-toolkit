@@ -14,15 +14,15 @@ const tools: DesignTool[] = [
     hint: 'Show or hide shell, plates, core, plant, lifts, stairs', component: AnatomyTool },
   // Tower position (Ruijie, 6 Nov): a tower on its site; opening it locks the view on the site, the tower drags on the
   // ground, and the right panel's Properties tab takes exact numbers. Every change applies at once (no Confirm).
-  { id: 'towers', label: 'Tower position', short: 'Position', icon: TOOL_ICONS['towers'], stages: ['basic', 'advanced'], order: { basic: 10, advanced: 110 }, defaultOpen: true,
+  { id: 'towers', label: 'Tower position', short: 'Position', icon: TOOL_ICONS['towers'], stages: ['basic'], order: { basic: 10 }, defaultOpen: true,
     hint: 'Where the tower stands: drag it on the site, click the ground, or type the numbers in Properties', component: TowersTool },
-  { id: 'massing', label: 'Massing', short: 'Massing', icon: TOOL_ICONS['massing'], stages: ['basic', 'advanced'], order: { basic: 20, advanced: 120 }, defaultOpen: true,
+  { id: 'massing', label: 'Massing', short: 'Massing', icon: TOOL_ICONS['massing'], stages: ['basic'], order: { basic: 20 }, defaultOpen: true,
     hint: 'Height, blocks, rotation, floor-to-floor', component: MassingTool },
-  { id: 'program', label: 'Program', short: 'Program', icon: TOOL_ICONS['program'], stages: ['basic', 'advanced'], order: { basic: 30, advanced: 130 },
+  { id: 'program', label: 'Program', short: 'Program', icon: TOOL_ICONS['program'], stages: ['basic'], order: { basic: 30 },
     hint: 'Uses by floor band, floor area and FSR', component: ProgramTool },
   { id: 'ground', label: 'Ground & public realm', short: 'Ground', icon: TOOL_ICONS['ground'], stages: ['basic'], order: 40,
     hint: 'Streetwall, frontage, open space, transit link', component: GroundTool },
-  { id: 'sun', label: 'Sun & time', short: 'Sun', icon: TOOL_ICONS['sun'], stages: ['basic', 'advanced'], order: { basic: 14, advanced: 150 },
+  { id: 'sun', label: 'Sun & time', short: 'Sun', icon: TOOL_ICONS['sun'], stages: ['basic'], order: { basic: 14 },
     // Moved to the Layers panel (Sinnie, 13 Nov: "remove the sun from the massing panel"; components/SunTime.tsx): kept
     // registered so saved workflows still name it, never shown as a tool.
     hint: 'Date and hour for shadows and sun views', component: SunTool, when: () => false },

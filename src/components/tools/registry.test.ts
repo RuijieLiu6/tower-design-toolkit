@@ -36,6 +36,8 @@ describe('design tool registry', () => {
     expect(ids).toEqual(expect.arrayContaining(['towers', 'massing', 'program', 'ground', 'sun', 'core', 'anatomy']))
     expect(new Set(ids).size).toBe(ids.length)
     const schematic = toolsFor(DESIGN_TOOLS, 'advanced').map((t) => t.id)
-    expect(schematic.indexOf('core')).toBeLessThan(schematic.indexOf('towers'))
+    // 17 Nov (Sinnie): Schematic's tool shows its own tools only; Form and Program tools stay in their steps.
+    expect(schematic[0]).toBe('core')
+    for (const id of ['towers', 'massing', 'basement', 'program', 'sun', 'height-suggestion']) expect(schematic).not.toContain(id)
   })
 })
