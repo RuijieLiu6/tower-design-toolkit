@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   A2_RATIO, BOARD_H, BOARD_W, DEADLINE_UTC, DELIVERABLES, applyTemplate, boardChecks, coverage, deadlineInfo, effectivePpi, findTerms,
-  imagePlacement, needsGlyphCheck, newBoard, parseJpeg, printedCaption, pxForDpi, searchQuality, submissionChecks, templateRects,
+  imagePlacement, needsGlyphCheck, newBoard, parseJpeg, printedCaption, pxForDpi, searchQuality, submissionChecks, templateRects, TEMPLATES,
   tzOffsetMinutes, validateJpeg, type Board, type BoardImage, type TemplateId,
 } from './boards'
 
@@ -29,7 +29,7 @@ describe('board layout (A2 landscape)', () => {
   })
 
   it('keeps every template inside the sheet margins with no overlapping frames', () => {
-    for (const t of ['hero', 'grid', 'plans', 'story'] as TemplateId[]) {
+    for (const t of Object.keys(TEMPLATES) as TemplateId[]) {
       const r = templateRects(t)
       expect(r[0].role).toBe('title')
       for (const a of r) {

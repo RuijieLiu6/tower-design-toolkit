@@ -68,7 +68,7 @@ export type FrameContent =
 
 export interface Frame { id: string; x: number; y: number; w: number; h: number; role: 'title' | 'body'; content: FrameContent; caption?: string; tag?: DeliverableId | null }
 
-export type TemplateId = 'hero' | 'grid' | 'plans' | 'story'
+export type TemplateId = 'hero' | 'grid' | 'plans' | 'story' | 'single' | 'halves' | 'feature' | 'six' | 'sidebar' | 'mosaic'
 export interface Board { id: string; template: TemplateId; frames: Frame[]; /** The board's own name (Ruijie, 17 Nov): shown on its tab, used for the file name and to order the boards. */ name?: string }
 
 /** Sheet sizes (ISO A, landscape): all share one proportion, so a board laid out on A2 prints on the others to scale. */
@@ -124,11 +124,18 @@ export interface BoardFonts { heading: string; body: string }
 /** Every family a board names: the pair and each text frame's own, in use order (the first is the heading). */
 export const familiesUsed = (b: Board, fonts: BoardFonts): string[] => [...new Set([fonts.heading, fonts.body, ...b.frames.flatMap((f) => (f.content.kind === 'text' && f.content.font ? [f.content.font] : []))])]
 
-export const TEMPLATES: Record<TemplateId, { label: string; hint: string }> = {
-  hero: { label: 'Hero + two', hint: 'One large view, two smaller, a text block' },
+/** `text`: frame indices the layout means for text, drawn as lines on its thumbnail (any frame still takes anything). */
+export const TEMPLATES: Record<TemplateId, { label: string; hint: string; text?: number[] }> = {
+  hero: { label: 'Hero + two', hint: 'One large view, two smaller, a text block', text: [4] },
   grid: { label: 'Four up', hint: 'Four equal images' },
-  plans: { label: 'Three plans', hint: 'Three drawings in a row over a text band' },
-  story: { label: 'Text + two', hint: 'A text column and two stacked images' },
+  plans: { label: 'Three plans', hint: 'Three drawings in a row over a text band', text: [4] },
+  story: { label: 'Text + two', hint: 'A text column and two stacked images', text: [1] },
+  single: { label: 'Full sheet', hint: 'One view across the whole sheet' },
+  halves: { label: 'Two up', hint: 'Two equal views side by side' },
+  feature: { label: 'Feature + three', hint: 'One wide view over three smaller' },
+  six: { label: 'Six up', hint: 'Six equal images, three by two' },
+  sidebar: { label: 'View + notes', hint: 'One large view with a text column beside it', text: [2] },
+  mosaic: { label: 'Hero + four', hint: 'One large view and four small ones' },
 }
 
 const M = 12 // margin, mm
@@ -153,6 +160,27 @@ export function templateRects(t: TemplateId): { x: number; y: number; w: number;
   if (t === 'plans') {
     const w = (BODY_W - 2 * G) / 3, h = 270
     return [title, r(M, BODY_Y, w, h), r(M + w + G, BODY_Y, w, h), r(M + 2 * (w + G), BODY_Y, w, h), r(M, BODY_Y + h + G, BODY_W, BODY_H - h - G)]
+  }
+  if (t === 'single') return [title, r(M, BODY_Y, BODY_W, BODY_H)]
+  if (t === 'halves') {
+    const w = (BODY_W - G) / 2
+    return [title, r(M, BODY_Y, w, BODY_H), r(M + w + G, BODY_Y, w, BODY_H)]
+  }
+  if (t === 'feature') {
+    const h = Math.round(BODY_H * 0.6), w = (BODY_W - 2 * G) / 3, y = BODY_Y + h + G, bh = BODY_H - h - G
+    return [title, r(M, BODY_Y, BODY_W, h), r(M, y, w, bh), r(M + w + G, y, w, bh), r(M + 2 * (w + G), y, w, bh)]
+  }
+  if (t === 'six') {
+    const w = (BODY_W - 2 * G) / 3, h = (BODY_H - G) / 2
+    return [title, ...[0, 1].flatMap((row) => [0, 1, 2].map((c) => r(M + c * (w + G), BODY_Y + row * (h + G), w, h)))]
+  }
+  if (t === 'sidebar') {
+    const tw = 150, iw = BODY_W - tw - G
+    return [title, r(M, BODY_Y, iw, BODY_H), r(M + iw + G, BODY_Y, tw, BODY_H)]
+  }
+  if (t === 'mosaic') {
+    const hw = Math.round((BODY_W - G) * 0.55), sw = (BODY_W - hw - 2 * G) / 2, sh = (BODY_H - G) / 2, sx = M + hw + G
+    return [title, r(M, BODY_Y, hw, BODY_H), r(sx, BODY_Y, sw, sh), r(sx + sw + G, BODY_Y, sw, sh), r(sx, BODY_Y + sh + G, sw, sh), r(sx + sw + G, BODY_Y + sh + G, sw, sh)]
   }
   const tw = 180, iw = BODY_W - tw - G, ih = (BODY_H - G) / 2
   return [title, r(M, BODY_Y, tw, BODY_H), r(M + tw + G, BODY_Y, iw, ih), r(M + tw + G, BODY_Y + ih + G, iw, ih)]

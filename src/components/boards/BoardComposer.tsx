@@ -4,7 +4,7 @@
 import { ArrowUpDown, Camera, ChevronDown, FileImage, ImagePlus, LayoutPanelTop, ListChecks, Sparkles, Trash2, Upload, X } from '../icons'
 import { useEffect, useRef, useState, type ReactNode, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, MAX_SHEETS, SHEET_SIZES, SOURCE_LABEL, TEMPLATES, boardName, familiesUsed, imageSource, sheetName, sheetNumbers, type FrameContent, type SheetSize, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
+import { A2_RATIO, BOARD_H, BOARD_W, DELIVERABLES, MAX_SHEETS, SHEET_SIZES, SOURCE_LABEL, TEMPLATES, boardName, templateRects, familiesUsed, imageSource, sheetName, sheetNumbers, type FrameContent, type SheetSize, type Board, type BoardImage, type DeliverableId, type Frame, type ImageSource, type TemplateId } from '../../engine/boards'
 import { drawBoard, imageSize, type EvidenceSet } from '../../lib/boardRender'
 import { hydrateBoardImages, useBoardStore } from '../../lib/boardStore'
 import { BUILTIN_FONTS, FONT_SOURCES, KIND_WORD, fontStack } from '../../lib/fonts/catalog'
@@ -360,6 +360,21 @@ function FontPick({ id, label, value, user, onPick, allowDefault = false }: { id
   )
 }
 
+/** A layout drawn as the sheet it makes: title band, image frames filled, text frames as lines. */
+function LayoutThumb({ t }: { t: TemplateId }) {
+  const text = new Set(TEMPLATES[t].text ?? [])
+  return (
+    <svg viewBox={`0 0 ${BOARD_W} ${BOARD_H}`} className="block w-full" aria-hidden="true">
+      <rect x={0} y={0} width={BOARD_W} height={BOARD_H} rx={10} fill="currentColor" opacity={0.08} />
+      {templateRects(t).map((r, i) => r.role === 'title'
+        ? <rect key={i} x={r.x} y={r.y + 4} width={r.w * 0.45} height={r.h - 8} rx={4} fill="currentColor" opacity={0.85} />
+        : text.has(i)
+          ? <g key={i}>{Array.from({ length: Math.max(1, Math.floor((r.h - 8) / 26)) }, (_, k) => <rect key={k} x={r.x + 6} y={r.y + 8 + k * 26} width={(r.w - 12) * (k % 3 === 2 ? 0.6 : 1)} height={10} rx={5} fill="currentColor" opacity={0.55} />)}</g>
+          : <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} rx={6} fill="currentColor" opacity={0.45} />)}
+    </svg>
+  )
+}
+
 function FrameInspector({ evidence, levels }: { evidence: Record<string, EvidenceSet>; levels: number }) {
   const { boards, selected, images, updateFrame, addImage, setTemplate, parked, unpark } = useBoardStore()
   const user = useFonts((s) => s.user)
@@ -379,10 +394,12 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
           <span className="text-meta text-slate-400">Shown on its tab and used for the file name; Sort by name orders the boards by it. Not printed on the board.</span>
         </label>
         <div className="mb-1.5 text-meta font-semibold text-slate-400">{boardName(b, selected.board)} layout</div>
-        <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Board template">
+        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Board template">
           {(Object.keys(TEMPLATES) as TemplateId[]).map((t) => (
-            <button key={t} type="button" role="radio" aria-checked={b.template === t} title={TEMPLATES[t].hint} onClick={() => setTemplate(selected.board, t)}
-              className={`rounded border px-2 py-1 text-xs ${b.template === t ? 'border-sky-500 bg-sky-600 text-white' : 'border-white/15 hover:border-sky-400'}`}>{TEMPLATES[t].label}</button>
+            <button key={t} type="button" role="radio" aria-checked={b.template === t} aria-label={TEMPLATES[t].label} title={`${TEMPLATES[t].label}: ${TEMPLATES[t].hint}`} onClick={() => setTemplate(selected.board, t)} data-layout={t}
+              className={`rounded border p-1 transition-colors ${b.template === t ? 'border-sky-400 bg-sky-500/15 text-sky-300' : 'border-white/15 text-slate-400 hover:border-sky-400 hover:text-slate-200'}`}>
+              <LayoutThumb t={t} />
+            </button>
           ))}
         </div>
         {parked.length > 0 && (
