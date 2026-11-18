@@ -13,7 +13,7 @@ export interface BoardStyle { name: string; paper: string; ink: string; soft: st
 /** The Workspace's four architectural styles ('use' = the use's colour, 'hatch' = a diagonal hatch). */
 export const BOARD_STYLES: Record<StyleId, BoardStyle> = {
   // 17 Nov (Sinnie): simple black and white, black poché walls in plans and sections.
-  architectural: { name: 'Architectural, black and white', paper: '#ffffff', ink: '#111111', soft: '#8c8c8c', mass: '#ffffff', cut: '#111111', ctx: '#f1f1f1', mono: false, w: 1, poche: true },
+  architectural: { name: 'Architectural', paper: '#ffffff', ink: '#111111', soft: '#8c8c8c', mass: '#ffffff', cut: '#111111', ctx: '#f1f1f1', mono: false, w: 1, poche: true },
   competition: { name: 'Competition board', paper: '#ffffff', ink: '#2b2b2e', soft: '#b4b4ba', mass: '#ffffff', cut: '#dcdce0', ctx: '#f2f2f0', mono: false, shadow: true, w: 1 },
   technical: { name: 'Technical set', paper: '#ffffff', ink: '#000000', soft: '#8a8a8a', mass: '#ffffff', cut: 'hatch', ctx: '#ffffff', mono: true, dims: true, w: 1 },
   concept: { name: 'Concept diagram', paper: '#fbfaf6', ink: '#3a3a3f', soft: '#cfcbc0', mass: 'use', cut: 'use', ctx: '#f0eee7', mono: false, w: 1.7 },

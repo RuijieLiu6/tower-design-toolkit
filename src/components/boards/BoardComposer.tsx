@@ -669,6 +669,9 @@ function StyleSwatch({ id }: { id: StyleId }) {
   )
 }
 
+// The four styles in Ruijie's original order, then the architectural one.
+const STYLE_ORDER: StyleId[] = ['competition', 'technical', 'concept', 'blueprint', 'architectural']
+
 type SetId = 'presentation' | 'drawings' | 'arch'
 const SETS: { id: SetId; name: string; sheets: string; hint: string }[] = [
   { id: 'presentation', name: 'Presentation set', sheets: '4 boards', hint: 'The four competition boards in colour: the idea, the plans, section and elevations, performance. Uses your renders and the analysis you added.' },
@@ -699,13 +702,17 @@ function StyleTab({ onCreate, busy, msg }: { onCreate: (id: SetId) => void; busy
         {msg && <p role="status" className="mt-1 text-meta text-emerald-300">{msg}</p>}
       </section>
       <section className={sectionCls}>
-        <div className={headCls}>Drawing style</div>
-        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Drawing style" data-testid="board-style">
-          {(Object.keys(BOARD_STYLES) as StyleId[]).map((k) => (
+        <div className={headCls}>Set style</div>
+        <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Set style" data-testid="board-style">
+          {STYLE_ORDER.map((k) => (
             <button key={k} type="button" role="radio" aria-checked={style === k} aria-label={BOARD_STYLES[k].name} title={BOARD_STYLES[k].name} onClick={() => setStyle(k)} data-style={k}
-              className={`overflow-hidden rounded border p-0.5 ${style === k ? 'border-sky-400 ring-2 ring-sky-400/40' : 'border-white/15 hover:border-sky-400'}`}><StyleSwatch id={k} /></button>
+              className={`overflow-hidden rounded-lg border p-1 text-left ${style === k ? 'border-sky-400 bg-sky-500/15 ring-2 ring-sky-400/40' : 'border-white/15 hover:border-sky-400'}`}>
+              <StyleSwatch id={k} />
+              <span className="mt-1 block truncate px-0.5 text-xs">{BOARD_STYLES[k].name}</span>
+            </button>
           ))}
         </div>
+        <p className="mt-1 text-meta text-slate-400">Applies to every sheet.</p>
       </section>
       <div className="p-3"><FontPanel /></div>
     </div>
