@@ -31,7 +31,7 @@ describe('board layout (A2 landscape)', () => {
   it('keeps every template inside the sheet margins with no overlapping frames', () => {
     for (const t of Object.keys(TEMPLATES) as TemplateId[]) {
       const r = templateRects(t)
-      expect(r[0].role).toBe('title')
+      expect(r[0].role).toBe(t === 'drawing' ? 'body' : 'title') // 'drawing': one frame, no title band
       for (const a of r) {
         expect(a.x).toBeGreaterThanOrEqual(12 - 1e-9); expect(a.y).toBeGreaterThanOrEqual(12 - 1e-9)
         expect(a.x + a.w).toBeLessThanOrEqual(BOARD_W - 12 + 1e-6); expect(a.y + a.h).toBeLessThanOrEqual(BOARD_H - 12 + 1e-6)

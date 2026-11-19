@@ -109,7 +109,7 @@ export type FrameContent =
 
 export interface Frame { id: string; x: number; y: number; w: number; h: number; role: 'title' | 'body'; content: FrameContent; caption?: string; tag?: DeliverableId | null }
 
-export type TemplateId = 'hero' | 'grid' | 'plans' | 'story' | 'single' | 'halves' | 'feature' | 'six' | 'sidebar' | 'mosaic'
+export type TemplateId = 'hero' | 'grid' | 'plans' | 'story' | 'single' | 'halves' | 'feature' | 'six' | 'sidebar' | 'mosaic' | 'drawing'
 export interface Board { id: string; template: TemplateId; frames: Frame[]; /** The board's own name (Ruijie, 17 Nov): shown on its tab, used for the file name and to order the boards. */ name?: string }
 
 /** Sheet sizes (ISO A, landscape): all share one proportion, so a board laid out on A2 prints on the others to scale. */
@@ -195,6 +195,8 @@ export const TEMPLATES: Record<TemplateId, { label: string; hint: string; text?:
   six: { label: 'Six up', hint: 'Six equal images, three by two' },
   sidebar: { label: 'View + notes', hint: 'One large view with a text column beside it', text: [2] },
   mosaic: { label: 'Hero + four', hint: 'One large view and four small ones' },
+  // 19 Nov (Sinnie: "add a layout option of just 1 drawing"): one drawing, no title band; the name is in the title block.
+  drawing: { label: 'Drawing only', hint: 'One drawing on the whole sheet, no title band' },
 }
 
 const M = 12 // margin, mm
@@ -202,7 +204,7 @@ const G = 6 // gutter, mm
 const TITLE_H = 20
 const BODY_Y = M + TITLE_H + G
 
-/** Frame rectangles (mm) for a template, on the sheet as it is now oriented. Frame 0 is always the title band. */
+/** Frame rectangles (mm) for a template, on the sheet as it is now oriented. Frame 0 is the title band (none in 'drawing'). */
 export function templateRects(t: TemplateId): { x: number; y: number; w: number; h: number; role: 'title' | 'body' }[] {
   const BODY_H = BOARD_H - BODY_Y - M, BODY_W = BOARD_W - 2 * M
   const title = { x: M, y: M, w: BODY_W, h: TITLE_H, role: 'title' as const }
@@ -220,6 +222,7 @@ export function templateRects(t: TemplateId): { x: number; y: number; w: number;
     return [title, r(M, BODY_Y, w, h), r(M + w + G, BODY_Y, w, h), r(M + 2 * (w + G), BODY_Y, w, h), r(M, BODY_Y + h + G, BODY_W, BODY_H - h - G)]
   }
   if (t === 'single') return [title, r(M, BODY_Y, BODY_W, BODY_H)]
+  if (t === 'drawing') return [r(M, M, BODY_W, BOARD_H - 2 * M)]
   if (t === 'halves') {
     const w = (BODY_W - G) / 2
     return [title, r(M, BODY_Y, w, BODY_H), r(M + w + G, BODY_Y, w, BODY_H)]
@@ -256,7 +259,7 @@ export function applyTemplate(board: Board, template: TemplateId): { board: Boar
   const title = board.frames.find((f) => f.role === 'title')
   const filled = board.frames.filter((f) => f.role === 'body' && f.content.kind !== 'empty')
   const frames: Frame[] = rects.map((rect, i) => {
-    if (rect.role === 'title') return { ...(title ?? { id: 'f0', content: emptyText('title'), tag: null }), ...rect, id: `f${i}` }
+    if (rect.role === 'title') return { ...(title ?? { id: 'f0', content: { kind: 'text', text: board.name ?? '', sizeMm: 9, bold: true }, tag: null }), ...rect, id: `f${i}` }
     const src = filled.shift()
     return src ? { ...src, ...rect, id: `f${i}` } : { id: `f${i}`, ...rect, content: { kind: 'empty' }, tag: null }
   })

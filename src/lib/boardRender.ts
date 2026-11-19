@@ -130,7 +130,7 @@ export function drawBoard(ctx: CanvasRenderingContext2D, board: Board, o: DrawOp
   // The title block (18 Nov, Sinnie: "title block options"): on or off, the project's name, the date, the sheet number.
   const tb = bs.titleBlock ?? { show: true, project: '', date: true, number: true }
   if (tb.show) {
-    const drawingTitle = titleText && titleText.content.kind === 'text' && titleText.content.text.trim() ? titleText.content.text.trim().split(String.fromCharCode(10))[0] : `Board ${o.index + 1}`
+    const drawingTitle = titleText && titleText.content.kind === 'text' && titleText.content.text.trim() ? titleText.content.text.trim().split(String.fromCharCode(10))[0] : board.name?.trim() || `Board ${o.index + 1}`
     const cells: [string, string][] = [...(tb.project.trim() ? [['Project', tb.project.trim()] as [string, string]] : []), ['Drawing', drawingTitle], ['Sheet', `${o.index + 1} of ${o.total}`], ...(tb.date ? [['Date', new Date().toISOString().slice(0, 10)] as [string, string]] : [])]
     drawTitleBlock(ctx, k, BOARD_W, BOARD_H, st, cells, tb.number ? (sheetNumbers(bs.boards)[bs.boards.findIndex((b) => b.id === board.id)] ?? `A-${String(o.index + 1).padStart(2, '0')}`) : null)
   }
