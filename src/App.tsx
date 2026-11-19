@@ -6,6 +6,7 @@ import { startMassingClear } from './lib/massingClear'
 import { startSiteFit } from './lib/siteFit'
 import { startAutoAlign } from './lib/autoAlign'
 const BoardComposer = lazy(() => import('./components/boards/BoardComposer'))
+const RenderTab = lazy(() => import('./components/RenderTab'))
 import { togglePanel, usePanels, usePanelWidths } from './lib/panels'
 import { PanelRail, PanelResizer } from './components/PanelToggle'
 import ImportHost from './components/ImportHost'
@@ -102,7 +103,7 @@ export default function App() {
         {/* Present is one page: the sheets, with the 3D view and the old Present panel inside it (BoardComposer). */}
         {present ? (
           <Suspense fallback={<div aria-busy="true" aria-label="Loading the presentation" className="h-full w-full" />}>
-            <BoardComposer tools={(t) => <RightPanel only={t} />} />
+            <BoardComposer tools={() => <Suspense fallback={<p className="p-3 text-xs text-slate-400">Loading Render…</p>}><RenderTab /></Suspense>} />
           </Suspense>
         ) : (<>
         {/* Left: the phase panel (8 Nov): the phase's own workflow, then the open tool's controls. */}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   A2_RATIO, BOARD_H, BOARD_W, DEADLINE_UTC, DELIVERABLES, applyTemplate, boardChecks, coverage, deadlineInfo, effectivePpi, findTerms,
-  imagePlacement, needsGlyphCheck, newBoard, parseJpeg, printedCaption, pxForDpi, searchQuality, submissionChecks, templateRects, TEMPLATES, setOrientation, reorientBoard,
+  imagePlacement, needsGlyphCheck, newBoard, parseJpeg, printedCaption, pxForDpi, searchQuality, submissionChecks, templateRects, TEMPLATES, setOrientation, reorientBoard, setSheetSize, sheetMm, SHEET_SIZES,
   tzOffsetMinutes, validateJpeg, type Board, type BoardImage, type TemplateId,
 } from './boards'
 
@@ -41,6 +41,24 @@ describe('board layout (A2 landscape)', () => {
         }
       }
     }
+  })
+
+  it('ARCH sizes keep their own proportion; every layout fits, in both orientations', async () => {
+    const m = await import('./boards')
+    try {
+      setSheetSize('ARCH D')
+      expect([m.BOARD_W, m.BOARD_H]).toEqual([594, 396])
+      expect(sheetMm()).toEqual({ w: 914.4, h: 609.6 })
+      expect(SHEET_SIZES['ARCH D'].label).toBe('ARCH D: 24 × 36 in')
+      for (const o of ['landscape', 'portrait'] as const) {
+        setOrientation(o)
+        for (const k of Object.keys(TEMPLATES) as TemplateId[]) for (const a of templateRects(k)) {
+          expect(a.x + a.w).toBeLessThanOrEqual(m.BOARD_W - 12 + 1e-6); expect(a.y + a.h).toBeLessThanOrEqual(m.BOARD_H - 12 + 1e-6)
+        }
+      }
+      setOrientation('landscape'); setSheetSize('A1')
+      expect([m.BOARD_W, m.BOARD_H]).toEqual([594, 420])
+    } finally { setSheetSize('A2'); setOrientation('landscape') }
   })
 
   it('turns to portrait: every layout fits the 420 × 594 sheet, and a board scales into it', async () => {

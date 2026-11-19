@@ -601,6 +601,31 @@ function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>;
   if (!b) return null
   return (
     <div className="text-slate-200">
+      <section className={sectionCls} data-testid="page-options">
+        <div className={`${headCls} flex items-center justify-between`}><span>Page</span><span className="font-normal">{SHEET_SIZES[sheet]?.label.split(': ')[1]}</span></div>
+        <div className="flex items-start gap-2">
+          <div className="grid min-w-0 flex-1 gap-1" role="radiogroup" aria-label="Page size">
+            {(['ISO', 'ARCH'] as const).map((series) => (
+              <div key={series} className="flex items-center gap-1">
+                <span className="w-9 shrink-0 text-meta text-slate-500">{series === 'ISO' ? 'A' : 'ARCH'}</span>
+                <div className="flex flex-1 flex-wrap rounded-md border border-white/15 p-0.5">
+                  {(Object.keys(SHEET_SIZES) as SheetSize[]).filter((k) => SHEET_SIZES[k].series === series).map((k) => (
+                    <button key={k} type="button" role="radio" aria-checked={sheet === k} aria-label={k} onClick={() => setSheet(k)} data-size={k} title={SHEET_SIZES[k].label}
+                      className={`flex-1 rounded px-1 py-1 text-xs ${sheet === k ? 'bg-white/15 text-white' : 'text-slate-300 hover:text-white'}`}>{SHEET_SIZES[k].short}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex shrink-0 flex-col rounded-md border border-white/15 p-0.5" role="radiogroup" aria-label="Orientation">
+            {(['landscape', 'portrait'] as Orientation[]).map((o) => (
+              <button key={o} type="button" role="radio" aria-checked={orientation === o} aria-label={o === 'landscape' ? 'Landscape' : 'Portrait'} title={o === 'landscape' ? 'Landscape' : 'Portrait'} onClick={() => setOrientation(o)} data-orientation={o}
+                className={`rounded px-1 ${orientation === o ? 'bg-white/15 text-white' : 'text-slate-400'}`}><PageIcon o={o} /></button>
+            ))}
+          </div>
+        </div>
+        {(sheet !== 'A2' || orientation !== 'landscape') && <p className="mt-1.5 text-meta text-amber-300">The competition takes A2 landscape only.</p>}
+      </section>
       <FrameInspector evidence={evidence} levels={levels} />
       <section className={sectionCls}>
         <label className="grid gap-1 text-xs"><span className={headCls.replace('mb-2 ', '')}>Sheet name</span>
@@ -632,24 +657,6 @@ function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>;
             </button>
           ))}
         </div>
-      </section>
-      <section className={sectionCls}>
-        <div className={headCls}>Page</div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-md border border-white/15 p-0.5" role="radiogroup" aria-label="Page size">
-            {(Object.keys(SHEET_SIZES) as SheetSize[]).map((k) => (
-              <button key={k} type="button" role="radio" aria-checked={sheet === k} onClick={() => setSheet(k)} data-size={k} title={SHEET_SIZES[k].label}
-                className={`rounded px-2 py-1 text-xs ${sheet === k ? 'bg-white/15 text-white' : 'text-slate-300'}`}>{k}</button>
-            ))}
-          </div>
-          <div className="flex rounded-md border border-white/15 p-0.5" role="radiogroup" aria-label="Orientation">
-            {(['landscape', 'portrait'] as Orientation[]).map((o) => (
-              <button key={o} type="button" role="radio" aria-checked={orientation === o} aria-label={o === 'landscape' ? 'Landscape' : 'Portrait'} title={o === 'landscape' ? 'Landscape' : 'Portrait'} onClick={() => setOrientation(o)} data-orientation={o}
-                className={`rounded px-1 ${orientation === o ? 'bg-white/15 text-white' : 'text-slate-400'}`}><PageIcon o={o} /></button>
-            ))}
-          </div>
-        </div>
-        {(sheet !== 'A2' || orientation !== 'landscape') && <p className="mt-1.5 text-meta text-amber-300">The competition takes A2 landscape only.</p>}
       </section>
       <section className={sectionCls} data-testid="title-block-options">
         <div className={headCls}>Title block</div>
@@ -847,11 +854,10 @@ function ComposerBody({ tools }: { tools?: (tab: ToolTab) => ReactNode }) {
             <BoardCanvas key={orientation} index={selected.board} evidence={evidence} onFrame={onFrame} rev={draw} />
           </div>
         </main>
-        {tab === 'render' && tools ? <div className="flex shrink-0 text-ink" data-testid="present-tools-panel">{tools('render')}</div> : (
-        <UiShow id="present.composer.inspector"><aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={PANEL_TABS.find((x) => x.id === tab)!.word}>
-          {tab === 'sheet' ? <SheetTab evidence={evidence} levels={levels} /> : tab === 'style' ? <StyleTab onCreate={(id) => void createSet(id)} busy={capturing} msg={setMsg} /> : <SubmissionPanel evidence={evidence} overflow={overflow} />}
+        <UiShow id="present.composer.inspector"><aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={PANEL_TABS.find((x) => x.id === tab)!.word} data-testid={tab === 'render' ? 'present-tools-panel' : undefined}>
+          {tab === 'sheet' ? <SheetTab evidence={evidence} levels={levels} /> : tab === 'style' ? <StyleTab onCreate={(id) => void createSet(id)} busy={capturing} msg={setMsg} />
+            : tab === 'render' && tools ? tools('render') : <SubmissionPanel evidence={evidence} overflow={overflow} />}
         </aside></UiShow>
-        )}
       </div>
     </div>
   )

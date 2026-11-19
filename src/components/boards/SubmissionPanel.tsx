@@ -10,6 +10,7 @@ import { useBoardFonts } from './useBoardData'
 import type { RuleResult } from '../../engine/types'
 import { exportBoardJpeg, exportBoardPng, type EvidenceSet } from '../../lib/boardRender'
 import { boardsPdf } from '../../lib/boardPdf'
+import { sheetMm } from '../../engine/boards'
 import { boardFileStem, boardName } from '../../engine/boards'
 import { useBoardStore } from '../../lib/boardStore'
 import { FlagChip, StateChip } from '../ui'
@@ -94,7 +95,8 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
         for (const i of chosen) { setBusy(boardName(boards[i], i)); pages.push((await exportBoardJpeg(boards[i], draw(i), dpi)).bytes) }
         if (pages.length) {
           const name = chosen.length === 1 ? `${boardFileStem(boards[chosen[0]], chosen[0])}.pdf` : 'boards.pdf'
-          const blob = boardsPdf(pages)
+          const mm = sheetMm()
+          const blob = boardsPdf(pages, { w: (mm.w * 72) / 25.4, h: (mm.h * 72) / 25.4 })
           download(blob, name)
           setSaved(`Saved ${name}: ${pages.length} A2 page${pages.length === 1 ? '' : 's'}, ${(blob.size / 1e6).toFixed(1)} MB.`)
         }

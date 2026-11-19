@@ -3,7 +3,7 @@
 // (they are too large for localStorage). Nothing here is uploaded anywhere.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { BOARD_COUNT, BOARD_H, BOARD_W, DEFAULT_DENY, MAX_SHEETS, applyTemplate, reorientBoard, setOrientation as setSheetOrientation, type Orientation, moveBoard, newBoard, sheetNumbers, sortBoardsByName, type SheetSize, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
+import { BOARD_COUNT, BOARD_H, BOARD_W, DEFAULT_DENY, MAX_SHEETS, applyTemplate, reorientBoard, setOrientation as setSheetOrientation, setSheetSize, type Orientation, moveBoard, newBoard, sheetNumbers, sortBoardsByName, type SheetSize, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
 import type { StyleId } from './boardDrawings'
 import { DEFAULT_FONTS } from './fonts/catalog'
@@ -133,7 +133,15 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   streetsWhite: true,
   setStreetsWhite: (streetsWhite) => set({ streetsWhite, exports: {} }),
   sheet: 'A2',
-  setSheet: (sheet) => set({ sheet, exports: {} }),
+  // A new size can change the sheet's proportion (ARCH vs A): the frames follow, like a turn to portrait.
+  setSheet: (sheet) => set((s) => {
+    if (sheet === s.sheet) return {}
+    const from = { w: BOARD_W, h: BOARD_H }
+    setSheetSize(sheet)
+    const to = { w: BOARD_W, h: BOARD_H }
+    const same = from.w === to.w && from.h === to.h
+    return { sheet, boards: same ? s.boards : s.boards.map((b) => reorientBoard(b, from, to)), exports: {} }
+  }),
   addBoard: () => set((s) => {
     if (s.boards.length >= MAX_SHEETS) return {}
     const b = { ...newBoard(s.boards.length, 'grid'), id: `board-${Date.now().toString(36)}`, name: 'New sheet' }
@@ -310,7 +318,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   // Image pixels live in IndexedDB; exports are re-made on demand.
   partialize: (s) => ({ boards: s.boards, denyList: s.denyList, dpi: s.dpi, fonts: s.fonts, ticks: s.ticks, style: s.style, sheet: s.sheet, format: s.format, orientation: s.orientation, titleBlock: s.titleBlock, streetsWhite: s.streetsWhite }),
   // The sheet's shape is module state in engine/boards: set it from what was saved.
-  onRehydrateStorage: () => (s) => { if (s?.orientation) setSheetOrientation(s.orientation) },
+  onRehydrateStorage: () => (s) => { if (s?.sheet) setSheetSize(s.sheet); if (s?.orientation) setSheetOrientation(s.orientation) },
 }))
 
 let hydrated = false

@@ -18,11 +18,33 @@ export let BOARD_W = 594
 export let BOARD_H = 420
 export let A2_RATIO = BOARD_W / BOARD_H
 export type Orientation = 'landscape' | 'portrait'
-export function setOrientation(o: Orientation) {
-  BOARD_W = o === 'portrait' ? 420 : 594
-  BOARD_H = o === 'portrait' ? 594 : 420
+/**
+ * Paper sizes, long × short side in real millimetres (19 Nov, Sinnie: "add arch sizes"): ISO 216 A sizes and the US
+ * ARCH series (ANSI/ASME Y14.1). The board is drawn in sheet units with the long side always 594, so an A sheet is
+ * 594 × 420 and an ARCH sheet keeps its own proportion (ARCH D 594 × 396); `k` is real mm per sheet unit.
+ */
+const SIZE_MM = {
+  A3: [420, 297], A2: [594, 420], A1: [841, 594], A0: [1189, 841],
+  'ARCH A': [304.8, 228.6], 'ARCH B': [457.2, 304.8], 'ARCH C': [609.6, 457.2], 'ARCH D': [914.4, 609.6], 'ARCH E1': [1066.8, 762], 'ARCH E': [1219.2, 914.4],
+} as const
+export type SheetSize = keyof typeof SIZE_MM
+const inch = (mm: number) => +(mm / 25.4).toFixed(1)
+export const SHEET_SIZES = Object.fromEntries((Object.keys(SIZE_MM) as SheetSize[]).map((s) => {
+  const [l, sh] = SIZE_MM[s], arch = s.startsWith('ARCH')
+  return [s, { label: `${s}${s === 'A2' ? ' (competition)' : ''}: ${arch ? `${inch(sh)} × ${inch(l)} in` : `${sh} × ${l} mm`}`, short: arch ? s.slice(5) : s, series: arch ? 'ARCH' : 'ISO', mm: [l, sh] as const, k: l / 594 }]
+})) as Record<SheetSize, { label: string; short: string; series: 'ISO' | 'ARCH'; mm: readonly [number, number]; k: number }>
+let SIZE: SheetSize = 'A2', ORIENT: Orientation = 'landscape'
+function applySheet() {
+  const [l, s] = SIZE_MM[SIZE] ?? SIZE_MM.A2
+  const short = SIZE.startsWith('A') && !SIZE.startsWith('ARCH') ? 420 : Math.round((594 * s) / l * 10) / 10
+  BOARD_W = ORIENT === 'portrait' ? short : 594
+  BOARD_H = ORIENT === 'portrait' ? 594 : short
   A2_RATIO = BOARD_W / BOARD_H
 }
+export function setOrientation(o: Orientation) { ORIENT = o; applySheet() }
+export function setSheetSize(s: SheetSize) { SIZE = SHEET_SIZES[s] ? s : 'A2'; applySheet() }
+/** The page in real millimetres, as it prints (for the PDF). */
+export const sheetMm = () => { const [l, s] = SHEET_SIZES[SIZE].mm; return ORIENT === 'portrait' ? { w: s, h: l } : { w: l, h: s } }
 /** A board's frames moved and sized to the other orientation, in proportion (the title band keeps its height). */
 export function reorientBoard(b: Board, from: { w: number; h: number }, to: { w: number; h: number }): Board {
   // Inside the 12 mm margins: across from margin to margin, down from under the title band to the bottom margin.
@@ -91,8 +113,6 @@ export type TemplateId = 'hero' | 'grid' | 'plans' | 'story' | 'single' | 'halve
 export interface Board { id: string; template: TemplateId; frames: Frame[]; /** The board's own name (Ruijie, 17 Nov): shown on its tab, used for the file name and to order the boards. */ name?: string }
 
 /** Sheet sizes (ISO A, landscape): all share one proportion, so a board laid out on A2 prints on the others to scale. */
-export const SHEET_SIZES = { A3: { label: 'A3', k: 420 / 594 }, A2: { label: 'A2 (competition)', k: 1 }, A1: { label: 'A1', k: 841 / 594 } } as const
-export type SheetSize = keyof typeof SHEET_SIZES
 export const MAX_SHEETS = 40
 
 /** A sheet's name: the one given, else the first line of its title, else its place. */

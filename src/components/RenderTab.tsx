@@ -18,12 +18,13 @@ const readFile = (f: File) => new Promise<string>((res, rej) => { const r = new 
 /** Renders already being filed, so a poll that lands twice imports once. */
 const importing = new Set<string>()
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+// Dark, like the Sheet, Style and Export tabs beside it (19 Nov, Sinnie: "update render tab to match style of other tabs").
+const btnCls = 'flex w-full items-center justify-center gap-1.5 rounded-lg bg-sky-600 py-2 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-50'
+const ghostCls = 'flex items-center gap-1 rounded-lg border border-white/15 px-2.5 py-1 text-meta text-slate-200 hover:border-sky-400'
+function Step({ title, children }: { n?: number; title: string; children: React.ReactNode }) {
   return (
-    <section className="border-b border-line px-3 py-3">
-      <h3 className="mb-2 flex items-center gap-2 text-meta font-semibold text-muted">
-        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-ink text-meta text-white">{n}</span>{title}
-      </h3>
+    <section className="border-b border-white/10 p-3">
+      <h3 className="mb-2 text-meta font-semibold text-slate-400">{title}</h3>
       {children}
     </section>
   )
@@ -147,24 +148,24 @@ export default function RenderTab() {
   const reviewList = results // rejected renders stay listed (faded), so the record of AI use is complete
 
   return (
-    <div className="text-xs">
-      <div className="flex items-start gap-2 border-b border-line px-3 py-2.5">
-        <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${canRender ? 'bg-emerald-600' : helper?.available ? 'bg-amber-500' : 'bg-slate-400'}`} aria-hidden />
-        <p className="text-meta leading-snug text-slate-700" role="status">
+    <div className="text-xs text-slate-200">
+      <div className="flex items-start gap-2 border-b border-white/10 px-3 py-2.5">
+        <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${canRender ? 'bg-emerald-600' : helper?.available ? 'bg-amber-500' : 'bg-slate-500'}`} aria-hidden />
+        <p className="text-meta leading-snug text-slate-300" role="status">
           {helper === null ? 'Checking for the render helper…'
-            : canRender ? <>Renders on this computer with <b className="text-ink">{helper.codex}</b> and your ChatGPT plan. Results come back here.</>
-            : helper.available ? <>The render helper is running, but the <b className="text-ink">Codex CLI</b> was not found. Install it (<code>npm i -g @openai/codex</code>), run <code>codex login</code>, then reload.</>
+            : canRender ? <>Renders on this computer with <b className="text-white">{helper.codex}</b> and your ChatGPT plan. Results come back here.</>
+            : helper.available ? <>The render helper is running, but the <b className="text-white">Codex CLI</b> was not found. Install it (<code>npm i -g @openai/codex</code>), run <code>codex login</code>, then reload.</>
             : <>Online version: prepare the files here, render them with the script on your computer, then import the result.</>}
         </p>
       </div>
 
       <Step n={1} title="View">
         {captures.length === 0
-          ? <p className="text-meta text-muted" data-testid="render-no-capture">Capture a view in Model mode (Capture in the top bar); it appears here.</p>
+          ? <p className="text-meta text-slate-400" data-testid="render-no-capture">Capture a view in Model mode (Capture in the top bar); it appears here.</p>
           : <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Image to render" data-testid="render-sources">
             {captures.slice(-12).reverse().map((x) => (
               <button key={x.id} type="button" role="radio" aria-checked={source === x.id} onClick={() => setSource(x.id)} title={`Captured at ${clock(x.at)} (${x.representation})`}
-                className={`overflow-hidden rounded border ${source === x.id ? 'border-accent ring-2 ring-accent/30' : 'border-line hover:border-accent'}`}>
+                className={`overflow-hidden rounded border ${source === x.id ? 'border-sky-400 ring-2 ring-sky-400/40' : 'border-white/15 hover:border-sky-400'}`}>
                 <img src={x.dataUrl} alt={`Captured at ${clock(x.at)}`} className="aspect-[1.414] w-full object-cover" />
               </button>
             ))}
@@ -172,92 +173,92 @@ export default function RenderTab() {
       </Step>
 
       <Step n={2} title="Style">
-        <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Render style">
+        <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Render style">
           {(Object.keys(STYLES) as StyleId[]).map((k) => (
             <button key={k} type="button" role="radio" aria-checked={style === k} onClick={() => set({ style: k })}
-              className={`rounded-full border px-2 py-0.5 text-meta ${style === k ? 'border-accent bg-accent/10 font-medium text-ink' : 'border-line text-muted hover:border-accent'}`}>{STYLES[k].label}</button>
+              className={`rounded-lg border px-2 py-1.5 text-left text-xs ${style === k ? 'border-sky-400 bg-sky-500/15 text-white' : 'border-white/15 text-slate-300 hover:border-sky-400'}`}>{STYLES[k].label}</button>
           ))}
         </div>
-        <label className="mt-2 flex flex-col gap-1"><span className="text-meta text-muted">Notes: season, people, planting, materials</span>
-          <textarea value={notes} rows={2} onChange={(e) => set({ notes: e.target.value })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs" placeholder="e.g. people on the retail high street, cherry trees in bloom" />
+        <label className="mt-2 flex flex-col gap-1"><span className="text-meta text-slate-400">Notes: season, people, planting, materials</span>
+          <textarea value={notes} rows={2} onChange={(e) => set({ notes: e.target.value })} className="w-full min-w-0 rounded border border-white/15 bg-slate-900 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-500" placeholder="e.g. people on the retail high street, cherry trees in bloom" />
         </label>
-        {prompt.warnings.map((w) => <p key={w} className="mt-1 text-meta text-amber-700">{w}</p>)}
-        <button type="button" onClick={() => setShowPrompt(!showPrompt)} className="mt-1 text-meta text-accent hover:underline">{showPrompt ? 'Hide' : 'Show'} the full prompt</button>
-        {showPrompt && <p className="mt-1 rounded bg-black/[0.04] p-1.5 text-meta leading-snug text-slate-700">{prompt.text}</p>}
-        <p className="mt-1 text-meta text-muted">Every prompt keeps fixed lines you can't remove: same massing, same camera, same sun; no text, logos, real people or imitation of Indigenous art.</p>
+        {prompt.warnings.map((w) => <p key={w} className="mt-1 text-meta text-amber-300">{w}</p>)}
+        <button type="button" onClick={() => setShowPrompt(!showPrompt)} className="mt-1 text-meta text-sky-300 hover:underline">{showPrompt ? 'Hide' : 'Show'} the full prompt</button>
+        {showPrompt && <p className="mt-1 rounded bg-white/5 p-1.5 text-meta leading-snug text-slate-300">{prompt.text}</p>}
+        <p className="mt-1 text-meta text-slate-400">Every prompt keeps fixed lines you can't remove: same massing, same camera, same sun; no text, logos, real people or imitation of Indigenous art.</p>
       </Step>
 
       <Step n={3} title="Render">
         {canRender ? (
           asking ? (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-2" role="alertdialog" aria-label="Confirm the render">
-              <p className="text-meta leading-snug text-amber-950">The capture, an unpublished design, goes to OpenAI under your ChatGPT plan's terms and data settings, and uses your plan's image allowance. One render takes about one to three minutes.</p>
+            <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 p-2" role="alertdialog" aria-label="Confirm the render">
+              <p className="text-meta leading-snug text-amber-100">The capture, an unpublished design, goes to OpenAI under your ChatGPT plan's terms and data settings, and uses your plan's image allowance. One render takes about one to three minutes.</p>
               <div className="mt-2 flex gap-1.5">
-                <button type="button" onClick={render} className="flex items-center gap-1 rounded bg-accent px-2.5 py-1 text-meta font-medium text-white"><Wand2 size={12} />Render now</button>
-                <button type="button" onClick={() => setAsking(false)} className="rounded border border-line px-2.5 py-1 text-meta">Cancel</button>
+                <button type="button" onClick={render} className="flex items-center gap-1 rounded-lg bg-sky-600 px-2.5 py-1 text-meta font-medium text-white hover:bg-sky-500"><Wand2 size={12} />Render now</button>
+                <button type="button" onClick={() => setAsking(false)} className="rounded-lg border border-white/15 px-2.5 py-1 text-meta text-slate-200">Cancel</button>
               </div>
             </div>
           ) : (
-            <button type="button" disabled={busy || !!running || !source} onClick={() => setAsking(true)} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50">
+            <button type="button" disabled={busy || !!running || !source} onClick={() => setAsking(true)} className={btnCls}>
               <Wand2 size={13} />Render with my ChatGPT plan
             </button>
           )
         ) : (
           <>
-            <button type="button" onClick={prepareFiles} disabled={!source} className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"><Download size={13} />Prepare the files</button>
-            <ol className="mt-2 grid gap-1.5 text-meta text-slate-700">
+            <button type="button" onClick={prepareFiles} disabled={!source} className={btnCls}><Download size={13} />Prepare the files</button>
+            <ol className="mt-2 grid gap-1.5 text-meta text-slate-300">
               {RENDER_COMMANDS.map((c, i) => (
                 <li key={c.cmd}>
-                  <div className="flex items-start gap-1 rounded bg-black/[0.04] p-1 font-mono"><span className="flex-1 break-all">{i + 1}. {c.cmd}</span>
-                    <button type="button" aria-label="Copy command" onClick={() => navigator.clipboard?.writeText(c.cmd)} className="text-muted hover:text-ink"><Copy size={11} /></button></div>
-                  <div className="mt-0.5 text-muted">{c.what}</div>
+                  <div className="flex items-start gap-1 rounded bg-white/5 p-1 font-mono"><span className="flex-1 break-all">{i + 1}. {c.cmd}</span>
+                    <button type="button" aria-label="Copy command" onClick={() => navigator.clipboard?.writeText(c.cmd)} className="text-slate-400 hover:text-white"><Copy size={11} /></button></div>
+                  <div className="mt-0.5 text-slate-400">{c.what}</div>
                 </li>
               ))}
             </ol>
-            <p className="mt-1 text-meta text-muted">Run them in a terminal in the ARCH540 AI Studio folder. The script asks before it uses your plan.</p>
+            <p className="mt-1 text-meta text-slate-400">Run them in a terminal in the ARCH540 AI Studio folder. The script asks before it uses your plan.</p>
           </>
         )}
         {running && (
-          <div className="mt-2 flex items-start gap-2 rounded-md border border-line bg-white p-2" role="status">
-            <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin text-accent" />
+          <div className="mt-2 flex items-start gap-2 rounded-lg border border-white/10 bg-white/5 p-2" role="status">
+            <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin text-sky-400" />
             <div className="min-w-0">
               <div className="text-meta font-medium">{running.state === 'queued' ? 'Waiting to start' : 'Rendering'} {running.id} · {Math.floor(running.seconds / 60)}:{String(running.seconds % 60).padStart(2, '0')}</div>
-              {running.log.at(-1) && <div className="truncate text-meta text-muted">{running.log.at(-1)}</div>}
+              {running.log.at(-1) && <div className="truncate text-meta text-slate-400">{running.log.at(-1)}</div>}
             </div>
           </div>
         )}
-        {msg && <p className={`mt-2 text-meta ${msg.bad ? 'text-red-700' : 'text-emerald-700'}`} role={msg.bad ? 'alert' : 'status'}>{msg.text}</p>}
+        {msg && <p className={`mt-2 text-meta ${msg.bad ? 'text-red-300' : 'text-emerald-300'}`} role={msg.bad ? 'alert' : 'status'}>{msg.text}</p>}
       </Step>
 
       <Step n={4} title="Review">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-meta hover:border-accent"><FileUp size={12} />Import results</button>
+          <button type="button" onClick={() => fileRef.current?.click()} className={ghostCls}><FileUp size={12} />Import results</button>
           <input ref={fileRef} type="file" multiple accept="image/png,image/jpeg,image/webp,application/json,.json" className="hidden" onChange={async (e) => { if (e.target.files) await importFiles(e.target.files); e.target.value = '' }} />
-          <label className="flex items-center gap-1 text-meta"><input type="checkbox" checked={logIt} onChange={() => setLogIt(!logIt)} />Add to the AI-use log</label>
+          <label className="flex items-center gap-1 text-meta"><input type="checkbox" className="accent-sky-500" checked={logIt} onChange={() => setLogIt(!logIt)} />Add to the AI-use log</label>
         </div>
-        {!reviewList.length && <p className="text-meta text-muted">No renders yet. Each one joins the shot strip and the board library, always labelled AI-generated.</p>}
+        {!reviewList.length && <p className="text-meta text-slate-400">No renders yet. Each one joins the shot strip and the board library, always labelled AI-generated.</p>}
         <div className="grid gap-3">
           {reviewList.map((r: RenderRecord) => {
             const done = REVIEW_CHECKS.every((c) => r.checks[c.id])
             const after = shotUrl(r.shotId)
             return (
-              <article key={r.id} className={`rounded-md border p-2 ${r.status === 'rejected' ? 'border-line opacity-60' : r.status === 'accepted' ? 'border-emerald-300' : 'border-fuchsia-300'}`}>
+              <article key={r.id} className={`rounded-lg border p-2 ${r.status === 'rejected' ? 'border-white/10 opacity-60' : r.status === 'accepted' ? 'border-emerald-400/50' : 'border-fuchsia-400/50'}`}>
                 {after && <Compare before={shotUrl(r.meta.sourceShotId)} after={after} />}
                 <div className="mt-1.5 flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1 text-meta font-semibold text-fuchsia-800"><Sparkles size={12} />{aiLabel(r.meta)}</span>
-                  <span className="text-meta text-muted">{r.status === 'review' ? 'to review' : r.status}</span>
+                  <span className="flex items-center gap-1 text-meta font-semibold text-fuchsia-300"><Sparkles size={12} />{aiLabel(r.meta)}</span>
+                  <span className="text-meta text-slate-400">{r.status === 'review' ? 'to review' : r.status}</span>
                 </div>
-                <div className="mt-0.5 text-meta text-muted">{r.meta.model} via {r.meta.tool} · {r.meta.rendered.slice(0, 16).replace('T', ' ')}{r.orphan ? ' · no manifest: source capture unknown' : r.meta.sourceShotId && !shots.some((x) => x.id === r.meta.sourceShotId) ? ' · source shot not in this session' : ''}</div>
+                <div className="mt-0.5 text-meta text-slate-400">{r.meta.model} via {r.meta.tool} · {r.meta.rendered.slice(0, 16).replace('T', ' ')}{r.orphan ? ' · no manifest: source capture unknown' : r.meta.sourceShotId && !shots.some((x) => x.id === r.meta.sourceShotId) ? ' · source shot not in this session' : ''}</div>
                 {r.status === 'review' && (
                   <>
                     <div className="mt-1.5 grid gap-1">
                       {REVIEW_CHECKS.map((c) => (
-                        <label key={c.id} className="flex items-start gap-1.5 text-meta"><input type="checkbox" className="mt-0.5" checked={!!r.checks[c.id]} onChange={() => updateResult(r.id, { checks: { ...r.checks, [c.id]: !r.checks[c.id] } })} />{c.label}</label>
+                        <label key={c.id} className="flex items-start gap-1.5 text-meta"><input type="checkbox" className="mt-0.5 accent-sky-500" checked={!!r.checks[c.id]} onChange={() => updateResult(r.id, { checks: { ...r.checks, [c.id]: !r.checks[c.id] } })} />{c.label}</label>
                       ))}
                     </div>
                     <div className="mt-1.5 flex gap-1.5">
-                      <button type="button" disabled={!done} onClick={() => decideRender(r, 'accepted')} className="flex items-center gap-1 rounded bg-accent px-2 py-1 text-meta text-white disabled:opacity-40" title={done ? '' : 'Tick every check first'}><Check size={12} />Accept</button>
-                      <button type="button" onClick={() => decideRender(r, 'rejected')} className="flex items-center gap-1 rounded border border-line px-2 py-1 text-meta hover:border-red-400"><X size={12} />Reject</button>
+                      <button type="button" disabled={!done} onClick={() => decideRender(r, 'accepted')} className="flex items-center gap-1 rounded-lg bg-sky-600 px-2 py-1 text-meta text-white hover:bg-sky-500 disabled:opacity-40" title={done ? '' : 'Tick every check first'}><Check size={12} />Accept</button>
+                      <button type="button" onClick={() => decideRender(r, 'rejected')} className="flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1 text-meta text-slate-200 hover:border-red-400"><X size={12} />Reject</button>
                     </div>
                   </>
                 )}
@@ -265,7 +266,7 @@ export default function RenderTab() {
             )
           })}
         </div>
-        <div className="mt-2 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">Review checks and the always-on AI label are team rules (research P13-M05).</span></div>
+        <div className="mt-2 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-slate-400">Review checks and the always-on AI label are team rules (research P13-M05).</span></div>
       </Step>
     </div>
   )

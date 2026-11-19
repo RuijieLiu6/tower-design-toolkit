@@ -6,7 +6,8 @@ import { jpegSize } from './pdf/miniPdf'
 /** A2 landscape in points (594 × 420 mm). */
 export const A2_PT = { w: 1683.78, h: 1190.55 } as const
 
-export function boardsPdf(jpegs: Uint8Array[]): Blob {
+/** One page per board at `size` points (default A2 landscape; the composer passes the chosen size and orientation). */
+export function boardsPdf(jpegs: Uint8Array[], size: { w: number; h: number } = A2_PT): Blob {
   if (!jpegs.length) throw new Error('No board to put in the PDF')
   const enc = new TextEncoder()
   const parts: Uint8Array[] = []
@@ -26,8 +27,8 @@ export function boardsPdf(jpegs: Uint8Array[]): Blob {
     const page = pageIds[i], content = page + 1, image = page + 2
     const { w, h } = jpegSize(bytes)
     if (!w || !h) throw new Error(`Board ${i + 1}: not a JPEG`)
-    obj(page, [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(A2_PT.w)} ${f(A2_PT.h)}] /Resources << /XObject << /Im0 ${image} 0 R >> >> /Contents ${content} 0 R >>`])
-    const draw = `q ${f(A2_PT.w)} 0 0 ${f(A2_PT.h)} 0 0 cm /Im0 Do Q`
+    obj(page, [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(size.w)} ${f(size.h)}] /Resources << /XObject << /Im0 ${image} 0 R >> >> /Contents ${content} 0 R >>`])
+    const draw = `q ${f(size.w)} 0 0 ${f(size.h)} 0 0 cm /Im0 Do Q`
     obj(content, [`<< /Length ${draw.length} >>\nstream\n${draw}\nendstream`])
     obj(image, [`<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`, bytes, '\nendstream'])
   })
