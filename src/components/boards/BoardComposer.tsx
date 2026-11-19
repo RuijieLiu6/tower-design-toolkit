@@ -66,6 +66,15 @@ function BoardCanvas({ index, evidence, onFrame, rev }: { index: number; evidenc
   const canvas = useRef<HTMLCanvasElement>(null)
   const [width, setWidth] = useState(0)
   const [over, setOver] = useState<string | null>(null)
+  // Typing on the board (19 Nov, Sinnie: "two ways of editing, either directly on the board, or on the side panel").
+  const [typing, setTyping] = useState<string | null>(null)
+  const renameBoard = useBoardStore((s) => s.renameBoard)
+  const startTyping = (f: Frame) => {
+    if (f.role === 'body' && f.content.kind === 'empty') updateFrame(index, f.id, { content: { kind: 'text', text: '', sizeMm: 4.5 } })
+    else if (f.content.kind !== 'text' && f.role !== 'title') return
+    setTyping(f.id)
+  }
+  useEffect(() => { setTyping(null) }, [index])
   useEffect(() => {
     const el = wrap.current
     if (!el) return
@@ -109,6 +118,8 @@ function BoardCanvas({ index, evidence, onFrame, rev }: { index: number; evidenc
         const tag = f.tag ? DELIVERABLES.find((d) => d.id === f.tag) : null
         return (
           <button key={f.id} type="button" style={pct(f)} aria-label={`Frame ${f.id}${tag ? `, ${tag.label}` : ''}`} aria-pressed={sel}
+            title={f.role === 'title' || f.content.kind === 'text' || f.content.kind === 'empty' ? 'Double-click to type here' : undefined}
+            onDoubleClick={() => startTyping(f)} onKeyDown={(e) => { if (e.key === 'Enter' && sel) { e.preventDefault(); startTyping(f) } }}
             onClick={() => { if (drag.current?.moved) { drag.current = null; return } onFrame(index, f.id) }}
             onPointerDown={(e) => { if (!sel || f.role !== 'body') return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); drag.current = { id: f.id, x: e.clientX, y: e.clientY, f, resize: !!(e.target as HTMLElement).dataset.resize, moved: false } }}
             onPointerMove={move} onPointerUp={() => { if (drag.current && !drag.current.moved) drag.current = null }}
@@ -120,24 +131,40 @@ function BoardCanvas({ index, evidence, onFrame, rev }: { index: number; evidenc
           </button>
         )
       })}
+      {typing && (() => {
+        const f = board.frames.find((x) => x.id === typing)
+        if (!f) return null
+        const c = f.content.kind === 'text' ? f.content : null
+        const px = (mm: number) => mm / mmPerPx
+        const box = 'absolute z-10 rounded-[2px] bg-white/95 text-slate-900 outline-none ring-2 ring-sky-500 placeholder:text-slate-400'
+        if (f.role === 'title') {
+          const name = board.name ?? (c?.text.split('\n')[0] ?? '')
+          return <input autoFocus defaultValue={name} placeholder="Sheet name" aria-label="Sheet name, on the board" maxLength={80} data-testid="board-title-inline"
+            onBlur={(e) => { renameBoard(index, e.target.value); setTyping(null) }}
+            onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setTyping(null) }}
+            style={{ ...pct(f), fontSize: px(c?.sizeMm ?? 9), fontWeight: c?.bold === false ? 400 : 700, padding: `0 ${px(2)}px` }} className={box} />
+        }
+        if (!c) return null
+        return <textarea autoFocus defaultValue={c.text} placeholder="Type here" aria-label="Text, on the board" data-testid="frame-text-inline"
+          onBlur={(e) => { updateFrame(index, f.id, { content: { ...c, text: e.target.value } }); setTyping(null) }}
+          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') setTyping(null); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) e.currentTarget.blur() }}
+          style={{ ...pct(f), fontSize: px(c.sizeMm), fontWeight: c.bold ? 700 : 400, lineHeight: 1.3, padding: px(1.5) }} className={`${box} resize-none`} />
+      })()}
     </div>
   )
 }
 
 /**
- * One board's tab (Ruijie, 17 Nov: boards can be renamed and rearranged): its preview and its name. Click selects;
- * double-click the name (or F2) renames, Enter keeps, Esc drops; drag a tab onto another, or Alt+← / Alt+→, to move it.
+ * One board's tab (Ruijie, 17 Nov: boards can be renamed and rearranged): its preview and its name. Click selects; drag a
+ * tab onto another, or Alt+← / Alt+→, to move it. The name is edited on the board or under Sheet name (19 Nov: two ways).
  */
 function Thumb({ index, evidence, active, onClick, rev }: { index: number; evidence: Record<string, EvidenceSet>; active: boolean; onClick: () => void; rev?: DrawData }) {
   const style = useBoardStore((s) => s.style)
   const board = useBoardStore((s) => s.boards[index])
   const count = useBoardStore((s) => s.boards.length)
-  const renameBoard = useBoardStore((s) => s.renameBoard)
   const move = useBoardStore((s) => s.moveBoard)
-  const [editing, setEditing] = useState(false)
   const [over, setOver] = useState(false)
   const name = boardName(board, index)
-  const keep = (v: string) => { renameBoard(index, v.trim()); setEditing(false) }
   const images = useBoardStore((s) => s.images)
   const loaded = useLoadedImages([board], images)
   const { fonts, resolve, loaded: fontsLoaded } = useBoardFonts()
@@ -150,25 +177,20 @@ function Thumb({ index, evidence, active, onClick, rev }: { index: number; evide
     if (ctx) drawBoard(ctx, board, { pxPerMm: 220 / BOARD_W, images, loaded, evidence, editing: true, index, total: 4, fonts, resolve })
   }, [board, images, loaded, evidence, index, style, rev, fonts, resolve, fontsLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div data-testid="board-tab" data-board-name={name} draggable={!editing}
+    <div data-testid="board-tab" data-board-name={name} draggable
       onDragStart={(e) => { e.dataTransfer.setData(BOARD_DRAG, String(index)); e.dataTransfer.effectAllowed = 'move' }}
       onDragOver={(e) => { if (e.dataTransfer.types.includes(BOARD_DRAG)) { e.preventDefault(); setOver(true) } }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { setOver(false); const from = Number(e.dataTransfer.getData(BOARD_DRAG)); if (Number.isInteger(from)) { e.preventDefault(); move(from, index) } }}
       className={`flex w-[92px] flex-col items-center gap-1 rounded p-1 text-meta ${active ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/5'} ${over ? 'outline outline-2 outline-sky-400' : ''}`}>
-      <button type="button" onClick={onClick} aria-pressed={active} aria-label={`${name}: board ${index + 1} of ${count}`} title="Click to open · double-click the name or F2 to rename · drag or Alt+← → to move"
+      <button type="button" onClick={onClick} aria-pressed={active} aria-label={`${name}: board ${index + 1} of ${count}`} title="Click to open · drag or Alt+← → to move"
         onKeyDown={(e) => {
-          if (e.key === 'F2') { e.preventDefault(); setEditing(true) }
           if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); move(index, index + (e.key === 'ArrowLeft' ? -1 : 1)) }
         }}
         className="rounded-[2px] outline-none focus-visible:ring-2 focus-visible:ring-sky-400">
         <canvas ref={ref} style={{ height: 52, width: Math.round(52 * A2_RATIO) }} className={`rounded-[2px] ${active ? 'ring-2 ring-sky-500' : 'ring-1 ring-white/20'}`} />
       </button>
-      {editing
-        ? <input autoFocus defaultValue={board.name ?? ''} placeholder={boardName({ ...board, name: undefined }, index)} aria-label={`Name of board ${index + 1}`} maxLength={80} data-testid="board-name-input"
-            onBlur={(e) => keep(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') keep(e.currentTarget.value); if (e.key === 'Escape') setEditing(false) }}
-            className="w-full min-w-0 rounded border border-sky-400 bg-slate-900 px-1 text-center text-meta text-slate-100 outline-none" />
-        : <span onDoubleClick={() => setEditing(true)} className="w-full cursor-text truncate text-center" title={name}>{name}</span>}
+      <span className="w-full truncate text-center" title={name}>{name}</span>
     </div>
   )
 }
@@ -466,9 +488,11 @@ function FrameInspector({ evidence, levels }: { evidence: Record<string, Evidenc
             const c = f.content
             return (
               <>
-                <label className={label}><span className="text-slate-400">{f.role === 'title' ? 'Sheet name (no personal names: brief p.27)' : 'Text'}</span>
-                  <textarea value={c.text} rows={f.role === 'title' ? 2 : 8} onChange={(e) => set({ content: { ...c, text: e.target.value } })} className={input} />
-                </label>
+                {f.role === 'title'
+                  ? <p className="text-meta text-slate-400">The title band shows the sheet name: type it under Sheet name below, or double-click the band on the board.</p>
+                  : <label className={label}><span className="text-slate-400">Text</span>
+                    <textarea value={c.text} rows={8} onChange={(e) => set({ content: { ...c, text: e.target.value } })} className={input} />
+                  </label>}
                 <div className="flex items-end gap-3">
                   <label className={label}><span className="text-slate-400">Type height (mm)</span>
                     <input type="number" min={2} max={24} step={0.5} value={c.sizeMm} onChange={(e) => set({ content: { ...c, sizeMm: Math.max(2, Math.min(24, Number(e.target.value) || c.sizeMm)) } })} className={`${input} w-20`} />
@@ -602,7 +626,7 @@ function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>;
   return (
     <div className="text-slate-200">
       <section className={sectionCls} data-testid="page-options">
-        <div className={`${headCls} flex items-center justify-between`}><span>Page</span><span className="font-normal">{SHEET_SIZES[sheet]?.label.split(': ')[1]}</span></div>
+        <div className={`${headCls} flex items-center justify-between`}><span>Page</span><span className="font-normal">{(() => { const s = SHEET_SIZES[sheet] ?? SHEET_SIZES.A2, arch = s.series === 'ARCH', [l, h] = s.mm.map((v) => (arch ? +(v / 25.4).toFixed(1) : v)); return orientation === 'portrait' ? `${h} × ${l} ${arch ? 'in' : 'mm'}` : `${l} × ${h} ${arch ? 'in' : 'mm'}` })()}</span></div>
         <div className="flex items-start gap-2">
           <div className="grid min-w-0 flex-1 gap-1" role="radiogroup" aria-label="Page size">
             {(['ISO', 'ARCH'] as const).map((series) => (
@@ -628,7 +652,7 @@ function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>;
       </section>
       <FrameInspector evidence={evidence} levels={levels} />
       <section className={sectionCls}>
-        <label className="grid gap-1 text-xs"><span className={headCls.replace('mb-2 ', '')}>Sheet name</span>
+        <label className="grid gap-1 text-xs"><span className={headCls.replace('mb-2 ', '')}>Sheet name <span className="font-normal">· also the board title</span></span>
           <input key={`${b.id}:${b.name ?? ''}`} defaultValue={b.name ?? ''} placeholder={boardName({ ...b, name: undefined }, selected.board)} maxLength={80} data-testid="board-name"
             onBlur={(e) => renameBoard(selected.board, e.target.value.trim())} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }} className={inputCls} />
         </label>
