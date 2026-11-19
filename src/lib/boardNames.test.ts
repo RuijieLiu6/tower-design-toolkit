@@ -52,6 +52,20 @@ describe('board names and order', () => {
     expect(useBoardStore.getState().boards[0].name).toBeUndefined()
     st.reset()
   })
+
+  it('the sheet name and the board title are one: either edit changes both', () => {
+    const s = useBoardStore.getState()
+    s.reset()
+    s.renameBoard(0, 'The idea')
+    const title = () => { const f = useBoardStore.getState().boards[0].frames.find((x) => x.role === 'title')!; return f.content.kind === 'text' ? f.content.text : '' }
+    expect(title()).toBe('The idea')
+    const f = useBoardStore.getState().boards[0].frames.find((x) => x.role === 'title')!
+    s.updateFrame(0, f.id, { content: { kind: 'text', text: 'Plans\nlevels 1 to 40', sizeMm: 9, bold: true } })
+    expect(useBoardStore.getState().boards[0].name).toBe('Plans')
+    s.renameBoard(0, 'Sections')
+    expect(title()).toBe('Sections\nlevels 1 to 40') // the second line stays
+    s.reset()
+  })
 })
 
 /** The smallest JPEG header jpegSize reads: SOI, then an SOF0 with the size. */

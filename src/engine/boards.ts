@@ -115,6 +115,26 @@ export interface Board { id: string; template: TemplateId; frames: Frame[]; /** 
 /** Sheet sizes (ISO A, landscape): all share one proportion, so a board laid out on A2 prints on the others to scale. */
 export const MAX_SHEETS = 40
 
+/**
+ * The sheet name and the board title are one thing (19 Nov, Sinnie: "sheet name/board title is the same thing, merge
+ * it together"): naming a sheet writes the first line of its title band, and typing in the title band names the sheet.
+ */
+export function withSheetName(b: Board, name: string): Board {
+  const n = name.replace(/\s*\n[\s\S]*$/, '').slice(0, 80).trim()
+  return { ...b, name: n || undefined, frames: b.frames.map((f) => {
+    if (f.role !== 'title' || (f.content.kind !== 'text' && f.content.kind !== 'empty')) return f
+    const rest = f.content.kind === 'text' ? f.content.text.split('\n').slice(1) : []
+    const base = f.content.kind === 'text' ? f.content : { kind: 'text' as const, text: '', sizeMm: 9, bold: true }
+    return { ...f, content: { ...base, text: [n, ...rest].join('\n') } }
+  }) }
+}
+/** The title band's first line, as the sheet's name. */
+export function nameFromTitle(b: Board): Board {
+  const t = b.frames.find((f) => f.role === 'title' && f.content.kind === 'text')
+  if (!t || t.content.kind !== 'text') return b
+  const n = t.content.text.split('\n')[0].trim().slice(0, 80)
+  return { ...b, name: n || undefined }
+}
 /** A sheet's name: the one given, else the first line of its title, else its place. */
 export function sheetName(b: Board, i: number): string {
   if (b.name?.trim()) return b.name.trim()

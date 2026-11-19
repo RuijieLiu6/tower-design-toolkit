@@ -3,7 +3,7 @@
 // (they are too large for localStorage). Nothing here is uploaded anywhere.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { BOARD_COUNT, BOARD_H, BOARD_W, DEFAULT_DENY, MAX_SHEETS, applyTemplate, reorientBoard, setOrientation as setSheetOrientation, setSheetSize, type Orientation, moveBoard, newBoard, sheetNumbers, sortBoardsByName, type SheetSize, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
+import { BOARD_COUNT, BOARD_H, BOARD_W, DEFAULT_DENY, MAX_SHEETS, applyTemplate, reorientBoard, withSheetName, nameFromTitle, setOrientation as setSheetOrientation, setSheetSize, type Orientation, moveBoard, newBoard, sheetNumbers, sortBoardsByName, type SheetSize, type Board, type BoardFonts, type BoardImage, type Frame, type FrameContent, type Manifest, type TemplateId } from '../engine/boards'
 import type { RuleResult } from '../engine/types'
 import type { StyleId } from './boardDrawings'
 import { DEFAULT_FONTS } from './fonts/catalog'
@@ -255,6 +255,8 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   updateFrame: (i, id, patch) => set((s) => {
     const boards = s.boards.slice()
     boards[i] = { ...boards[i], frames: boards[i].frames.map((f) => (f.id === id ? { ...f, ...patch } : f)) }
+    // Typing in the title band renames the sheet (one name for both).
+    if (patch.content && boards[i].frames.find((f) => f.id === id)?.role === 'title') boards[i] = nameFromTitle(boards[i])
     const ex = { ...s.exports }; delete ex[boards[i].id]
     return { boards, exports: ex }
   }),
@@ -276,7 +278,7 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
     return { boards, parked: s.parked.filter((_, j) => j !== k) }
   }),
   renameBoard: (i, name) => set((s) => {
-    const boards = s.boards.slice(); boards[i] = { ...boards[i], name: name.slice(0, 80) || undefined }
+    const boards = s.boards.slice(); boards[i] = withSheetName(boards[i], name)
     const ex = { ...s.exports }; delete ex[boards[i].id]
     return { boards, exports: ex }
   }),
@@ -301,10 +303,12 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
   // v2 (17 Nov, Sinnie: "all the analysis drawing should only appear if the user presses (add on sheet) … remove all the
   // analysis page by default"): sheets filled by the old automatic capture (images 'arch-…') are dropped from saved sets.
   // v3 (18 Nov, Sinnie): the "moved off a board" list is gone; its images stay in the library.
-  version: 3,
+  version: 4,
   migrate: (state, from) => {
     const st = state as { boards?: { frames: { content?: { kind: string; imageId?: string } }[] }[]; parked?: unknown[] }
     delete st.parked
+    // v4: one name per sheet. A given name wins and is written into the title band; else the title names the sheet.
+    if (from < 4 && Array.isArray(st.boards)) st.boards = (st.boards as unknown as Board[]).map((b) => (b.name?.trim() ? withSheetName(b, b.name) : nameFromTitle(b))) as unknown as typeof st.boards
     if (from < 2 && Array.isArray(st.boards)) {
       const auto = (b: (typeof st.boards)[number]) => b.frames.some((f) => f.content?.kind === 'image' && f.content.imageId?.startsWith('arch-'))
       const kept = st.boards.filter((b) => !auto(b))

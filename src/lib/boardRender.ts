@@ -157,7 +157,7 @@ export function drawBoard(ctx: CanvasRenderingContext2D, board: Board, o: DrawOp
       ctx.restore()
       if (cap) textBox(ctx, k, cap, { x: f.x, y: f.y + f.h - CAPTION_BAND + 1.5, w: f.w, h: CAPTION_BAND - 1.5 }, CAPTION_MM, { color: meta.source === 'ai' ? INK : MUTED, bold: meta.source === 'ai' && cap === 'AI-generated image', font: bodyFont })
     } else if (c.kind === 'text') {
-      if (!c.text.trim()) { if (o.editing) placeholder(ctx, k, f, f.role === 'title' ? 'Board title' : 'Text: type it in the panel'); continue }
+      if (!c.text.trim()) { if (o.editing) placeholder(ctx, k, f, f.role === 'title' ? 'Sheet name' : 'Text: type it in the panel'); continue }
       const box = f.role === 'title' ? { x: f.x, y: f.y + (f.h - c.sizeMm * 1.3) / 2, w: f.w - 30, h: c.sizeMm * 1.35 } : f
       // The frame's own face, else the heading face for the title band and the body face elsewhere; the sheet style's ink.
       if (!textBox(ctx, k, c.text, box, c.sizeMm, { bold: c.bold, color: st.ink, font: face(c.font ?? (f.role === 'title' ? fonts.heading : fonts.body)) })) overflow.push(f.id)
