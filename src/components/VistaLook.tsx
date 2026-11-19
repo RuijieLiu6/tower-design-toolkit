@@ -234,8 +234,10 @@ export function flyTo(to: CamReq) {
 }
 
 function studyCentre(): [number, number, number] {
-  const s = useStore.getState(), t = s.towers.city.find((k) => k.id === s.selectedTower) ?? s.towers.city[0]
+  const s = useStore.getState(), list = s.towers[s.project], t = list.find((k) => k.id === s.selectedTower) ?? list[0]
   if (t) return [t.x, t.y, s.groundElevation]
+  // The competition site sits at the origin.
+  if (s.project === 'vtc') return [0, 0, s.groundElevation]
   // No tower yet: the site's centre (Massing starts on a cleared site), else the overview.
   const ring = s.citySite?.ring
   if (ring?.length) return [ring.reduce((a, p) => a + p[0], 0) / ring.length, ring.reduce((a, p) => a + p[1], 0) / ring.length, s.groundElevation]
@@ -308,7 +310,9 @@ function chooseMode(m: MapMode, defaultCone: string | null) {
   }
   leaveEyeLevel()
   set((s) => ({ mode: m, note: null, inspected: m === 'inspect' ? s.inspected : null }))
-  // City: every press goes back to the large Vancouver context (Vista's overview camera).
+  // City: every press goes back to the large Vancouver context (Vista's overview camera). On the competition site
+  // (19 Nov, 2D / 3D on both sites) 3D goes back to the view before Plan, which PlanRig restores.
+  if (m === 'city' && useStore.getState().project === 'vtc') return
   if (m === 'city') flyTo(orientReq({ position: [...VISTA_OVERVIEW.position], target: [...VISTA_OVERVIEW.target], fov: VISTA_OVERVIEW.fov }))
   // Inspect: every press frames the proposed tower in axonometric, inside the part of the view the overlays leave free.
   if (m === 'inspect') { const axo = towerAxo(viewAspect(), overlayInsets()); if (axo) flyTo(orientReq(axo)) }
@@ -353,7 +357,7 @@ function useDefaultCone(): string | null {
   return controllingCone(cones.find((c) => c.tower.id === t.id)?.checks ?? []) ?? nearestCone(t.x, t.y)
 }
 
-/** The view angles (City, Observer, Inspect, Plan), drawn in the view bar at the bottom of the view (12 Nov). */
+/** The view angles (City, Observer, Inspect), drawn in the view bar (12 Nov); only while the view tool is open. */
 function AngleButtons() {
   const active = useActiveMode()
   const defaultCone = useDefaultCone()
@@ -365,9 +369,17 @@ function AngleButtons() {
           className={`flex h-8 items-center rounded-lg px-2.5 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-subtle font-medium text-ink' : 'text-muted hover:bg-subtle hover:text-ink'}`}>{m.label}</button>
       )
     })}
-    {/* Plan is a 2D / 3D switch (12 Nov, Sinnie: "for plan, can you change it to a 2D/3D"): 2D = the plan view, 3D = back
-        to the city view. */}
-    <span aria-hidden className="mx-0.5 h-5 w-px bg-line" />
+  </>
+}
+
+/**
+ * Plan is a 2D / 3D switch (12 Nov, Sinnie: "for plan, can you change it to a 2D/3D"): 2D = the plan view, 3D = back to
+ * the view before. Always in the view bar, on both sites (19 Nov, Sinnie: "wheres my 2d/3d view toggle").
+ */
+export function PlanSwitch() {
+  const active = useActiveMode()
+  const defaultCone = useDefaultCone()
+  return (
     <div role="group" aria-label="2D or 3D" data-testid="view-2d3d" className="flex rounded-lg bg-subtle p-0.5">
       {(['2D', '3D'] as const).map((d) => {
         const on = d === '2D' ? active === 'plan' : active !== 'plan'
@@ -379,7 +391,7 @@ function AngleButtons() {
         )
       })}
     </div>
-  </>
+  )
 }
 
 function ModeTabs() {
@@ -503,7 +515,7 @@ function Legend() {
     {/* The View menu at the top of the view (12 Nov): mode, Pin view, the sun and the key of the shown mode. Only an
         Analysis scale stays down here, since the colours can't be read without it. */}
     {mode === 'analysis' && <div data-testid="city-legend" className="glass grid max-w-full gap-1.5 rounded-[8px] border border-line bg-panel/95 p-1.5 text-meta text-ink"><AnalysisLegend project="city" /></div>}
-    <ViewModeMenu project="city" angles={viewTool ? <AngleButtons /> : undefined} onFrame={focusSite}>
+    <ViewModeMenu project="city" angles={<>{viewTool && <><AngleButtons /><span aria-hidden className="mx-0.5 h-5 w-px bg-line" /></>}<PlanSwitch /></>} onFrame={focusSite}>
       <div className="flex flex-wrap items-center gap-1.5"><SunChip /></div>
       {<>
         {mode === 'massing' && <MassingKey />}
@@ -654,10 +666,14 @@ const v3 = new THREE.Vector3(), n3 = new THREE.Vector3()
  * Inside the canvas: shares the orbit controls with the chrome, keeps Vista's fog reach, turns the compass, places the
  * labels (Vista's overlap rule), picks buildings in Inspect and holds the north-up top view in Plan.
  */
-export function VistaLookRig() {
+/**
+ * The camera moves (flyTo) and the Plan view, for both sites (19 Nov): north up from straight above the study site in a
+ * parallel projection, left-drag pans; leaving it restores the view before. CityScene mounts it through VistaLookRig,
+ * VtcScene on its own.
+ */
+export function PlanRig() {
   const { camera, gl, scene, invalidate } = useThree()
   const controls = useThree((s) => s.controls) as unknown as Ctl | null
-  const { data, idx, heights } = useCityObstacles()
   const mode = useActiveMode()
   const phase = useStore((s) => s.phase)
   const saved = useRef<{ position: [number, number, number]; target: [number, number, number]; fov: number } | null>(null)
@@ -686,8 +702,10 @@ export function VistaLookRig() {
     return () => {
       ctl.enableRotate = true; ctl.mouseButtons = buttons; ctl.touches = touches
       const back = saved.current, st = useStore.getState()
-      // Back in 3D as it was, turned by any change of north made meanwhile.
-      if (back && !flight.to && st.project === 'city' && st.phase !== 'present' && useVistaLook.getState().mode === 'inspect') flyTo(turnReq(back, upNorthDeg() - savedUp.current))
+      // Back in 3D as it was, turned by any change of north made meanwhile (Vancouver's City button flies to the
+      // overview itself; the competition site's 3D always comes back here).
+      const next = useVistaLook.getState().mode
+      if (back && !flight.to && st.phase !== 'present' && (st.project === 'vtc' ? next !== 'plan' : st.project === 'city' && next === 'inspect')) flyTo(turnReq(back, upNorthDeg() - savedUp.current))
       saved.current = null
     }
   }, [mode, controls, camera, gl])
@@ -705,6 +723,32 @@ export function VistaLookRig() {
     ctl?.addEventListener?.('start', stop)
     return () => ctl?.removeEventListener?.('start', stop)
   }, [controls])
+
+  useFrame(() => {
+    const ctl = controls, cam = camera as THREE.PerspectiveCamera
+    if (!ctl) return
+    // A camera move in progress (flyTo): ease in-out on the clock, so a slow machine takes fewer, larger steps, not longer.
+    if (flight.to && flight.from) {
+      const x = Math.min(1, (performance.now() - flight.start) / flight.dur), e = x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
+      const lerp = (a: [number, number, number], b: [number, number, number]) => a.map((v, i) => v + (b[i] - v) * e) as [number, number, number]
+      const p = lerp(flight.from.position, flight.to.position), t = lerp(flight.from.target, flight.to.target)
+      cam.position.copy(toThree(...p)); ctl.target.copy(toThree(...t))
+      cam.fov = flight.from.fov + (flight.to.fov - flight.from.fov) * e
+      cam.near = Math.max(1, cam.position.distanceTo(ctl.target) / 300)
+      cam.updateProjectionMatrix(); ctl.update()
+      if (x >= 1) flight.to = null
+      invalidate()
+    }
+  })
+  return null
+}
+
+/** Vancouver's rig: the plan and flights (PlanRig), the fog, the compass, the place labels, Inspect's picking. */
+export function VistaLookRig() {
+  const { camera, gl, scene } = useThree()
+  const controls = useThree((s) => s.controls) as unknown as Ctl | null
+  const { data, idx, heights } = useCityObstacles()
+  const mode = useActiveMode()
 
   // Inspect: a click (not a drag) on a building shows its height, type and sources.
   useEffect(() => {
@@ -733,18 +777,6 @@ export function VistaLookRig() {
   useFrame(({ size }) => {
     const ctl = controls, cam = camera as THREE.PerspectiveCamera
     if (!ctl) return
-    // A camera move in progress (flyTo): ease in-out on the clock, so a slow machine takes fewer, larger steps, not longer.
-    if (flight.to && flight.from) {
-      const x = Math.min(1, (performance.now() - flight.start) / flight.dur), e = x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
-      const lerp = (a: [number, number, number], b: [number, number, number]) => a.map((v, i) => v + (b[i] - v) * e) as [number, number, number]
-      const p = lerp(flight.from.position, flight.to.position), t = lerp(flight.from.target, flight.to.target)
-      cam.position.copy(toThree(...p)); ctl.target.copy(toThree(...t))
-      cam.fov = flight.from.fov + (flight.to.fov - flight.from.fov) * e
-      cam.near = Math.max(1, cam.position.distanceTo(ctl.target) / 300)
-      cam.updateProjectionMatrix(); ctl.update()
-      if (x >= 1) flight.to = null
-      invalidate()
-    }
     setVistaFog(cam.position.distanceTo(ctl.target))
     // Compass: where north points on screen, from the target's screen position and a point 100 m north of it.
     if (live.compass) {
@@ -785,6 +817,8 @@ export function VistaLookRig() {
   })
   const inspected = useVistaLook((s) => s.inspected)
   // The building picked in Inspect, marked above its roof (Vista colours its selection; one mesh here, so a marker).
-  if (mode !== 'inspect' || !inspected) return null
-  return <Label text="▼ inspected" position={[inspected.x, inspected.y, inspected.roof + 14]} size={0.016} color={CHROME.plateInk} background="rgba(66,107,97,0.92)" bold />
+  return <>
+    <PlanRig />
+    {mode === 'inspect' && inspected && <Label text="▼ inspected" position={[inspected.x, inspected.y, inspected.roof + 14]} size={0.016} color={CHROME.plateInk} background="rgba(66,107,97,0.92)" bold />}
+  </>
 }

@@ -75,7 +75,7 @@ import { useDisplaySync } from './DisplayMode'
 import { useViewFromStore } from '../lib/viewFromStore'
 import { casterSignature, signatureChanged } from '../lib/shadowCache'
 import { useSceneStyle } from '../lib/sceneStyle'
-import { cancelFlight, VistaChrome, VistaLookRig } from './VistaLook'
+import { cancelFlight, PlanRig, VistaChrome, VistaLookRig } from './VistaLook'
 import { SitePlaceLabels } from './site/PlaceNames'
 import NorthTurnRig from './NorthTurnRig'
 import { faceNorth, northView, orientReq, upNorthDeg, useNorthMode } from '../lib/northView'
@@ -140,6 +140,7 @@ function VtcScene({ onPick, look: stageLook, xray, facade = false, north = 0 }: 
   useEffect(() => registerGround({ at: () => 0, plinth }), [plinth])
   return (
     <>
+      <PlanRig />
       <Ground rect={plinth} color={look.ground} onPick={onPick} />
       <PlinthBase plinth={plinth} ring={ring} look={look} pad={0.1} />
       {site && siteShape && (

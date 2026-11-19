@@ -7,6 +7,7 @@
 // The context drawn here comes from the entrant's own copy of the base model (lib/vtcContextSource.ts); without it only
 // the brief's site is drawn, and the legend says so.
 import { ViewModeMenu } from './DisplayModeSwitch'
+import { PlanSwitch } from './VistaLook'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -181,7 +182,7 @@ export function VtcLookBar() {
   const missing = !ctx ? 'Add your copy of the base model to see the surrounding program.' : devFile ? 'The local context predates the use plan: run npm run context:vtc again.' : 'This copy of the model has no ground-level use plan.'
   return (
     <>
-      <ViewModeMenu project="vtc">
+      <ViewModeMenu project="vtc" angles={<PlanSwitch />}>
         <div className="flex flex-wrap items-center gap-1.5"><SunChip />{ctx && <ContextToggle />}</div>
         {mode === 'massing' && <MassingKey />}
         {mode === 'program' && <>
