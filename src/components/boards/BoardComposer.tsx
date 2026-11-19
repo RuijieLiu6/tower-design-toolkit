@@ -652,7 +652,7 @@ function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>;
       </section>
       <FrameInspector evidence={evidence} levels={levels} />
       <section className={sectionCls}>
-        <label className="grid gap-1 text-xs"><span className={headCls.replace('mb-2 ', '')}>Sheet name <span className="font-normal">· also the board title</span></span>
+        <label className="grid gap-1 text-xs"><span className={headCls.replace('mb-2 ', '')}>Sheet name</span>
           <input key={`${b.id}:${b.name ?? ''}`} defaultValue={b.name ?? ''} placeholder={boardName({ ...b, name: undefined }, selected.board)} maxLength={80} data-testid="board-name"
             onBlur={(e) => renameBoard(selected.board, e.target.value.trim())} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }} className={inputCls} />
         </label>
