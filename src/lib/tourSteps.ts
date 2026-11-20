@@ -1,6 +1,6 @@
 // The interactive tour's steps (lib/tour.ts runs them). Two parts (Sinnie, 20 Nov: "it should first do a guide through
-// of what is what in the interface"): first a walk round the screen, eight regions each named and explained (top bar,
-// phases, left panel, model, view bar, tool rail, results, status line), read with Next; then eight things to do, each
+// of what is what in the interface"): first a walk round the screen, eight regions each named and explained (phases,
+// left panel, model, view bar, view modes, tool rail, the right panel's tabs, Model / Presentation), read with Next; then eight things to do, each
 // asking for one thing in the real app and watching the app's state until it is done; "Show me" does it for the
 // person. Site → place a tower → shape it → results → 2D / 3D views → Schematic → Presentation → Export. This module reaches into the app's stores (the step,
 // the view look), so it is loaded only when the tour starts: the start page stays small.
@@ -46,8 +46,6 @@ const q = (sel: string) => document.querySelector<HTMLElement>(sel)
 const look = (id: string, target: string, title: string, ask: string, body: string): TourStep => ({ id, part: 'look', route: 'guided', step: 'volume', target, title, ask, body })
 
 export const TOUR: TourStep[] = [
-  look('ui-top', '[data-testid="top-bar"]', 'The top bar', 'Project, screen and page.',
-    'Left: the project and its two sites. Middle: what fills the screen, the model, the data graph or both. Right: Capture, the Model / Presentation switch, and More for the check library, settings, this tour and the sources.'),
   look('ui-phases', '[data-testid="phase-line"]', 'The design process', 'Five phases: Site, Form, Program, Schematic, Presentation.',
     'Each phase holds its tools in working order; the tint shows where you are and the counts show its failing checks. Click a phase or press 1 to 5; the arrows at the foot of the panel step through them.'),
   look('ui-panel', '[data-testid="phase-panel"]', 'The left panel', 'This phase\'s workflow, then the open tool.',
@@ -55,13 +53,15 @@ export const TOUR: TourStep[] = [
   look('ui-model', '[data-model-region]', 'The model', 'The middle of the screen is the building and its site.',
     'Drag to orbit, scroll to zoom, right-drag to pan. Click a tower or a face to select it. Every change here runs the checks again.'),
   look('ui-viewbar', '[data-testid="view-bar"]', 'The view bar', 'Under the model: Capture, Frame, 2D or 3D, View mode.',
-    '2D holds the plan and the four elevations; 3D the free orbit and the corners in Axo or Iso. View mode switches clay, program, x-ray and the analysis overlays, with the sun and the legend.'),
+    '2D holds the plan and the four elevations; 3D the free orbit and the corners in Axo or Iso. Capture keeps the view for the sheets; Frame brings the site back.'),
+  look('ui-modes', '[data-testid="view-menu-button"]', 'View modes', 'Geometry, Building use, Analysis, Materials, Façade.',
+    'Geometry is the neutral clay. Building use colours the floors by what they are. Analysis shows one measured quantity with its legend. Materials and Façade show the skin. Pin view keeps one while tools change; the sun sits here too.'),
   look('ui-rail', '[data-testid="tower-rail"]', 'The tool rail', 'Select, move, rotate, push and pull.',
     'The modelling tools stand beside the model. Pick one and act on the tower in the view; typed values go in the panel.'),
-  look('ui-results', '[data-panel="right"]', 'Results and evidence', 'The right panel: every check with its evidence.',
-    'Each result shows its value, the threshold, its source with page or clause, and a flag: verified, team assumption, unverified or unresolved. In Presentation this panel holds the sheets\' tabs.'),
-  look('ui-status', '[data-testid="status-bar"]', 'The status line', 'The evidence key, the data and its licences.',
-    'The key explains the flags. The data line says where the site comes from. This is a study tool, not a compliance determination. Now try it: eight things to do.'),
+  look('ui-tabs', '[data-panel="right"] [role="tablist"]', 'The right panel\'s tabs', 'Your site, Results, Trace.',
+    'Your site holds the lot, the rules and the context. Results lists every check with its value, threshold, source and flag. Trace shows how a result was reached. Design and Properties appear when a tool opens them; in Presentation the tabs are Present, Render, Results and Trace.'),
+  look('ui-pages', '[data-testid="page-toggle"]', 'Model and Presentation', 'Two pages, in the top bar (or press V).',
+    'Model is the four design phases around the 3D view. Presentation is the sheets: true-scale drawings, captures and renders on A2 boards, with the submission checks beside them. Now try it: eight things to do.'),
   { id: 'site', part: 'do', route: 'guided', step: 'site', target: '[role="tablist"][aria-label="Project"]',
     title: 'Two sites', ask: 'Switch the site: Competition site or Real Vancouver.',
     body: 'The competition block comes with the brief\'s rules; Real Vancouver has the City\'s lots, terrain and the protected view cones. Everything else is the same model.',
