@@ -81,7 +81,27 @@ export function axoCamera(centre: [number, number, number], aspect: number, nort
 }
 
 /** The map modes of Vista's viewport toolbar, each mapped onto a Toolkit feature (no parallel features). */
-export type MapMode = 'city' | 'observer' | 'inspect' | 'plan' | 'axo' | 'iso' | 'viewcone'
+export type MapMode = 'city' | 'observer' | 'inspect' | 'plan' | 'axo' | 'iso' | 'north' | 'south' | 'east' | 'west' | 'viewcone'
+
+/**
+ * The 2D elevations (19 Nov, Sinnie: "for 2d, can you do plan, north, south, east, west; this should cut into the street
+ * right in front of the building so there's no building blocking the view"): the eye on the named side of the chosen
+ * north, level, in parallel projection, with everything between the eye and the street in front of the building cut
+ * away. The bearing (clockwise from north) the eye sits at.
+ */
+export const ELEVATIONS: Record<'north' | 'east' | 'south' | 'west', number> = { north: 0, east: 90, south: 180, west: 270 }
+export type ElevationId = keyof typeof ELEVATIONS
+export const isElevation = (m: MapMode): m is ElevationId => m in ELEVATIONS
+/** How far past the building's face the cut sits: the pavement and the near half of the street (m). */
+export const ELEVATION_CUT_M = 14
+
+/** The level camera for an elevation: the eye at `bearingDeg`, `size` (m) the width and height to show. */
+export function elevationCamera(centre: [number, number, number], aspect: number, bearingDeg: number, size: { w: number; h: number }): { position: [number, number, number]; target: [number, number, number]; fov: number } {
+  const half = Math.tan(THREE.MathUtils.degToRad(PLAN_FOV / 2))
+  const d = Math.max(size.h / 2 / half, size.w / 2 / (half * Math.max(0.3, aspect))) * 1.1
+  const b = THREE.MathUtils.degToRad(bearingDeg)
+  return { position: [centre[0] + d * Math.sin(b), centre[1] + d * Math.cos(b), centre[2]], target: centre, fov: PLAN_FOV }
+}
 export const MAP_MODES: { id: MapMode; label: string; title: string }[] = [
   { id: 'city', label: 'City', title: 'Back to the whole of Vancouver (the overview)' },
   { id: 'observer', label: 'Observer', title: 'Look from a protected viewpoint (choose the view cone)' },
@@ -89,6 +109,10 @@ export const MAP_MODES: { id: MapMode; label: string; title: string }[] = [
   { id: 'plan', label: 'Plan', title: 'North-up plan centred on the proposed tower, 1 km across · drag to pan' },
   { id: 'axo', label: 'Axo', title: 'Axonometric: a parallel view from 45° above the study site · right-drag to turn · drag to pan' },
   { id: 'iso', label: 'Iso', title: 'Isometric: a parallel view from 35° above the study site · right-drag to turn · drag to pan' },
+  { id: 'north', label: 'North', title: 'North elevation: level, parallel, cut at the street in front of the building · drag to pan' },
+  { id: 'south', label: 'South', title: 'South elevation: level, parallel, cut at the street in front of the building · drag to pan' },
+  { id: 'east', label: 'East', title: 'East elevation: level, parallel, cut at the street in front of the building · drag to pan' },
+  { id: 'west', label: 'West', title: 'West elevation: level, parallel, cut at the street in front of the building · drag to pan' },
   { id: 'viewcone', label: 'Viewcone', title: 'All view cones on, or all off' },
 ]
 
@@ -101,6 +125,10 @@ export const MODE_GESTURES: Record<MapMode, [string, string][]> = {
   plan: [['drag', 'pan'], ['scroll', 'zoom']],
   axo: [['right-drag', 'turn'], ['drag', 'pan'], ['scroll', 'zoom']],
   iso: [['right-drag', 'turn'], ['drag', 'pan'], ['scroll', 'zoom']],
+  north: [['drag', 'pan'], ['scroll', 'zoom']],
+  south: [['drag', 'pan'], ['scroll', 'zoom']],
+  east: [['drag', 'pan'], ['scroll', 'zoom']],
+  west: [['drag', 'pan'], ['scroll', 'zoom']],
   viewcone: [['click', 'cones on / off']],
 }
 
@@ -111,6 +139,10 @@ export const MODE_HINT: Record<MapMode, string> = {
   plan: 'Plan · north up · drag to pan · scroll to zoom.',
   axo: 'Axo · axonometric, parallel · right-drag to turn · drag to pan · scroll to zoom.',
   iso: 'Iso · isometric, parallel · right-drag to turn · drag to pan · scroll to zoom.',
+  north: 'North · elevation, cut at the street · drag to pan · scroll to zoom.',
+  south: 'South · elevation, cut at the street · drag to pan · scroll to zoom.',
+  east: 'East · elevation, cut at the street · drag to pan · scroll to zoom.',
+  west: 'West · elevation, cut at the street · drag to pan · scroll to zoom.',
   viewcone: 'Viewcone · all view cones on or off.',
 }
 
