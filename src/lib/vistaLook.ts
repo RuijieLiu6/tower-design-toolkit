@@ -65,13 +65,26 @@ export function planCamera(centre: [number, number, number], aspect: number): { 
   return { position: [centre[0], centre[1] - 0.01, centre[2] + h], target: centre, fov: PLAN_FOV }
 }
 
+/**
+ * Axo (19 Nov, Sinnie: "3d view: axo/iso view to be added"): a true isometric, the eye 35.26° above the ground on the
+ * diagonal to the south-east of the chosen north (the same direction as Inspect and the Present figures), the same
+ * width across as the plan; drawn in parallel projection (lib/planOrtho.ts), so the three axes stay to scale.
+ */
+export const AXO_ELEVATION_DEG = 35.264
+export function axoCamera(centre: [number, number, number], aspect: number, northDeg = 0): { position: [number, number, number]; target: [number, number, number]; fov: number } {
+  const d = PLAN_WIDTH_M / 2 / (Math.tan(THREE.MathUtils.degToRad(PLAN_FOV / 2)) * Math.max(0.3, aspect))
+  const el = THREE.MathUtils.degToRad(AXO_ELEVATION_DEG), b = THREE.MathUtils.degToRad(135 + northDeg)
+  return { position: [centre[0] + d * Math.cos(el) * Math.sin(b), centre[1] + d * Math.cos(el) * Math.cos(b), centre[2] + d * Math.sin(el)], target: centre, fov: PLAN_FOV }
+}
+
 /** The map modes of Vista's viewport toolbar, each mapped onto a Toolkit feature (no parallel features). */
-export type MapMode = 'city' | 'observer' | 'inspect' | 'plan' | 'viewcone'
+export type MapMode = 'city' | 'observer' | 'inspect' | 'plan' | 'axo' | 'viewcone'
 export const MAP_MODES: { id: MapMode; label: string; title: string }[] = [
   { id: 'city', label: 'City', title: 'Back to the whole of Vancouver (the overview)' },
   { id: 'observer', label: 'Observer', title: 'Look from a protected viewpoint (choose the view cone)' },
   { id: 'inspect', label: 'Inspect', title: 'The proposed tower in axonometric, close up; click a building for its height, type and sources' },
   { id: 'plan', label: 'Plan', title: 'North-up plan centred on the proposed tower, 1 km across · drag to pan' },
+  { id: 'axo', label: 'Axo', title: 'Isometric: a parallel view from 35° above the study site · right-drag to turn · drag to pan' },
   { id: 'viewcone', label: 'Viewcone', title: 'All view cones on, or all off' },
 ]
 
@@ -82,6 +95,7 @@ export const MODE_GESTURES: Record<MapMode, [string, string][]> = {
   observer: [['drag', 'look'], ['Esc', 'leave']],
   inspect: [['click', 'a building']],
   plan: [['drag', 'pan'], ['scroll', 'zoom']],
+  axo: [['right-drag', 'turn'], ['drag', 'pan'], ['scroll', 'zoom']],
   viewcone: [['click', 'cones on / off']],
 }
 
@@ -90,6 +104,7 @@ export const MODE_HINT: Record<MapMode, string> = {
   observer: 'Observer · from a protected viewpoint · drag to look around · Esc to leave.',
   inspect: 'Inspect · the proposed tower in axonometric · click a building for its height, type and sources.',
   plan: 'Plan · north up · drag to pan · scroll to zoom.',
+  axo: 'Axo · isometric, parallel · right-drag to turn · drag to pan · scroll to zoom.',
   viewcone: 'Viewcone · all view cones on or off.',
 }
 
