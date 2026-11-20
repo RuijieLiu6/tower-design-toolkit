@@ -33,7 +33,7 @@ export default function StatusBar() {
     return () => { window.removeEventListener('keydown', key); window.removeEventListener('pointerdown', away, true) }
   }, [open])
   return (
-    <footer className="flex h-7 shrink-0 items-center gap-3 whitespace-nowrap px-2 text-meta text-muted">
+    <footer data-testid="status-bar" className="flex h-7 shrink-0 items-center gap-3 whitespace-nowrap px-2 text-meta text-muted">
       <div ref={box} className="relative">
         <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} data-testid="evidence-key"
           className="flex h-6 items-center gap-1 rounded-lg px-1.5 text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent"><Info size={13} aria-hidden />Evidence key</button>

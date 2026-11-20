@@ -5,7 +5,7 @@
 import { ArrowLeft, ArrowRight, Check, Wand2, X } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { useTour } from '../lib/tour'
-import { snapshot, TOUR, type Snap } from '../lib/tourSteps'
+import { PART_NAME, snapshot, TOUR, type Snap } from '../lib/tourSteps'
 import { useStore } from '../store'
 
 const prefersReduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false } }
@@ -24,6 +24,9 @@ export default function TourOverlay() {
   const next = useRef<HTMLButtonElement>(null)
   const s = TOUR[step]
   const last = step === TOUR.length - 1
+  // The card counts within the part: Around the screen 1 of 8, then Try it 1 of 8.
+  const part = TOUR.filter((t) => t.part === s.part)
+  const at = part.indexOf(s)
 
   // The target can appear late (lazy pages, the 3D view): measure until it is there, and keep it in view. The same
   // clock takes the step's starting state once the page has settled, then watches for the thing to be done.
@@ -31,13 +34,16 @@ export default function TourOverlay() {
     if (!active) return
     setRect(null); setDone(false); snap.current = null
     const opened = performance.now()
-    let advance = 0
+    let advance = 0, settled = false
     const tick = () => {
       const el = s.target ? document.querySelector(s.target) : null
       const r = el?.getBoundingClientRect()
       setRect(r && r.width > 0 && r.height > 0 ? r : null)
       if (!s.done) return
-      if (!snap.current) { if (performance.now() - opened >= SETTLE_MS) snap.current = snapshot(); return }
+      // The starting state is taken at once (a quick person may act within the first moment), and taken again once
+      // the page has settled if nothing has changed by then.
+      if (!snap.current) { snap.current = snapshot(); settled = false; return }
+      if (!settled && performance.now() - opened >= SETTLE_MS) { settled = true; if (!s.done(snap.current)) snap.current = snapshot() }
       if (!advance && s.done(snap.current)) {
         setDone(true)
         advance = window.setTimeout(() => (last ? undefined : go(step + 1)), ADVANCE_MS)
@@ -78,7 +84,7 @@ export default function TourOverlay() {
         className="glass pointer-events-auto absolute bottom-6 left-1/2 w-[min(460px,calc(100vw-32px))] -translate-x-1/2 rounded-xl border border-line bg-panel p-4 text-ink shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-meta font-semibold text-accent">Tour · {step + 1} of {TOUR.length}</p>
+            <p className="text-meta font-semibold text-accent">{PART_NAME[s.part]} · {at + 1} of {part.length}</p>
             <h2 id="tour-title" className="mt-0.5 text-sm font-semibold">{s.title}</h2>
           </div>
           <button onClick={stop} aria-label="End the tour" className="rounded p-1 text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={16} /></button>
@@ -90,7 +96,7 @@ export default function TourOverlay() {
         <p id="tour-body" className="mt-1 text-[12px] leading-relaxed text-muted">{s.body}</p>
         <div className="mt-3 flex items-center gap-2 whitespace-nowrap">
           <div className="flex gap-1" aria-hidden>
-            {TOUR.map((t, k) => <span key={t.id} className={`h-1.5 rounded-full ${k === step ? 'w-4 bg-accent' : k < step ? 'w-1.5 bg-accent/40' : 'w-1.5 bg-slate-300'}`} />)}
+            {part.map((t, k) => <span key={t.id} className={`h-1.5 rounded-full ${k === at ? 'w-4 bg-accent' : k < at ? 'w-1.5 bg-accent/40' : 'w-1.5 bg-slate-300'}`} />)}
           </div>
           <button onClick={stop} className="ml-auto rounded-md px-2 py-1 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">Skip tour</button>
           {s.doIt && !done && (
@@ -101,7 +107,7 @@ export default function TourOverlay() {
             className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs outline-none hover:border-accent disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-accent"><ArrowLeft size={13} aria-hidden />Back</button>
           <button ref={next} onClick={() => (last ? stop() : go(step + 1))} data-testid="tour-next"
             className="flex items-center gap-1 rounded-md bg-accent px-3 py-1 text-xs font-medium text-white outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
-            {last ? 'Start designing' : s.done && !done ? 'Skip step' : 'Next'}{!last && <ArrowRight size={13} aria-hidden />}
+            {last ? 'Start designing' : s.done && !done ? 'Skip step' : at === part.length - 1 ? 'Try it' : 'Next'}{!last && <ArrowRight size={13} aria-hidden />}
           </button>
         </div>
       </div>

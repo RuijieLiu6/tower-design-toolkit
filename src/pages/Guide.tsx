@@ -69,7 +69,7 @@ export default function Guide() {
 
           <Section id="start" title="Getting started">
             <p>The <Go to="start">start page</Go> offers two ways in. <b>Guided process</b> takes you through the design stages with the checks already switched on. <b>Customize</b> lets you build your own workflow from the node library. You can ask the start page to open your choice directly next time.</p>
-            <p>New here? The cover offers <b>Take the tour</b> once (also under Other ways in on the start page, and in the top bar's More menu): eight short steps, each asking you to do one thing in the app, with Show me if you would rather watch (skip it at any time), and <b>Open the demo project</b> loads two towers on the competition block with every built check on. <Go to="status">Build status</Go> lists what is built and what is still research.</p>
+            <p>New here? The cover offers <b>Take the tour</b> once (also under Other ways in on the start page, and in the top bar's More menu): first a walk round the screen (eight regions, each named and explained), then eight short steps, each asking you to do one thing in the app, with Show me if you would rather watch (skip it at any time), and <b>Open the demo project</b> loads two towers on the competition block with every built check on. <Go to="status">Build status</Go> lists what is built and what is still research.</p>
           </Section>
 
           <Section id="projects" title="Two projects">
