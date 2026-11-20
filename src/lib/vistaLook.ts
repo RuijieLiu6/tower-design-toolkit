@@ -67,18 +67,25 @@ export function planCamera(centre: [number, number, number], aspect: number): { 
 
 /**
  * The parallel 3D views (19 Nov, Sinnie: "3d view: axo/iso view to be added", then "axo should be one of the options of
- * 3D (free, axo, iso)"): the eye on the diagonal to the south-east of the chosen north (the direction of Inspect and the
- * Present figures), the same width across as the plan, drawn in parallel projection (lib/planOrtho.ts). Axo looks down
- * at 45° (the architectural axonometric: the plan keeps its angles), Iso at 35.26° (the true isometric: the three axes
- * foreshortened alike).
+ * 3D (free, axo, iso)"): the eye at one of four corners of the chosen north, the same width across as the plan, drawn
+ * in parallel projection (lib/planOrtho.ts). Iso is the true isometric: the eye 35.26° up, the three axes foreshortened
+ * alike. Axo is the true architectural axonometric (plan oblique, 45° / 45°; 19 Nov, "is it a true axo view?"): the
+ * plan at its true shape turned 45°, verticals vertical at true height; its camera is the plan's, looking straight
+ * down from the corner's side, and the projection shears each point up by its height (axoObliqueCamera + shear 1).
  */
-export const AXO_ELEVATION_DEG = 45
 export const ISO_ELEVATION_DEG = 35.264
+export const AXO_SHEAR = 1
+/** The plan-oblique camera: straight above the centre, a hair toward the corner so the far corner is up the screen. */
+export function axoObliqueCamera(centre: [number, number, number], aspect: number, bearingDeg: number): { position: [number, number, number]; target: [number, number, number]; fov: number } {
+  const h = PLAN_WIDTH_M / 2 / (Math.tan(THREE.MathUtils.degToRad(PLAN_FOV / 2)) * Math.max(0.3, aspect))
+  const b = THREE.MathUtils.degToRad(bearingDeg)
+  return { position: [centre[0] + 0.01 * Math.sin(b), centre[1] + 0.01 * Math.cos(b), centre[2] + h], target: centre, fov: PLAN_FOV }
+}
 /** The four corners an Axo or Iso view looks from (bearing of the eye, clockwise from the chosen north). */
 export const CORNERS = { ne: 45, se: 135, sw: 225, nw: 315 } as const
 export type Corner = keyof typeof CORNERS
 export const CORNER_WORD: Record<Corner, string> = { ne: 'north-east', se: 'south-east', sw: 'south-west', nw: 'north-west' }
-export function axoCamera(centre: [number, number, number], aspect: number, bearingDeg: number, elevationDeg = AXO_ELEVATION_DEG): { position: [number, number, number]; target: [number, number, number]; fov: number } {
+export function axoCamera(centre: [number, number, number], aspect: number, bearingDeg: number, elevationDeg = ISO_ELEVATION_DEG): { position: [number, number, number]; target: [number, number, number]; fov: number } {
   const d = PLAN_WIDTH_M / 2 / (Math.tan(THREE.MathUtils.degToRad(PLAN_FOV / 2)) * Math.max(0.3, aspect))
   const el = THREE.MathUtils.degToRad(elevationDeg), b = THREE.MathUtils.degToRad(bearingDeg)
   return { position: [centre[0] + d * Math.cos(el) * Math.sin(b), centre[1] + d * Math.cos(el) * Math.cos(b), centre[2] + d * Math.sin(el)], target: centre, fov: PLAN_FOV }
@@ -111,7 +118,7 @@ export const MAP_MODES: { id: MapMode; label: string; title: string }[] = [
   { id: 'observer', label: 'Observer', title: 'Look from a protected viewpoint (choose the view cone)' },
   { id: 'inspect', label: 'Inspect', title: 'The proposed tower in axonometric, close up; click a building for its height, type and sources' },
   { id: 'plan', label: 'Plan', title: 'North-up plan centred on the proposed tower, 1 km across · drag to pan' },
-  { id: 'axo', label: 'Axo', title: 'Axonometric: a parallel view from 45° above the study site, from one of four corners · drag to pan' },
+  { id: 'axo', label: 'Axo', title: 'Axonometric (plan oblique): the plan at its true shape turned 45°, heights true and vertical, from one of four corners · drag to pan' },
   { id: 'iso', label: 'Iso', title: 'Isometric: a parallel view from 35° above the study site, from one of four corners · drag to pan' },
   { id: 'north', label: 'North', title: 'North elevation: level, parallel, cut at the street in front of the building · drag to pan' },
   { id: 'south', label: 'South', title: 'South elevation: level, parallel, cut at the street in front of the building · drag to pan' },

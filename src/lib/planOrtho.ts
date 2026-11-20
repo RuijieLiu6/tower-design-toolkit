@@ -4,7 +4,14 @@
 // before: just before each render its projection is replaced by the orthographic one that matches the perspective
 // scale at the target (half height = distance × tan(fov / 2)), so zoom and pan keep their feel. Picking follows: rays
 // from a plan camera are parallel (Raycaster.setFromCamera, patched once below for cameras flagged `planOrtho`).
+//
+// Axo (19 Nov, Sinnie: "is it a true axo view?") is a plan oblique: the camera looks straight down like the plan, so
+// the plan keeps its true shape (turned to the chosen corner), and a shear in the projection lifts every point up the
+// screen by its height (`camera.userData.shear` = 1: verticals vertical, at true length, the 45° / 45° axonometric).
+// Depth stays the camera's z (height), which orders points along a slanted projector correctly: the viewer is above.
 import * as THREE from 'three'
+
+const shearM = new THREE.Matrix4()
 
 type Ctl = { target: THREE.Vector3 }
 
@@ -13,6 +20,9 @@ export function applyPlanProjection(cam: THREE.PerspectiveCamera, target: THREE.
   const d = Math.max(1, cam.position.distanceTo(target))
   const h = d * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) / Math.max(1e-6, cam.zoom), w = h * cam.aspect
   cam.projectionMatrix.makeOrthographic(-w, w, h, -h, cam.near, cam.far)
+  const s = (cam.userData.shear as number | undefined) ?? 0
+  // y' = y + s · (z + d): the target (camera z = −d) stays put, a point H above it rises s · H on screen.
+  if (s) { shearM.set(1, 0, 0, 0, 0, 1, s, s * d, 0, 0, 1, 0, 0, 0, 0, 1); cam.projectionMatrix.multiply(shearM) }
   cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert()
 }
 
@@ -25,7 +35,8 @@ function patchRaycaster() {
     if (!camera.userData.planOrtho) return orig.call(this, coords, camera)
     const c = camera as THREE.PerspectiveCamera
     this.ray.origin.set(coords.x, coords.y, (c.near + c.far) / (c.near - c.far)).unproject(c)
-    this.ray.direction.set(0, 0, -1).transformDirection(c.matrixWorld)
+    // Along the projector: straight down, or slanted by the shear (points on one projector share a screen spot).
+    this.ray.direction.set(0, (c.userData.shear as number | undefined) ?? 0, -1).normalize().transformDirection(c.matrixWorld)
     this.camera = camera
   }
 }
@@ -45,6 +56,7 @@ export function startPlanOrtho(camera: THREE.Camera, scene: THREE.Scene, control
   invalidate()
   return () => {
     cam.userData.planOrtho = false
+    cam.userData.shear = 0
     scene.onBeforeRender = prev
     cam.updateProjectionMatrix()
     invalidate()

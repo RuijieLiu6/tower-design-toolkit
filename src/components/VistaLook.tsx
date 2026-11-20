@@ -30,7 +30,7 @@ import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth, northView, orientReq, upNorthDeg } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
 import { startPlanOrtho } from '../lib/planOrtho'
-import { axoCamera, CHROME, CORNER_WORD, CORNERS, ELEVATION_CUT_M, ELEVATIONS, elevationCamera, isElevation, ISO_ELEVATION_DEG, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type Corner, type MapMode } from '../lib/vistaLook'
+import { AXO_SHEAR, axoCamera, axoObliqueCamera, CHROME, CORNER_WORD, CORNERS, ELEVATION_CUT_M, ELEVATIONS, elevationCamera, isElevation, ISO_ELEVATION_DEG, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type Corner, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData, useCityObstacles } from './CityContext'
@@ -279,7 +279,7 @@ export function flyToFit(points: [number, number, number][], minSpan = 300) {
   // The chosen north up (Your site: true north or project north, lib/northView.ts).
   // The locked views keep their angle: the plan straight down, Axo / Iso their corner, an elevation its side.
   const corner = useVistaLook.getState().corner
-  const elevationDeg = mode === 'plan' ? 90 : mode === 'axo' ? 45 : mode === 'iso' ? ISO_ELEVATION_DEG : isElevation(mode) ? 1 : 60
+  const elevationDeg = mode === 'plan' || mode === 'axo' ? 90 : mode === 'iso' ? ISO_ELEVATION_DEG : isElevation(mode) ? 1 : 60
   const azimuthDeg = (mode === 'axo' || mode === 'iso' ? CORNERS[corner] : isElevation(mode) ? ELEVATIONS[mode] : 180) + upNorthDeg()
   flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg, azimuthDeg, minSpan }))
 }
@@ -761,7 +761,8 @@ function flatRequest(mode: MapMode, aspect: number, corner: Corner): { req: CamR
     return { req, plane }
   }
   if (mode === 'plan') return { req: orientReq(planCamera(centre, aspect)), plane: null }
-  return { req: axoCamera(centre, aspect, CORNERS[corner] + upNorthDeg(), mode === 'iso' ? ISO_ELEVATION_DEG : undefined), plane: null }
+  if (mode === 'axo') return { req: axoObliqueCamera(centre, aspect, CORNERS[corner] + upNorthDeg()), plane: null }
+  return { req: axoCamera(centre, aspect, CORNERS[corner] + upNorthDeg(), ISO_ELEVATION_DEG), plane: null }
 }
 
 export function PlanRig() {
@@ -816,6 +817,7 @@ export function PlanRig() {
   // axes stay to scale.
   useEffect(() => {
     if (!isFlat(mode) || !controls) return
+    camera.userData.shear = mode === 'axo' ? AXO_SHEAR : 0
     return startPlanOrtho(camera, scene, controls as unknown as { target: THREE.Vector3 }, invalidate)
   }, [mode, controls, camera, scene, invalidate])
 
