@@ -56,7 +56,6 @@ export function startPlanOrtho(camera: THREE.Camera, scene: THREE.Scene, control
   invalidate()
   return () => {
     cam.userData.planOrtho = false
-    cam.userData.shear = 0
     scene.onBeforeRender = prev
     cam.updateProjectionMatrix()
     invalidate()

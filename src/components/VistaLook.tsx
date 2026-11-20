@@ -207,6 +207,9 @@ export function useActiveMode(): MapMode {
 type CamReq = { position: [number, number, number]; target: [number, number, number]; fov: number }
 /** A smooth camera move run by VistaLookRig (ease in-out, about 0.9 s); grabbing the view stops it. */
 const flight = { from: null as CamReq | null, to: null as CamReq | null, start: 0, dur: 900 }
+/** The Axo shear (lib/planOrtho.ts) on its way between views, on the flight's clock and easing. */
+const shearTween = { from: 0, to: 0, now: 0, start: 0 }
+const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2)
 northView.stopFlight = () => { flight.to = null }
 const toModel = (p: THREE.Vector3): [number, number, number] => [p.x, -p.z, p.y]
 /** A camera request (a preset, "view from", a test) wins over a smooth move still on its way: the move stops. */
@@ -438,30 +441,30 @@ function ViewDrop({ id, word, on, options, active, pick, corners = false }: { id
                 className={`flex h-7 min-w-[5.5rem] items-center rounded-md px-2 text-left text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${checked ? 'bg-selected font-medium text-ink' : 'text-ink hover:bg-subtle'}`}>{label}</button>
             )
           })}
-          {/* The corners (a compass: NW NE over SW SE), each a row: the corner enters with the last projection, Axo or Iso
-              beside it chooses the projection. */}
+          {/* The corners (a compass: NW NE over SW SE): a corner enters the parallel view from there; one Axo | Iso toggle
+              under them sets the projection (19 Nov, Sinnie: "just make axo/iso a toggle"), and switches a corner view
+              in place. */}
           {corners && <span aria-hidden className="my-0.5 h-px bg-line" />}
           {corners && CORNER_IDS.map((c) => {
             const here = on && fromCorner && corner === c
-            const go = (p: 'axo' | 'iso') => { setOpen(false); useVistaLook.setState({ corner: c, parallel: p }); if (!(here && active === p)) pick(p) }
             return (
-              <div key={c} role="group" aria-label={`From the ${CORNER_WORD[c]}`} data-corner-row={c} className="flex items-center justify-between gap-2">
-                <button type="button" role="menuitemradio" aria-checked={here} data-corner={c} title={`A parallel view from the ${CORNER_WORD[c]} (${parallel === 'iso' ? 'isometric' : 'axonometric'})`}
-                  onClick={() => go(parallel)}
-                  className={`flex h-7 min-w-[5.5rem] items-center rounded-md px-2 text-left text-control uppercase outline-none focus-visible:ring-2 focus-visible:ring-accent ${here ? 'bg-selected font-medium text-ink' : 'text-ink hover:bg-subtle'}`}>{c}</button>
-                <div className="flex shrink-0 gap-0.5">
-                  {PARALLEL.map(([p, pl]) => {
-                    const hereP = here && active === p
-                    return (
-                      <button key={p} type="button" role="menuitemradio" aria-checked={hereP} data-view={p} data-corner={c} title={MAP_MODES.find((k) => k.id === p)?.title}
-                        onClick={() => go(p)}
-                        className={`flex h-6 items-center rounded px-1.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${hereP ? 'bg-selected font-medium text-ink' : 'text-muted hover:bg-subtle hover:text-ink'}`}>{pl}</button>
-                    )
-                  })}
-                </div>
-              </div>
+              <button key={c} type="button" role="menuitemradio" aria-checked={here} data-corner={c} title={`A parallel view from the ${CORNER_WORD[c]} (${parallel === 'iso' ? 'isometric' : 'axonometric'})`}
+                onClick={() => { setOpen(false); useVistaLook.setState({ corner: c }); if (!(here && active === parallel)) pick(parallel) }}
+                className={`flex h-7 min-w-[5.5rem] items-center rounded-md px-2 text-left text-control uppercase outline-none focus-visible:ring-2 focus-visible:ring-accent ${here ? 'bg-selected font-medium text-ink' : 'text-ink hover:bg-subtle'}`}>{c}</button>
             )
           })}
+          {corners && (
+            <div role="group" aria-label="Parallel projection" data-testid="parallel-toggle" className="mt-0.5 flex rounded-md bg-subtle p-0.5">
+              {PARALLEL.map(([p, pl]) => {
+                const onP = parallel === p
+                return (
+                  <button key={p} type="button" aria-pressed={onP} data-view={p} title={MAP_MODES.find((k) => k.id === p)?.title}
+                    onClick={() => { useVistaLook.setState({ parallel: p }); if (on && fromCorner && active !== p) pick(p) }}
+                    className={`flex h-6 flex-1 items-center justify-center rounded text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${onP ? 'bg-panel font-medium text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{pl}</button>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -817,7 +820,11 @@ export function PlanRig() {
   // axes stay to scale.
   useEffect(() => {
     if (!isFlat(mode) || !controls) return
-    camera.userData.shear = mode === 'axo' ? AXO_SHEAR : 0
+    // The shear eases from where it is to Axo's (1) or none, on the flight's clock, so Axo <-> Iso is one smooth move.
+    const to = mode === 'axo' ? AXO_SHEAR : 0
+    if (useStore.getState().reducedMotion) shearTween.now = to
+    shearTween.from = shearTween.now; shearTween.to = to; shearTween.start = performance.now()
+    camera.userData.shear = shearTween.now
     return startPlanOrtho(camera, scene, controls as unknown as { target: THREE.Vector3 }, invalidate)
   }, [mode, controls, camera, scene, invalidate])
 
@@ -832,6 +839,12 @@ export function PlanRig() {
   useFrame(() => {
     const ctl = controls, cam = camera as THREE.PerspectiveCamera
     if (!ctl) return
+    if (shearTween.now !== shearTween.to && cam.userData.planOrtho) {
+      const x = Math.min(1, (performance.now() - shearTween.start) / flight.dur)
+      shearTween.now = x >= 1 ? shearTween.to : shearTween.from + (shearTween.to - shearTween.from) * easeInOut(x)
+      cam.userData.shear = shearTween.now
+      invalidate()
+    }
     // A camera move in progress (flyTo): ease in-out on the clock, so a slow machine takes fewer, larger steps, not longer.
     if (flight.to && flight.from) {
       const x = Math.min(1, (performance.now() - flight.start) / flight.dur), e = x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
