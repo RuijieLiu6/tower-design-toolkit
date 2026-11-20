@@ -5,7 +5,7 @@
 import { ArrowLeft, ArrowRight, Check, Wand2, X } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { useTour } from '../lib/tour'
-import { PART_NAME, snapshot, TOUR, type Snap } from '../lib/tourSteps'
+import { snapshot, TOUR, type Snap } from '../lib/tourSteps'
 import { useStore } from '../store'
 
 const prefersReduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false } }
@@ -24,9 +24,7 @@ export default function TourOverlay() {
   const next = useRef<HTMLButtonElement>(null)
   const s = TOUR[step]
   const last = step === TOUR.length - 1
-  // The card counts within the part: Around the screen 1 of 8, then Try it 1 of 8.
-  const part = TOUR.filter((t) => t.part === s.part)
-  const at = part.indexOf(s)
+  const base = import.meta.env.BASE_URL
 
   // The target can appear late (lazy pages, the 3D view): measure until it is there, and keep it in view. The same
   // clock takes the step's starting state once the page has settled, then watches for the thing to be done.
@@ -81,14 +79,21 @@ export default function TourOverlay() {
           style={{ top: rect.top - pad, left: rect.left - pad, width: rect.width + pad * 2, height: rect.height + pad * 2, boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.18)', transition: motion }} />
       )}
       <div role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-body"
-        className="glass pointer-events-auto absolute bottom-6 left-1/2 w-[min(460px,calc(100vw-32px))] -translate-x-1/2 rounded-xl border border-line bg-panel p-4 text-ink shadow-2xl">
+        className="glass pointer-events-auto absolute bottom-6 left-1/2 w-[min(500px,calc(100vw-32px))] -translate-x-1/2 rounded-xl border border-line bg-panel p-4 text-ink shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-meta font-semibold text-accent">{PART_NAME[s.part]} · {at + 1} of {part.length}</p>
+            <p className="text-meta font-semibold text-accent">Tour · {step + 1} of {TOUR.length}</p>
             <h2 id="tour-title" className="mt-0.5 text-sm font-semibold">{s.title}</h2>
           </div>
           <button onClick={stop} aria-label="End the tour" className="rounded p-1 text-muted outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><X size={16} /></button>
         </div>
+        {/* The clip: the thing being done in this app, recorded headless (public/tour). A still under reduced motion. */}
+        {s.clip && (
+          <div className="mt-2 overflow-hidden rounded-lg border border-line bg-subtle" data-testid="tour-clip" aria-hidden>
+            {reduced ? <img src={`${base}tour/${s.clip}.png`} alt="" className="block aspect-[8/5] w-full object-cover" />
+              : <video key={s.clip} src={`${base}tour/${s.clip}.webm`} poster={`${base}tour/${s.clip}.png`} autoPlay loop muted playsInline className="block aspect-[8/5] w-full object-cover" />}
+          </div>
+        )}
         <p className={`mt-2 flex items-start gap-1.5 text-[13px] font-medium leading-snug ${done ? 'text-emerald-700' : 'text-ink'}`} data-testid="tour-ask" aria-live="polite">
           {done ? <Check size={15} className="mt-0.5 shrink-0" aria-hidden /> : <span className="mt-[5px] h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden />}
           <span>{done ? 'Done.' : s.ask}</span>
@@ -96,7 +101,7 @@ export default function TourOverlay() {
         <p id="tour-body" className="mt-1 text-[12px] leading-relaxed text-muted">{s.body}</p>
         <div className="mt-3 flex items-center gap-2 whitespace-nowrap">
           <div className="flex gap-1" aria-hidden>
-            {part.map((t, k) => <span key={t.id} className={`h-1.5 rounded-full ${k === at ? 'w-4 bg-accent' : k < at ? 'w-1.5 bg-accent/40' : 'w-1.5 bg-slate-300'}`} />)}
+            {TOUR.map((t, k) => <span key={t.id} className={`h-1.5 rounded-full ${k === step ? 'w-4 bg-accent' : k < step ? 'w-1.5 bg-accent/40' : 'w-1.5 bg-slate-300'}`} />)}
           </div>
           <button onClick={stop} className="ml-auto rounded-md px-2 py-1 text-xs text-muted outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">Skip tour</button>
           {s.doIt && !done && (
@@ -107,7 +112,7 @@ export default function TourOverlay() {
             className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs outline-none hover:border-accent disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-accent"><ArrowLeft size={13} aria-hidden />Back</button>
           <button ref={next} onClick={() => (last ? stop() : go(step + 1))} data-testid="tour-next"
             className="flex items-center gap-1 rounded-md bg-accent px-3 py-1 text-xs font-medium text-white outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
-            {last ? 'Start designing' : s.done && !done ? 'Skip step' : at === part.length - 1 ? 'Try it' : 'Next'}{!last && <ArrowRight size={13} aria-hidden />}
+            {last ? 'Start designing' : s.done && !done ? 'Skip step' : 'Next'}{!last && <ArrowRight size={13} aria-hidden />}
           </button>
         </div>
       </div>
