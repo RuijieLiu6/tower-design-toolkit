@@ -13,6 +13,10 @@ const prefersReduced = () => { try { return window.matchMedia('(prefers-reduced-
 const SETTLE_MS = 600
 /** A done step moves on by itself after this long, so the person sees the tick. */
 const ADVANCE_MS = 900
+/** The card's width (px), set by pulling its edges; 500 to start, 360 to 1100. */
+const WIDTH_KEY = 'ts.tour.width'
+const clampWidth = (w: number) => Math.round(Math.min(1100, Math.max(360, w)))
+const savedWidth = () => { try { const v = Number(localStorage.getItem(WIDTH_KEY)); return v ? clampWidth(v) : 500 } catch { return 500 } }
 
 export default function TourOverlay() {
   const { active, step, go, stop } = useTour()
@@ -25,6 +29,20 @@ export default function TourOverlay() {
   const s = TOUR[step]
   const last = step === TOUR.length - 1
   const base = import.meta.env.BASE_URL
+  const [width, setWidth] = useState(savedWidth)
+  // A drag on an edge: the card is centred, so moving one edge by d changes the width by 2d; the top edge counts
+  // through the clip's 8:5 proportion. Pointer capture keeps the drag when the pointer leaves the strip.
+  const dragEdge = (e: React.PointerEvent<HTMLDivElement>, side: 'left' | 'right' | 'top') => {
+    e.preventDefault()
+    const el = e.currentTarget, x0 = e.clientX, y0 = e.clientY, w0 = width
+    el.setPointerCapture(e.pointerId)
+    const move = (ev: PointerEvent) => {
+      const d = side === 'right' ? (ev.clientX - x0) * 2 : side === 'left' ? (x0 - ev.clientX) * 2 : (y0 - ev.clientY) * 1.6
+      setWidth(clampWidth(w0 + d))
+    }
+    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); setWidth((w) => { try { localStorage.setItem(WIDTH_KEY, String(w)) } catch { /* this visit only */ } return w }) }
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up)
+  }
 
   // The target can appear late (lazy pages, the 3D view): measure until it is there, and keep it in view. The same
   // clock takes the step's starting state once the page has settled, then watches for the thing to be done.
@@ -71,6 +89,7 @@ export default function TourOverlay() {
   if (!active) return null
   const pad = 6
   const motion = reduced ? 'none' : 'top 250ms ease, left 250ms ease, width 250ms ease, height 250ms ease'
+  const edge = 'absolute z-10 pointer-events-auto'
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[60]" data-testid="tour" data-tour-step={s.id} data-tour-done={done || undefined}>
@@ -78,8 +97,14 @@ export default function TourOverlay() {
         <div className={`absolute rounded-lg ring-2 ring-offset-2 ${done ? 'ring-emerald-500' : 'ring-accent'}`} aria-hidden
           style={{ top: rect.top - pad, left: rect.left - pad, width: rect.width + pad * 2, height: rect.height + pad * 2, boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.18)', transition: motion }} />
       )}
-      <div role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-body"
-        className="glass pointer-events-auto absolute bottom-6 left-1/2 w-[min(500px,calc(100vw-32px))] -translate-x-1/2 rounded-xl border border-line bg-panel p-4 text-ink shadow-2xl">
+      <div role="dialog" aria-modal="false" aria-labelledby="tour-title" aria-describedby="tour-body" data-testid="tour-card"
+        className="glass pointer-events-auto absolute bottom-6 left-1/2 -translate-x-1/2 rounded-xl border border-line bg-panel p-4 text-ink shadow-2xl"
+        style={{ width: `min(${width}px, calc(100vw - 32px))` }}>
+        {/* The card's edges push and pull (20 Nov, Sinnie: "make the window expandable"): the left and right edges set
+            its width, the top edge too (the clip keeps its proportion, so the whole card grows). Remembered in this browser. */}
+        <div className={`${edge} inset-y-0 -left-1 w-2 cursor-ew-resize`} data-testid="tour-edge-left" onPointerDown={(e) => dragEdge(e, 'left')} aria-hidden />
+        <div className={`${edge} inset-y-0 -right-1 w-2 cursor-ew-resize`} data-testid="tour-edge-right" onPointerDown={(e) => dragEdge(e, 'right')} aria-hidden />
+        <div className={`${edge} inset-x-0 -top-1 h-2 cursor-ns-resize`} data-testid="tour-edge-top" onPointerDown={(e) => dragEdge(e, 'top')} aria-hidden />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-meta font-semibold text-accent">Tour · {step + 1} of {TOUR.length}</p>
