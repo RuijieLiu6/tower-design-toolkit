@@ -13,6 +13,11 @@ import { boardsPdf } from '../../lib/boardPdf'
 import { sheetMm } from '../../engine/boards'
 import { boardFileStem, boardName } from '../../engine/boards'
 import { useBoardStore } from '../../lib/boardStore'
+import { useStore } from '../../store'
+import { useTransfer } from '../../lib/porting/transfer'
+import { Box, HardDrive, Workflow } from '../icons'
+import { EXPORTS, forProject, type ExportPurpose } from '../../lib/porting/capabilities'
+import IconTile from '../IconTile'
 import { FlagChip, StateChip } from '../ui'
 import SubmissionChecklist from '../workflow/SubmissionChecklist'
 
@@ -131,14 +136,69 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
   }
 
   const used = boards.filter(isBoardUsed).length
+  const other = forProject(EXPORTS, useStore.getState().project).filter((c) => c.enabled && c.key !== 'results')
+  const ICONS: Partial<Record<ExportPurpose, typeof Box>> = { geometry: Box, backup: HardDrive, workflow: Workflow }
   return (
     <div className="grid gap-5 p-3 text-slate-200">
-      <SubmissionChecklist />
+      {/* Export first (Sinnie, 20 Nov: the format and Export buttons had sunk under the checks): the format, the size,
+          every sheet in one go or one at a time; the model and the project go out through the transfer centre. */}
+      <section aria-label="Export">
+        <div className={H}>Export the sheets</div>
+        <div role="radiogroup" aria-label="Export format" className="mb-2 flex gap-1 rounded-md border border-white/15 p-0.5" data-testid="export-format">
+          {(['jpeg', 'png', 'pdf'] as const).map((f) => (
+            <button key={f} type="button" role="radio" aria-checked={format === f} onClick={() => setFormat(f)} data-format={f}
+              className={`flex-1 rounded px-2 py-1 text-xs ${format === f ? 'bg-white/15 font-semibold text-white' : 'text-slate-300 hover:bg-white/5'}`}>{FORMAT_WORD[f]}</button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <select value={dpi} onChange={(e) => setDpi(Number(e.target.value) as 150 | 200)} aria-label="Export resolution" className="rounded border border-white/15 bg-slate-900 px-2 py-1 text-xs">
+            <option value={150}>150 dpi (3508 × 2480 px)</option>
+            <option value={200}>200 dpi (4677 × 3307 px)</option>
+          </select>
+          <button type="button" disabled={!!busy || used === 0} onClick={() => runExport(boards.map((_, i) => i))} className="flex flex-1 items-center justify-center gap-1.5 rounded bg-sky-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-50">
+            {busy ? <><Loader2 size={13} className="animate-spin" />{busy}…</> : <><Download size={13} />{format === 'pdf' ? `Export ${used} board${used === 1 ? '' : 's'} as one PDF` : `Export ${used} ${FORMAT_WORD[format]}${used === 1 ? '' : 's'}`}</>}
+          </button>
+        </div>
+        <p className="mt-1 text-meta text-slate-400">{FORMAT_NOTE[format]} File names come from the board names and order (01-site-strategy); keep identifying words out of them.</p>
+        {saved && <p role="status" data-testid="export-saved" className="mt-1 text-meta text-sky-200">{saved}</p>}
+        {error && <p className="mt-1 text-meta text-red-300">{error}</p>}
+        <ul className="mt-2 grid gap-1" aria-label="One sheet at a time">
+          {boards.map((b, i) => (
+            <li key={b.id} className="grid gap-1">
+              <button type="button" disabled={!!busy || !isBoardUsed(b)} onClick={() => runExport([i])} data-testid="export-one"
+                className="flex items-center gap-1.5 rounded border border-white/15 px-2 py-1 text-left text-meta hover:border-sky-400 disabled:opacity-40">
+                <Download size={12} className="shrink-0" /><span className="min-w-0 flex-1 truncate">Export {boardName(b, i)} as {FORMAT_WORD[format]}</span>
+                {!isBoardUsed(b) && <span className="text-slate-500">empty</span>}
+              </button>
+              {exports[b.id] && (
+                <div className="rounded border border-sky-400/30 p-1.5">
+                  <div className="mb-1 text-meta text-sky-200" data-testid="export-line" data-export-fonts={exports[b.id].fonts?.join(', ')}>Exported {exports[b.id].name}: {(exports[b.id].bytes / 1e6).toFixed(2)} MB at {exports[b.id].dpi} dpi, quality {Math.round(exports[b.id].quality * 100)}{exports[b.id].fonts ? ` · ${exports[b.id].fonts!.map((f) => f.replace(' Variable', '')).join(', ')}` : ''}{exports[b.id].missingFonts?.length ? <span className="ml-1 text-amber-300" data-testid="export-font-fallback"> · {exports[b.id].missingFonts!.join(', ')} did not load: drawn with Inter</span> : null}</div>
+                  <div className="grid gap-1">{exports[b.id].rules.map((r) => <RuleRow key={r.id} r={r} />)}</div>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-label="Export the model">
+        <div className={H}>Export the model</div>
+        <div className="flex flex-wrap gap-0.5" data-testid="export-other">
+          {other.map((c) => (
+            <IconTile key={c.key} size="sm" className="w-[5.75rem]!" icon={ICONS[c.key] ?? Box} word={c.short} label={c.title} hint={c.purpose} data-testid={`export-other-${c.key}`}
+              onClick={(e) => useTransfer.getState().open('export', e.currentTarget, { purpose: c.key })} />
+          ))}
+        </div>
+        <p className="mt-1 text-meta text-slate-400">Geometry as Rhino .3dm, OBJ + MTL or glTF .glb; the project or the open workflow as .json. Opens the transfer centre, which shows what the file will hold.</p>
+      </section>
+
       <section aria-label="Upload status" className={`rounded-md border p-2.5 ${open.length ? 'border-amber-400/40 bg-amber-400/10' : 'border-emerald-400/40 bg-emerald-400/10'}`}>
         <div className="flex items-center gap-2 text-sm font-semibold">{open.length ? <ShieldAlert size={15} className="text-amber-300" /> : <CheckCircle2 size={15} className="text-emerald-300" />}{open.length ? `Not ready to upload: ${open.length} open` : 'Ready to upload'}</div>
         <p className="mt-1 text-meta text-slate-300">{open.length ? 'Export early, upload once: after the first upload, changes need a paid reactivation (Terms 4.7, per research).' : 'Upload the four JPEGs yourself at the Buildner panel, once. This tool never uploads.'}</p>
         {open.length > 0 && <ul className="mt-1.5 max-h-28 list-disc overflow-y-auto pl-4 text-meta text-slate-200">{open.slice(0, 40).map((o, i) => <li key={i}>{o}</li>)}</ul>}
       </section>
+
+      <SubmissionChecklist />
 
       <section aria-label="Deadline">
         <div className={H}>Deadline</div>
@@ -164,41 +224,9 @@ export default function SubmissionPanel({ evidence, overflow }: { evidence: Reco
       {boards.map((b, i) => (
         <section key={b.id} aria-label={`${boardName(b, i)} checks`}>
           <div className={H}>{boardName(b, i)}{isBoardUsed(b) ? '' : ' · empty'}</div>
-          <div className="grid gap-1.5">
-            {perBoard[i].map((r) => <RuleRow key={r.id} r={r} />)}
-            {exports[b.id] && (
-              <div className="rounded border border-sky-400/30 p-1.5">
-                <div className="mb-1 text-meta text-sky-200" data-testid="export-line" data-export-fonts={exports[b.id].fonts?.join(', ')}>Exported {exports[b.id].name}: {(exports[b.id].bytes / 1e6).toFixed(2)} MB at {exports[b.id].dpi} dpi, quality {Math.round(exports[b.id].quality * 100)}{exports[b.id].fonts ? ` · ${exports[b.id].fonts!.map((f) => f.replace(' Variable', '')).join(', ')}` : ''}{exports[b.id].missingFonts?.length ? <span className="ml-1 text-amber-300" data-testid="export-font-fallback"> · {exports[b.id].missingFonts!.join(', ')} did not load: drawn with Inter</span> : null}</div>
-                <div className="grid gap-1">{exports[b.id].rules.map((r) => <RuleRow key={r.id} r={r} />)}</div>
-              </div>
-            )}
-            {isBoardUsed(b) && <button type="button" disabled={!!busy} onClick={() => runExport([i])} className="flex items-center justify-center gap-1.5 rounded border border-white/15 px-2 py-1 text-meta hover:border-sky-400 disabled:opacity-50"><Download size={12} />Export {boardName(b, i)} as {FORMAT_WORD[format]}</button>}
-          </div>
+          <div className="grid gap-1.5">{perBoard[i].map((r) => <RuleRow key={r.id} r={r} />)}</div>
         </section>
       ))}
-
-      <section aria-label="Export">
-        <div className={H}>Export all</div>
-        <div role="radiogroup" aria-label="Export format" className="mb-2 flex gap-1 rounded-md border border-white/15 p-0.5" data-testid="export-format">
-          {(['jpeg', 'png', 'pdf'] as const).map((f) => (
-            <button key={f} type="button" role="radio" aria-checked={format === f} onClick={() => setFormat(f)} data-format={f}
-              className={`flex-1 rounded px-2 py-1 text-xs ${format === f ? 'bg-white/15 font-semibold text-white' : 'text-slate-300 hover:bg-white/5'}`}>{FORMAT_WORD[f]}</button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <select value={dpi} onChange={(e) => setDpi(Number(e.target.value) as 150 | 200)} aria-label="Export resolution" className="rounded border border-white/15 bg-slate-900 px-2 py-1 text-xs">
-            <option value={150}>150 dpi (3508 × 2480 px)</option>
-            <option value={200}>200 dpi (4677 × 3307 px)</option>
-          </select>
-          <button type="button" disabled={!!busy || used === 0} onClick={() => runExport(boards.map((_, i) => i))} className="flex flex-1 items-center justify-center gap-1.5 rounded bg-sky-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-50">
-            {busy ? <><Loader2 size={13} className="animate-spin" />{busy}…</> : <><Download size={13} />{format === 'pdf' ? `Export ${used} board${used === 1 ? '' : 's'} as one PDF` : `Export ${used} ${FORMAT_WORD[format]}${used === 1 ? '' : 's'}`}</>}
-          </button>
-        </div>
-        <p className="mt-1 text-meta text-slate-400">{FORMAT_NOTE[format]} File names come from the board names and order (01-site-strategy); keep identifying words out of them.</p>
-        {saved && <p role="status" data-testid="export-saved" className="mt-1 text-meta text-sky-200">{saved}</p>}
-        {error && <p className="mt-1 text-meta text-red-300">{error}</p>}
-      </section>
-
       <section aria-label="Deliverables">
         <div className={H}>Brief's suggested set (p.30)</div>
         <table className="w-full text-meta">
