@@ -1,31 +1,13 @@
-// A short guided tour for the mid review: landing → Massing → Schematic → Present → Real Vancouver → Customize →
-// Build status. Each step moves the app (route, project, stage) and points at one element. Skippable at every step.
+// The interactive tour (Sinnie, 20 Nov: "an interactive demo tour to the site for new users landing on the site"):
+// eight steps (lib/tourSteps.ts), each asks for one thing to do in the real app and moves on when it is done. New
+// visitors are offered it once on the cover (components/TourInvite.tsx); it is always one click away in the top bar's
+// More menu and on the start page under Other ways in. This module stays light: the steps, which reach into the
+// app's stores, load when the tour starts.
 import { create } from 'zustand'
-import { useStore, type Phase, type ProjectKind } from '../store'
+import { useStore } from '../store'
 import { DEMO_FILE, DEMO_NAME } from './demo'
-import { navigate, type Route } from './route'
-
-export interface TourStep {
-  id: string
-  title: string
-  body: string
-  route: Route
-  project?: ProjectKind
-  stage?: Phase
-  /** Element to point at (CSS selector); the card sits away from it. */
-  target?: string
-}
-
-export const TOUR: TourStep[] = [
-  { id: 'start', route: 'start', title: 'Start from who you are', body: 'Tell the agent who you are and what you are designing; it offers starting workflows of analysis nodes around one shared model. The guided process and Customize run the same nodes, and every result cites its source.' },
-  { id: 'massing', route: 'guided', project: 'vtc', stage: 'basic', target: 'aside[aria-label="Design tools"]', title: 'Massing: shape the volume', body: 'The demo has two towers on the competition block. The design tools on the left shape them; the checks are the tools in the Workflow list above them, and they run live as you change the design.' },
-  { id: 'evidence', route: 'guided', project: 'vtc', stage: 'basic', target: 'aside[aria-label="Results and evidence"]', title: 'Read every result with its evidence', body: 'Each line shows a value, the threshold, its source with page or clause, and a flag in icon and word: verified, team assumption, unverified, unresolved. False assumptions stay visible in magenta.' },
-  { id: 'schematic', route: 'guided', project: 'vtc', stage: 'advanced', target: '[data-viewport]', title: 'Schematic: can it be built?', body: 'The clay turns into an x-ray axonometric: floor plates, core, lifts, stairs and plant. The core sizes itself to the lift and egress checks; the sky lobby in Tower 1 opens a free public room.' },
-  { id: 'present', route: 'guided', project: 'vtc', stage: 'present', target: '[data-viewport]', title: 'Present: compose the boards', body: 'The model locks and an A2 frame shows exactly what a capture will hold. Captures carry their evidence labels onto the boards.' },
-  { id: 'city', route: 'guided', project: 'city', stage: 'basic', target: '[data-viewport]', title: 'Real Vancouver', body: 'The same tower placed downtown, with City footprints, terrain and the 24 protected view cones. Switch on "Solar access & sun hours" to run the Downtown shadow test on the real Table-1 parks.' },
-  { id: 'customize', route: 'customize', target: '[role="tablist"][aria-label="Node categories"]', title: 'Customize: your own workflow', body: 'Every node as an icon, by category. Drag them onto the canvas, wire them, add logic (all pass, weighted score, compare options), and run the workflow in the guided app. Community has shared nodes to install.' },
-  { id: 'status', route: 'status', title: 'What is built, what is next', body: 'Build status counts built and researched nodes by category, stage and milestone, straight from the registry. That is the end of the tour.' },
-]
+import { navigate } from './route'
+import type { TourStep } from './tourSteps'
 
 interface TourState {
   active: boolean
@@ -37,13 +19,8 @@ interface TourState {
   stop: () => void
 }
 
-function apply(s: TourStep) {
-  const st = useStore.getState()
-  if (s.project && st.project !== s.project) st.setProject(s.project)
-  if (s.stage && useStore.getState().phase !== s.stage) useStore.getState().setPhase(s.stage)
-  useStore.setState({ showOnboarding: false })
-  navigate(s.route)
-}
+let steps: { TOUR: TourStep[]; apply: (s: TourStep) => void } | null = null
+const loadSteps = async () => (steps ??= await import('./tourSteps'))
 
 /**
  * Open the demo file as one undoable step. From the landing page the guided app hasn't restored the last autosave or
@@ -57,25 +34,26 @@ async function loadDemo(): Promise<boolean> {
   try { return await openText(text, DEMO_NAME) } finally { stop() }
 }
 
+/** Once offered (taken or declined), the cover does not offer the tour again in this browser. */
+const OFFERED = 'ts.tour.offered'
+export const tourOffered = () => { try { return window.localStorage.getItem(OFFERED) === '1' } catch { return true } }
+export const markTourOffered = () => { try { window.localStorage.setItem(OFFERED, '1') } catch { /* private mode: offered again next visit */ } }
+
 export const useTour = create<TourState>((set, get) => ({
   active: false,
   step: 0,
   loading: false,
   start: async (opts = {}) => {
-    if (opts.demo) {
-      set({ loading: true })
-      try {
-        await loadDemo()
-      } catch { /* the tour still runs on the current design */ }
-      set({ loading: false })
-    }
-    set({ active: true, step: 0 })
-    apply(TOUR[0])
+    markTourOffered()
+    set({ loading: true })
+    const [m] = await Promise.all([loadSteps(), opts.demo ? loadDemo().catch(() => false) : Promise.resolve(true)])
+    m.apply(m.TOUR[0])
+    set({ loading: false, active: true, step: 0 })
   },
   go: (step) => {
-    if (step < 0 || step >= TOUR.length) { get().stop(); return }
+    if (!steps || step < 0 || step >= steps.TOUR.length) { get().stop(); return }
     set({ step })
-    apply(TOUR[step])
+    steps.apply(steps.TOUR[step])
   },
   stop: () => set({ active: false, step: 0 }),
 }))

@@ -17,6 +17,7 @@ const Options = lazy(() => import('./pages/Options'))
 const Sources = lazy(() => import('./pages/Sources'))
 const Guide = lazy(() => import('./pages/Guide'))
 const TourOverlay = lazy(() => import('./components/TourOverlay'))
+const TourInvite = lazy(() => import('./components/TourInvite'))
 
 // Offline app: the service worker of a production build, and the browser's install offer (lib/pwa/install.ts).
 startOffline()
@@ -44,9 +45,12 @@ function Page(): ReactNode {
 
 export default function Root() {
   const tour = useTour((s) => s.active)
+  const route = useRoute()
   return (
     <>
       <Page />
+      {/* A new visitor is offered the tour once, on the cover (components/TourInvite.tsx). */}
+      {route === 'start' && !tour && <Suspense fallback={null}><TourInvite /></Suspense>}
       {tour && <Suspense fallback={null}><TourOverlay /></Suspense>}
     </>
   )
