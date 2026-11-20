@@ -30,7 +30,7 @@ import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth, northView, orientReq, upNorthDeg } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
 import { startPlanOrtho } from '../lib/planOrtho'
-import { axoCamera, CHROME, ELEVATION_CUT_M, ELEVATIONS, elevationCamera, isElevation, ISO_ELEVATION_DEG, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
+import { axoCamera, CHROME, CORNER_WORD, CORNERS, ELEVATION_CUT_M, ELEVATIONS, elevationCamera, isElevation, ISO_ELEVATION_DEG, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type Corner, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData, useCityObstacles } from './CityContext'
@@ -277,7 +277,11 @@ export function flyToFit(points: [number, number, number][], minSpan = 300) {
   if (mode === 'inspect' || mode === 'observer') useVistaLook.setState({ mode: 'city', inspected: null, note: null })
   const insets = overlayInsets()
   // The chosen north up (Your site: true north or project north, lib/northView.ts).
-  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg: mode === 'plan' ? 90 : mode === 'axo' ? 45 : mode === 'iso' ? ISO_ELEVATION_DEG : 60, azimuthDeg: 180 + upNorthDeg(), minSpan }))
+  // The locked views keep their angle: the plan straight down, Axo / Iso their corner, an elevation its side.
+  const corner = useVistaLook.getState().corner
+  const elevationDeg = mode === 'plan' ? 90 : mode === 'axo' ? 45 : mode === 'iso' ? ISO_ELEVATION_DEG : isElevation(mode) ? 1 : 60
+  const azimuthDeg = (mode === 'axo' || mode === 'iso' ? CORNERS[corner] : isElevation(mode) ? ELEVATIONS[mode] : 180) + upNorthDeg()
+  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg, azimuthDeg, minSpan }))
 }
 
 /** Observer: the eye at a protected viewpoint (the City's Lv), looking along the cone's axis; the tower framed if inside. */
@@ -376,13 +380,16 @@ function AngleButtons() {
 export const isFlat = (m: MapMode) => m === 'plan' || m === 'axo' || m === 'iso' || isElevation(m)
 
 const TWO_D = [['plan', 'Plan'], ['north', 'North'], ['south', 'South'], ['east', 'East'], ['west', 'West']] as const
-const THREE_D = [['city', 'Free'], ['axo', 'Axo'], ['iso', 'Iso']] as const
+const THREE_D = [['city', 'Perspective'], ['axo', 'Axo'], ['iso', 'Iso']] as const
+const CORNER_IDS = ['nw', 'ne', 'sw', 'se'] as const
 
 /**
  * The 2D / 3D switch (12 Nov, Sinnie: "for plan, can you change it to a 2D/3D"), always in the view bar on both sites
  * (19 Nov, "wheres my 2d/3d view toggle"). Each is a drop-down (19 Nov, "i want the free axo iso to be like a drop down
  * from 3d; for 2d, plan, north, south, east, west"): 2D holds the plan and the four elevations, 3D holds Free (the
- * perspective orbit), Axo and Iso. The pressed one shows its option.
+ * perspective orbit), Axo and Iso, each from one of four corners. The pressed one shows its option. Every view but
+ * Perspective is locked (19 Nov, Sinnie: "users shouldn't be able to suddenly go back to a perspective view"): the
+ * camera cannot be turned, and Frame, a picked neighbourhood and the view's own re-centre keep the angle.
  */
 export function PlanSwitch() {
   const active = useActiveMode()
@@ -391,13 +398,15 @@ export function PlanSwitch() {
   return (
     <div role="group" aria-label="2D or 3D" data-testid="view-2d3d" className="flex rounded-lg bg-subtle p-0.5">
       <ViewDrop id="2d" word="2D" on={twoD} options={TWO_D} active={active} pick={(m) => chooseMode(m, defaultCone)} />
-      <ViewDrop id="3d" word="3D" on={!twoD} options={THREE_D} active={active} pick={(m) => chooseMode(m, defaultCone)} />
+      <ViewDrop id="3d" word="3D" on={!twoD} options={THREE_D} active={active} pick={(m) => chooseMode(m, defaultCone)} corners={['axo', 'iso']} />
     </div>
   )
 }
 
-function ViewDrop({ id, word, on, options, active, pick }: { id: '2d' | '3d'; word: string; on: boolean; options: readonly (readonly [MapMode, string])[]; active: MapMode; pick: (m: MapMode) => void }) {
+function ViewDrop({ id, word, on, options, active, pick, corners = [] }: { id: '2d' | '3d'; word: string; on: boolean; options: readonly (readonly [MapMode, string])[]; active: MapMode; pick: (m: MapMode) => void; corners?: MapMode[] }) {
   const [open, setOpen] = useState(false)
+  const corner = useVistaLook((s) => s.corner)
+  const setCorner = (c: Corner) => useVistaLook.setState({ corner: c })
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
@@ -412,17 +421,34 @@ function ViewDrop({ id, word, on, options, active, pick }: { id: '2d' | '3d'; wo
       <button type="button" aria-pressed={on} aria-haspopup="menu" aria-expanded={open} data-angle={id === '2d' ? 'plan' : '3d'} data-testid={`view-${id}`}
         title={id === '2d' ? 'The 2D views: the plan and the four elevations' : 'The 3D views: free, axonometric, isometric'} onClick={() => setOpen((v) => !v)}
         className={`flex h-7 items-center gap-1 rounded-md pl-2 pr-1 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-panel font-medium text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>
-        {word}{cur && cur[0] !== 'city' && <span className="font-normal text-muted">· {cur[1]}</span>}
+        {word}{cur && cur[0] !== 'city' && <span className="font-normal text-muted">· {cur[1]}{corners.includes(cur[0]) && ` ${corner.toUpperCase()}`}</span>}
         <ChevronDown size={12} aria-hidden className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div role="menu" aria-label={`${word} views`} data-testid={`view-${id}-menu`} className="absolute left-0 top-full z-30 mt-1.5 grid min-w-[7rem] gap-0.5 rounded-lg border border-line bg-panel p-1 shadow-float">
+        <div role="menu" aria-label={`${word} views`} data-testid={`view-${id}-menu`} className="absolute left-0 top-full z-30 mt-1.5 grid w-max min-w-[7rem] gap-0.5 rounded-lg border border-line bg-panel p-1 shadow-float">
           {options.map(([m, label]) => {
             const checked = on && active === m
-            return (
-              <button key={m} type="button" role="menuitemradio" aria-checked={checked} data-view={m} title={MAP_MODES.find((k) => k.id === m)?.title}
+            const item = (
+              <button type="button" role="menuitemradio" aria-checked={checked} data-view={m} title={MAP_MODES.find((k) => k.id === m)?.title}
                 onClick={() => { setOpen(false); if (!checked) pick(m) }}
-                className={`flex h-7 items-center rounded-md px-2 text-left text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${checked ? 'bg-selected font-medium text-ink' : 'text-ink hover:bg-subtle'}`}>{label}</button>
+                className={`flex h-7 min-w-[5.5rem] items-center rounded-md px-2 text-left text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${checked ? 'bg-selected font-medium text-ink' : 'text-ink hover:bg-subtle'}`}>{label}</button>
+            )
+            if (!corners.includes(m)) return <div key={m} className="flex">{item}</div>
+            // Axo and Iso: the view, then the four corners it can look from (a compass: NW NE over SW SE).
+            return (
+              <div key={m} className="flex items-center justify-between gap-2">
+                {item}
+                <div role="group" aria-label={`${label} from`} data-corners={m} className="grid shrink-0 grid-cols-2 gap-0.5">
+                  {CORNER_IDS.map((c) => {
+                    const here = checked && corner === c
+                    return (
+                      <button key={c} type="button" role="menuitemradio" aria-checked={here} data-corner={c} title={`${label} from the ${CORNER_WORD[c]}`}
+                        onClick={() => { setOpen(false); setCorner(c); if (!checked) pick(m) }}
+                        className={`flex h-6 w-8 items-center justify-center rounded text-meta uppercase outline-none focus-visible:ring-2 focus-visible:ring-accent ${here ? 'bg-selected font-medium text-ink' : 'text-muted hover:bg-subtle hover:text-ink'}`}>{c}</button>
+                    )
+                  })}
+                </div>
+              </div>
             )
           })}
         </div>
@@ -506,6 +532,9 @@ function zoom(f: number) {
 
 function focusSite() {
   const s = useStore.getState()
+  // A locked view (2D, Axo, Iso) re-centres on the study site at its own angle.
+  const m = useVistaLook.getState().mode
+  if (isFlat(m)) { flyTo(flatRequest(m, viewAspect(), useVistaLook.getState().corner).req); return }
   const t = s.towers.city.find((k) => k.id === s.selectedTower) ?? s.towers.city[0]
   const cam = live.camera, ctl = live.ctl
   // No tower yet (Massing starts on a cleared site): frame the site instead of doing nothing (16 Nov, Sinnie: "the zoom
@@ -514,7 +543,6 @@ function focusSite() {
   if (!cam || !ctl) return
   const target: [number, number, number] = [t.x, t.y, s.groundElevation + t.height / 2]
   const d = THREE.MathUtils.clamp(t.height * 3.2 + 250, 350, 3000)
-  if (useVistaLook.getState().mode === 'plan') { s.set({ cameraRequest: { position: [t.x, t.y - 0.01, s.groundElevation + d * 2.4], target, fov: 20 } }); return }
   // Keep the bearing and the tilt of the current view.
   const off = cam.position.clone().sub(ctl.target).normalize()
   const dir = new THREE.Vector3(off.x, -off.z, off.y) // three -> model
@@ -708,10 +736,28 @@ const v3 = new THREE.Vector3(), n3 = new THREE.Vector3()
  * parallel projection, left-drag pans; leaving it restores the view before. CityScene mounts it through VistaLookRig,
  * VtcScene on its own.
  */
+/** The camera of a locked view, and for an elevation the plane that cuts the street in front of the building. */
+function flatRequest(mode: MapMode, aspect: number, corner: Corner): { req: CamReq; plane: THREE.Plane | null } {
+  const centre = studyCentre()
+  if (isElevation(mode)) {
+    // The study tower's size sets the frame and where the cut sits: its face plus the pavement and half the street.
+    const s = useStore.getState(), list = s.towers[s.project], tw = list.find((k) => k.id === s.selectedTower) ?? list[0]
+    const across = tw ? Math.max(tw.width, tw.depth) : 120, height = tw ? tw.height : 120
+    const bearing = ELEVATIONS[mode] + upNorthDeg(), rad = THREE.MathUtils.degToRad(bearing)
+    const req = elevationCamera([centre[0], centre[1], centre[2] + height / 2], aspect, bearing, { w: across * 2.4, h: height * 1.25 })
+    const cut = [centre[0] + Math.sin(rad) * (across / 2 + ELEVATION_CUT_M), centre[1] + Math.cos(rad) * (across / 2 + ELEVATION_CUT_M), centre[2]] as const
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(-Math.sin(rad), 0, Math.cos(rad)).normalize(), toThree(cut[0], cut[1], cut[2]))
+    return { req, plane }
+  }
+  if (mode === 'plan') return { req: orientReq(planCamera(centre, aspect)), plane: null }
+  return { req: axoCamera(centre, aspect, CORNERS[corner] + upNorthDeg(), mode === 'iso' ? ISO_ELEVATION_DEG : undefined), plane: null }
+}
+
 export function PlanRig() {
   const { camera, gl, scene, invalidate } = useThree()
   const controls = useThree((s) => s.controls) as unknown as Ctl | null
   const mode = useActiveMode()
+  const corner = useVistaLook((s) => s.corner)
   const phase = useStore((s) => s.phase)
   const saved = useRef<{ position: [number, number, number]; target: [number, number, number]; fov: number } | null>(null)
   const savedUp = useRef(0)
@@ -731,26 +777,17 @@ export function PlanRig() {
     if (!ctl || !isFlat(mode)) return
     if (!saved.current) { saved.current = { position: toModel(cam.position), target: toModel(ctl.target), fov: cam.fov }; savedUp.current = upNorthDeg() }
     const aspect = gl.domElement.clientWidth / Math.max(1, gl.domElement.clientHeight)
-    // The plan with the chosen north up (true north or project north, Your site); the isometric turned the same way.
-    const centre = studyCentre()
-    if (isElevation(mode)) {
-      // The study tower's size sets the frame and where the cut sits: its face plus the pavement and half the street.
-      const s = useStore.getState(), list = s.towers[s.project], tw = list.find((k) => k.id === s.selectedTower) ?? list[0]
-      const across = tw ? Math.max(tw.width, tw.depth) : 120, height = tw ? tw.height : 120
-      const bearing = ELEVATIONS[mode] + upNorthDeg(), rad = THREE.MathUtils.degToRad(bearing)
-      flyTo(elevationCamera([centre[0], centre[1], centre[2] + height / 2], aspect, bearing, { w: across * 2.4, h: height * 1.25 }))
-      // Everything between the eye and the street in front of the building is cut away (a renderer-wide plane).
-      const cut = [centre[0] + Math.sin(rad) * (across / 2 + ELEVATION_CUT_M), centre[1] + Math.cos(rad) * (across / 2 + ELEVATION_CUT_M), centre[2]] as const
-      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(-Math.sin(rad), 0, Math.cos(rad)).normalize(), toThree(cut[0], cut[1], cut[2]))
-      gl.clippingPlanes = [plane]
-      invalidate()
-    } else flyTo(mode === 'plan' ? orientReq(planCamera(centre, aspect)) : axoCamera(centre, aspect, upNorthDeg(), mode === 'iso' ? ISO_ELEVATION_DEG : undefined))
+    // The plan with the chosen north up (true north or project north, Your site), Axo / Iso from their corner, an
+    // elevation from its side with everything between the eye and the street in front of the building cut away.
+    const { req, plane } = flatRequest(mode, aspect, corner)
+    flyTo(req)
+    gl.clippingPlanes = plane ? [plane] : []
+    invalidate()
+    // Locked: no turning in any of them (19 Nov, Sinnie), left-drag pans.
     const buttons = { ...ctl.mouseButtons }, touches = { ...ctl.touches }
-    if (mode === 'plan' || isElevation(mode)) {
-      ctl.enableRotate = false
-      ctl.mouseButtons = { ...ctl.mouseButtons, LEFT: THREE.MOUSE.PAN }
-      ctl.touches = { ...ctl.touches, ONE: THREE.TOUCH.PAN }
-    }
+    ctl.enableRotate = false
+    ctl.mouseButtons = { ...ctl.mouseButtons, LEFT: THREE.MOUSE.PAN }
+    ctl.touches = { ...ctl.touches, ONE: THREE.TOUCH.PAN }
     return () => {
       ctl.enableRotate = true; ctl.mouseButtons = buttons; ctl.touches = touches
       if (gl.clippingPlanes.length) { gl.clippingPlanes = []; invalidate() }
@@ -762,7 +799,7 @@ export function PlanRig() {
       if (back && !flight.to && st.phase !== 'present' && (st.project === 'vtc' || (st.project === 'city' && next === 'inspect'))) flyTo(turnReq(back, upNorthDeg() - savedUp.current))
       saved.current = null
     }
-  }, [mode, controls, camera, gl, invalidate])
+  }, [mode, corner, controls, camera, gl, invalidate])
 
   // 2D is a true plan, Axo and Iso true axonometrics: a parallel projection (lib/planOrtho.ts), so no building leans and the
   // axes stay to scale.

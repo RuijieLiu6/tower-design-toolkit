@@ -74,9 +74,13 @@ export function planCamera(centre: [number, number, number], aspect: number): { 
  */
 export const AXO_ELEVATION_DEG = 45
 export const ISO_ELEVATION_DEG = 35.264
-export function axoCamera(centre: [number, number, number], aspect: number, northDeg = 0, elevationDeg = AXO_ELEVATION_DEG): { position: [number, number, number]; target: [number, number, number]; fov: number } {
+/** The four corners an Axo or Iso view looks from (bearing of the eye, clockwise from the chosen north). */
+export const CORNERS = { ne: 45, se: 135, sw: 225, nw: 315 } as const
+export type Corner = keyof typeof CORNERS
+export const CORNER_WORD: Record<Corner, string> = { ne: 'north-east', se: 'south-east', sw: 'south-west', nw: 'north-west' }
+export function axoCamera(centre: [number, number, number], aspect: number, bearingDeg: number, elevationDeg = AXO_ELEVATION_DEG): { position: [number, number, number]; target: [number, number, number]; fov: number } {
   const d = PLAN_WIDTH_M / 2 / (Math.tan(THREE.MathUtils.degToRad(PLAN_FOV / 2)) * Math.max(0.3, aspect))
-  const el = THREE.MathUtils.degToRad(elevationDeg), b = THREE.MathUtils.degToRad(135 + northDeg)
+  const el = THREE.MathUtils.degToRad(elevationDeg), b = THREE.MathUtils.degToRad(bearingDeg)
   return { position: [centre[0] + d * Math.cos(el) * Math.sin(b), centre[1] + d * Math.cos(el) * Math.cos(b), centre[2] + d * Math.sin(el)], target: centre, fov: PLAN_FOV }
 }
 
@@ -107,8 +111,8 @@ export const MAP_MODES: { id: MapMode; label: string; title: string }[] = [
   { id: 'observer', label: 'Observer', title: 'Look from a protected viewpoint (choose the view cone)' },
   { id: 'inspect', label: 'Inspect', title: 'The proposed tower in axonometric, close up; click a building for its height, type and sources' },
   { id: 'plan', label: 'Plan', title: 'North-up plan centred on the proposed tower, 1 km across · drag to pan' },
-  { id: 'axo', label: 'Axo', title: 'Axonometric: a parallel view from 45° above the study site · right-drag to turn · drag to pan' },
-  { id: 'iso', label: 'Iso', title: 'Isometric: a parallel view from 35° above the study site · right-drag to turn · drag to pan' },
+  { id: 'axo', label: 'Axo', title: 'Axonometric: a parallel view from 45° above the study site, from one of four corners · drag to pan' },
+  { id: 'iso', label: 'Iso', title: 'Isometric: a parallel view from 35° above the study site, from one of four corners · drag to pan' },
   { id: 'north', label: 'North', title: 'North elevation: level, parallel, cut at the street in front of the building · drag to pan' },
   { id: 'south', label: 'South', title: 'South elevation: level, parallel, cut at the street in front of the building · drag to pan' },
   { id: 'east', label: 'East', title: 'East elevation: level, parallel, cut at the street in front of the building · drag to pan' },
@@ -123,8 +127,8 @@ export const MODE_GESTURES: Record<MapMode, [string, string][]> = {
   observer: [['drag', 'look'], ['Esc', 'leave']],
   inspect: [['click', 'a building']],
   plan: [['drag', 'pan'], ['scroll', 'zoom']],
-  axo: [['right-drag', 'turn'], ['drag', 'pan'], ['scroll', 'zoom']],
-  iso: [['right-drag', 'turn'], ['drag', 'pan'], ['scroll', 'zoom']],
+  axo: [['drag', 'pan'], ['scroll', 'zoom']],
+  iso: [['drag', 'pan'], ['scroll', 'zoom']],
   north: [['drag', 'pan'], ['scroll', 'zoom']],
   south: [['drag', 'pan'], ['scroll', 'zoom']],
   east: [['drag', 'pan'], ['scroll', 'zoom']],
@@ -137,8 +141,8 @@ export const MODE_HINT: Record<MapMode, string> = {
   observer: 'Observer · from a protected viewpoint · drag to look around · Esc to leave.',
   inspect: 'Inspect · the proposed tower in axonometric · click a building for its height, type and sources.',
   plan: 'Plan · north up · drag to pan · scroll to zoom.',
-  axo: 'Axo · axonometric, parallel · right-drag to turn · drag to pan · scroll to zoom.',
-  iso: 'Iso · isometric, parallel · right-drag to turn · drag to pan · scroll to zoom.',
+  axo: 'Axo · axonometric, parallel, locked · drag to pan · scroll to zoom.',
+  iso: 'Iso · isometric, parallel, locked · drag to pan · scroll to zoom.',
   north: 'North · elevation, cut at the street · drag to pan · scroll to zoom.',
   south: 'South · elevation, cut at the street · drag to pan · scroll to zoom.',
   east: 'East · elevation, cut at the street · drag to pan · scroll to zoom.',
@@ -148,6 +152,8 @@ export const MODE_HINT: Record<MapMode, string> = {
 
 interface LookState {
   mode: MapMode
+  /** The corner Axo and Iso look from (19 Nov, Sinnie: "an option to choose from 4 angles"). */
+  corner: Corner
   /** "Colour buildings by type" (Layers), on by default (Ruijie, 3 Nov: "keep it colourful with legend while keep the colour light"). */
   typeColours: boolean
   /** Neighbourhood and landmark labels (Vista's "Place labels"). */
@@ -161,7 +167,7 @@ interface LookState {
  *  with buttons" over a quieter Site view). On by default: the names are how the Site step picks a neighbourhood. */
 const NAMES_KEY = 'ts.map.names'
 const namesOn = () => { try { return localStorage.getItem(NAMES_KEY) !== '0' } catch { return true } }
-export const useVistaLook = create<LookState>(() => ({ mode: 'city', typeColours: true, labels: namesOn(), inspected: null, note: null }))
+export const useVistaLook = create<LookState>(() => ({ mode: 'city', corner: 'se', typeColours: true, labels: namesOn(), inspected: null, note: null }))
 export function setPlaceNames(on: boolean) {
   useVistaLook.setState({ labels: on })
   try { localStorage.setItem(NAMES_KEY, on ? '1' : '0') } catch { /* private window: this session only */ }
