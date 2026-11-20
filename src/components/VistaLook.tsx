@@ -30,7 +30,7 @@ import { useViewFromStore } from '../lib/viewFromStore'
 import { faceNorth, northView, orientReq, upNorthDeg } from '../lib/northView'
 import { stepConeId } from '../lib/coneNav'
 import { startPlanOrtho } from '../lib/planOrtho'
-import { axoCamera, CHROME, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
+import { axoCamera, CHROME, ISO_ELEVATION_DEG, MAP_MODES, MODE_GESTURES, MODE_HINT, VISTA, VISTA_OVERVIEW, planCamera, setPlaceNames, setVistaFog, useVistaLook, type MapMode } from '../lib/vistaLook'
 import { controllingCone, hasEstimate, showAllCones, useConeVisibility } from '../lib/coneVisibility'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { useCityData, useCityObstacles } from './CityContext'
@@ -277,7 +277,7 @@ export function flyToFit(points: [number, number, number][], minSpan = 300) {
   if (mode === 'inspect' || mode === 'observer') useVistaLook.setState({ mode: 'city', inspected: null, note: null })
   const insets = overlayInsets()
   // The chosen north up (Your site: true north or project north, lib/northView.ts).
-  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg: mode === 'plan' ? 90 : mode === 'axo' ? 35.264 : 60, azimuthDeg: 180 + upNorthDeg(), minSpan }))
+  flyTo(fitPoints(points, { aspect: viewAspect(), insets: { ...insets, side: 0.03 }, elevationDeg: mode === 'plan' ? 90 : mode === 'axo' ? 45 : mode === 'iso' ? ISO_ELEVATION_DEG : 60, azimuthDeg: 180 + upNorthDeg(), minSpan }))
 }
 
 /** Observer: the eye at a protected viewpoint (the City's Lv), looking along the cone's axis; the tower framed if inside. */
@@ -362,7 +362,7 @@ function AngleButtons() {
   const active = useActiveMode()
   const defaultCone = useDefaultCone()
   return <>
-    {MAP_MODES.filter((m) => m.id !== 'viewcone' && m.id !== 'plan' && m.id !== 'axo').map((m) => {
+    {MAP_MODES.filter((m) => m.id !== 'viewcone' && m.id !== 'plan' && m.id !== 'axo' && m.id !== 'iso').map((m) => {
       const on = m.id === active
       return (
         <button key={m.id} type="button" aria-pressed={on} title={m.title} onClick={() => chooseMode(m.id, defaultCone)} data-angle={m.id}
@@ -372,30 +372,42 @@ function AngleButtons() {
   </>
 }
 
-/** The parallel-projection views: the plan (2D) and the isometric (Axo). */
-export const isFlat = (m: MapMode) => m === 'plan' || m === 'axo'
+/** The parallel-projection views: the plan (2D) and the 3D Axo and Iso options. */
+export const isFlat = (m: MapMode) => m === 'plan' || m === 'axo' || m === 'iso'
+
+const switchBtn = (on: boolean) => `flex h-7 items-center rounded-md px-2 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-panel font-medium text-ink shadow-sm' : 'text-muted hover:text-ink'}`
 
 /**
  * Plan is a 2D / 3D switch (12 Nov, Sinnie: "for plan, can you change it to a 2D/3D"): 2D = the plan view, 3D = back to
- * the view before. Always in the view bar, on both sites (19 Nov, Sinnie: "wheres my 2d/3d view toggle"). Axo (19 Nov,
- * "3d view: axo/iso view to be added") is the isometric, in parallel projection like 2D.
+ * the view before. Always in the view bar, on both sites (19 Nov, Sinnie: "wheres my 2d/3d view toggle"). While 3D is
+ * on, its options follow (19 Nov, "axo should be one of the options of 3D (free, axo, iso)"): Free is the perspective
+ * orbit, Axo and Iso are parallel views like 2D.
  */
 export function PlanSwitch() {
   const active = useActiveMode()
   const defaultCone = useDefaultCone()
-  return (
-    <div role="group" aria-label="2D, 3D or Axo" data-testid="view-2d3d" className="flex rounded-lg bg-subtle p-0.5">
-      {(['2D', '3D', 'Axo'] as const).map((d) => {
-        const on = d === '2D' ? active === 'plan' : d === 'Axo' ? active === 'axo' : !isFlat(active)
-        const title = d === '2D' ? MAP_MODES.find((m) => m.id === 'plan')?.title : d === 'Axo' ? MAP_MODES.find((m) => m.id === 'axo')?.title : 'The 3D view'
-        return (
-          <button key={d} type="button" aria-pressed={on} data-angle={d === '2D' ? 'plan' : d === 'Axo' ? 'axo' : '3d'} title={title}
-            onClick={() => { if (on) return; chooseMode(d === '2D' ? 'plan' : d === 'Axo' ? 'axo' : 'city', defaultCone) }}
-            className={`flex h-7 items-center rounded-md px-2 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-panel font-medium text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>{d}</button>
-        )
-      })}
+  const plan = active === 'plan'
+  const option: 'free' | 'axo' | 'iso' = active === 'axo' ? 'axo' : active === 'iso' ? 'iso' : 'free'
+  return <>
+    <div role="group" aria-label="2D or 3D" data-testid="view-2d3d" className="flex rounded-lg bg-subtle p-0.5">
+      <button type="button" aria-pressed={plan} data-angle="plan" title={MAP_MODES.find((m) => m.id === 'plan')?.title} className={switchBtn(plan)}
+        onClick={() => { if (!plan) chooseMode('plan', defaultCone) }}>2D</button>
+      <button type="button" aria-pressed={!plan} data-angle="3d" title="The 3D view" className={switchBtn(!plan)}
+        onClick={() => { if (plan) chooseMode('city', defaultCone) }}>3D</button>
     </div>
-  )
+    {!plan && (
+      <div role="group" aria-label="3D view" data-testid="view-3d-options" className="flex rounded-lg bg-subtle p-0.5">
+        {(['free', 'axo', 'iso'] as const).map((o) => {
+          const on = option === o
+          return (
+            <button key={o} type="button" aria-pressed={on} data-view={o} className={switchBtn(on)}
+              title={o === 'free' ? 'Free: perspective · right-drag to orbit · drag to pan' : MAP_MODES.find((m) => m.id === o)?.title}
+              onClick={() => { if (!on) chooseMode(o === 'free' ? 'city' : o, defaultCone) }}>{o === 'free' ? 'Free' : o === 'axo' ? 'Axo' : 'Iso'}</button>
+          )
+        })}
+      </div>
+    )}
+  </>
 }
 
 function ModeTabs() {
@@ -690,16 +702,16 @@ export function PlanRig() {
     return () => { live.ctl = null; live.camera = null; live.invalidate = null }
   }, [controls, camera, invalidate, gl])
 
-  // Plan: north up from straight above the study site, 1 km across (zoom stays free), left-drag pans. Axo: the
-  // isometric from the south-east of the chosen north, same width, turn and pan free. Going between the two keeps the
-  // 3D view saved; leaving them for Inspect restores it (City flies to the overview itself).
+  // Plan: north up from straight above the study site, 1 km across (zoom stays free), left-drag pans. Axo and Iso:
+  // the parallel views from the south-east of the chosen north, same width, turn and pan free. Going between them keeps
+  // the free 3D view saved; leaving them for Free (or Inspect) restores it (Vancouver's City flies to the overview).
   useEffect(() => {
     const ctl = controls, cam = camera as THREE.PerspectiveCamera
     if (!ctl || !isFlat(mode)) return
     if (!saved.current) { saved.current = { position: toModel(cam.position), target: toModel(ctl.target), fov: cam.fov }; savedUp.current = upNorthDeg() }
     const aspect = gl.domElement.clientWidth / Math.max(1, gl.domElement.clientHeight)
     // The plan with the chosen north up (true north or project north, Your site); the isometric turned the same way.
-    flyTo(mode === 'plan' ? orientReq(planCamera(studyCentre(), aspect)) : axoCamera(studyCentre(), aspect, upNorthDeg()))
+    flyTo(mode === 'plan' ? orientReq(planCamera(studyCentre(), aspect)) : axoCamera(studyCentre(), aspect, upNorthDeg(), mode === 'iso' ? ISO_ELEVATION_DEG : undefined))
     const buttons = { ...ctl.mouseButtons }, touches = { ...ctl.touches }
     if (mode === 'plan') {
       ctl.enableRotate = false
@@ -718,7 +730,7 @@ export function PlanRig() {
     }
   }, [mode, controls, camera, gl])
 
-  // 2D is a true plan and Axo a true isometric: a parallel projection (lib/planOrtho.ts), so no building leans and the
+  // 2D is a true plan, Axo and Iso true axonometrics: a parallel projection (lib/planOrtho.ts), so no building leans and the
   // axes stay to scale.
   useEffect(() => {
     if (!isFlat(mode) || !controls) return

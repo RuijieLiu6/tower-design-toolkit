@@ -43,7 +43,7 @@ describe("Vista's Plain look for Real Vancouver", () => {
   })
 
   it('maps the Vista modes (and Axo), each with its caption, and its chrome text passes WCAG AA', () => {
-    expect(MAP_MODES.map((m) => m.label)).toEqual(['City', 'Observer', 'Inspect', 'Plan', 'Axo', 'Viewcone'])
+    expect(MAP_MODES.map((m) => m.label)).toEqual(['City', 'Observer', 'Inspect', 'Plan', 'Axo', 'Iso', 'Viewcone'])
     for (const m of MAP_MODES) expect(MODE_HINT[m.id]).toMatch(new RegExp(`^${m.label}`))
     const paper = '#faf8f1' // the chrome boxes (93% over the view)
     expect(contrast(CHROME.ink, paper)).toBeGreaterThanOrEqual(4.5)
