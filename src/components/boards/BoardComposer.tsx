@@ -604,7 +604,7 @@ function Toggle({ on, onChange, label, testid }: { on: boolean; onChange: (v: bo
 
 // Sheet (18 Nov): the selected frame when there is one, then the sheet itself: its name, the sheet list, its layout,
 // the page, the title block and how the drawings read.
-function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>; levels: number }) {
+function SheetTab({ evidence, levels, onPreset, busy, msg }: { evidence: Record<string, EvidenceSet>; levels: number; onPreset: (id: SetId) => void; busy: boolean; msg: string }) {
   const boards = useBoardStore((s) => s.boards)
   const selected = useBoardStore((s) => s.selected)
   const select = useBoardStore((s) => s.select)
@@ -623,8 +623,26 @@ function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>;
   const b = boards[selected.board]
   const nos = sheetNumbers(boards)
   if (!b) return null
+  // Nothing placed yet: the presets lead; once there is work on the sheets they stay, under the sheet list.
+  const blank = boards.every((x) => x.frames.every((f) => f.role === 'title' || f.content.kind === 'empty'))
+  const presets = (
+    <section className={sectionCls} data-testid="sheet-presets">
+      <div className={headCls}>{blank ? 'Start from a preset' : 'Presets'}</div>
+      <div className="grid gap-1.5">
+        {PRESETS.map((id) => { const x = SETS.find((s) => s.id === id)!; return (
+          <button key={id} type="button" onClick={() => onPreset(id)} disabled={busy} title={x.hint} data-testid={`preset-${id}`}
+            className="flex items-center justify-between rounded-lg border border-white/15 px-2.5 py-2 text-left hover:border-sky-400 disabled:opacity-50">
+            <span className="text-xs font-medium">{x.name}</span><span className="text-meta text-slate-400">{x.sheets}</span>
+          </button>
+        ) })}
+      </div>
+      <p className="mt-1 text-meta text-slate-400">{blank ? 'Every frame drawn from the model; edit any of them after.' : 'Replaces the sheets; your images stay in the Library.'}</p>
+      {msg && <p role="status" className="mt-1 text-meta text-emerald-300">{msg}</p>}
+    </section>
+  )
   return (
     <div className="text-slate-200">
+      {blank && presets}
       <section className={sectionCls} data-testid="page-options">
         <div className={`${headCls} flex items-center justify-between`}><span>Page</span><span className="font-normal">{(() => { const s = SHEET_SIZES[sheet] ?? SHEET_SIZES.A2, arch = s.series === 'ARCH', [l, h] = s.mm.map((v) => (arch ? +(v / 25.4).toFixed(1) : v)); return orientation === 'portrait' ? `${h} × ${l} ${arch ? 'in' : 'mm'}` : `${l} × ${h} ${arch ? 'in' : 'mm'}` })()}</span></div>
         <div className="flex items-start gap-2">
@@ -671,6 +689,7 @@ function SheetTab({ evidence, levels }: { evidence: Record<string, EvidenceSet>;
         <button type="button" onClick={addBoard} disabled={boards.length >= MAX_SHEETS} data-testid="sheet-add" className="mt-2 w-full rounded-lg border border-white/15 py-1.5 text-xs hover:border-sky-400 disabled:opacity-40">+ Add sheet</button>
         {boards.length !== 4 && <p className="mt-1 text-meta text-amber-300">The competition asks for four boards; you have {boards.length}.</p>}
       </section>
+      {!blank && presets}
       <section className={sectionCls}>
         <div className={headCls}>Layout</div>
         <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Board template">
@@ -717,12 +736,15 @@ function StyleSwatch({ id }: { id: StyleId }) {
 // The four styles in Ruijie's original order, then the architectural one.
 const STYLE_ORDER: StyleId[] = ['competition', 'technical', 'concept', 'blueprint', 'architectural']
 
-type SetId = 'presentation' | 'drawings' | 'arch'
+type SetId = 'presentation' | 'typical' | 'drawings' | 'arch'
 const SETS: { id: SetId; name: string; sheets: string; hint: string }[] = [
-  { id: 'presentation', name: 'Presentation set', sheets: '4 boards', hint: 'The four competition boards in colour: the idea, the plans, section and elevations, performance. Uses your renders and the analysis you added.' },
+  { id: 'presentation', name: 'Competition boards', sheets: '4 A2 boards', hint: 'The four competition boards in colour, every frame drawn: the idea (axonometric, context, site), the plans, section and elevations, performance. Uses your renders and the analysis you added.' },
+  { id: 'typical', name: 'Typical drawing set', sheets: '9 sheets', hint: 'Cover with the sheet index, site plan, ground, typical and roof plans, the four elevations, the two sections, program and areas; every sheet drawn from the model, in black and white.' },
   { id: 'arch', name: 'Architectural set', sheets: 'Cover to renders', hint: 'Cover, context and site plans, your analysis, program, floor plans, sections, axonometric and renders, in black and white with poché walls.' },
   { id: 'drawings', name: 'Drawing set', sheets: '5 sheets', hint: 'An axonometric cover with the site plan, floor plans, elevations, section and a sheet for analysis.' },
 ]
+/** The two presets offered in the sheet set-up (20 Nov, Sinnie: "preset templates with drawings filled in… one for competition and one for typical drawing set"). */
+const PRESETS: SetId[] = ['presentation', 'typical']
 
 // Style (18 Nov): a ready set of sheets, the drawing style and the type.
 function StyleTab({ onCreate, busy, msg }: { onCreate: (id: SetId) => void; busy: boolean; msg: string }) {
@@ -807,12 +829,13 @@ function ComposerBody({ tools }: { tools?: (tab: ToolTab) => ReactNode }) {
     if (capturing) return
     const typ = Math.max(2, Math.round(levels / 2))
     if (id === 'drawings') { makeDrawingSet(typ, levels); say('Drawing set: five sheets.'); return }
+    if (id === 'typical') { useBoardStore.getState().makeTypicalSet(typ, levels); say('Typical drawing set: nine sheets, every frame drawn.'); return }
     setCapturing(true)
     try {
       const { added, renders } = await collect()
       if (id === 'presentation') {
         useBoardStore.getState().makePresentationSet(typ, levels, { renders, analysis: added.map((i) => ({ imageId: i.id, caption: i.label })) })
-        say(`Presentation set: four boards${renders.length ? `, ${renders.length} render${renders.length > 1 ? 's' : ''}` : ''}${added.length ? `, ${Math.min(4, added.length)} analysis drawing${added.length > 1 ? 's' : ''}` : ''}.`)
+        say(`Competition boards: four, every frame drawn${renders.length ? `, ${renders.length} render${renders.length > 1 ? 's' : ''}` : ''}${added.length ? `, ${Math.min(4, added.length)} analysis drawing${added.length > 1 ? 's' : ''}` : ''}.`)
       } else {
         const groups = added.length ? [{ title: 'Analysis', items: added.map((i) => ({ imageId: i.id, caption: i.label })) }] : []
         useBoardStore.getState().makeArchSet(typ, levels, groups, { title: `${draw.towers[0]?.name ?? 'Tower'}: architectural set`, renders })
@@ -879,7 +902,7 @@ function ComposerBody({ tools }: { tools?: (tab: ToolTab) => ReactNode }) {
           </div>
         </main>
         <UiShow id="present.composer.inspector"><aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10" aria-label={PANEL_TABS.find((x) => x.id === tab)!.word} data-testid={tab === 'render' ? 'present-tools-panel' : undefined}>
-          {tab === 'sheet' ? <SheetTab evidence={evidence} levels={levels} /> : tab === 'style' ? <StyleTab onCreate={(id) => void createSet(id)} busy={capturing} msg={setMsg} />
+          {tab === 'sheet' ? <SheetTab evidence={evidence} levels={levels} onPreset={(id) => void createSet(id)} busy={capturing} msg={setMsg} /> :tab === 'style' ? <StyleTab onCreate={(id) => void createSet(id)} busy={capturing} msg={setMsg} />
             : tab === 'render' && tools ? tools('render') : <SubmissionPanel evidence={evidence} overflow={overflow} />}
         </aside></UiShow>
       </div>

@@ -53,6 +53,8 @@ interface BoardState {
   makeArchSet: (typicalLevel: number, topLevel: number, groups: ArchGroup[], o?: { title?: string; renders?: string[] }) => void
   /** The Presentation set: four competition boards in colour, with the renders, the drawings and the analysis you added. */
   makePresentationSet: (typicalLevel: number, topLevel: number, o: { renders: string[]; analysis: { imageId: string; caption: string }[] }) => void
+  /** The typical drawing set (20 Nov, Sinnie): cover, site plan, ground, typical and roof plans, elevations, sections, program: nine sheets, every frame drawn. */
+  makeTypicalSet: (typicalLevel: number, topLevel: number) => void
   setOpen: (open: boolean) => void
   select: (board: number, frame?: string | null) => void
   setTemplate: (board: number, t: TemplateId) => void
@@ -236,13 +238,54 @@ export const useBoardStore = create<BoardState>()(persist((set, get) => ({
         return c ? { ...f, content: c, caption: captions[k] } : f
       }) }
     }
+    // Every frame starts drawn (20 Nov, Sinnie: "preset templates with drawings filled in"): where there are no
+    // analysis drawings yet, the performance board carries the cross section, the roof plan, the program and the
+    // site plan until Add to sheet replaces them.
+    const spare: FrameContent[] = [{ kind: 'drawing', vt: 'section', axis: 'cross' }, { kind: 'drawing', vt: 'roof' }, { kind: 'drawing', vt: 'program' }, { kind: 'drawing', vt: 'site' }]
+    const perf = an.slice(0, 4).map((a) => img(a.imageId, 'contain'))
+    while (perf.length < 4) perf.push(spare[perf.length])
     const boards = [
       mk(0, 'hero', 'The idea', [img(r[0]) ?? { kind: 'drawing', vt: 'axo' }, { kind: 'drawing', vt: 'context' }, { kind: 'drawing', vt: 'site' }, { kind: 'text', text: '', sizeMm: 4.5 }]),
       mk(1, 'plans', 'Plans', [{ kind: 'drawing', vt: 'plan', level: 1 }, { kind: 'drawing', vt: 'plan', level: typ }, { kind: 'drawing', vt: 'plan', level: top }, { kind: 'drawing', vt: 'program' }]),
       mk(2, 'mosaic', 'Section and elevations', [{ kind: 'drawing', vt: 'section' }, { kind: 'drawing', vt: 'elev', dir: 'N' }, { kind: 'drawing', vt: 'elev', dir: 'E' }, { kind: 'drawing', vt: 'elev', dir: 'S' }, { kind: 'drawing', vt: 'elev', dir: 'W' }]),
-      mk(3, 'six', 'Performance', [img(r[1]) ?? { kind: 'drawing', vt: 'axo' }, { kind: 'table' }, ...an.slice(0, 4).map((a) => img(a.imageId, 'contain'))], [undefined, undefined, ...an.slice(0, 4).map((a) => a.caption)]),
+      mk(3, 'six', 'Performance', [img(r[1]) ?? { kind: 'drawing', vt: 'axo' }, { kind: 'table' }, ...perf], [undefined, undefined, ...an.slice(0, 4).map((a) => a.caption)]),
     ]
     return { boards, parked: [], exports: {}, style: 'competition' as StyleId, selected: { board: 0, frame: null } }
+  }),
+  makeTypicalSet: (typ, top) => set((s) => {
+    // A typical drawing set (20 Nov, Sinnie: "one for typical drawing set"), every sheet drawn from the model: the cover
+    // with the axonometric and the sheet index, the site plan, the ground, typical and roof plans, the four elevations
+    // (two sheets), the two sections, and the program with the area table. Architectural style; the sheets are
+    // numbered by what leads them (sheetNumbers). What was placed before is kept aside in the Library.
+    const M = 12, G = 6, TITLE_H = 20, W = BOARD_W, H = BOARD_H, y0 = M + TITLE_H + G, BW = W - 2 * M, BH = H - y0 - M
+    const stamp = Date.now().toString(36)
+    const mk = (key: string, name: string, frames: Omit<Frame, 'id' | 'role' | 'tag'>[]): Board => ({
+      id: `typ-${key}-${stamp}`, template: 'grid', name,
+      frames: [{ id: 'f0', x: M, y: M, w: BW, h: TITLE_H, role: 'title', content: { kind: 'text', text: name, sizeMm: 9, bold: true }, tag: null },
+        ...frames.map((f, i) => ({ ...f, id: `f${i + 1}`, role: 'body' as const, tag: null }))],
+    })
+    const one = (content: FrameContent) => [{ x: M, y: y0, w: BW, h: BH, content }]
+    const two = (a: FrameContent, b: FrameContent) => { const w = (BW - G) / 2; return [{ x: M, y: y0, w, h: BH, content: a }, { x: M + w + G, y: y0, w, h: BH, content: b }] }
+    const mid = Math.max(2, Math.min(top - 1, typ))
+    const coverW = Math.round(BW * 0.62)
+    const sheets: Board[] = [
+      mk('cover', 'Drawing set', [
+        { x: M, y: y0, w: coverW, h: BH, content: { kind: 'drawing', vt: 'axo' } },
+        { x: M + coverW + G, y: y0, w: BW - coverW - G, h: BH, content: { kind: 'text', text: '', sizeMm: 3.6 } },
+      ]),
+      mk('site', 'Site plan', one({ kind: 'drawing', vt: 'site' })),
+      mk('ground', 'Ground floor plan', one({ kind: 'drawing', vt: 'plan', level: 1 })),
+      mk('typical', 'Typical floor plan', one({ kind: 'drawing', vt: 'plan', level: mid, label: 'Typical floor plan' })),
+      mk('roof', 'Roof plan', one({ kind: 'drawing', vt: 'roof' })),
+      mk('elev1', 'Elevations: north and east', two({ kind: 'drawing', vt: 'elev', dir: 'N' }, { kind: 'drawing', vt: 'elev', dir: 'E' })),
+      mk('elev2', 'Elevations: south and west', two({ kind: 'drawing', vt: 'elev', dir: 'S' }, { kind: 'drawing', vt: 'elev', dir: 'W' })),
+      mk('sections', 'Sections', two({ kind: 'drawing', vt: 'section', axis: 'long' }, { kind: 'drawing', vt: 'section', axis: 'cross' })),
+      mk('program', 'Program and areas', two({ kind: 'drawing', vt: 'program' }, { kind: 'table' })),
+    ]
+    const nos = sheetNumbers(sheets)
+    const index = ['SHEETS', '', ...sheets.map((b, i) => `${nos[i]}   ${b.name}`)].join(String.fromCharCode(10))
+    sheets[0] = { ...sheets[0], frames: sheets[0].frames.map((f) => (f.id === 'f2' ? { ...f, content: { kind: 'text', text: index, sizeMm: 3.6 } } : f)) }
+    return { boards: sheets, parked: [], exports: {}, style: 'architectural' as StyleId, selected: { board: 0, frame: null } }
   }),
   setOpen: (open) => set({ open }),
   select: (board, frame = null) => set({ selected: { board, frame } }),
