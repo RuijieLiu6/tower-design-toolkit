@@ -154,6 +154,8 @@ interface LookState {
   mode: MapMode
   /** The corner Axo and Iso look from (19 Nov, Sinnie: "an option to choose from 4 angles"). */
   corner: Corner
+  /** The parallel projection last used from a corner (the corner is the main choice, 19 Nov: "angle is the main button"). */
+  parallel: 'axo' | 'iso'
   /** "Colour buildings by type" (Layers), on by default (Ruijie, 3 Nov: "keep it colourful with legend while keep the colour light"). */
   typeColours: boolean
   /** Neighbourhood and landmark labels (Vista's "Place labels"). */
@@ -167,7 +169,7 @@ interface LookState {
  *  with buttons" over a quieter Site view). On by default: the names are how the Site step picks a neighbourhood. */
 const NAMES_KEY = 'ts.map.names'
 const namesOn = () => { try { return localStorage.getItem(NAMES_KEY) !== '0' } catch { return true } }
-export const useVistaLook = create<LookState>(() => ({ mode: 'city', corner: 'se', typeColours: true, labels: namesOn(), inspected: null, note: null }))
+export const useVistaLook = create<LookState>(() => ({ mode: 'city', corner: 'se', parallel: 'axo', typeColours: true, labels: namesOn(), inspected: null, note: null }))
 export function setPlaceNames(on: boolean) {
   useVistaLook.setState({ labels: on })
   try { localStorage.setItem(NAMES_KEY, on ? '1' : '0') } catch { /* private window: this session only */ }

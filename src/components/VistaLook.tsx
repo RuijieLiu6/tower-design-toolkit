@@ -380,14 +380,16 @@ function AngleButtons() {
 export const isFlat = (m: MapMode) => m === 'plan' || m === 'axo' || m === 'iso' || isElevation(m)
 
 const TWO_D = [['plan', 'Plan'], ['north', 'North'], ['south', 'South'], ['east', 'East'], ['west', 'West']] as const
-const THREE_D = [['city', 'Perspective'], ['axo', 'Axo'], ['iso', 'Iso']] as const
+const THREE_D = [['city', 'Perspective']] as const
 const CORNER_IDS = ['nw', 'ne', 'sw', 'se'] as const
+const PARALLEL = [['axo', 'Axo'], ['iso', 'Iso']] as const
 
 /**
  * The 2D / 3D switch (12 Nov, Sinnie: "for plan, can you change it to a 2D/3D"), always in the view bar on both sites
  * (19 Nov, "wheres my 2d/3d view toggle"). Each is a drop-down (19 Nov, "i want the free axo iso to be like a drop down
  * from 3d; for 2d, plan, north, south, east, west"): 2D holds the plan and the four elevations, 3D holds Free (the
- * perspective orbit), Axo and Iso, each from one of four corners. The pressed one shows its option. Every view but
+ * perspective orbit) and the four corners (NW, NE, SW, SE), each as Axo or Iso (19 Nov, "angle is the main button, and
+ * then you can choose iso or axo"). The pressed one shows its option. Every view but
  * Perspective is locked (19 Nov, Sinnie: "users shouldn't be able to suddenly go back to a perspective view"): the
  * camera cannot be turned, and Frame, a picked neighbourhood and the view's own re-centre keep the angle.
  */
@@ -398,15 +400,16 @@ export function PlanSwitch() {
   return (
     <div role="group" aria-label="2D or 3D" data-testid="view-2d3d" className="flex rounded-lg bg-subtle p-0.5">
       <ViewDrop id="2d" word="2D" on={twoD} options={TWO_D} active={active} pick={(m) => chooseMode(m, defaultCone)} />
-      <ViewDrop id="3d" word="3D" on={!twoD} options={THREE_D} active={active} pick={(m) => chooseMode(m, defaultCone)} corners={['axo', 'iso']} />
+      <ViewDrop id="3d" word="3D" on={!twoD} options={THREE_D} active={active} pick={(m) => chooseMode(m, defaultCone)} corners />
     </div>
   )
 }
 
-function ViewDrop({ id, word, on, options, active, pick, corners = [] }: { id: '2d' | '3d'; word: string; on: boolean; options: readonly (readonly [MapMode, string])[]; active: MapMode; pick: (m: MapMode) => void; corners?: MapMode[] }) {
+function ViewDrop({ id, word, on, options, active, pick, corners = false }: { id: '2d' | '3d'; word: string; on: boolean; options: readonly (readonly [MapMode, string])[]; active: MapMode; pick: (m: MapMode) => void; corners?: boolean }) {
   const [open, setOpen] = useState(false)
   const corner = useVistaLook((s) => s.corner)
-  const setCorner = (c: Corner) => useVistaLook.setState({ corner: c })
+  const parallel = useVistaLook((s) => s.parallel)
+  const fromCorner = active === 'axo' || active === 'iso'
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
@@ -416,35 +419,43 @@ function ViewDrop({ id, word, on, options, active, pick, corners = [] }: { id: '
     return () => { window.removeEventListener('pointerdown', away, true); window.removeEventListener('keydown', key) }
   }, [open])
   const cur = on ? options.find(([m]) => m === active) : undefined
+  const word2 = cur && cur[0] !== 'city' ? cur[1] : on && fromCorner ? `${corner.toUpperCase()} ${active === 'iso' ? 'Iso' : 'Axo'}` : null
   return (
     <div ref={box} className="relative">
       <button type="button" aria-pressed={on} aria-haspopup="menu" aria-expanded={open} data-angle={id === '2d' ? 'plan' : '3d'} data-testid={`view-${id}`}
         title={id === '2d' ? 'The 2D views: the plan and the four elevations' : 'The 3D views: free, axonometric, isometric'} onClick={() => setOpen((v) => !v)}
         className={`flex h-7 items-center gap-1 rounded-md pl-2 pr-1 text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-panel font-medium text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>
-        {word}{cur && cur[0] !== 'city' && <span className="font-normal text-muted">· {cur[1]}{corners.includes(cur[0]) && ` ${corner.toUpperCase()}`}</span>}
+        {word}{word2 && <span className="font-normal text-muted">· {word2}</span>}
         <ChevronDown size={12} aria-hidden className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div role="menu" aria-label={`${word} views`} data-testid={`view-${id}-menu`} className="absolute left-0 top-full z-30 mt-1.5 grid w-max min-w-[7rem] gap-0.5 rounded-lg border border-line bg-panel p-1 shadow-float">
           {options.map(([m, label]) => {
             const checked = on && active === m
-            const item = (
-              <button type="button" role="menuitemradio" aria-checked={checked} data-view={m} title={MAP_MODES.find((k) => k.id === m)?.title}
+            return (
+              <button key={m} type="button" role="menuitemradio" aria-checked={checked} data-view={m} title={MAP_MODES.find((k) => k.id === m)?.title}
                 onClick={() => { setOpen(false); if (!checked) pick(m) }}
                 className={`flex h-7 min-w-[5.5rem] items-center rounded-md px-2 text-left text-control outline-none focus-visible:ring-2 focus-visible:ring-accent ${checked ? 'bg-selected font-medium text-ink' : 'text-ink hover:bg-subtle'}`}>{label}</button>
             )
-            if (!corners.includes(m)) return <div key={m} className="flex">{item}</div>
-            // Axo and Iso: the view, then the four corners it can look from (a compass: NW NE over SW SE).
+          })}
+          {/* The corners (a compass: NW NE over SW SE), each a row: the corner enters with the last projection, Axo or Iso
+              beside it chooses the projection. */}
+          {corners && <span aria-hidden className="my-0.5 h-px bg-line" />}
+          {corners && CORNER_IDS.map((c) => {
+            const here = on && fromCorner && corner === c
+            const go = (p: 'axo' | 'iso') => { setOpen(false); useVistaLook.setState({ corner: c, parallel: p }); if (!(here && active === p)) pick(p) }
             return (
-              <div key={m} className="flex items-center justify-between gap-2">
-                {item}
-                <div role="group" aria-label={`${label} from`} data-corners={m} className="grid shrink-0 grid-cols-2 gap-0.5">
-                  {CORNER_IDS.map((c) => {
-                    const here = checked && corner === c
+              <div key={c} role="group" aria-label={`From the ${CORNER_WORD[c]}`} data-corner-row={c} className="flex items-center justify-between gap-2">
+                <button type="button" role="menuitemradio" aria-checked={here} data-corner={c} title={`A parallel view from the ${CORNER_WORD[c]} (${parallel === 'iso' ? 'isometric' : 'axonometric'})`}
+                  onClick={() => go(parallel)}
+                  className={`flex h-7 min-w-[5.5rem] items-center rounded-md px-2 text-left text-control uppercase outline-none focus-visible:ring-2 focus-visible:ring-accent ${here ? 'bg-selected font-medium text-ink' : 'text-ink hover:bg-subtle'}`}>{c}</button>
+                <div className="flex shrink-0 gap-0.5">
+                  {PARALLEL.map(([p, pl]) => {
+                    const hereP = here && active === p
                     return (
-                      <button key={c} type="button" role="menuitemradio" aria-checked={here} data-corner={c} title={`${label} from the ${CORNER_WORD[c]}`}
-                        onClick={() => { setOpen(false); setCorner(c); if (!checked) pick(m) }}
-                        className={`flex h-6 w-8 items-center justify-center rounded text-meta uppercase outline-none focus-visible:ring-2 focus-visible:ring-accent ${here ? 'bg-selected font-medium text-ink' : 'text-muted hover:bg-subtle hover:text-ink'}`}>{c}</button>
+                      <button key={p} type="button" role="menuitemradio" aria-checked={hereP} data-view={p} data-corner={c} title={MAP_MODES.find((k) => k.id === p)?.title}
+                        onClick={() => go(p)}
+                        className={`flex h-6 items-center rounded px-1.5 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${hereP ? 'bg-selected font-medium text-ink' : 'text-muted hover:bg-subtle hover:text-ink'}`}>{pl}</button>
                     )
                   })}
                 </div>
