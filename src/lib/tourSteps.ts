@@ -14,12 +14,13 @@ import { goToStep, useStep, type StepId } from './step'
 import { useVistaLook } from './vistaLook'
 
 /** What the app looked like when a step opened: a step is done when the person has changed the thing it asked for. */
-export interface Snap { project: ProjectKind; towers: number; shape: string; look: string; display: string; tab: string; step: StepId }
+export interface Snap { project: ProjectKind; towers: number; drawn: number; shape: string; look: string; display: string; tab: string; step: StepId }
 const q = (sel: string) => document.querySelector<HTMLElement>(sel)
 const rightTab = () => q('[data-panel="right"] [role="tab"][aria-selected="true"]')?.id ?? ''
+const drawnCount = () => { const s = useStore.getState(); return s.towers[s.project].filter((t) => t.drawn).length }
 export const snapshot = (): Snap => {
   const s = useStore.getState(), t = s.towers[s.project][0]
-  return { project: s.project, towers: s.towers[s.project].length, shape: t ? JSON.stringify([t.height, t.x, t.y, t.rotation, t.blocks, t.podiumHeight]) : '', look: useVistaLook.getState().mode, display: useDisplayMode.getState().mode, tab: rightTab(), step: useStep.getState().step }
+  return { project: s.project, towers: s.towers[s.project].length, drawn: drawnCount(), shape: t ? JSON.stringify([t.height, t.x, t.y, t.rotation, t.blocks, t.podiumHeight]) : '', look: useVistaLook.getState().mode, display: useDisplayMode.getState().mode, tab: rightTab(), step: useStep.getState().step }
 }
 
 export interface TourStep {
@@ -64,6 +65,11 @@ export const TOUR: TourStep[] = [
     body: 'Drag to orbit, scroll to zoom, right-drag to pan. Click a tower to select it and its toolbar appears: Move, Rotate, Scale, Align, Snap, Basement. The rail beside the model draws masses and pushes, pulls and splits them. Every change runs the checks again.',
     done: (snap) => snapshot().shape !== snap.shape && towerCount() > 0,
     doIt: () => { const s = useStore.getState(), t = s.towers[s.project][0]; if (t) s.updateTower(t.id, { height: t.height + 20 }); else s.addTower() } },
+  { id: 'rail', route: 'guided', project: 'vtc', step: 'volume', target: '[data-testid="tower-rail"]', clip: 'rail',
+    title: 'The tool rail: draw a mass', ask: 'Draw a mass: From scratch, drag a Rectangle on the ground, then Push / pull it up.',
+    body: 'Rectangle (R), Circle (O) and Line (L) draw a footprint; Line\'s Offset mode draws a wall of a set width along your clicks. Push / pull (P) raises a roof or moves a wall; Offset (F) grows or shrinks the outline; Move (M), Copy (C), Rotate (Q), Split (X), Boolean (J) and Core work on drawn masses. Esc ends a tool.',
+    done: (snap) => drawnCount() > snap.drawn,
+    doIt: () => { void import('./drawn').then((m) => m.addDrawnTower({ pts: [[-16, -12], [16, -12], [16, 12], [-16, 12]], base: 0, floors: 12, f2f: 3.6 })) } },
   { id: 'evidence', route: 'guided', project: 'vtc', step: 'volume', target: '[data-panel="right"]', clip: 'evidence',
     title: 'Results and evidence', ask: 'Open the Results tab and read a result\'s source line.',
     body: 'The right panel\'s tabs: Your site (the lot, the rules, the context), Results (every check), Trace (how a result was reached); Properties while a tower is being placed; Present and Render in Presentation. Each result shows its value, the threshold, its source with page or clause, and a flag: verified, team assumption, unverified or unresolved.',
