@@ -300,7 +300,7 @@ function DownwashSection({ s }: { s: DownSec }) {
 function WindHeightBody() {
   const out = useSwOut((s) => s.out['built.sw-wind-height'])
   const C = useSwInputs().C
-  const d = out?.data as { rows: { tower: string; z: number; u: number; band: number }[]; profile: ProfilePoint[]; sec: DownSec; U10: number; H: number } | undefined
+  const d = out?.data as { rows: { tower: string; z: number; u: number; band: number; cls: number; season: string }[]; classes?: string[]; classBands?: number[]; criteria?: string; profile: ProfilePoint[]; sec: DownSec; U10: number; H: number } | undefined
   if (!d?.profile) return null
   const top = d.profile[d.profile.length - 1]
   return (
@@ -315,9 +315,9 @@ function WindHeightBody() {
         <DownwashSection s={d.sec} />
       </SwFig>
       {d.rows.length > 0 && <Fold title="Roofs and terraces">
-        <SwFig title="Wind on each deck" caption="Mean wind. Colour: Lawson band." tip="Colour: Lawson band at that height.">
-          <BarRows label="Mean wind on each roof and terrace" labelW={58} textW={98} max={Math.max(8, ...d.rows.map((r) => r.u)) * 1.05} rows={[...d.rows].reverse().map((r) => ({ label: `${Math.round(r.z)} m`, v: r.u, color: BAND_COL[r.band], text: `${r.u.toFixed(1)} m/s · ${BAND_NAME[r.band]}`, tip: `${r.tower} · deck at ${Math.round(r.z)} m: ${r.u.toFixed(1)} m/s mean, gusts ${(r.u * 1.8).toFixed(0)} m/s` }))} />
-          <Chips items={BAND_NAME.map((n, i) => ({ name: n, color: BAND_COL[i] }))} />
+        <SwFig title="Wind on each deck" caption={`Worst season. ${d.criteria ?? 'Lawson'} class.`} tip="The speed the criteria read (London: exceeded in 5% of comfort hours), in the windiest season. Colour: the class.">
+          <BarRows label="Wind on each roof and terrace" labelW={58} textW={118} max={Math.max(8, ...d.rows.map((r) => r.u)) * 1.05} rows={[...d.rows].reverse().map((r) => ({ label: `${Math.round(r.z)} m`, v: r.u, color: BAND_COL[r.band], text: `${r.u.toFixed(1)} m/s · ${d.classes?.[r.cls] ?? BAND_NAME[r.band]}`, tip: `${r.tower} · deck at ${Math.round(r.z)} m: ${r.u.toFixed(1)} m/s in ${r.season}${d.classes ? `, ${d.classes[r.cls]}` : ''}` }))} />
+          <Chips items={(d.classes ?? BAND_NAME).map((n, i) => ({ name: n, color: BAND_COL[d.classBands?.[i] ?? i] }))} />
         </SwFig>
       </Fold>}
       {C && <Fold title="Wind climate"><WindRoses C={C} /></Fold>}

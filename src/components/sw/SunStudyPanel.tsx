@@ -8,6 +8,7 @@ import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { SUN_DATES, type SunDate } from '../../engine/sw/sun'
 import { compass16, windRose } from '../../engine/sw/wind'
+import { CRITERIA, SECTOR8, type Criteria, type DeckProfile, type Exposure } from '../../engine/sw/deckWind'
 import { useSwInputs } from '../../lib/swInputs'
 import { periodKeep, runSw, useSwOut, type SwId } from '../../lib/swRun'
 import { designStorm, rainBySector, type DropType as RainDrop } from '../../engine/sw/rain'
@@ -121,6 +122,31 @@ function useWindCases() {
   }, [C])
 }
 
+/** Wind on terraces and roofs (research R5 §1): the profile to the deck, the criteria and the upwind terrain by sector. */
+function DeckWindSet() {
+  const s = useSwStudy()
+  const ex = s.deckExposure
+  return (
+    <div className="grid gap-2" data-testid="deck-wind-set">
+      <label className="grid gap-1"><span className={label}>Terraces · comfort criteria</span>
+        <select className={field} value={s.deckCriteria} data-testid="deck-criteria" onChange={(e) => s.set({ deckCriteria: e.target.value as Criteria })}>
+          {(Object.keys(CRITERIA) as Criteria[]).map((k) => <option key={k} value={k}>{CRITERIA[k].name} · {CRITERIA[k].stat}</option>)}
+        </select></label>
+      <label className="grid gap-1"><span className={label}>Terraces · wind up to the deck</span>
+        <select className={field} value={s.deckProfile} data-testid="deck-profile" onChange={(e) => s.set({ deckProfile: e.target.value as DeckProfile })}>
+          <option value="nbc">NBC 2020 exposure factor, by sector</option>
+          <option value="power">power law (z/10)^0.25 · the earlier reading</option>
+        </select></label>
+      {s.deckProfile === 'nbc' && <div className="grid gap-1">
+        <span className={label} title="NBC 2020 4.1.7.3.(5): rough only where city runs upwind at least 1 km or 20 × the height; over water or open ground the sector is open.">Rough fetch upwind (city for 20 × the height)</span>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Wind sectors with rough fetch">
+          {SECTOR8.map((n, i) => { const on = ex[i] === 'rough'; return <button key={n} type="button" aria-pressed={on} data-sector={n} title={on ? `${n}: rough (city upwind)` : `${n}: open (water or open ground upwind)`} onClick={() => s.set({ deckExposure: SECTOR8.map((_, j) => (j === i ? (on ? 'open' : 'rough') : ex[j] ?? 'open')) as Exposure[] })} className={chip(on)}>{n}</button> })}
+        </div>
+      </div>}
+    </div>
+  )
+}
+
 export function WindStudyPanel() {
   const s = useSwStudy()
   const cases = useWindCases()
@@ -145,6 +171,7 @@ export function WindStudyPanel() {
           <option value="comfort">pedestrian comfort with the tower</option>
           <option value="delta">change caused by the tower</option>
         </select></label>
+      <DeckWindSet />
       <RunButton ids={['built.sw-wind-comfort', 'built.sw-wind-height']} testid="wind-run" />
     </div>
   )

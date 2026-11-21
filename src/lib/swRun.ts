@@ -13,7 +13,8 @@ import { facadeIrradiance, sunGround, SUN_DATES, type SunGround } from '../engin
 import { periodLabel, periodRange } from './sunPeriod'
 import { sunImpact } from '../engine/sw/sunImpact'
 import type { ClimatePayload, FacadeFace, Prism } from '../engine/sw/types'
-import { ALPHA, lawsonClass, runWindStudy, SEASONS, windRose, type Rose, type WindStudy } from '../engine/sw/wind'
+import { ALPHA, runWindStudy, SEASONS, windRose, type Rose, type WindStudy } from '../engine/sw/wind'
+import { CRITERIA, deckHours, freeStream, readSeasons, SECTOR8, stateOf, type CriteriaSet, type DeckSeason } from '../engine/sw/deckWind'
 import type { RuleResult, RuleState, Tower } from '../engine/types'
 import type { KeySpec } from '../components/ResultViz'
 import { faceSunHours, peopleOf, prismsToNorth, roofYear, shadowRange, stormOnFaces, windProfile } from '../engine/sw/detail'
@@ -176,11 +177,24 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const C = inp.C!
     const rose: Rose = windRose(C, s.season, periodRange(s.periodFrom, s.periodTo))
     const U10 = refWind(C, s).U10
-    // Each roof and terrace at its height (the Studio's 'Wind with height'): mean wind by the power law, Lawson band.
+    // Each roof and terrace at its height (research R5 §1.2, §1.5): the hourly 10 m wind carried up by the NBC 2020
+    // exposure factor of each hour's sector, read as the speed the criteria use (London: exceeded in 5% of comfort
+    // hours) in each season; the worst season gives the class. The earlier reading (power law on the season mean) is
+    // kept beside it, uOld, so old results can be compared.
+    const crit = CRITERIA[s.deckCriteria] ?? CRITERIA.london2019
+    // The Studio's five band colours for the classes (Toronto's four skip "strolling").
+    const classBands = crit.classes.length === 5 ? [0, 1, 2, 3, 4] : [0, 1, 3, 4]
+    const dOpt = { exposure: s.deckExposure, profile: s.deckProfile, criteria: s.deckCriteria }
+    const HH = deckHours(C, s.windCase === 'one' ? { dir: s.windDir, speed: s.windSpeed } : undefined)
     const decks = inp.towers.flatMap((t) => prismsOf(t).map((p) => ({ tower: t.name, z: p.z1 })))
     const uniq = [...new Map(decks.map((d) => [`${d.tower}|${Math.round(d.z)}`, d])).values()].sort((a, b) => a.z - b.z)
-    const rows = uniq.map((d) => { const u = U10 * Math.pow(Math.max(10, d.z) / 10, ALPHA); return { ...d, u, band: lawsonClass(u) } })
-    const worst = rows.reduce((a, r) => (r.u > a.u ? r : a), rows[0] ?? { u: 0, z: 0, tower: '', band: 0 })
+    const rows = uniq.map((d) => {
+      const r = readSeasons(HH, freeStream(d.z, dOpt), crit)
+      return { ...d, u: r.v, band: classBands[r.cls], cls: r.cls, season: r.worst, seasons: r.seasons, uOld: U10 * Math.pow(Math.max(10, d.z) / 10, ALPHA) }
+    })
+    const worst = rows.reduce((a, r) => (r.cls > a.cls || (r.cls === a.cls && r.u > a.u) ? r : a), rows[0] ?? { u: 0, z: 0, tower: '', band: 0, cls: 0, season: 'winter' as DeckSeason, uOld: 0 })
+    const deckState = stateOf(crit, worst.cls)
+    const how = deckHow(s, HH.source === 'one')
     const H = Math.max(0, ...inp.towers.map((t) => t.height))
     const downwash = H > 0 ? U10 * Math.pow(Math.max(10, H * 0.7) / 10, ALPHA) : 0
     // The downwash section (study.js downwashSVG): the tallest tower against its neighbours' mean height within 120 m.
@@ -194,14 +208,14 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const topP = profile[profile.length - 1]
     const sec = { H, w: Math.max(tall.width, tall.depth), hn, amp, amp0, depth: 0.22 * H, podiumH: tall.podiumHeight, podiumW: Math.max(tall.podiumWidth, tall.podiumDepth), U10 }
     return {
-      data: { rows, rose, U10, downwash, H, profile, sec },
+      data: { rows, rose, U10, downwash, H, profile, sec, classes: crit.classes, classBands, criteria: crit.name },
       keys: [
-        ...(rows.length ? [key('sw-wind-deck', 'Windiest deck', 'Lawson', worst.u.toFixed(1), worst.u <= 4 ? 'pass' : worst.u <= 6 ? 'warn' : 'fail', `Season mean at ${Math.round(worst.z)} m by the power law (10 m mean ${U10.toFixed(1)} m/s, exponent ${ALPHA}). Up to 4 m/s suits sitting, 6 strolling; terraces above need screens.`, { unit: 'm/s', bar: { max: 10, v: Math.min(10, worst.u), zone: [0, 4], ticks: [[4, '4'], [6, '6'], [8, '8 m/s']] } })] : []),
+        ...(rows.length ? [key('sw-wind-deck', 'Windiest deck', crit.name.replace(/ \d+$/, ''), worst.u.toFixed(1), deckState, `${crit.classes[worst.cls]} at ${Math.round(worst.z)} m in ${worst.season}: ${worst.u.toFixed(1)} m/s ${crit.stat}. ${how}`, { unit: 'm/s', bar: { max: 10, v: Math.min(10, worst.u), zone: [0, crit.limits[crit.target]], ticks: crit.limits.map((l, i) => [l, i === crit.limits.length - 1 ? `${l.toFixed(l % 1 ? 1 : 0)} m/s` : l.toFixed(l % 1 ? 1 : 0)] as [number, string]) } })] : []),
         key('sw-wind-downwash', 'Downwash', 'at 0.7 H', downwash.toFixed(1), downwash <= 5 ? 'pass' : downwash <= 7 ? 'warn' : 'fail', `Mean wind at 70% of the height, which the face sends down to the street; ×${amp.toFixed(2)} at the ground against the free wind. A podium or canopy helps over 5 m/s.`, { unit: 'm/s', bar: { max: 10, v: Math.min(10, downwash), zone: [0, 5], ticks: [[5, '5 m/s']] } }),
         ...(topP ? [key('sw-wind-gust', 'Gust at the top', '', topP.gust.toFixed(0), 'unknown', `Gusts 1.8 × the mean at the top of the tower: ${(topP.q / 1000).toFixed(1)} kPa on screens and operable windows.`, { unit: 'm/s', bar: { max: 40, v: Math.min(40, topP.gust) } })] : []),
       ],
       rules: [
-        ...(rows.length ? [rule('sw-wind-deck', 'Windiest roof or terrace', `${worst.u.toFixed(1)} m/s at ${Math.round(worst.z)} m`, 'up to 6 m/s for terraces people use', worst.u <= 4 ? 'pass' : worst.u <= 6 ? 'warn' : 'fail', `Season mean ${U10.toFixed(1)} m/s at 10 m, power law α ${ALPHA}.`)] : []),
+        ...(rows.length ? [rule('sw-wind-deck', 'Windiest roof or terrace', `${worst.u.toFixed(1)} m/s at ${Math.round(worst.z)} m (${crit.classes[worst.cls]}, ${worst.season})`, `${crit.classes[crit.target]} for a terrace people use: up to ${crit.limits[crit.target].toFixed(1)} m/s ${crit.stat} (${crit.name})`, deckState, `${how} Earlier reading (power law α ${ALPHA} on the season mean): ${worst.uOld.toFixed(1)} m/s.`, DECK_SRC(crit))] : []),
         rule('sw-wind-downwash', 'Wind brought down the face', `${downwash.toFixed(1)} m/s`, 'a podium or canopy over 5 m/s', downwash <= 5 ? 'pass' : downwash <= 7 ? 'warn' : 'fail', 'Mean wind at 70% of the height, which the face sends down to the street.'),
       ],
     }
@@ -325,6 +339,17 @@ const RUNS: Partial<Record<SwId, Run>> = {
   },
 }
 
+// ------------------------------------------------------------------ the deck wind wording (research R5 §1)
+/** How a deck reading was made, in one sentence for the notes. */
+function deckHow(s: SwStudySettings, one: boolean): string {
+  const rough = SECTOR8.filter((_, i) => s.deckExposure[i] === 'rough')
+  const prof = s.deckProfile === 'power'
+    ? `Profile: the earlier power law (z/10)^${ALPHA} in every sector (switch back to NBC 2020 in the wind settings).`
+    : `Profile: NBC 2020 exposure factor on the airport's open-terrain 10 m wind, Ce = 0.5 (z/12.7)^0.5 over rough fetch (${rough.length ? rough.join(', ') : 'no sector'}), (z/10)^0.28 open elsewhere (open formula unverified; sector table a team assumption).`
+  return `${one ? 'One wind case: its speed at the deck read against the class limits, no exceedance statistics.' : 'CWEC 2020 hourly record, comfort hours 06:00–23:00, each season.'} ${prof}`
+}
+const DECK_SRC = (c: CriteriaSet) => ({ label: `Research R5 §1.2, §1.5: NBC 2020 Div. B 4.1.7.3.(5) and Commentary I para 12 (exposure); ${c.source}; CWEC 2020 Vancouver Intl hourly` })
+
 // ------------------------------------------------------------------ shared helpers
 const FACE_WORD: Record<Face, string> = { N: 'North', E: 'East', S: 'South', W: 'West' }
 const oriOf = (az: number): Face => ORI[Math.round((((az % 360) + 360) % 360) / 90) % 4]
@@ -339,6 +364,8 @@ export { FACE_AZ, band, SEASONS }
 /** Register more tools (the interior engines add theirs in lib/swRunInterior.ts). */
 export function addRuns(r: Partial<Record<SwId, Run>>) { Object.assign(RUNS, r) }
 export const hasRun = (id: SwId) => !!RUNS[id]
+/** One tool's compute, outside the store and queue (tests and scripts). */
+export const computeSw = async (id: SwId, inp: SwInputs, s: SwStudySettings) => { const run = RUNS[id]; if (!run) throw new Error(`no run for ${id}`); return run(inp, s) }
 /** Tools that need the climate file before they can run. */
 const NO_CLIMATE: SwId[] = ['built.sw-form', 'built.sw-natvent', 'built.sw-airflow']
 

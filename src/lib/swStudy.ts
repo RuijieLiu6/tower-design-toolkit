@@ -4,6 +4,7 @@
 import { create } from 'zustand'
 import type { SunDate, SunPeriod } from '../engine/sw/sun'
 import type { Season } from '../engine/sw/wind'
+import { DEFAULT_EXPOSURE, type Criteria, type DeckProfile, type Exposure } from '../engine/sw/deckWind'
 
 export type VentMode = 'cross' | 'single' | 'stack'
 export type ThermalSystem = 'none' | 'win' | 'heat' | 'heatwin' | 'full'
@@ -27,6 +28,11 @@ export interface SwStudySettings {
   windSpeed: number
   /** What the ground layer shows: Lawson comfort with the towers, or the change the towers make. */
   windView: 'comfort' | 'delta'
+  /** Wind on terraces and roofs (engine/sw/deckWind.ts, research R5 §1): the profile up to the deck (NBC 2020 exposure
+   *  factor, or the earlier power law to compare), the comfort criteria and the upwind terrain of each 45° sector. */
+  deckProfile: DeckProfile
+  deckCriteria: Criteria
+  deckExposure: Exposure[]
   /** Daylight: lux target, blinds operated as LM-83 (off = blinds up, Sinnie's choice in the Studio). */
   dlTarget: number
   blinds: boolean
@@ -58,6 +64,7 @@ export interface SwStudySettings {
 export const SW_DEFAULTS: SwStudySettings = {
   sunScope: 'date', sunDate: 'autumn', sunPeriod: 'year', periodFrom: '01-01', periodTo: '12-31', h0: 10, h1: 16,
   season: 'year', windCase: 'period', windDir: 270, windSpeed: 3.5, windView: 'comfort',
+  deckProfile: 'nbc', deckCriteria: 'london2019', deckExposure: DEFAULT_EXPOSURE,
   dlTarget: 300, blinds: false,
   month: 5, day: 21, hour: 13, level: null,
   vent: { mode: 'cross', band: 'fixed', tmin: 12, tmax: 24, umax: 8, open: 0.1, dT: 3 },
