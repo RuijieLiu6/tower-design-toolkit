@@ -26,7 +26,7 @@ import { DEFAULT_WEIGHT_PRESETS, type WeightPresets } from '../../engine/storeyW
 import type { Tower } from '../../engine/types'
 import { SITE, vtcRules, type FsrTier } from '../../engine/vtcRules'
 import { windProcedure, windStudyRules, type WindPresets } from '../../engine/windStructure'
-import type { NatureInput } from '../../engine/cityInNature'
+import type { ModelTree, NatureInput } from '../../engine/cityInNature'
 
 /** The engagement ledger's data, as lib/cultureStore.ts holds it (that store's state can be passed as it is). */
 export interface CultureInput {
@@ -82,6 +82,12 @@ export interface EvidenceInput {
   weightPresets?: Partial<WeightPresets> | null
   /** Engagement records, board text and the AI-use log; with it, the claims guard and the AI-use log give lines. */
   culture?: CultureInput | null
+  /**
+   * City in Nature from the model (gap G12): the ground wind study's trees and screens (project frame; only trees with a
+   * crown count), read beside the typed canopy, and planting typed at grade (m²) added to the planted decks' cover.
+   */
+  groundPorous?: readonly ModelTree[] | null
+  groundPlantedM2?: number | null
 }
 
 /** Both projects' results side by side, so the hub lists every node's sources whichever project is open. */
@@ -108,7 +114,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityStreetwallCheck(towers, i.cityStreets ?? null, i.cityRing ?? null, i.publicRealm.openPublicShare).rules : [],
     'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageCheck(towers, i.cityStreets ?? null).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],
-    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, (() => { const fa = facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0); return { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: fa.faces, deckFaces: fa.deckFaces, plantedSoil: plantedSoil(towers, north, weightPresets.soilMm) } })()),
+    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, (() => { const fa = facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0); return { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: fa.faces, deckFaces: fa.deckFaces, plantedSoil: plantedSoil(towers, north, weightPresets.soilMm), groundPorous: i.groundPorous ?? null, groundPlantedM2: i.groundPlantedM2 ?? null } })()),
     'built.wind-procedure': wind.map((w) => w.rules),
     'built.structure': towers.map((t, k) => structureCheck(t, wind[k], weightPresets, north).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),

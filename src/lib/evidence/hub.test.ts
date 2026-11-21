@@ -150,3 +150,16 @@ describe('G15: the engagement-and-claims guard and the AI-use log from data', ()
     expect(line(g, 'built.culture-claims', 'cc-claim-0').label).toBe('"Engagement with" (Engagement wording)')
   })
 })
+
+describe('City in Nature from the model through the evidence input (gap G12)', () => {
+  const base = { project: 'vtc' as const, towers: s.towers.vtc, fsrTier: s.fsrTier, transitLink: s.transitLink, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets, systemsPresets: s.systemsPresets }
+  const canopy = (g: ReturnType<typeof evidenceGroups>) => (g['built.city-in-nature'] as unknown as { rules: { id: string; value: string }[] }).rules.find((l) => l.id === 'canopy')
+  it('passes the ground trees to the canopy line, and leaves it unchanged without them', () => {
+    const trees = Array.from({ length: 20 }, (_, k) => ({ kind: 'tree', at: [-60 + 12 * (k % 10), -20 + 12 * Math.floor(k / 10)], crown: 8 }))
+    const withTrees = canopy(evidenceGroups({ ...base, groundPorous: trees }))
+    const without = canopy(evidenceGroups(base))
+    expect(withTrees?.value).toMatch(/modelled 1,005 m²/)
+    expect(without?.value).not.toMatch(/modelled/)
+  })
+})
+
