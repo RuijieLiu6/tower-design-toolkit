@@ -56,8 +56,12 @@ describe('streetwall and tower form (P06-M02)', () => {
     expect(tight.edges.find((e) => e.edge.id === 'south')!.state).toBe('fail')
   })
   it('treats a tower flush with its podium as streetwall', () => {
-    const flush = streetwallCheck([{ ...vtc, podiumWidth: 46, podiumDepth: 64 }], input)
+    // Flush with the podium, both on the arterial's property line (x = xMin + 23).
+    const flush = streetwallCheck([{ ...vtc, x: VTC_SITE.xMin + 23, podiumWidth: 46, podiumDepth: 64 }], input)
     expect(flush.edges.find((e) => e.edge.id === 'west')!.wallHeight).toBe(285)
+    // G9: the same tower 29.4 m back from the arterial stands behind open ground, so there is no streetwall there.
+    const back = streetwallCheck([{ ...vtc, podiumWidth: 46, podiumDepth: 64 }], input)
+    expect(back.edges.find((e) => e.edge.id === 'west')).toMatchObject({ wallHeight: 0, stepBack: null, state: 'pass' })
   })
   it('flags the 46 m, 2,116 m² plate against Table 2.3 and S2.3.2', () => {
     expect(find(s.rules, 'pr-plate-t1')!.state).toBe('warn')

@@ -306,28 +306,38 @@ export interface Neighbour { label: string; footprint: Pt[]; height: number }
 
 // ---------- M02: streetwall and tower form ----------
 export interface EdgeWall { edge: SiteEdge; wallHeight: number; max: number; stepBack: number | null; setback: number; continuity: number; ratio: number; state: RuleState }
+/**
+ * How far back from the property line a face still forms the streetwall (team preset): the top of the CDDG tip's
+ * 1.5–3.0 m step-back that reads as a break. A tower further back stands behind a forecourt, not in the streetwall
+ * (both projects; on the competition block since G9, where a tower 64 m back behind a square read as a 300 m wall).
+ */
+export const STREETWALL_REACH = 3.0
+const reachNote = `A face more than ${f1(STREETWALL_REACH)} m back from the property line is not counted as streetwall (team preset, the top of the CDDG's 1.5–3.0 m step-back tip).`
 
 export function streetwallCheck(towers: Tower[], input: PublicRealmInput, neighbours: Neighbour[] = []): { rules: RuleResult[]; edges: EdgeWall[] } {
   const rules: RuleResult[] = []
   const os = openSpace(towers, input)
   const enhanced = (os.largest?.area ?? 0) >= 300
   const edges: EdgeWall[] = VTC_EDGES.map((e) => {
-    // The streetwall on this street is the nearest mass; a tower within 1.5 m of its podium face rises in the wall.
-    // Podium and tower are read part by part (G10: an imported mass's true storey outlines, not one hull).
+    // The streetwall on this street is the nearest mass within reach of the property line (G9: a face further back
+    // stands behind open ground, so no wall); a tower within 1.5 m of its podium face rises in the wall. Podium and
+    // tower are read part by part (G10: an imported mass's true storey outlines, not one hull).
     let wallHeight = 0, stepBack: number | null = null, setback = Infinity, covered = 0
     for (const t of towers) {
       const tw = onEdgeParts(partRings(t, 'tower'), e)
       if (t.podiumHeight > 0) {
         const pd = onEdgeParts(partRings(t, 'podium'), e)
+        setback = Math.min(setback, pd.setback)
+        covered += pd.covered
+        if (Math.min(pd.setback, tw.setback) > STREETWALL_REACH) continue
+        // Measured from the podium face that forms the wall, not from the property line.
         const sb = tw.setback - pd.setback
         stepBack = stepBack === null ? sb : Math.min(stepBack, sb)
         wallHeight = Math.max(wallHeight, sb >= 1.5 ? t.podiumHeight : t.height)
-        setback = Math.min(setback, pd.setback)
-        covered += pd.covered
       } else {
-        wallHeight = Math.max(wallHeight, t.height)
         setback = Math.min(setback, tw.setback)
         covered += tw.covered
+        if (tw.setback <= STREETWALL_REACH) wallHeight = Math.max(wallHeight, t.height)
       }
     }
     const frontage = edgeLength(e.id)
@@ -341,12 +351,14 @@ export function streetwallCheck(towers: Tower[], input: PublicRealmInput, neighb
     rules.push(rule({
       id: `pr-podium-${w.edge.id}`,
       label: `Streetwall on the ${w.edge.street.toLowerCase()}`,
-      value: `${f1(w.wallHeight)} m on a ${f1(w.edge.row)} m street (height to width ${w.ratio.toFixed(2)})`,
+      value: w.wallHeight > 0 ? `${f1(w.wallHeight)} m on a ${f1(w.edge.row)} m street (height to width ${w.ratio.toFixed(2)})`
+        : Number.isFinite(w.setback) ? `no streetwall on this street (open frontage): the nearest face is ${f1(w.setback)} m back` : 'no building faces this street',
       threshold: `≤ ${f1(w.max)} m${w.max > base ? ` (Table 2.2b gives ${f1(base)} m; S2.2.8b allows 21.3 m with enhanced open space)` : ' (Table 2.2b)'}`,
       state: w.state,
-      flag: 'verified',
+      // Open frontage rests on the reach (a team preset), not on Table 2.2b.
+      flag: w.wallHeight > 0 || !Number.isFinite(w.setback) ? 'verified' : 'team_assumption',
       source: cddg('Table 2.2b, S2.2.6 and S2.2.8'),
-      note: `${w.stepBack !== null && w.stepBack < 1.5 ? `The tower is within ${f1(Math.max(0, w.stepBack))} m of the podium face here, so it counts as streetwall (a step-back of at least 1.5 m reads as a break). ` : ''}Table 2.2b applies to mixed-use and non-residential tower podiums; S2.2.7 (18.3 m) only to exclusively residential ones.${w.max > base ? ' Enhanced open space is taken as present from the largest open piece (300 m² or more); planting and vehicle-free use are not checked (team).' : ''}`,
+      note: `${w.stepBack !== null && w.stepBack < 1.5 ? `The tower is within ${f1(Math.max(0, w.stepBack))} m of the podium face here, so it counts as streetwall (a step-back of at least 1.5 m reads as a break). ` : ''}${reachNote} Table 2.2b applies to mixed-use and non-residential tower podiums; S2.2.7 (18.3 m) only to exclusively residential ones.${w.max > base ? ' Enhanced open space is taken as present from the largest open piece (300 m² or more); planting and vehicle-free use are not checked (team).' : ''}`,
     }))
   }
 
@@ -356,7 +368,7 @@ export function streetwallCheck(towers: Tower[], input: PublicRealmInput, neighb
     rules.push(rule({
       id: 'pr-stepback', label: 'Tower step-back above the podium', value: `${f1(least)} m at the least`,
       threshold: '≥ 1.5 m planar change, 1.5–3.0 m reads as a break (CDDG tip)', state: least >= 1.5 ? 'pass' : 'warn', flag: 'team_assumption',
-      source: cddg('G2.2.2 and design tip'), note: 'G2.2.2 asks for a setback above the podium without a number; the 1.5–3.0 m figure is a CDDG design tip, not a standard.',
+      source: cddg('G2.2.2 and design tip'), note: `G2.2.2 asks for a setback above the podium without a number; the 1.5–3.0 m figure is a CDDG design tip, not a standard. Measured from the podium face on the streets with a streetwall; a street with open frontage gives none (${f1(STREETWALL_REACH)} m reach, team).`,
     }))
   }
 
@@ -516,11 +528,6 @@ function typesLine(ctx: CityStreetsCtx, id: string, what: string): RuleResult | 
 
 export interface CityWall { street: SiteStreet; wallHeight: number; max: number; stepBack: number | null; setback: number; continuity: number; state: RuleState }
 /**
- * How far back from the property line a face still forms the streetwall (team preset): the top of the CDDG tip's
- * 1.5–3.0 m step-back that reads as a break. A tower further back stands behind a forecourt, not in the streetwall.
- */
-export const STREETWALL_REACH = 3.0
-/**
  * `againstStreet` over a tower's parts (G10; they may overlap): on each side of the street, the nearest part's setback,
  * the length the parts span and the length the parts within `near` m of it cover, overlaps counted once.
  */
@@ -571,7 +578,7 @@ export function cityStreetwallCheck(towers: Tower[], ctx: CityStreetsCtx | null 
         if (pd.span <= 0) continue
         setback = Math.min(setback, pd.setback)
         covered += pd.covered
-        if (pd.setback > STREETWALL_REACH) continue
+        if (Math.min(pd.setback, tw.span > 0 ? tw.setback : Infinity) > STREETWALL_REACH) continue
         const sb = tw.span > 0 ? tw.setback - pd.setback : Infinity
         if (Number.isFinite(sb)) stepBack = stepBack === null ? sb : Math.min(stepBack, sb)
         wallHeight = Math.max(wallHeight, sb >= 1.5 ? t.podiumHeight : t.height)
@@ -595,7 +602,7 @@ export function cityStreetwallCheck(towers: Tower[], ctx: CityStreetsCtx | null 
         : Number.isFinite(w.setback) ? `no streetwall: the nearest face is ${f1(w.setback)} m back from ${st.name}` : `no building faces ${st.name}`,
       threshold: `≤ ${f1(w.max)} m${w.max > base ? ` (Table 2.2b gives ${f1(base)} m; S2.2.8b allows 21.3 m with enhanced open space)` : ' (Table 2.2b)'}`,
       state: w.state, flag: 'unverified', source: cddg('Table 2.2b, S2.2.6 and S2.2.8'),
-      note: `${rowWords(st)}.${edgeNote} ${w.stepBack !== null && w.stepBack < 1.5 ? `The tower is within ${f1(Math.max(0, w.stepBack))} m of the podium face here, so it counts as streetwall. ` : ''}A face more than ${f1(STREETWALL_REACH)} m back from the property line is not counted as streetwall (team preset, the top of the CDDG's 1.5–3.0 m step-back tip). Table 2.2b covers the Downtown and Broadway Plan Area (that this site lies in it is not checked) and mixed-use and non-residential podiums; S2.2.7 (18.3 m) only exclusively residential ones.`,
+      note: `${rowWords(st)}.${edgeNote} ${w.stepBack !== null && w.stepBack < 1.5 ? `The tower is within ${f1(Math.max(0, w.stepBack))} m of the podium face here, so it counts as streetwall. ` : ''}${reachNote} Table 2.2b covers the Downtown and Broadway Plan Area (that this site lies in it is not checked) and mixed-use and non-residential podiums; S2.2.7 (18.3 m) only exclusively residential ones.`,
     }))
   }
   const steps = walls.filter((w) => w.stepBack !== null).map((w) => w.stepBack as number)

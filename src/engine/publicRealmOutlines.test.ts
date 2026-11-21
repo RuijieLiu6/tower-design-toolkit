@@ -1,10 +1,11 @@
-// G10 (vtc-entry tool deficits, 21 Nov): the public-realm checks read an imported podium by its true storey outlines,
-// not one convex hull (A10a's forum cut between a pavilion and the main podium stayed invisible). Storeys are built
-// directly, the way the import pipeline stores them (as importedStoreys.test.ts).
+// G9 / G10 (vtc-entry tool deficits, 21 Nov): the public-realm checks read an imported podium by its true storey
+// outlines, not one convex hull (G10: A10a's forum cut between a pavilion and the main podium stayed invisible), and a
+// face counts as streetwall only within reach of the property line (G9: A10b's tower 64 m back behind a square read as
+// a 300 m streetwall). Storeys are built directly, the way the import pipeline stores them (as importedStoreys.test.ts).
 import { describe, expect, it } from 'vitest'
 import { towerPatch } from './imported'
 import { storeyOutline } from './massing'
-import { DEFAULT_PUBLIC_REALM, SITE_AREA, VTC_SITE, cityLinkGeometry, cityOpenSpace, frontageCheck, groundPlaneCheck, masses, openSpace, streetwallCheck, type PublicRealmInput } from './publicRealm'
+import { DEFAULT_PUBLIC_REALM, SITE_AREA, STREETWALL_REACH, VTC_SITE, cityLinkGeometry, cityOpenSpace, frontageCheck, groundPlaneCheck, masses, openSpace, streetwallCheck, type PublicRealmInput } from './publicRealm'
 import type { ImportedMass, ImportedStorey, RuleResult, Tower, UseId } from './types'
 
 type P = [number, number]
@@ -121,7 +122,44 @@ describe('G10: a podium in separate parts is read part by part', () => {
   })
 })
 
-// (2) A single box podium, on the high street and the arterial: the readings from before the change (main 43c28f3).
+// (2) A10b: no podium on the arterial (west) side. Podium from x −12.39 to the east street, the full depth of the block;
+// the 300 m tower's west face flush with it, 60 m back from the arterial behind an open square.
+const square = importedTower(stack([
+  { n: 4, f2f: 4.5, loops: [[[-12.39, VTC_SITE.yMin], [VTC_SITE.xMax, VTC_SITE.yMin], [VTC_SITE.xMax, VTC_SITE.yMax], [-12.39, VTC_SITE.yMax]]], podium: true },
+  { n: 94, f2f: 3, loops: [[[-12.39, -25], [37.61, -25], [37.61, 25], [-12.39, 25]]] },
+]), 18)
+
+describe('G9: a face counts as streetwall only within reach of the property line', () => {
+  it('reads no 300 m streetwall Fail on the arterial for a tower 60 m back', () => {
+    expect(square.height).toBe(300)
+    const s = streetwallCheck([square], input)
+    const west = s.edges.find((e) => e.edge.id === 'west')!
+    expect(west).toMatchObject({ wallHeight: 0, stepBack: null, state: 'pass' })
+    expect(west.setback).toBeCloseTo(60, 6)
+    expect(rule(s.rules, 'pr-podium-west')).toMatchObject({ value: 'no streetwall on this street (open frontage): the nearest face is 60.0 m back', state: 'pass', flag: 'team_assumption' })
+    // Continuity still reports the open frontage (a deliberate square is said so on the boards).
+    expect(rule(s.rules, 'pr-continuity-west')).toMatchObject({ state: 'fail' })
+    expect(STREETWALL_REACH).toBe(3)
+  })
+
+  it('measures the step-back from the streetwalls that exist, not 0 m from the open side', () => {
+    const s = streetwallCheck([square], input)
+    // South: the podium on the property line, the tower 14.67 m back from it, so the podium height is the wall.
+    expect(s.edges.find((e) => e.edge.id === 'south')).toMatchObject({ wallHeight: 18, state: 'pass' })
+    expect(s.edges.find((e) => e.edge.id === 'south')!.stepBack).toBeCloseTo(14.67, 6)
+    // North 14.58 m, east 34.78 m: the least is the north side's.
+    expect(rule(s.rules, 'pr-stepback')).toMatchObject({ value: '14.6 m at the least', state: 'pass' })
+  })
+
+  it('does the same for a parametric tower flush with its podium, 60 m back', () => {
+    const t: Tower = { ...base, id: 'p', name: 'Parametric', x: -12.39 + 23, y: 0, width: 46, depth: 46, height: 285, f2f: 4.2, podiumHeight: 18, podiumWidth: 46, podiumDepth: 64, bands: [{ use: 'office', share: 1 }] }
+    const west = streetwallCheck([t], input).edges.find((e) => e.edge.id === 'west')!
+    expect(west).toMatchObject({ wallHeight: 0, stepBack: null, state: 'pass' })
+  })
+})
+
+// (3) A single box podium, on the high street and the arterial: the readings from before the change (main 43c28f3).
+// North and east stand 15.25 and 44.78 m back, so since G9 they read open frontage (they read an 18 m wall before).
 const cx = VTC_SITE.xMin + 50, cy = VTC_SITE.yMin + 32
 const box = importedTower(stack([{ n: 4, f2f: 4.5, loops: [rect(100, 64, cx, cy)], podium: true }, { n: 66, f2f: 4, loops: [rect(46, 46, cx, cy)] }]), 18)
 const twin: Tower = { ...base, id: 'b', name: 'Box', x: cx, y: cy, width: 46, depth: 46, height: 282, f2f: 4, podiumHeight: 18, podiumWidth: 100, podiumDepth: 64, bands: [{ use: 'office', share: 1 }] }
@@ -143,19 +181,17 @@ describe('a single box podium reads as before', () => {
     expect(c.largest).toEqual({ area: 3560.8391379310347, x0: 27.458275862068973, x1: 72.39, y0: -39.625, y1: 39.625 })
   })
 
-  it('keeps the frontage, the streetwalls, continuity and step-back', () => {
+  it('keeps the frontage, the streetwalls within reach, continuity and step-back', () => {
     expect(frontageCheck([box], input).edges.map((e) => [e.edge.id, e.length])).toEqual([['south', 100], ['west', 64], ['north', 100], ['east', 64]])
     const s = streetwallCheck([box], input)
     const walls = s.edges.map((e) => [e.edge.id, e.wallHeight, e.stepBack, e.setback, e.state])
-    expect(walls).toEqual([['south', 18, 9, 0, 'pass'], ['west', 18, 27, 0, 'pass'], ['north', 18, 9, 15.25, 'pass'], ['east', 18, 27, 44.78, 'pass']])
+    expect(walls).toEqual([['south', 18, 9, 0, 'pass'], ['west', 18, 27, 0, 'pass'], ['north', 0, null, 15.25, 'pass'], ['east', 0, null, 44.78, 'pass']])
     expect(s.edges[0].continuity).toBeCloseTo(0.6907031357922365, 12)
     expect(s.edges[1].continuity).toBeCloseTo(0.807570977917981, 12)
-    const lines = s.rules.filter((r) => /^pr-(podium|stepback|continuity)/.test(r.id)).map((r) => `${r.id}: ${r.value} | ${r.state}`)
+    const lines = s.rules.filter((r) => /^pr-(podium-south|podium-west|stepback|continuity)/.test(r.id)).map((r) => `${r.id}: ${r.value} | ${r.state}`)
     expect(lines).toEqual([
       'pr-podium-south: 18.0 m on a 24.3 m street (height to width 0.74) | pass',
       'pr-podium-west: 18.0 m on a 30.2 m street (height to width 0.60) | pass',
-      'pr-podium-north: 18.0 m on a 20.1 m street (height to width 0.90) | pass',
-      'pr-podium-east: 18.0 m on a 20.1 m street (height to width 0.90) | pass',
       'pr-stepback: 9.0 m at the least | pass',
       'pr-continuity-south: 69% within 1 m of the property line (nearest face 0.0 m back) | warn',
       'pr-continuity-west: 81% within 1 m of the property line (nearest face 0.0 m back) | pass',
