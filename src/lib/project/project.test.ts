@@ -97,6 +97,16 @@ describe('project file: deterministic export and import', () => {
     ;(f.towers.vtc[0] as unknown as Record<string, unknown>).stairCorner = 'up'
     expect(readProject(JSON.stringify(f)).ok).toBe(false)
   })
+  it('keeps a declared damper apart from inherent damping (G20); a negative one is refused', () => {
+    useStore.setState((s) => ({ windPresets: { ...s.windPresets, supplementalDamping: 0.02, damperNote: 'tuned sloshing tanks in the crown, +300–304 m' } }))
+    const r = readProject(exportProject(pickDesign(useStore.getState())))
+    expect(r.ok).toBe(true)
+    expect(toDesign(r.file!).windPresets).toMatchObject({ damping: 0.015, supplementalDamping: 0.02, damperNote: 'tuned sloshing tanks in the crown, +300–304 m' })
+    const f = file()
+    expect(f.windPresets?.supplementalDamping).toBeUndefined()
+    ;(f.windPresets as Record<string, unknown>).supplementalDamping = -0.01
+    expect(readProject(JSON.stringify(f)).ok).toBe(false)
+  })
 })
 
 describe('project file: validation in plain words', () => {

@@ -19,10 +19,22 @@ export interface WindPresets {
   tunnelDefaultHeight: number
   /** Lowest natural frequency from the engineer's model (Hz), or null when there is none (code Ta must not be used). */
   f1: number | null
-  /** Damping ratio for the across-wind screen (team assumption; absent = 0.015, the Commentary sample's value). */
+  /** Inherent damping ratio of the structure for the across-wind screen (team assumption; absent = 0.015, the Commentary sample's value). */
   damping?: number
+  /** Supplementary damping ratio from a declared damper (tuned mass or sloshing tanks), added to the inherent value; declared by the
+   *  team, never sized by a supplier here (gap G20). Absent = no damper. */
+  supplementalDamping?: number
+  /** What the declared damper is and where, e.g. "tuned sloshing tanks in the crown, +300–304 m". */
+  damperNote?: string
 }
 export const DEFAULT_WIND_PRESETS: WindPresets = { tunnelDefaultHeight: 180, f1: null, damping: DEFAULT_DAMPING }
+
+/** Inherent, declared supplementary and total damping ratios for the across-wind screen (total = inherent + supplementary). */
+export function dampingOf(p: WindPresets): { inherent: number; supplemental: number; total: number } {
+  const inherent = p.damping ?? DEFAULT_DAMPING
+  const supplemental = Math.max(0, p.supplementalDamping ?? 0)
+  return { inherent, supplemental, total: Math.round((inherent + supplemental) * 1e6) / 1e6 }
+}
 
 /** Height-weighted width across a wind at angle deg to the tower's own axes (podium slices count). All slices share the
  *  tower's rotation, so sampling relative angles finds the true minimum (aligned directions included). */
@@ -92,7 +104,12 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS): 
   const fs = f1 !== null ? [f1] : empirical ? [emp.central, emp.lower] : []
   if (fs.length) {
     const density = storeyWeights(t).density
-    const damping = p.damping ?? DEFAULT_DAMPING
+    const { inherent, supplemental, total: damping } = dampingOf(p)
+    const preset = `team preset ${(DEFAULT_DAMPING * 100).toFixed(1)}%, the Commentary sample’s value; concrete 0.02, steel 0.01`
+    const inherentText = `inherent ${inherent} (${inherent === DEFAULT_DAMPING ? preset : `team setting; ${preset}`})`
+    const dampingText = supplemental > 0
+      ? `damping ratio ${damping} in all: ${inherentText} plus supplementary ${supplemental} declared for ${p.damperNote?.trim() || 'a damper'} (declared, not sized by a supplier)`
+      : `damping ratio ${inherent}: ${inherentText}, no supplementary damper declared`
     const acc = fs.map((f) => acrossWindAccel({ H, w, d, f, damping, density }))
     const corners = towerCorners(t)
     const red = cornerReduction(corners.kind, corners.bB)
@@ -104,7 +121,7 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS): 
     add('across-wind-accel', 'Across-wind acceleration at the top (1-in-10-year wind)', acc.map((_, k) => at(k)).join('; ') + (R < 0.999 ? `; with the corner credit ${acc.map((a) => pg(a.g * R)).join('–')}% g` : ''),
       `≤ ${pg(limit)}% g (${homes ? 'homes or hotel rooms in the top third' : 'offices'}); the limits are 1.5% g residential and 2.5% g office`, acc[0].g > limit ? 'fail' : Math.max(...acc.map((a) => a.g)) > limit ? 'warn' : 'pass', 'team_assumption',
       { ...COMMENTARY, page: 'paras. 109–111, 113, 115, equation (7); research R5 §4.3' },
-      `NBC Commentary I equation (7), which reproduces the Commentary’s worked example (0.45 m/s²): q10 = ${Q10} kPa (Vancouver, Table C-2), V_H = ${acc[0].VH.toFixed(1)} m/s at ${H.toFixed(0)} m (rough terrain), w × d = ${w.toFixed(1)} × ${d.toFixed(1)} m, building density ${density.toFixed(0)} kg/m³ (from the storey weights), damping ratio ${damping} (team assumption: the Commentary sample’s value; concrete 0.02, steel 0.01), peak factor ${acc[0].gp.toFixed(2)} (Davenport, recalled).`
+      `NBC Commentary I equation (7), which reproduces the Commentary’s worked example (0.45 m/s²): q10 = ${Q10} kPa (Vancouver, Table C-2), V_H = ${acc[0].VH.toFixed(1)} m/s at ${H.toFixed(0)} m (rough terrain), w × d = ${w.toFixed(1)} × ${d.toFixed(1)} m, building density ${density.toFixed(0)} kg/m³ (from the storey weights), ${dampingText}, peak factor ${acc[0].gp.toFixed(2)} (Davenport, recalled).`
       + (f1 === null ? ' f1 = 46/H is empirical (±50%), so the verdict is shown at both ends: the state is Pass only when both meet the limit.' : '')
       + (red && corners.credit > 0 ? ` Corner credit R = ${R.toFixed(2)} (${red.basis}; ${corners.text}): base-moment reductions from tests applied to accelerations, an inference, shown as a range and never as a pass.` : ' No corner credit (sharp, indeterminate or under b/B 0.05).')
       + ' The formula is for prismatic shapes and the Commentary reports much scatter around it; tapered, stepped or porous towers sit outside its data.')

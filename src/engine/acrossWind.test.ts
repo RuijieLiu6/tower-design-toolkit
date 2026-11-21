@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import { ACCEL_LIMIT, acrossWindAccel, ceRough, cornerReduction, f1Empirical, peakFactor, Q10, Q50, speedOf, vortexSpeed } from './acrossWind'
 import { importedTower, rect, stack, type P } from './testStoreys'
 import type { Tower } from './types'
-import { DEFAULT_WIND_PRESETS, windProcedure } from './windStructure'
+import { DEFAULT_WIND_PRESETS, dampingOf, windProcedure } from './windStructure'
 
 const rule = (r: ReturnType<typeof windProcedure>, id: string) => r.rules.find((x) => x.id === id)!
 const chamfer = (w: number, c: number, cx = 0, cy = 0): P[] => { const x = w / 2; return ([[-x + c, -x], [x - c, -x], [x, -x + c], [x, x - c], [x - c, x], [-x + c, x], [-x, x - c], [-x, -x + c]] as P[]).map(([a, b]) => [a + cx, b + cy]) }
@@ -74,7 +74,7 @@ describe('G8: the wind procedure node reads f1, across-wind and vortex lines', (
     expect(a.value).toMatch(/^\d+\.\d% g at f1 0\.161 Hz; \d+\.\d% g at the lower 0\.108 Hz$/)
     expect(a.threshold).toMatch(/^≤ 1\.5% g \(homes or hotel rooms in the top third\)/) // the default bands end in homes
     expect(a.flag).toBe('team_assumption')
-    expect(a.note).toMatch(/damping ratio 0\.015 \(team assumption/)
+    expect(a.note).toMatch(/damping ratio 0\.015: inherent 0\.015 \(team preset 1\.5%, the Commentary sample’s value; concrete 0\.02, steel 0\.01\), no supplementary damper declared/)
     const [c, lo] = [...a.value.matchAll(/(\d+\.\d)% g/g)].map((m) => Number(m[1]))
     expect(lo).toBeGreaterThan(c)
     expect(a.state).toBe(c > 1.5 ? 'fail' : lo > 1.5 ? 'warn' : 'pass')
@@ -116,5 +116,36 @@ describe('G8: the wind procedure node reads f1, across-wind and vortex lines', (
     const low = windProcedure({ ...vtc(), height: 40, podiumHeight: 0 })
     expect(rule(low, 'f1')).toMatchObject({ value: 'no model frequency', state: 'unknown' })
     expect(low.rules.some((x) => x.id === 'across-wind-accel' || x.id === 'vortex')).toBe(false)
+  })
+})
+
+// G20 (vtc-entry TOOL_DEFICITS): B20a declared tuned sloshing tanks as a total damping of 0.035, and the note called it
+// "the Commentary sample's value". A declared damper now adds to the inherent value and the note names both.
+describe('G20: a declared damper apart from inherent damping', () => {
+  const vtc = (): Tower => ({ ...useStore.getInitialState().towers.vtc[0] })
+  const tanks = 'tuned sloshing tanks in the crown, +300–304 m'
+
+  it('adds the declared supplementary damping to the inherent value: 0.015 + 0.020 reads as 0.035', () => {
+    expect(dampingOf({ ...DEFAULT_WIND_PRESETS, supplementalDamping: 0.02 })).toEqual({ inherent: 0.015, supplemental: 0.02, total: 0.035 })
+    expect(dampingOf({ tunnelDefaultHeight: 180, f1: null })).toEqual({ inherent: 0.015, supplemental: 0, total: 0.015 })
+    expect(dampingOf({ ...DEFAULT_WIND_PRESETS, supplementalDamping: -0.01 }).total).toBe(0.015) // never below the inherent value
+    for (const f1 of [null, 0.2]) {
+      const declared = rule(windProcedure(vtc(), { ...DEFAULT_WIND_PRESETS, f1, damping: 0.015, supplementalDamping: 0.02, damperNote: tanks }), 'across-wind-accel')
+      const total = rule(windProcedure(vtc(), { ...DEFAULT_WIND_PRESETS, f1, damping: 0.035 }), 'across-wind-accel')
+      expect(declared.value).toBe(total.value)
+      expect(declared.state).toBe(total.state)
+    }
+    const plain = rule(windProcedure(vtc()), 'across-wind-accel')
+    const damped = rule(windProcedure(vtc(), { ...DEFAULT_WIND_PRESETS, supplementalDamping: 0.02 }), 'across-wind-accel')
+    expect(Number(damped.value.match(/^(\d+\.\d)/)![1])).toBeLessThan(Number(plain.value.match(/^(\d+\.\d)/)![1]))
+  })
+
+  it('states inherent and declared supplementary damping separately, with the damper and "declared, not sized by a supplier"', () => {
+    const a = rule(windProcedure(vtc(), { ...DEFAULT_WIND_PRESETS, supplementalDamping: 0.02, damperNote: tanks }), 'across-wind-accel')
+    expect(a.note).toContain('damping ratio 0.035 in all: inherent 0.015 (team preset 1.5%, the Commentary sample’s value; concrete 0.02, steel 0.01) plus supplementary 0.02 declared for tuned sloshing tanks in the crown, +300–304 m (declared, not sized by a supplier)')
+    // A changed inherent value is the team's setting, not the Commentary sample's.
+    const steel = rule(windProcedure(vtc(), { ...DEFAULT_WIND_PRESETS, damping: 0.01, supplementalDamping: 0.02 }), 'across-wind-accel')
+    expect(steel.note).toMatch(/damping ratio 0\.03 in all: inherent 0\.01 \(team setting; team preset 1\.5%/)
+    expect(steel.note).toMatch(/declared for a damper \(declared, not sized by a supplier\)/)
   })
 })

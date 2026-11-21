@@ -49,7 +49,7 @@ export function WindProcedurePanel() {
               </span>
             </span>
           </label>
-          <label className="flex items-center justify-between gap-2 text-muted" title="Across-wind acceleration screen: the Commentary sample uses 0.015; concrete 0.02, steel 0.01 (NBC Commentary I para 57)">Damping ratio (across-wind screen)
+          <label className="flex items-center justify-between gap-2 text-muted" title="Across-wind acceleration screen: the Commentary sample uses 0.015; concrete 0.02, steel 0.01 (NBC Commentary I para 57)">Inherent damping ratio (across-wind screen)
             <span className="flex items-center gap-1"><FlagChip flag="team_assumption" />
               <span className="flex items-center rounded border border-line bg-panel">
                 <input type="number" step={0.001} min={0.005} max={0.05} value={presets.damping ?? DEFAULT_DAMPING} aria-label="Damping ratio"
@@ -57,6 +57,20 @@ export function WindProcedurePanel() {
               </span>
             </span>
           </label>
+          <label className="flex items-center justify-between gap-2 text-muted" title="A damper the team declares (tuned mass damper, sloshing tanks): its added damping ratio counts on top of the inherent value. Declared, not sized by a supplier.">Declared damper: added damping ratio
+            <span className="flex items-center gap-1"><FlagChip flag="team_assumption" />
+              <span className="flex items-center rounded border border-line bg-panel">
+                <input type="number" step={0.001} min={0} max={0.1} value={presets.supplementalDamping ?? ''} placeholder="none" aria-label="Supplementary damping ratio"
+                  onChange={(e) => setPresets({ supplementalDamping: e.target.value === '' ? undefined : Math.min(0.1, Math.max(0, Number(e.target.value) || 0)) })} className="w-16 bg-transparent px-1.5 py-0.5 text-right tabular-nums text-ink outline-none" />
+              </span>
+            </span>
+          </label>
+          {(presets.supplementalDamping ?? 0) > 0 && (
+            <label className="flex items-center justify-between gap-2 text-muted">What and where
+              <input type="text" maxLength={200} value={presets.damperNote ?? ''} placeholder="tuned sloshing tanks in the crown" aria-label="Damper note"
+                onChange={(e) => setPresets({ damperNote: e.target.value || undefined })} className="w-44 rounded border border-line bg-panel px-1.5 py-0.5 text-ink outline-none" />
+            </label>
+          )}
         </div>
       </Section>
       <FalseAssumptions />

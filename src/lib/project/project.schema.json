@@ -166,7 +166,19 @@
         "damping": {
           "type": "number",
           "exclusiveMinimum": 0,
-          "maximum": 0.2
+          "maximum": 0.2,
+          "description": "Inherent damping ratio of the structure (across-wind screen)."
+        },
+        "supplementalDamping": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.2,
+          "description": "Supplementary damping ratio from a declared damper, added to the inherent value; declared by the team, not sized by a supplier."
+        },
+        "damperNote": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "What the declared damper is and where, e.g. tuned sloshing tanks in the crown, +300-304 m."
         }
       }
     },
