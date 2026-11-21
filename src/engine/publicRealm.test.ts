@@ -228,3 +228,54 @@ describe('the study site frame', () => {
     expect(inRing(mid)).toBe(true)
   })
 })
+
+// G35 (vtc-entry urban review R3-15): massing variation read the podium's overall length, so a 4.5 m deep arcade along
+// half of C22a's 77.6 m plaza face still read 77.6 m.
+import { VARIATION_STEP, facadeRun, streetwallStoreys } from './publicRealm'
+import type { ImportedStorey } from './types'
+
+describe('G35: massing variation reads steps in the true podium outline', () => {
+  type P = [number, number]
+  const box = (x0: number, y0: number, x1: number, y1: number): P[] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+  /** A 77.6 × 40 m podium of four 4.8 m storeys under a 30 m tower to +250 m. `low`: the L1–L2 ring; `up`: the L3–L4 ring. */
+  const podium = (low: P[], up: P[] = box(-38.8, -20, 38.8, 20)): Tower => {
+    const storeys: ImportedStorey[] = []
+    for (let i = 0; i < 4; i++) storeys.push({ level: i + 1, z0: i * 4.8, z1: (i + 1) * 4.8, area: 0, use: 'retail', podium: true, hasFloor: true, loops: [i < 2 ? low : up] })
+    for (let z = 19.2, l = 5; z < 250; z += 4, l++) storeys.push({ level: l, z0: z, z1: z + 4, area: 0, use: 'office', podium: false, hasFloor: true, loops: [box(-15, -15, 15, 15)] })
+    return { ...vtc, x: 0, y: 0, rotation: 0, width: 30, depth: 30, height: 250, podiumHeight: 19.2, podiumWidth: 77.6, podiumDepth: 40, imported: { storeys } as unknown as Tower['imported'] }
+  }
+  const plain = podium(box(-38.8, -20, 38.8, 20))
+  /** The south (plaza) face's two lower storeys pulled back `d` m along its west half: an arcade under L3–L4. */
+  const arcade = (d: number): P[] => [[-38.8, -20 + d], [0, -20 + d], [0, -20], [38.8, -20], [38.8, 20], [-38.8, 20]]
+  const south: P = [0, -1]
+  it('a plain box podium reads its whole 77.6 m face', () => {
+    const r = facadeRun(streetwallStoreys(plain), south)
+    expect(r.longest).toBeCloseTo(77.6, 1)
+    expect(r.extent).toBeCloseTo(77.6, 1)
+  })
+  it('a 4.5 m deep arcade along half of the face breaks it into two runs of about 38.8 m', () => {
+    const t = podium(arcade(4.5))
+    expect(streetwallStoreys(t)).toHaveLength(2) // the podium storeys only, not the tower
+    const r = facadeRun(streetwallStoreys(t), south)
+    expect(r.longest).toBeLessThan(77.6 - 30)
+    expect(r.longest).toBeCloseTo(38.8, 0)
+    expect(r.extent).toBeCloseTo(77.6, 1)
+    // a jog under the team step (1.5 m) is not a plane change
+    expect(VARIATION_STEP).toBe(1.5)
+    expect(facadeRun(streetwallStoreys(podium(arcade(1.0))), south).longest).toBeCloseTo(77.6, 1)
+  })
+  it('the rule reads each street face; a step on both long faces brings it within 45.7 m', () => {
+    const line = (t: Tower) => towerFormRules([t]).find((x) => x.id === 'pr-variation')!
+    expect(line(plain)).toMatchObject({ value: '77.6 m of unbroken facade on the retail high street', state: 'warn' })
+    const one = line(podium(arcade(4.5)))
+    expect(one.note).toMatch(/the retail high street 38\.\d m/)
+    expect(one.value).toBe('77.6 m of unbroken facade on the north street (local)') // the north face is still a plain 77.6 m
+    // the north face stepped back 2 m along its east half, on every podium storey
+    const stepN = (r: P[]): P[] => r.flatMap((p) => (p[0] === 38.8 && p[1] === 20 ? [[38.8, 18], [0, 18], [0, 20]] as P[] : [p]))
+    const both = line(podium(stepN(arcade(4.5)), stepN(box(-38.8, -20, 38.8, 20))))
+    expect(both.state).toBe('pass')
+    // the halves of the plaza face are now the longest runs (the arcade and the north step also cut the 40 m ends)
+    expect(both.value).toMatch(/^38\.\d m of unbroken facade on the retail high street$/)
+    expect(both.note).toMatch(/the arterial street 3\d\.\d m/)
+  })
+})

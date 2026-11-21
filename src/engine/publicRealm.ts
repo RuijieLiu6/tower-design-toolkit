@@ -5,6 +5,7 @@
 // Research: 04 Tool Plan/research/modules-completion/P06/revise-r2_P06.json (single pass since 22 Oct).
 import { storeyOutline, towerFloors, towerFootprint, towerMasses, type OutlinePart } from './massing'
 import { againstStreet, distanceToStreet, extentAlong, spanOn, type CityLinkInput, type SiteStreet, type StreetEdge, type StreetSetting } from './siteStreets'
+import { storeySlabs } from './sw/decks'
 import type { RuleResult, RuleState, Tower, UseId } from './types'
 
 // ---------- site ----------
@@ -395,10 +396,102 @@ export interface EdgeFrontage { edge: SiteEdge; length: number; activeLength: nu
  * uses them in place; on Real Vancouver they are the whole node until the study site's streets are typed (node audit,
  * 7 Nov: Streetwall & tower form ran on the competition site only, though most of its tower rules need no street).
  */
+// ---------- massing variation along the street (S2.2.1, gap G35) ----------
+/**
+ * Least depth of a plane change that breaks a run of facade (team value, after the CDDG's "steps of 1.5 m or more" in
+ * S2.2.1's design tip, read as plan depth; R3-15 urban review). A face that changes by less reads as one plane.
+ */
+export const VARIATION_STEP = 1.5
+/** Spacing of the sections cut across a face (m); the run lengths are good to about this much. */
+const VAR_DS = 0.25
+/** One street face: its name and the unit normal pointing out of the site into the street. */
+export interface StreetFace { name: string; out: Pt }
+
+/**
+ * The longest run of facade seen from one street with no plane change of `VARIATION_STEP` or more (gap G35). `storeys`
+ * are the storey plates (each a list of rings, project frame); `out` the unit normal into the street. Each plate is cut
+ * by lines across the face every 0.25 m: on each line its front (its furthest point toward the street) is the facade the
+ * street sees there. A run ends where any storey's front moves back or forward by the step or more over a stretch at 45°
+ * or steeper (a step in the outline; a recessed lower storey such as an arcade under the storeys above it counts, as
+ * that storey's front steps), where a storey's front starts or stops (an end of the face, a part beginning or a storey
+ * overhanging another), and where no storey has a front (a gap between parts). Returns the longest run and the length of
+ * face seen from the street (m, along the face).
+ */
+export function facadeRun(storeys: Pt[][][], out: Pt, step = VARIATION_STEP): { longest: number; extent: number } {
+  const u: Pt = [out[1], -out[0]]
+  let lo = Infinity, hi = -Infinity
+  for (const st of storeys) for (const r of st) for (const p of r) { const v = p[0] * u[0] + p[1] * u[1]; lo = Math.min(lo, v); hi = Math.max(hi, v) }
+  if (!(hi > lo)) return { longest: 0, extent: 0 }
+  const n = Math.max(1, Math.ceil((hi - lo) / VAR_DS)), ds = (hi - lo) / n
+  // each storey's front on each section (NaN: the storey has none there)
+  const F = storeys.map((st) => {
+    const f = new Float64Array(n).fill(NaN)
+    for (let i = 0; i < n; i++) {
+      const sv = lo + (i + 0.5) * ds
+      let best = -Infinity
+      for (const r of st) for (let a = 0, b = r.length - 1; a < r.length; b = a++) {
+        const sa = r[a][0] * u[0] + r[a][1] * u[1], sb = r[b][0] * u[0] + r[b][1] * u[1]
+        if ((sa > sv) === (sb > sv)) continue
+        const t = (sv - sa) / (sb - sa), x = r[a][0] + t * (r[b][0] - r[a][0]), y = r[a][1] + t * (r[b][1] - r[a][1])
+        best = Math.max(best, x * out[0] + y * out[1])
+      }
+      if (best > -Infinity) f[i] = best
+    }
+    return f
+  })
+  // a cut before section i ends the run there
+  const cut = new Uint8Array(n + 1)
+  for (const f of F) {
+    let runStart = -1, runSum = 0, runSign = 0
+    const close = (end: number) => { if (runStart >= 0 && Math.abs(runSum) >= step - 1e-9) { cut[runStart] = 1; cut[Math.max(runStart, end - 1)] = 1 } runStart = -1; runSum = 0; runSign = 0 }
+    for (let i = 1; i < n; i++) {
+      const a = f[i - 1], b = f[i]
+      if (Number.isNaN(a) !== Number.isNaN(b)) { cut[i] = 1; close(i); continue }
+      if (Number.isNaN(a)) { close(i); continue }
+      const d = b - a, sg = Math.sign(d)
+      if (Math.abs(d) >= ds - 1e-9) {
+        // a stretch at 45° or steeper, one way: its net depth decides whether it is a plane change
+        if (runStart >= 0 && sg !== runSign) close(i)
+        if (runStart < 0) { runStart = i; runSign = sg }
+        runSum += d
+      } else close(i)
+    }
+    close(n)
+  }
+  let longest = 0, cur = 0, extent = 0
+  for (let i = 0; i < n; i++) {
+    const seen = F.some((f) => !Number.isNaN(f[i]))
+    if (!seen) { cur = 0; continue }
+    extent += ds
+    cur = cut[i] ? ds : cur + ds
+    longest = Math.max(longest, cur)
+  }
+  return { longest, extent }
+}
+
+/** The storey plates of a tower's streetwall: its podium storeys, or every storey when it has no podium (gap G35). */
+export function streetwallStoreys(t: Tower): Pt[][][] {
+  const slabs = storeySlabs(t)
+  const top = t.podiumHeight > 0 ? t.podiumHeight + 0.05 : Infinity
+  const seen = new Set<string>(), out: Pt[][][] = []
+  for (const s of slabs) {
+    if (s.z0 >= top - 0.05 || seen.has(s.key) || !s.poly.length) continue
+    seen.add(s.key)
+    out.push(s.poly.flatMap((pg) => pg.map((r) => r as Pt[])))
+  }
+  return out
+}
+
+/** A tower's own four faces (its frame's ±x and ±y), for a site whose streets are not known. */
+const ownFaces = (t: Tower): StreetFace[] => {
+  const a = (t.rotation * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a)
+  return [{ name: 'its +y face', out: [-s, c] }, { name: 'its −y face', out: [s, -c] }, { name: 'its +x face', out: [c, s] }, { name: 'its −x face', out: [-c, -s] }]
+}
+
 /** The street a tower faces most and its width against that street's frontage (Real Vancouver: from the typed streets). */
 export type FrontageShare = (t: Tower) => { share: number; street: string; frontage: number; width: number } | null
 
-export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], opts: { frontage: boolean | FrontageShare } = { frontage: true }): RuleResult[] {
+export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], opts: { frontage: boolean | FrontageShare; faces?: StreetFace[] } = { frontage: true }): RuleResult[] {
   const rules: RuleResult[] = []
   for (const t of towers) {
     const plate = t.width * t.depth
@@ -470,12 +563,23 @@ export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], op
     }))
   }
 
-  // Massing variation along the street (S2.2.1): a box podium has none.
-  const longest = Math.max(0, ...towers.filter((t) => t.podiumHeight > 0).map((t) => Math.max(t.podiumWidth, t.podiumDepth)), ...towers.map((t) => Math.max(t.width, t.depth)))
+  // Massing variation along the street (S2.2.1, gap G35): along each street face, the longest run of the streetwall's
+  // true outline (the podium storeys, or the tower's when it has none) with no step of VARIATION_STEP or more.
+  const faceOf = (t: Tower) => opts.faces ?? (opts.frontage === true ? VTC_EDGES.map((e) => ({ name: `the ${e.street.toLowerCase()}`, out: e.out })) : ownFaces(t))
+  const runs: { tower: string; face: string; longest: number }[] = []
+  for (const t of towers) {
+    const st = streetwallStoreys(t)
+    const by = new Map<string, number>()
+    for (const f of faceOf(t)) { const r = facadeRun(st, f.out); if (r.extent > 0) by.set(f.name, Math.max(by.get(f.name) ?? 0, r.longest)) }
+    for (const [face, longest] of by) runs.push({ tower: t.name, face, longest })
+  }
+  const top = runs.reduce<(typeof runs)[number] | null>((m, r) => (!m || r.longest > m.longest ? r : m), null)
+  const longest = top?.longest ?? 0, multi = towers.length > 1
+  const list = runs.map((r) => `${multi ? `${r.tower}, ` : ''}${r.face} ${f1(r.longest)} m`).join('; ')
   rules.push(rule({
-    id: 'pr-variation', label: 'Massing variation along the street', value: `${f1(longest)} m of unbroken facade in the model`,
+    id: 'pr-variation', label: 'Massing variation along the street', value: top ? `${f1(longest)} m of unbroken facade on ${top.face}${multi ? ` (${top.tower})` : ''}` : '0.0 m of unbroken facade in the model',
     threshold: 'a plane change about every 25.0–45.7 m', state: longest <= 45.7 ? 'pass' : 'warn', flag: 'verified', source: cddg('S2.2.1'),
-    note: 'The massing model is a box, so it shows no plane changes; add steps of 1.5 m or more at least every 45.7 m and show them on the boards.',
+    note: `Measured on the true outline of each podium storey (the tower's storeys where there is no podium), as the street sees it: the longest stretch of face with no step of ${f1(VARIATION_STEP)} m or more (team value), where a recessed lower storey such as an arcade counts as a step. By face: ${list || 'none'}.${longest > 45.7 ? ' Add steps of 1.5 m or more at least every 45.7 m and show them on the boards.' : ''}`,
   }))
 
   return rules
@@ -623,7 +727,7 @@ export function cityStreetwallCheck(towers: Tower[], ctx: CityStreetsCtx | null 
     }
     return best
   }
-  rules.push(...towerFormRules(towers, [], { frontage: share }))
+  rules.push(...towerFormRules(towers, [], { frontage: share, faces: mainStreets(ctx).flatMap((st) => st.edges.map((e) => ({ name: st.name, out: e.out }))) }))
   for (const w of walls) {
     const type = typeOf(ctx, w.street)
     if (type !== 'retail' && type !== 'arterial') continue
