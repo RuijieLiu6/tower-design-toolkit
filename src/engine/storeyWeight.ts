@@ -68,11 +68,13 @@ export interface StoreyWeight {
   /** An open garden storey (imported tower): its deck is planted unless the presets say none. */
   garden: boolean
   podium: boolean
+  /** The floor over a podium storey (the podium roof): its diaphragm and stiffness are not the tower's alone. */
+  onPodium: boolean
   use: UseId
   /** Weight centre in the tower's own frame (m). */
   cx: number
   cy: number
-  /** Plate extent along the tower's own x and y (m). */
+  /** Extent of the floor slab along the tower's own x and y (m): the plate, or the plate below where a deck is carried. */
   dx: number
   dy: number
 }
@@ -130,8 +132,8 @@ function gardens(t: Tower, floors: Floor[]): boolean[] {
 /**
  * The core centre in the tower's own frame. A parametric tower: the tower origin, where the toolkit draws its core (every
  * block offset from it). A drawn mass with a placed core: that core. An imported tower: the toolkit draws an assumed core
- * at the model's plan centre, which is not where a tower on an off-centre podium has it, so the core is read from the
- * model: the plate of an open garden storey that is the core alone, else the centre of the lowest tower storey (where
+ * at the tower origin (the model's plan centre on import), which is not where a tower on an off-centre podium has it, so
+ * the core is read from the model: the plate of an open garden storey that is the core alone, else the centre of the lowest tower storey (where
  * the core rises from the podium or the ground).
  */
 export function coreCentre(t: Tower, floors: Floor[] = towerFloors(t), plates: Plate[] = floors.map((f) => floorPlate(t, f))): CoreCentre {
@@ -149,7 +151,7 @@ export function coreCentre(t: Tower, floors: Floor[] = towerFloors(t), plates: P
   const k = i >= 0 ? i : 0
   const c = plates[k]?.c ?? [0, 0]
   const off = Math.hypot(c[0], c[1])
-  return { x: c[0], y: c[1], side, how: `the centre of the lowest tower storey, L${floors[k]?.level ?? 1} (no core in the imported model${off > 0.5 ? `; the toolkit's assumed core at the model's plan centre is ${off.toFixed(1)} m away` : ''})` }
+  return { x: c[0], y: c[1], side, how: `the centre of the lowest tower storey, L${floors[k]?.level ?? 1} (no core in the imported model${off > 0.5 ? `; the toolkit's assumed core at the tower origin is ${off.toFixed(1)} m away` : ''})` }
 }
 
 /** Seismic weight of every suspended floor and the roof (R5 equation 6.1), with weight centres in the tower frame. */
@@ -185,7 +187,8 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
       { w: below ? perimOf(i - 1) * hLow * p.facadeKpa : 0, c: below?.pc ?? pl.c },
       { w: perimOf(i) * hUp * p.facadeKpa, c: pl.pc },
       { w: coreKpm * (hLow + hUp), c: [core.x, core.y] },
-    ], { level: f.level, roof: false, z: f.z0, area: pl.area, deck, deckKind: deck > 0 ? (planted ? 'planted' : 'hard') : 'none', garden: garden[i], podium: f.podium, use: f.use, dx: pl.ext[0], dy: pl.ext[1] })
+    ], { level: f.level, roof: false, z: f.z0, area: pl.area, deck, deckKind: deck > 0 ? (planted ? 'planted' : 'hard') : 'none', garden: garden[i], podium: f.podium, onPodium: !f.podium && i > 0 && floors[i - 1].podium, use: f.use,
+      dx: below && deck > 0 ? Math.max(pl.ext[0], below.ext[0]) : pl.ext[0], dy: below && deck > 0 ? Math.max(pl.ext[1], below.ext[1]) : pl.ext[1] })
   }
   if (n) {
     const f = floors[n - 1], pl = plates[n - 1], h = Math.max(0, (f.z1 - f.z0) / 2)
@@ -194,7 +197,7 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
       { w: pl.area * (planted ? plantedQ : hardQ(f.use)), c: pl.c },
       { w: perimOf(n - 1) * h * p.facadeKpa, c: pl.pc },
       { w: coreKpm * h, c: [core.x, core.y] },
-    ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', garden: false, podium: f.podium, use: f.use, dx: pl.ext[0], dy: pl.ext[1] })
+    ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', garden: false, podium: f.podium, onPodium: false, use: f.use, dx: pl.ext[0], dy: pl.ext[1] })
   }
   const total = levels.reduce((s, l) => s + l.W, 0)
   const volume = floors.reduce((s, f) => s + f.area * Math.max(0, f.z1 - f.z0), 0)
@@ -214,3 +217,50 @@ export function worstWeightStep(levels: StoreyWeight[]): { ratio: number; lower:
 }
 
 export const levelName = (l: Pick<StoreyWeight, 'level' | 'roof'>) => (l.roof ? 'roof' : `L${l.level}`)
+
+// --- Off-centre gravity load and accidental torsion (gap G5, research R5 §2) ---------------------------------------
+
+/** ACI 209 standard-condition creep coefficient (range 1.30–4.15): unverified, via search summaries (R5 S27). */
+export const CREEP_PHI = 2.35
+
+export interface Offset { level: number; roof: boolean; z: number; W: number; ex: number; ey: number; e: number; ratio: number; across: number; D: number }
+export interface GravityReading {
+  /** Tower levels (podium storeys and the podium roof left out), bottom-up. */
+  levels: Offset[]
+  /** The level with the largest e/D, the ratio read for loading along either plan axis (|e_y|/D_y or |e_x|/D_x). */
+  worst: Offset | null
+  /** The level with the largest offset |e|. */
+  largest: Offset | null
+  /** Net offset of the tower levels' weight from the core, E = ΣW·e / ΣW (m), and E/D on the lowest tower level. */
+  net: { ex: number; ey: number; e: number; ratio: number }
+  /** Gravity-induced overturning about the core centre, |ΣW·e| (kN·m). */
+  QG: number
+  /** Sustained top sway of a cantilever core with EI from f1 = 46/H (m): elastic and long term with creep. */
+  sway: { el: number; lt: number; EI: number }
+}
+
+/**
+ * Per level, the weight centre's offset from the core centre against the code's accidental arm 0.10·D (NBC 4.1.8.11(11)(a)),
+ * the net offset of the whole tower, and the sustained sway it drives (R5 equations 5.2–5.5, textbook cantilever, inference).
+ */
+export function gravityEccentricity(w: WeightResult, H: number): GravityReading {
+  const levels: Offset[] = w.levels.filter((l) => !l.podium && !l.onPodium).map((l) => {
+    const ex = l.cx - w.core.x, ey = l.cy - w.core.y
+    const rx = l.dy > 0 ? Math.abs(ey) / l.dy : 0, ry = l.dx > 0 ? Math.abs(ex) / l.dx : 0
+    return { level: l.level, roof: l.roof, z: l.z, W: l.W, ex, ey, e: Math.hypot(ex, ey), ratio: Math.max(rx, ry), across: rx >= ry ? Math.abs(ey) : Math.abs(ex), D: rx >= ry ? l.dy : l.dx }
+  })
+  const worst = levels.reduce<Offset | null>((a, b) => (!a || b.ratio > a.ratio ? b : a), null)
+  const largest = levels.reduce<Offset | null>((a, b) => (!a || b.e > a.e ? b : a), null)
+  const Wt = levels.reduce((s, l) => s + l.W, 0)
+  const Mx = levels.reduce((s, l) => s + l.W * l.ex, 0), My = levels.reduce((s, l) => s + l.W * l.ey, 0)
+  const Ex = Wt > 0 ? Mx / Wt : 0, Ey = Wt > 0 ? My / Wt : 0
+  const first = w.levels.find((l) => !l.podium && !l.onPodium)
+  const ratio = first ? Math.max(first.dy > 0 ? Math.abs(Ey) / first.dy : 0, first.dx > 0 ? Math.abs(Ex) / first.dx : 0) : 0
+  // EI of a uniform cantilever from its first frequency (5.3); each level's moment W·e at height z moves the top by M·z·(H − z/2)/EI (5.4).
+  const f1 = H > 0 ? 46 / H : 0
+  const mBar = H > 0 ? (w.total * 1000) / (G * H) : 0
+  const EI = mBar * H ** 4 * ((2 * Math.PI * f1) / 3.516) ** 2
+  const top = (k: 'ex' | 'ey') => (EI > 0 ? levels.reduce((s, l) => { const z = Math.min(l.z, H); return s + l.W * 1000 * l[k] * z * (H - z / 2) }, 0) / EI : 0)
+  const el = Math.hypot(top('ex'), top('ey'))
+  return { levels, worst, largest, net: { ex: Ex, ey: Ey, e: Math.hypot(Ex, Ey), ratio }, QG: Math.hypot(Mx, My), sway: { el, lt: el * (1 + CREEP_PHI), EI } }
+}

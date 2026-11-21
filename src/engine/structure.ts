@@ -3,7 +3,7 @@
 // readings the research corrected are "unverified" here.
 import { towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
-import { DEFAULT_WEIGHT_PRESETS, HARD_DECK, levelName, PLANTED_BUILDUP, SNOW_W, soilKpa, storeyWeights, worstWeightStep, type WeightPresets, type WeightResult } from './storeyWeight'
+import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, SNOW_W, soilKpa, storeyWeights, worstWeightStep, type GravityReading, type WeightPresets, type WeightResult } from './storeyWeight'
 import { systemShortlist, type SystemFit, type WindProcedure } from './windStructure'
 
 const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.8 (2nd printing, 2025)', url: 'https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en' }
@@ -22,6 +22,8 @@ export interface StructureResult {
   systems: SystemFit[]
   /** Seismic weight of every floor and the roof, with weight centres (research R5 §3). */
   weights: WeightResult
+  /** Weight-centre offsets from the core, the net offset and the sustained sway (research R5 §2). */
+  gravity: GravityReading
 }
 
 export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS): StructureResult {
@@ -66,6 +68,25 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     + (gardenLevels.length ? ` Open garden storey${gardenLevels.length > 1 ? 's' : ''} ${gardenLevels.map((l) => `L${l.level} (${Math.round(l.deck).toLocaleString('en-CA')} m² ${l.deckKind} deck)`).join(', ')}: the garden's deck is carried by that storey.` : '')
     + ' The podium-to-tower step usually triggers it: an irregular structure needs Vd ≥ 1.0 V.')
 
+  // Off-centre gravity load and accidental torsion (gap G5, research R5 §2): weight centre of each tower level vs the core.
+  const grav = gravityEccentricity(weights, H)
+  const g = grav.worst, big = grav.largest
+  const m = (v: number) => v.toFixed(1)
+  add('gravity-offset', 'Off-centre storey weight (e / D)', g ? (g.e < 0.05 ? 'weight centred on the core at every tower storey' : `largest e/D ${g.ratio.toFixed(3)} at ${levelName(g)} (${m(g.across)} m across a ${g.D.toFixed(0)} m plate)`) : 'no tower storeys',
+    'e/D ≤ 0.05; 0.05–0.10 declare it; over 0.10 the inherent offset exceeds the code’s accidental arm of 0.10·D', !g ? 'unknown' : g.ratio > 0.05 ? 'warn' : 'pass', 'verified', { ...NBC, page: '4.1.8.11(11)(a); research R5 §2' },
+    `Weight centre of every tower floor and the roof (plate, open deck, facade and core walls, as in the weight line) against the core centre: ${weights.core.how}.`
+    + (big && big.e >= 0.05 ? ` Largest offset ${m(big.e)} m at ${levelName(big)} (x ${m(big.ex)}, y ${m(big.ey)} m in the tower's own axes).` : '')
+    + (g && g.ratio > 0.1 ? ' Beyond the code’s accidental arm: the torsion the code assumes is smaller than this design’s own.' : g && g.ratio > 0.05 ? ' Within the code’s accidental arm: declare it for the structural reviewer.' : '')
+    + ' The code applies torsion F·(e ± 0.10·D) at every level. The core centre stands in for the stiffness centre (exact for a doubly symmetric closed core) and the 0.05 band is a team value; podium storeys and the podium roof are left out, as their stiffness is not the core’s alone.')
+  const mm = (v: number) => Math.round(v * 1000)
+  const lt = grav.sway.lt
+  add('gravity-net', 'Net gravity eccentricity and sustained sway', g ? `E = ${grav.net.e.toFixed(2)} m (e/D ${grav.net.ratio.toFixed(3)}); top sway ≈ ${mm(grav.sway.el)} mm elastic, ≈ ${mm(lt)} mm long term` : 'no tower storeys',
+    'long-term top sway ≤ 25 mm; 25–100 mm declare a pre-set (camber); over 100 mm a tie-down or outrigger strategy, as at Vancouver House', !g ? 'unknown' : lt > 0.025 ? 'warn' : 'pass', 'team_assumption',
+    { label: 'Research R5 §2.3–2.5 (cantilever core, EI from f1 = 46/H); case: Vancouver House, floors cambered against about 254 mm of sway (G. Poh, STRUCTURE magazine)', url: 'https://www.structuremag.org/article/vancouver-house/' },
+    `Net offset of the tower's weight from the core, E = ΣW·e / ΣW = (x ${grav.net.ex.toFixed(2)}, y ${grav.net.ey.toFixed(2)}) m; gravity-induced overturning about the core Q_G = |ΣW·e| ≈ ${(grav.QG / 1000).toFixed(0)} MN·m (Type 9's ratio α needs a base shear, not computed).`
+    + (lt > 0.1 ? ' Over 100 mm: plan a tie-down or outrigger strategy (Vancouver House: post-tensioned rods and a torsion box, each floor cambered).' : lt > 0.025 ? ' Declare a pre-set (camber) of the floors for the structural reviewer.' : '')
+    + ` Sway of a cantilever core with EI from the empirical f1 = 46/H (±50%), creep φ = ${CREEP_PHI} (ACI 209, unverified): an upper bound, since floors cast plumb on the frame below hide earlier sway, which a designed pre-set exploits. Bands are team values.`)
+
   add('geometric', 'Vertical geometric irregularity (Type 3)', 'core constant over the height', 'SFRS dimension ≤ 130% of the adjacent storey', 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 3' },
     'The SFRS here is the core, which keeps its size; a wider podium only counts if its walls join the SFRS.')
 
@@ -81,7 +102,7 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   }
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
-  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights }
+  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav }
 }
 
 export const SEISMIC_FALSE_ASSUMPTIONS = [{

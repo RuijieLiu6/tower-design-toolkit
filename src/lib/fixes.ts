@@ -44,6 +44,11 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^seismic-category$/, 'Every tower here is Seismic Category SC4: choose a lateral system listed without an SC4 height cap (Details lists them) with the structural engineer.'],
   [/^dynamic$/, 'A dynamic analysis is required: the structural engineer runs it (base shear at least 0.8 V if regular, 1.0 V if irregular).'],
   [/^weight$/, 'One floor weighs over 150% of the next (usually the podium roof under the first tower floor, or a planted garden storey): step the podium in, lighten the deck (shallower soil or a hard deck), or carry it as an irregularity in the dynamic analysis.'],
+  // Off-centre gravity (research R5 §2): each restates its rule's bands.
+  [/^gravity-offset$/, 'The storey weight sits off the core: stack the tiers over the core (or move the core under them), balance a planted or heavy deck with weight on the other side, or declare the offset so the engineer carries the torsion.'],
+  [/^gravity-net$/, (_st, v) => (/long term/.test(v) && Number((v.match(/≈ (\d+) mm long term/) ?? [])[1]) > 100
+    ? 'Bring the tower’s weight back over the core (align the tiers, or shift the core under the heavy side); as built, plan a tie-down or outrigger strategy and a pre-set (camber), as at Vancouver House.'
+    : 'Declare a pre-set (camber) of the floors for the structural reviewer; aligning the tiers over the core lowers the sway.')],
   [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],
   [/^continuity$/, 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.'],
   // Egress & stairs
