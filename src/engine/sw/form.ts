@@ -5,6 +5,14 @@
 // Deviations: envelope areas are measured from the plate rings' edges (exact lengths) rather than the 1 m mask's
 // stair-stepped edges; roofs / terraces / soffits from mask overlap between floors that touch (cells × h²). The
 // slenderness uses the lowest floor's bounding box in the tower's axes (the Studio's floors[0].w / d).
+//
+// Twists and leans (tool gap G27, energy review R3-7): a twisted or leaning tower's storey outlines step a little at
+// every slab, so the overlap test read a sliver of terrace on one side and of soffit on the other at each storey (B21c,
+// 90° over 71 storeys: envelope per floor area 0.403, where a smooth warped skin adds about 0.001). Built, that skin is
+// one warped or sloped wall. Where two touching storeys keep the same plate area, the upper stands on most of the lower
+// and no step is wide enough to stand on (WARP_* below, team values), the strip between them is counted as warped wall:
+// no terrace, no soffit, only the extra area of a wall leaning across the step (`warped`). A real setback changes the
+// plate's area and keeps its terrace.
 import { ORI, type Face, type SwFloor } from './plate'
 
 export type Rating = 0 | 1 | 2 | 3 | 4
@@ -18,8 +26,60 @@ export function rate(v: number, bands: number[], higherBetter: boolean): Rating 
   return Math.min(4, i) as Rating
 }
 
-/** What the Studio keeps on each floor: façade length per face, exposed roof (top floor) / terrace, and the void under the floor above. */
-export interface FloorExposure { facade: Record<Face, number>; roof: number; terrace: number; coveredVoid: number }
+/** What the Studio keeps on each floor: façade length per face, exposed roof (top floor) / terrace, and the void under the
+ *  floor above; `warped`: the extra wall area (m²) where the step to the floor above is a twist or lean (G27), else 0. */
+export interface FloorExposure { facade: Record<Face, number>; roof: number; terrace: number; coveredVoid: number; warped: number }
+
+/** Largest change of plate area between two storeys still read as one plate turned or shifted (a turn or a shift keeps
+ *  the area; 3% covers the 1 m mask's noise; team value). */
+export const WARP_AREA_CHANGE = 0.03
+/** Smallest share of the lower plate the upper one stands on (team value). */
+export const WARP_OVERLAP = 0.9
+/** Widest step between the two outlines (m) still bridged by a leaning wall: a wider one is a ledge people can stand on,
+ *  the deck width decks.ts already requires of a terrace (DECK_MIN_WIDTH; team value). */
+export const WARP_STEP_MAX = 1.5
+
+type Pt2 = [number, number]
+/** Distance from a point to the nearest edge of a set of rings. */
+function toRings(x: number, y: number, rings: Pt2[][]): number {
+  let d = Infinity
+  for (const r of rings) for (let i = 0; i < r.length; i++) {
+    const [ax, ay] = r[i], [bx, by] = r[(i + 1) % r.length], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy
+    const u = L2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0
+    d = Math.min(d, Math.hypot(x - ax - u * dx, y - ay - u * dy))
+  }
+  return d
+}
+/** Points every half metre or less along a set of rings, each with the length of edge it stands for. */
+function along(rings: Pt2[][]): { x: number; y: number; dl: number }[] {
+  const out: { x: number; y: number; dl: number }[] = []
+  for (const r of rings) for (let i = 0; i < r.length; i++) {
+    const [ax, ay] = r[i], [bx, by] = r[(i + 1) % r.length], L = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.ceil(L / 0.5))
+    for (let k = 0; k < n; k++) out.push({ x: ax + ((bx - ax) * (k + 0.5)) / n, y: ay + ((by - ay) * (k + 0.5)) / n, dl: L / n })
+  }
+  return out
+}
+const maskArea = (f: SwFloor) => { let n = 0; for (const c of f.mask.cells) n += c; return n * f.mask.h * f.mask.h }
+
+/**
+ * The step from floor a to the floor b on it, when it is a twist or a lean (G27): the extra wall area (m²) of a skin
+ * leaning across it, the sum along a's outline of h·(√(1 + (d/h)²) − 1) with d the distance to b's outline; null for a
+ * real step (a setback, an overhang, a change of plan). `open`: a's area b leaves open; `under`: b's area a does not carry.
+ */
+export function warpStep(a: SwFloor, b: SwFloor, open: number, under: number): number | null {
+  const Aa = maskArea(a), Ab = maskArea(b)
+  if (!(Aa > 0 && Ab > 0)) return null
+  if (Math.abs(open - under) > WARP_AREA_CHANGE * Math.max(Aa, Ab)) return null
+  if (open > (1 - WARP_OVERLAP) * Aa || under > (1 - WARP_OVERLAP) * Ab) return null
+  let extra = 0
+  for (const p of along(a.rings as Pt2[][])) {
+    const d = toRings(p.x, p.y, b.rings as Pt2[][])
+    if (d > WARP_STEP_MAX) return null
+    extra += p.dl * a.h * (Math.sqrt(1 + (d / a.h) ** 2) - 1)
+  }
+  for (const p of along(b.rings as Pt2[][])) if (toRings(p.x, p.y, a.rings as Pt2[][]) > WARP_STEP_MAX) return null
+  return extra
+}
 
 /** Cells of floor a that floor b (same tower, same grid) does not cover. */
 function uncovered(a: SwFloor, b: SwFloor | null): number {
@@ -34,7 +94,7 @@ function uncovered(a: SwFloor, b: SwFloor | null): number {
   return n * h * h
 }
 
-/** facade / roof / terrace / coveredVoid of each floor (index-aligned with `floors`), from the plates. */
+/** facade / roof / terrace / coveredVoid / warped of each floor (index-aligned with `floors`), from the plates. */
 export function floorExposure(floors: SwFloor[]): FloorExposure[] {
   const above = (f: SwFloor) => floors.find((g) => g !== f && g.towerId === f.towerId && Math.abs(g.z - (f.z + f.h)) < 0.05) ?? null
   return floors.map((f) => {
@@ -42,7 +102,10 @@ export function floorExposure(floors: SwFloor[]): FloorExposure[] {
     for (const e of f.edges) facade[e.o] += e.L
     const up = above(f)
     const open = uncovered(f, up)
-    return { facade, roof: up ? 0 : open, terrace: up ? open : 0, coveredVoid: up ? uncovered(up, f) : 0 }
+    if (!up) return { facade, roof: open, terrace: 0, coveredVoid: 0, warped: 0 }
+    const under = uncovered(up, f)
+    const warped = (open > 0 || under > 0) && up.rings !== f.rings ? warpStep(f, up, open, under) : null
+    return warped != null ? { facade, roof: 0, terrace: 0, coveredVoid: 0, warped } : { facade, roof: 0, terrace: open, coveredVoid: under, warped: 0 }
   })
 }
 
@@ -76,10 +139,12 @@ export function daylitShare(floors: SwFloor[]): number {
 
 export interface FormMetric { k: string; v: number; fmt: string; bench: string; r: Rating; why: string }
 export interface FormStudy {
-  /** Floor area, conditioned volume (area × floor-to-floor), envelope (façade + roofs + soffits + ground slab). */
+  /** Floor area, conditioned volume (area × floor-to-floor), envelope (façade + warped wall + roofs + soffits + ground slab). */
   gfa: number; vol: number; env: number
   facTot: number; fac: Record<Face, number>
   roof: number; soffit: number; slab: number
+  /** G27: extra wall area where storey steps read as a twist or lean (m²), and how many steps did. */
+  warped: number; warpSteps: number
   /** Form factor (envelope m² per floor m²), surface-to-volume (m⁻¹), heat-loss index (W/m²K per m² floor). */
   ff: number; sv: number; hli: number
   /** The square prism of the same height and volume: its form factor and heat-loss index, side (m). */
@@ -107,14 +172,15 @@ export function formStudy(floors: SwFloor[], height?: number): FormStudy {
   const ex = floorExposure(fs)
   const gfa = fs.reduce((s, f) => s + f.area, 0), vol = fs.reduce((s, f) => s + f.area * f.h, 0)
   const fac: Record<Face, number> = { N: 0, E: 0, S: 0, W: 0 }
-  let facTot = 0, roof = 0, soffit = 0
+  let facTot = 0, roof = 0, soffit = 0, warped = 0, warpSteps = 0
   fs.forEach((f, i) => {
     for (const o of ORI) { const A = ex[i].facade[o] * f.h; fac[o] += A; facTot += A }
     roof += ex[i].terrace + ex[i].roof
     soffit += i > 0 ? ex[i - 1].coveredVoid : 0
+    if (ex[i].warped > 0) { warped += ex[i].warped; warpSteps++ }
   })
-  const slab = fs[0]?.area ?? 0, env = facTot + roof + soffit + slab
-  const ff = env / gfa, sv = env / vol, hli = (facTot * 0.73 + (roof + soffit + slab) * 0.18) / gfa
+  const slab = fs[0]?.area ?? 0, env = facTot + warped + roof + soffit + slab
+  const ff = env / gfa, sv = env / vol, hli = ((facTot + warped) * 0.73 + (roof + soffit + slab) * 0.18) / gfa
   const top = fs[fs.length - 1], H = height ?? (top ? top.z + top.h : 0)
   const side = Math.sqrt(vol / H), envRef = 4 * side * H + 2 * side * side, ffRef = envRef / gfa, hliRef = (4 * side * H * 0.73 + 2 * side * side * 0.18) / gfa
   const daylit = daylitShare(fs)
@@ -135,5 +201,5 @@ export function formStudy(floors: SwFloor[], height?: number): FormStudy {
     { k: 'Exposed roofs and soffits', v: (roof + soffit) / gfa, fmt: fmtI(roof + soffit) + ' m² · ' + Math.round((roof + soffit) / gfa * 100) + '% of GFA', bench: '≤ 3% for a plain shaft', r: rate((roof + soffit) / gfa, [0.03, 0.06, 0.1, 0.15], false), why: 'Terraces and voids add horizontal envelope, the costliest kind.' },
   ]
   const score = metrics.reduce((s, m) => s + m.r, 0) / metrics.length, overall = Math.round(score) as Rating
-  return { gfa, vol, env, facTot, fac, roof, soffit, slab, ff, sv, hli, ffRef, hliRef, daylit, outdoor, south, north, slender, metrics, score, overall, letter: RATE_L[overall], relHeat: hli / hliRef, relEnv: env / envRef, side, H }
+  return { gfa, vol, env, facTot, fac, roof, soffit, slab, warped, warpSteps, ff, sv, hli, ffRef, hliRef, daylit, outdoor, south, north, slender, metrics, score, overall, letter: RATE_L[overall], relHeat: hli / hliRef, relEnv: env / envRef, side, H }
 }

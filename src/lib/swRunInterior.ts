@@ -1,6 +1,6 @@
 // The interior Sun & Wind Studio tools (ventilation, air flow, indoor temperature, form, glazing, PV), registered with
 // the runner (lib/swRun.ts addRuns). Each reads the façade zones of its tower.
-import { formStudy, RATE_L } from '../engine/sw/form'
+import { formStudy, RATE_L, WARP_OVERLAP, WARP_STEP_MAX } from '../engine/sw/form'
 import { glazingStudy, towerWWR } from '../engine/sw/glazing'
 import { zonesOf } from '../engine/sw/plate'
 import { photovoltaics } from '../engine/sw/pv'
@@ -26,7 +26,7 @@ addRuns({
       ],
       rules: [
         rule('sw-form-rate', 'Form rating', RATE_L[F.overall], 'A or B is efficient', F.overall <= 1 ? 'pass' : F.overall <= 2 ? 'warn' : 'fail', 'A is a compact shaft; D and E lose heat to voids, steps and terraces.'),
-        rule('sw-form-ff', 'Envelope per floor area', F.ff.toFixed(2), '0.30 or less is compact', F.ff <= 0.3 ? 'pass' : F.ff <= 0.4 ? 'warn' : 'fail'),
+        rule('sw-form-ff', 'Envelope per floor area', F.ff.toFixed(2), '0.30 or less is compact', F.ff <= 0.3 ? 'pass' : F.ff <= 0.4 ? 'warn' : 'fail', F.warpSteps ? `${F.warpSteps} storey step${F.warpSteps > 1 ? 's' : ''} read as a twisting or leaning skin: counted as warped wall (+${fmt(F.warped)} m²), not as terraces and soffits (same plate area, upper plate on at least ${Math.round(WARP_OVERLAP * 100)}% of the lower, no step over ${WARP_STEP_MAX} m; team values).` : undefined),
         rule('sw-form-heat', 'Heat lost by the form', `${Math.round(F.relHeat * 100)}%`, 'of a square shaft of the same height and volume', F.relHeat <= 1.1 ? 'pass' : F.relHeat <= 1.3 ? 'warn' : 'fail'),
       ],
     }
