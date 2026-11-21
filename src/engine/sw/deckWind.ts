@@ -142,17 +142,19 @@ export interface CriteriaSet {
   target: number
   check: number
   stat: string
+  /** The statistic in two or three words (settings menus). */
+  short: string
   source: string
 }
 export const CRITERIA: Record<Criteria, CriteriaSet> = {
   london2019: {
     name: 'City of London 2019', q: 0.05, limits: [2.5, 4, 6, 8], classes: ['frequent sitting', 'occasional sitting', 'standing', 'walking', 'uncomfortable'],
-    target: 1, check: 2, stat: 'exceeded in 5% of comfort hours',
+    target: 1, check: 2, stat: 'exceeded in 5% of comfort hours', short: '5% exceedance',
     source: 'City of London Wind Microclimate Guidelines (2019), Lawson-based, 5% exceedance; read via SimScale, Orbital Stack and Local Transport Today (primary PDF not opened)',
   },
   toronto2022: {
     name: 'Toronto 2022', q: 0.2, limits: [10 / 3.6, 15 / 3.6, 20 / 3.6], classes: ['sitting', 'standing', 'walking', 'uncomfortable'],
-    target: 0, check: 1, stat: 'gust-equivalent mean met in 80% of comfort hours',
+    target: 0, check: 1, stat: 'gust-equivalent mean met in 80% of comfort hours', short: 'GEM, 80% of hours',
     source: 'City of Toronto, Pedestrian Level Wind Study Terms of Reference Guide (2022), Table 3 p. 15',
   },
 }

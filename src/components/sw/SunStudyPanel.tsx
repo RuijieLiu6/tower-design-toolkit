@@ -130,12 +130,12 @@ function DeckWindSet() {
     <div className="grid gap-2" data-testid="deck-wind-set">
       <label className="grid gap-1"><span className={label}>Terraces · comfort criteria</span>
         <select className={field} value={s.deckCriteria} data-testid="deck-criteria" onChange={(e) => s.set({ deckCriteria: e.target.value as Criteria })}>
-          {(Object.keys(CRITERIA) as Criteria[]).map((k) => <option key={k} value={k}>{CRITERIA[k].name} · {CRITERIA[k].stat}</option>)}
+          {(Object.keys(CRITERIA) as Criteria[]).map((k) => <option key={k} value={k} title={CRITERIA[k].stat}>{CRITERIA[k].name} · {CRITERIA[k].short}</option>)}
         </select></label>
       <label className="grid gap-1"><span className={label}>Terraces · wind up to the deck</span>
         <select className={field} value={s.deckProfile} data-testid="deck-profile" onChange={(e) => s.set({ deckProfile: e.target.value as DeckProfile })}>
-          <option value="nbc">NBC 2020 exposure factor, by sector</option>
-          <option value="power">power law (z/10)^0.25 · the earlier reading</option>
+          <option value="nbc">NBC 2020 exposure, by sector</option>
+          <option value="power">power law 0.25 · earlier reading</option>
         </select></label>
       <div className="grid grid-cols-2 gap-2">
         <label className="grid gap-1"><span className={label} title="A screen along every open terrace edge (research R5 §1.4): no effect under 1.2 m; it calms the deck for up to 10 × its height.">Terraces · screen</span>
