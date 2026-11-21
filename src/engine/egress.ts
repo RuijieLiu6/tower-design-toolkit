@@ -3,7 +3,7 @@
 // Values are VBBL 2019 Part 3 (consolidated 1 Jul 2024), equal to VBBL 2007; VBBL 2025 and BCBC 2024 are unread,
 // so every rule carries an edition note. Early check, not a code review: a code consultant decides.
 import { coreSide, towerFloors } from './massing'
-import type { Floor, RuleResult, StairPlacement, Tower } from './types'
+import type { Floor, RuleResult, StairCorner, StairPlacement, Tower } from './types'
 import { floorCounts } from './interior'
 
 export interface EgressPresets {
@@ -88,17 +88,71 @@ export function postedLimitForRoom(t: Tower, e: EgressPresets, li: LoadInputs = 
 
 export interface StairSpot { x: number; y: number; inCore: boolean }
 
+/** Signs of each plate corner in the tower's own frame (e = +x, n = +y). */
+export const CORNER_SIGN: Record<StairCorner, readonly [number, number]> = { ne: [1, 1], nw: [-1, 1], se: [1, -1], sw: [-1, -1] }
+
+/**
+ * The plate corner whose direction from the tower centre is nearest a true compass bearing (° clockwise from true
+ * north), for a project whose true north lies `northDeg` clockwise from the frame's +y (the Sun & Wind convention).
+ */
+export function cornerToward(t: Pick<Tower, 'width' | 'depth' | 'rotation'>, bearing: number, northDeg: number): StairCorner {
+  const a = (t.rotation * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a)
+  const off = (k: StairCorner) => {
+    const [i, j] = CORNER_SIGN[k], u = (i * t.width) / 2, v = (j * t.depth) / 2
+    const az = (Math.atan2(u * c - v * s, u * s + v * c) * 180) / Math.PI - northDeg
+    return Math.abs(((((az - bearing) % 360) + 540) % 360) - 180)
+  }
+  return (Object.keys(CORNER_SIGN) as StairCorner[]).reduce((m, k) => (off(k) < off(m) ? k : m))
+}
+
 /** Centres of the exit stairs on the plate (team assumption on geometry), for enclosures a × b. */
-export function stairSpots(t: Tower, n: number, a: number, b: number, placement: StairPlacement = t.stairPlacement ?? 'core'): StairSpot[] {
+export function stairSpots(t: Tower, n: number, a: number, b: number, placement: StairPlacement = t.stairPlacement ?? 'core', corner: StairCorner = t.stairCorner ?? 'sw'): StairSpot[] {
   // In the core, stairs sit against the inner face of its 400 mm walls (team assumption, as drawn on the board plan).
   const c = Math.max(0, coreSide(t) - 0.8)
   const inCore = (i: number, j: number): StairSpot => ({ x: i * Math.max(0, c / 2 - a / 2), y: j * Math.max(0, c / 2 - b / 2), inCore: true })
   const atEdge = (i: number, j: number): StairSpot => ({ x: i * Math.max(0, t.width / 2 - a / 2), y: j * Math.max(0, t.depth / 2 - b / 2), inCore: false })
-  const order = [[1, 1], [-1, -1], [1, -1], [-1, 1]] as const
+  // The order mirrored so the second spot (the edge stair of 'mixed') takes the chosen corner and the first the
+  // opposite one; 'sw' is the order as before. Stairs all in the core keep it.
+  const [ci, cj] = placement === 'core' ? CORNER_SIGN.sw : CORNER_SIGN[corner]
+  const order = ([[1, 1], [-1, -1], [1, -1], [-1, 1]] as const).map(([i, j]) => [-ci * i, -cj * j] as const)
   const k = Math.min(4, Math.max(2, n))
   if (placement === 'perimeter') return order.slice(0, k).map(([i, j]) => atEdge(i, j))
   if (placement === 'mixed') return order.slice(0, k).map(([i, j], m) => (m === 1 ? atEdge(i, j) : inCore(i, j)))
   return order.slice(0, k).map(([i, j]) => inCore(i, j))
+}
+
+/**
+ * Podium exits in the tower's own frame: the positions given, else `count` spread evenly round the podium rectangle
+ * (podiumWidth × podiumDepth about the tower centre), counter-clockwise from the (−x, −y) corner, the first half a
+ * spacing along. Empty without a podium or without exits.
+ */
+export function podiumExitSpots(t: Tower): { x: number; y: number }[] {
+  const e = t.podiumExits
+  if (!e || !(t.podiumHeight > 0)) return []
+  if (e.at?.length) return e.at.filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1])).map(([x, y]) => ({ x, y }))
+  const n = Math.max(0, Math.round(e.count ?? 0)), W = t.podiumWidth, D = t.podiumDepth, P = 2 * (W + D)
+  if (!n || !(P > 0)) return []
+  const at = (s: number) => {
+    s = ((s % P) + P) % P
+    if (s < W) return { x: -W / 2 + s, y: -D / 2 }
+    if (s < W + D) return { x: W / 2, y: -D / 2 + (s - W) }
+    if (s < 2 * W + D) return { x: W / 2 - (s - W - D), y: D / 2 }
+    return { x: -W / 2, y: D / 2 - (s - 2 * W - D) }
+  }
+  return Array.from({ length: n }, (_, k) => at(((k + 0.5) * P) / n))
+}
+
+/** The point of a W × D plate (about the origin) farthest from every exit, sampled 80 × 80, straight line. */
+function farthestPoint(W: number, D: number, exits: { x: number; y: number }[]): { x: number; y: number; d: number } {
+  const n = 80
+  let best = { x: 0, y: 0, d: -1 }
+  for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
+    const x = -W / 2 + (W * i) / n, y = -D / 2 + (D * j) / n
+    let d = Infinity
+    for (const s of exits) d = Math.min(d, Math.hypot(x - s.x, y - s.y))
+    if (d > best.d) best = { x, y, d }
+  }
+  return best
 }
 
 export const PLACEMENT_LABEL: Record<StairPlacement, string> = {
@@ -184,6 +238,9 @@ export interface EgressResult {
   separationNeeded: number
   travel: number
   podiumTravel: number | null
+  /** The podium's own exits (tower frame), and the podium point farthest from any exit when there are some. */
+  podiumExits: { x: number; y: number }[]
+  podiumFar: [number, number] | null
   rules: RuleResult[]
 }
 
@@ -219,7 +276,11 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
   const towerCorners = corners(t.width, t.depth)
   const far = towerCorners.reduce((m, k) => (k.d > m.d ? k : m))
   const travel = far.d
-  const podiumTravel = t.podiumHeight > 0 ? Math.max(...corners(t.podiumWidth, t.podiumDepth).map((k) => k.d)) : null
+  // Podium travel: to the core stairs from the podium's corners; with podium exits, from the podium point farthest from
+  // any of them or the core stairs (the corners are then no longer always the farthest).
+  const podiumExits = podiumExitSpots(t)
+  const podFar = t.podiumHeight > 0 && podiumExits.length ? farthestPoint(t.podiumWidth, t.podiumDepth, [...spots, ...podiumExits]) : null
+  const podiumTravel = t.podiumHeight > 0 ? (podFar ? podFar.d : Math.max(...corners(t.podiumWidth, t.podiumDepth).map((k) => k.d))) : null
   const edgeSpots = spots.filter((s) => !s.inCore).length
   const maxFlight = Math.max(...storeys.map((s) => stairEnclosure(s.stairMm, s.f2f, e).flightRise))
   const rate = e.riser <= 0.18 && e.tread >= 0.28 ? 8 : 9.2
@@ -266,7 +327,7 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     state: separation >= separationNeeded - 0.05 ? 'pass' : 'fail',
     flag: 'verified',
     source: { ...VBBL_EXITS, page: '3.4.2.3' },
-    note: `Stairs ${PLACEMENT_LABEL[placement]}${placement === 'core' ? ` of a ${c.toFixed(1)} m core` : ''} (team assumption on geometry). ${openUses.length ? `Open-plan floors (${[...new Set(openUses.map((s) => s.use))].join(', ')}) need half the ${(2 * halfDiag).toFixed(1)} m diagonal; floors with a public corridor need only 9 m. ` : ''}${placement === 'core' ? 'A central core often fails this on open floors: move a stair to the plate edge, split or widen the core, or show a public corridor.' : `${edgeSpots} stair${edgeSpots > 1 ? 's' : ''} at the plate edge take about ${fmt(edgeSpots * enclosure.area)} m² of lettable floor and ${(edgeSpots * (enclosure.a + enclosure.b)).toFixed(0)} m of facade per floor.`}`,
+    note: `Stairs ${PLACEMENT_LABEL[placement]}${placement === 'core' ? ` of a ${c.toFixed(1)} m core` : ''}${placement !== 'core' && t.stairCorner ? ` (the ${t.stairCorner.toUpperCase()} corner in the tower's frame)` : ''} (team assumption on geometry). ${openUses.length ? `Open-plan floors (${[...new Set(openUses.map((s) => s.use))].join(', ')}) need half the ${(2 * halfDiag).toFixed(1)} m diagonal; floors with a public corridor need only 9 m. ` : ''}${placement === 'core' ? 'A central core often fails this on open floors: move a stair to the plate edge, split or widen the core, or show a public corridor.' : `${edgeSpots} stair${edgeSpots > 1 ? 's' : ''} at the plate edge take about ${fmt(edgeSpots * enclosure.area)} m² of lettable floor and ${(edgeSpots * (enclosure.a + enclosure.b)).toFixed(0)} m of facade per floor.`}`,
   })
   rules.push({
     id: `travel-${t.id}`,
@@ -288,19 +349,21 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
       state: 'warn',
       flag: 'verified',
       source: { ...VBBL_EXITS, page: '3.4.3.2' },
-      note: `${podiumBusiest.basis}. The tower core stairs are sized for the tower floors only (team assumption), so the podium needs exits of its own: about ${Math.ceil(width / 2 / 100) / 10} m each if there are two, or more, narrower exits at its edges.`,
+      note: `${podiumBusiest.basis}. The tower core stairs are sized for the tower floors only (team assumption), so the podium needs exits of its own: ${podiumExits.length ? `${podiumExits.length} entered, about ${Math.ceil(width / Math.max(2, podiumExits.length) / 100) / 10} m each (their widths are not modelled: check them, and that none counts for more than half)` : `about ${Math.ceil(width / 2 / 100) / 10} m each if there are two, or more, narrower exits at its edges`}.`,
     })
   }
   if (podiumTravel !== null) {
     rules.push({
       id: `travel-podium-${t.id}`,
       label: 'Travel distance, podium floors',
-      value: `${podiumTravel.toFixed(1)} m to the core stairs`,
+      value: podFar ? `${podiumTravel.toFixed(1)} m to the nearest exit (core stairs or ${podiumExits.length} podium exit${podiumExits.length > 1 ? 's' : ''})` : `${podiumTravel.toFixed(1)} m to the core stairs`,
       threshold: `≤ ${TRAVEL_LIMIT_M} m`,
       state: podiumTravel <= TRAVEL_LIMIT_M ? 'pass' : 'fail',
       flag: 'verified',
       source: { ...VBBL_EXITS, page: '3.4.2.5' },
-      note: podiumTravel <= TRAVEL_LIMIT_M ? 'The tower stairs reach the whole podium.' : 'The podium needs its own exits: the tower core stairs are too far from its corners.',
+      note: podFar
+        ? `${podiumTravel <= TRAVEL_LIMIT_M ? 'The core stairs and the podium exits reach the whole podium' : `Part of the podium is still more than ${TRAVEL_LIMIT_M} m from an exit, farthest at (${podFar.x.toFixed(0)}, ${podFar.y.toFixed(0)}) m from the tower centre: add an exit or move one toward it`}. Straight line from the farthest point of the podium rectangle to the nearest exit, a proxy (unverified method); podium exits as entered (team input).`
+        : podiumTravel <= TRAVEL_LIMIT_M ? 'The tower stairs reach the whole podium.' : 'The podium needs its own exits: the tower core stairs are too far from its corners.',
     })
   }
   rules.push({
@@ -323,5 +386,5 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     note: `Office 9.3, personal services 4.6, mercantile 3.7 (first storey) or 5.6, dining 1.2, standing 0.4, public corridor 3.7 m² per person; 2 persons per sleeping room. Team mapping: amenity, civic and tenant sky-lobby floors at ${e.amenityFactor} m² per person until programmed, hotel keys as 2 persons, plant floors as 0, net area = floor less the core.`,
   })
 
-  return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, rules }
+  return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, podiumExits, podiumFar: podFar ? [podFar.x, podFar.y] : null, rules }
 }

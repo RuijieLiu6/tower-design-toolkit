@@ -75,6 +75,8 @@ export function addImportedTower(mass: ImportedMass, place: { x: number; y: numb
     bands: like ? like.bands.map((b) => ({ ...b })) : [{ use: 'office', share: 1 }],
     coreShare: like?.coreShare ?? 0.25, plantEvery: 0, coreAuto: like?.coreAuto ?? true, skyLobbies: [], skyRoom: null,
     stairPlacement: like?.stairPlacement,
+    ...(like?.stairCorner ? { stairCorner: like.stairCorner } : {}),
+    ...(like?.podiumExits ? { podiumExits: like.podiumExits } : {}),
   }
   const t = withAutoCore({ ...base, ...towerPatch(mass) }, s.liftPresets, s.egressPresets)
   const next = replaceId ? list.map((x) => (x.id === replaceId ? t : x)) : [...list, t]

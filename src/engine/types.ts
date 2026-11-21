@@ -74,6 +74,15 @@ export interface Tower {
   skyRoom?: SkyRoom | null
   /** Schematic: where the exit stairs sit (default: opposite corners of the core). */
   stairPlacement?: StairPlacement
+  /**
+   * Schematic: the plate corner of the edge stair ('mixed'; the core stair takes the opposite core corner) or of one of
+   * the two corner stairs ('perimeter'), in the tower's own frame before its rotation: e = +x (along the width),
+   * n = +y (along the depth). Absent: 'sw', the (−x, −y) corner, as before. Ignored with both stairs in the core.
+   * engine/egress.ts `cornerToward` finds the corner facing a true compass bearing.
+   */
+  stairCorner?: StairCorner
+  /** Schematic: exits of the podium itself (stairs at its edge, doors at grade), on top of the tower's core stairs. Absent: none. */
+  podiumExits?: PodiumExits
   /** Imported massing (research P14-M02/M04): floors come from slicing the model instead of the parametric box. */
   imported?: ImportedMass
   /** A mass drawn with the shape tools (engine/drawn.ts); `imported` is built from it. */
@@ -188,6 +197,18 @@ export interface ImportedMass {
  * core smaller but take lettable floor and facade.
  */
 export type StairPlacement = 'core' | 'mixed' | 'perimeter'
+/** A plate corner in the tower's own frame: e = +x (width), n = +y (depth). */
+export type StairCorner = 'ne' | 'nw' | 'se' | 'sw'
+/**
+ * Podium exits for travel distance (engine/egress.ts): positions, or a count spread evenly round the podium edge
+ * (team assumption on where they sit). `at` wins over `count`; none (or count 0) = only the tower's core stairs.
+ */
+export interface PodiumExits {
+  /** Exits spread evenly round the podium perimeter, the first half a spacing from the (−x, −y) corner. */
+  count?: number
+  /** Exit positions in the tower's own frame (m from the tower centre, x along the width, y along the depth), on or near the podium edge. */
+  at?: [number, number][]
+}
 
 /** A public room at a sky lobby level (research P06-M07, P11-M02). Every preset here is a team assumption. */
 export interface SkyRoom {

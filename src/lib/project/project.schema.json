@@ -910,6 +910,34 @@
           },
           "description": "Core centre placed by hand, in the tower's own frame (m). Optional: absent, the core is read from the model."
         },
+        "stairCorner": {
+          "enum": [
+            "ne",
+            "nw",
+            "se",
+            "sw"
+          ]
+        },
+        "podiumExits": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "at": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
         "outriggerFloors": {
           "type": "array",
           "maxItems": 20,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, STAIR_MIN_MM, egressCheck, postedLimitForRoom, stairEnclosure, stairSpots, storeyLoads } from './egress'
+import { CORNER_SIGN, DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, STAIR_MIN_MM, cornerToward, egressCheck, podiumExitSpots, postedLimitForRoom, stairEnclosure, stairSpots, storeyLoads } from './egress'
 import { DEFAULT_LIFT_PRESETS, liftCheck, planRises } from './lifts'
 import { skyRoomCheck, stablePostedLimit } from './skyRoom'
 import type { SkyRoom, Tower } from './types'
@@ -152,6 +152,90 @@ describe('stair placement', () => {
     const mixed = liftCheck({ ...plain, stairPlacement: 'mixed' })
     expect(mixed.breakdownMax.stairs).toBeCloseTo(enc.area, 6)
     expect(mixed.edgeStairs).toBeCloseTo(enc.area, 6)
+  })
+})
+
+describe('the edge stair corner (G11)', () => {
+  const enc = stairEnclosure(1100, 4.2, DEFAULT_EGRESS_PRESETS)
+  const mixed = (patch: Partial<Tower> = {}) => stairSpots({ ...plain, stairPlacement: 'mixed', ...patch }, 2, enc.a, enc.b)
+  it('without a corner the edge stair stays at the (−x, −y) corner, as before', () => {
+    expect(mixed({ stairCorner: 'sw' })).toEqual(mixed())
+    expect(mixed()[1]).toMatchObject({ inCore: false })
+    expect(mixed()[1].x).toBeLessThan(0)
+    expect(mixed()[1].y).toBeLessThan(0)
+  })
+  it('puts the edge stair at the chosen corner and the core stair at the opposite core corner', () => {
+    for (const k of ['ne', 'nw', 'se', 'sw'] as const) {
+      const [i, j] = CORNER_SIGN[k], s = mixed({ stairCorner: k })
+      expect(s[1].inCore).toBe(false)
+      expect([Math.sign(s[1].x), Math.sign(s[1].y)]).toEqual([i, j])
+      expect(Math.abs(s[1].x)).toBeCloseTo(46 / 2 - enc.a / 2, 6)
+      expect(s[0].inCore).toBe(true)
+      expect([Math.sign(s[0].x), Math.sign(s[0].y)]).toEqual([-i, -j])
+    }
+    // On the square plate every corner gives the same separation and travel.
+    const sw = egressCheck({ ...plain, stairPlacement: 'mixed' }, DEFAULT_EGRESS_PRESETS, li)
+    const ne = egressCheck({ ...plain, stairPlacement: 'mixed', stairCorner: 'ne' }, DEFAULT_EGRESS_PRESETS, li)
+    expect(ne.separation).toBeCloseTo(sw.separation, 6)
+    expect(ne.travel).toBeCloseTo(sw.travel, 6)
+    expect(ne.rules.find((r) => r.id === 'separation-t1')!.note).toMatch(/NE corner/)
+  })
+  it('picks the other diagonal for corner stairs; stairs in the core ignore it', () => {
+    const per = stairSpots({ ...plain, stairPlacement: 'perimeter', stairCorner: 'nw' }, 2, enc.a, enc.b)
+    expect(per.map((s) => [Math.sign(s.x), Math.sign(s.y)])).toEqual([[1, -1], [-1, 1]])
+    expect(stairSpots({ ...plain, stairPlacement: 'core', stairCorner: 'nw' }, 2, enc.a, enc.b)).toEqual(stairSpots({ ...plain, stairPlacement: 'core' }, 2, enc.a, enc.b))
+  })
+  it('finds the corner facing a true compass bearing', () => {
+    const sqPlate = { width: 40, depth: 40, rotation: 0 }
+    expect(cornerToward(sqPlate, 45, 0)).toBe('ne')
+    expect(cornerToward(sqPlate, 225, 0)).toBe('sw')
+    // True north 45° clockwise from the frame's +y (as the competition frame): true north is the frame's NE corner.
+    expect(cornerToward(sqPlate, 0, 45)).toBe('ne')
+    expect(cornerToward(sqPlate, 90, 45)).toBe('se')
+    // A tower turned 90° counter-clockwise: its own +x points along the frame's +y.
+    expect(cornerToward({ ...sqPlate, rotation: 90 }, 315, 0)).toBe('ne')
+  })
+})
+
+describe('podium exits (G11)', () => {
+  const run = (t: Tower) => egressCheck(t, DEFAULT_EGRESS_PRESETS, li)
+  const podRule = (t: Tower) => run(t).rules.find((r) => r.id === 'travel-podium-t1')!
+  it('none entered: podium travel to the core stairs from the corners, as before', () => {
+    const before = run(vtc)
+    expect(before.podiumExits).toEqual([])
+    expect(before.podiumFar).toBeNull()
+    for (const pe of [{}, { count: 0 }, { at: [] }]) {
+      const e = run({ ...vtc, podiumExits: pe })
+      expect(e.podiumTravel).toBe(before.podiumTravel)
+      expect(e.rules).toEqual(before.rules)
+    }
+    expect(podRule(vtc).state).toBe('fail')
+  })
+  it('four exits round the edge of the 100 × 64 m podium bring every point within 45 m', () => {
+    const t: Tower = { ...vtc, podiumExits: { count: 4 } }
+    const spots = podiumExitSpots(t)
+    expect(spots).toHaveLength(4)
+    for (const s of spots) expect(Math.abs(Math.abs(s.x) - 50) < 1e-9 || Math.abs(Math.abs(s.y) - 32) < 1e-9).toBe(true)
+    const e = run(t)
+    expect(e.podiumTravel!).toBeLessThanOrEqual(45)
+    expect(podRule(t).state).toBe('pass')
+    expect(podRule(t).value).toMatch(/4 podium exits/)
+    // The tower floors do not change.
+    expect(e.travel).toBe(run(vtc).travel)
+    expect(e.separation).toBe(run(vtc).separation)
+  })
+  it('placed exits: one at the east end leaves the west end too far, a second at the west end passes', () => {
+    const one: Tower = { ...vtc, podiumExits: { at: [[50, 0]] } }
+    expect(podiumExitSpots(one)).toEqual([{ x: 50, y: 0 }])
+    const e1 = run(one)
+    expect(podRule(one).state).toBe('fail')
+    expect(e1.podiumFar![0]).toBeLessThan(0)
+    const two: Tower = { ...vtc, podiumExits: { at: [[50, 0], [-50, 0]] } }
+    expect(podRule(two).state).toBe('pass')
+    expect(run(two).podiumTravel!).toBeLessThan(e1.podiumTravel!)
+  })
+  it('no podium, no podium exits', () => {
+    expect(podiumExitSpots({ ...vtc, podiumHeight: 0, podiumExits: { count: 4 } })).toEqual([])
   })
 })
 

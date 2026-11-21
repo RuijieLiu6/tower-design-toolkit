@@ -85,6 +85,18 @@ describe('project file: deterministic export and import', () => {
     expect(f.nodes.enabled).toEqual([...f.nodes.enabled].sort())
     expect(f.nodes.enabled).toContain('built.vtc-rules')
   })
+  it('keeps a tower\'s stair corner and podium exits (G11); a wrong corner is refused', () => {
+    useStore.getState().updateTower('t1', { stairPlacement: 'mixed', stairCorner: 'ne', podiumExits: { count: 3, at: [[50, 0]] } })
+    const r = readProject(exportProject(pickDesign(useStore.getState())))
+    expect(r.ok).toBe(true)
+    const t = toDesign(r.file!).towers.vtc[0]
+    expect(t.stairCorner).toBe('ne')
+    expect(t.podiumExits).toEqual({ count: 3, at: [[50, 0]] })
+    const f = file()
+    expect(f.towers.vtc[0].stairCorner).toBeUndefined()
+    ;(f.towers.vtc[0] as unknown as Record<string, unknown>).stairCorner = 'up'
+    expect(readProject(JSON.stringify(f)).ok).toBe(false)
+  })
 })
 
 describe('project file: validation in plain words', () => {
