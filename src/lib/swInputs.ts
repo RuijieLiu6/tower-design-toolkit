@@ -7,6 +7,7 @@ import { useVtcContext, VTC_NORTH_DEG } from '../context'
 import { towerOccluders, vtcOccluders } from '../engine/solarRules'
 import type { ContextBlock } from '../engine/sw/plate'
 import type { ClimatePayload, Prism } from '../engine/sw/types'
+import type { PorousObstacle } from '../engine/sw/wind'
 import type { Pt } from '../engine/shadow'
 import type { Tower } from '../engine/types'
 import { useStore, useTowers } from '../store'
@@ -34,6 +35,11 @@ export interface SwInputs {
   /** The same as centres and tops in the north frame (daylight obstruction). */
   ctxBlocks: ContextBlock[]
   C: ClimatePayload | null
+  /**
+   * Trees and porous screens on the ground (project frame), read by the pedestrian wind study as drag
+   * (engine/sw/wind.ts PorousObstacle). Optional: none is the study as before. No tool fills it in the app yet.
+   */
+  porous?: PorousObstacle[]
 }
 
 const REACH = 260

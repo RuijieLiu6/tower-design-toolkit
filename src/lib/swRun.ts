@@ -56,8 +56,13 @@ const fmt = (v: number) => Math.round(v).toLocaleString()
 
 /** The towers' blocks as the engines take them. */
 export const prismsOf = (t: Tower) => towerOccluders([t]).prisms as Prism[]
+/**
+ * The towers as the wind engine takes them. A block is podium when it lies within the podium's height: every podium
+ * storey of an imported tower (one prism per storey), not only the one at grade, so the tower's base plate is the
+ * first storey above the podium (21 Nov, G13: a 12 m pavilion used to read its upper storey as the tower's base).
+ */
 export function massing(towers: Tower[]) {
-  return { towers: towers.map((t) => ({ id: t.id, name: t.name, height: t.height, tower: t, blocks: prismsOf(t).map((p) => ({ ...p, podium: t.podiumHeight > 0 && p.z0 <= 0.01 && p.z1 <= t.podiumHeight + 0.01 })) })) }
+  return { towers: towers.map((t) => ({ id: t.id, name: t.name, height: t.height, tower: t, blocks: prismsOf(t).map((p) => ({ ...p, podium: t.podiumHeight > 0 && p.z0 < t.podiumHeight - 0.01 && p.z1 <= t.podiumHeight + 0.01 })) })) }
 }
 
 /** Every above-grade floor of every tower, with its tower. */
@@ -154,7 +159,9 @@ const RUNS: Partial<Record<SwId, Run>> = {
   },
   'built.sw-wind-comfort': (inp, s) => {
     const C = inp.C!
-    const w: WindStudy = runWindStudy({ project: inp.project, ring: inp.site, context: inp.context, latLon: [49.28, -123.12], northDeg: inp.north, ground: 0 }, massing(inp.towers), C, { season: s.season, cell: 4, ...windCaseOf(s) })
+    const porous = inp.porous?.length ? inp.porous : undefined
+    const w: WindStudy = runWindStudy({ project: inp.project, ring: inp.site, context: inp.context, latLon: [49.28, -123.12], northDeg: inp.north, ground: 0 }, massing(inp.towers), C, { season: s.season, cell: 4, ...windCaseOf(s), ...(porous ? { porous } : {}) })
+    const trees = porous ? `; ${porous.filter((o) => o.kind === 'tree').length} trees and ${porous.filter((o) => o.kind === 'screen').length} screens read as porous drag over ${fmt(w.porousArea)} m²` : ''
     const tot = w.cats.reduce((a, b) => a + b, 0) || 1, ok = (w.cats[0] + w.cats[1]) / tot, bad = w.cats[4] / tot
     // The Studio's figures beside the ground study: the downwash section of the tallest tower, the wind with height at
     // the reference wind, and the period's rose (study.js renderWind).
@@ -163,7 +170,7 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const sec = { H, w: Math.max(tall.width, tall.depth), hn: am.hn, amp: am.amp, amp0: am.amp0, depth: 0.22 * H, podiumH: tall.podiumHeight, podiumW: Math.max(tall.podiumWidth, tall.podiumDepth), U10: ref.U10 }
     const roseP = windRose(C, s.season, periodRange(s.periodFrom, s.periodTo))
     return {
-      data: { w, sec, profile: windProfile(ref.U10, H), ref, roseP, single: s.windCase === 'one', period: periodLabel(s.periodFrom, s.periodTo), at: Date.now() },
+      data: { w, sec, profile: windProfile(ref.U10, H), ref, roseP, single: s.windCase === 'one', period: periodLabel(s.periodFrom, s.periodTo), porous: porous?.length ?? 0, at: Date.now() },
       keys: [
         key('sw-wind-calm', 'Ground calm enough to stand', 'Lawson', pc(ok), ok >= 0.8 ? 'pass' : ok >= 0.6 ? 'warn' : 'fail', 'Share of open ground in the Lawson sitting or standing bands (mean up to 4 m/s). The bar shows all five bands, calmest on the left.', { stack: { parts: w.cats.map((c) => c / tot), colors: BAND_COL, names: BAND_NAME } }),
         ...(w.sitePeak != null ? [key('sw-wind-peak', 'Site peak wind', 'Lawson', w.sitePeak.toFixed(1), w.sitePeak <= 4 ? 'pass' : w.sitePeak <= 6 ? 'warn' : 'fail', 'The windiest point on the site: up to 4 m/s suits sitting and standing, 6 strolling, 8 walking; above 8 is uncomfortable.', { unit: 'm/s', bar: { max: 10, v: Math.min(10, w.sitePeak), zone: [0, 4], ticks: [[4, '4'], [6, '6'], [8, '8 m/s']] } })] : []),
@@ -171,7 +178,7 @@ const RUNS: Partial<Record<SwId, Run>> = {
         key('sw-wind-change', 'Made windier', 'vs none', fmt(w.worse), w.worse <= w.better ? 'pass' : 'warn', `${fmt(w.worse)} m² drop a comfort band because of the towers; ${fmt(w.better)} m² become calmer in their lee.`, { unit: 'm²', ...(w.worse + w.better > 0 ? { stack: { parts: [w.worse / (w.worse + w.better), w.better / (w.worse + w.better)], colors: ['#E08A3C', '#3E8E7E'], names: ['windier', 'calmer'] } } : {}) }),
       ],
       rules: [
-        rule('sw-wind-calm', 'Ground calm enough to stand (Lawson)', pc(ok), 'at least 80% good, 60% fair', ok >= 0.8 ? 'pass' : ok >= 0.6 ? 'warn' : 'fail', 'Share of open ground in the sitting or standing bands (mean up to 4 m/s).'),
+        rule('sw-wind-calm', 'Ground calm enough to stand (Lawson)', pc(ok), 'at least 80% good, 60% fair', ok >= 0.8 ? 'pass' : ok >= 0.6 ? 'warn' : 'fail', `Share of open ground in the sitting or standing bands (mean up to 4 m/s)${trees}.`),
         ...(w.sitePeak != null ? [rule('sw-wind-peak', 'Site peak wind', `${w.sitePeak.toFixed(1)} m/s`, 'up to 4 calm, 6 breezy', w.sitePeak <= 4 ? 'pass' : w.sitePeak <= 6 ? 'warn' : 'fail')] : []),
         rule('sw-wind-bad', 'Uncomfortable ground (over 8 m/s)', pc(bad), 'none near entrances', bad <= 0.01 ? 'pass' : 'fail'),
       ],
@@ -430,7 +437,7 @@ const TIME_TOOLS: SwId[] = ['built.sw-light-hour', 'built.sw-indoor-temp'], LEVE
 export function inputKey(inp: SwInputs, s: SwStudySettings, id: SwId): string {
   // Dragging the hour slider of the daylight viewer must not start the shadow, wind or energy studies again.
   const mine = { ...s, windView: '', rainCase: null, ...(TIME_TOOLS.includes(id) ? {} : { month: 0, day: 0, hour: 0 }), ...(LEVEL_TOOLS.includes(id) ? {} : { level: null }) }
-  return JSON.stringify([id, inp.project, inp.north, inp.towers, inp.site?.length ?? 0, inp.context.length, !!inp.C, mine])
+  return JSON.stringify([id, inp.project, inp.north, inp.towers, inp.site?.length ?? 0, inp.context.length, !!inp.C, mine, id === 'built.sw-wind-comfort' ? inp.porous ?? null : null])
 }
 
 let queue: Promise<void> = Promise.resolve()

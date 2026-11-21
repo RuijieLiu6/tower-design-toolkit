@@ -27,7 +27,15 @@
 //    with siteWind, over 15 m/s for more than 0.025% of the hours). S&W has no safety line. It always uses the site
 //    transform: the raw airport 10 m wind reaches 15 m/s for more than 2 hours a year in the open, so without it every
 //    open cell, towers or not, would read as unsafe.
-import type { ClimatePayload, LegendBand, MassingPayload, SitePayload } from './types'
+//  • added (21 Nov, G13): trees and porous screens as momentum sinks in the lattice (`PorousObstacle`, see below), in
+//    both runs (they are ground, not towers); S&W has only solid walls. Read their shelter as a floor, not a value:
+//    the run is S&W's spin-up from rest (3.2 × n steps), in which a wall acts at once by bounce-back but a porous wake
+//    is still forming (team check, 21 Nov: a 26-cell screen with k ≈ 4 slows its lee by ~17% in this run and by ~74%
+//    in a 30 × longer one). The run length is kept, since changing it moves every result.
+//  • changed (21 Nov, G13): a podium reads from all its storeys: its height is the top of the podium storeys stacked
+//    from grade, and the tower's base plate is the first storey above them (an imported tower's upper podium storeys
+//    used to read as the tower's base, so a 12 m pavilion read windier than a 6 m one).
+import type { ClimatePayload, LegendBand, MassingPayload, Prism, SitePayload } from './types'
 import { fillPolygon, type Grid, type Pt } from '../shadow'
 
 // ---- Lawson bands (Sun & Wind Studio: BANDS / BAND_COL / cls) --------------------------------------------------------
@@ -100,9 +108,23 @@ function ringBox(r: Pt[]): Box {
   return b
 }
 
-interface TowerZone { cx: number; cy: number; w: number; d: number; height: number; podiumH: number; box: Box }
+export interface TowerZone { cx: number; cy: number; w: number; d: number; height: number; podiumH: number; box: Box }
 
-function towerZones(massing: MassingPayload): TowerZone[] {
+/**
+ * The top of the storeys stacked without a gap on a block: an imported tower comes as one prism per storey, so its
+ * podium is as tall as its podium storeys reach together, and a 3 m ground storey under a tower is part of the tower.
+ * Parametric towers come as prisms from grade to each block's top, which never stack, so they read as before.
+ */
+function stackTop(blocks: Prism[], b: Prism): number {
+  let top = b.z1
+  for (let grew = true; grew;) {
+    grew = false
+    for (const o of blocks) if (Math.abs(o.z0 - top) <= 0.05 && o.z1 > top + 1e-6) { top = o.z1; grew = true }
+  }
+  return top
+}
+
+export function towerZones(massing: MassingPayload): TowerZone[] {
   const out: TowerZone[] = []
   for (const t of massing.towers) {
     if (!t.blocks.length) continue
@@ -113,15 +135,142 @@ function towerZones(massing: MassingPayload): TowerZone[] {
     const base = plate.filter((b) => b.z0 <= z0 + 0.5)
     const bb = base.map((b) => ringBox(b.ring)).reduce(union)
     const all = t.blocks.map((b) => ringBox(b.ring)).reduce(union)
-    const podiumH = Math.max(0, ...t.blocks.filter((b) => b.podium && b.z0 <= SOLID_BASE).map((b) => b.z1))
+    // The podium's height is the top of its storeys stacked from grade (not the first storey's top).
+    const pod = t.blocks.filter((b) => b.podium)
+    const podiumH = Math.max(0, ...pod.filter((b) => b.z0 <= SOLID_BASE).map((b) => stackTop(pod, b)))
     const height = Number.isFinite(t.height) && t.height > 0 ? t.height : Math.max(...t.blocks.map((b) => b.z1))
     out.push({ cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, w: bb[2] - bb[0], d: bb[3] - bb[1], height, podiumH, box: all })
   }
   return out
 }
 
+// ---- trees and porous screens (G13, 21 Nov) --------------------------------------------------------------------------
+/**
+ * A tree at pedestrian level: a round crown in plan over a height band. Its drag is a canopy momentum sink,
+ * S = −Cd · a · |u| u (the quadratic leaf-area drag of canopy-flow models: Shaw & Schumann 1992, Boundary-Layer
+ * Meteorol. 61; as reviewed in Majumdar, Vita, Ramponi, Glover & van Reeuwijk 2024, "The drag length is key to
+ * quantifying tree canopy drag", arXiv:2411.01570). Cd = 0.2, the value most urban CFD uses (range 0.1–0.3, per a
+ * review citing Gromke et al. 2015; unverified against the original). Leaf area density a, in this order:
+ *  • `lad` as given (m² of leaf per m³ of crown; CFD studies use 0.1–4, same review, unverified);
+ *  • from `porosity` (the share of the view through the crown, 0 opaque … 1 bare): Beer–Lambert across the crown
+ *    depth, porosity = exp(−G · a · D) with G = 0.5 for randomly oriented leaves and D the crown diameter
+ *    (Campbell & Norman 1998, An Introduction to Environmental Biophysics; textbook, not re-checked here);
+ *  • neither: the drag length of real trees, (a · Cd)⁻¹ ≈ 21 m (field median, Majumdar et al. 2024), a light crown and
+ *    the cautious choice for a comfort check (the same paper finds simulations often use about 5 m, i.e. 4× the drag).
+ */
+export interface PorousTree {
+  kind: 'tree'
+  /** Crown centre in the project frame (m). */
+  at: Pt
+  /** Crown diameter (m). */
+  crown: number
+  /** Crown base (clear trunk) above grade (m); default 2 (team assumption). */
+  base?: number
+  /** Tree top above grade (m). */
+  top: number
+  /** Optical porosity of the crown, 0 (opaque) to 1 (no leaves). 1 is no obstacle. */
+  porosity?: number
+  /** Leaf area density (m²/m³); wins over `porosity`. */
+  lad?: number
+}
+/**
+ * A porous screen (fence, louvred or perforated wall, hedge drawn as a line): a pressure drop across it,
+ * Δp = k · ½ρu² (the momentum-extraction form of windbreak models, Wilson 1985, J. Wind Eng. Ind. Aerodyn. 21), spread
+ * over the one cell it crosses. k from the open share β of its face: the bleed ratio α = β^0.4 (Guan, Zhang & Zhu 2003,
+ * Agric. For. Meteorol. 118: 75–84; the exponent is unverified against the full text) and the actuator-disc momentum
+ * balance k = 4(1 − α)/α (team derivation; Rankine–Froude theory, small-k form). β 0.5 gives k ≈ 1.3, β 0.2 gives k ≈ 3.6.
+ */
+export interface PorousScreen {
+  kind: 'screen'
+  /** The screen's line in plan, project frame (m), two or more points. */
+  line: Pt[]
+  /** Bottom of the screen above grade (m); default 0. */
+  base?: number
+  /** Top of the screen above grade (m). */
+  top: number
+  /** Open share of the screen face, 0 (solid) to 1 (open). 1 is no obstacle. */
+  porosity: number
+}
+export type PorousObstacle = PorousTree | PorousScreen
+
+/** Canopy drag coefficient (see PorousTree). */
+export const TREE_CD = 0.2
+/** Drag length (a · Cd)⁻¹ of a tree when neither porosity nor leaf area density is given (m; Majumdar et al. 2024). */
+export const TREE_DRAG_LENGTH = 21
+/** Leaf-angle extinction coefficient G for the porosity → leaf area density step (spherical leaf angles). */
+export const LEAF_G = 0.5
+/**
+ * The pedestrian layer a porous obstacle's drag is weighed over: its height band's share of the lowest 6 m (team
+ * assumption: twice the 3 m solid threshold, so a crown above head height still shelters the walk below it in part
+ * and a bare trunk does not; the flow over the top is not modelled, as for the solids).
+ */
+export const PED_LAYER = 6
+/** Porosity is read no lower than this (a near-solid screen); draw a true wall as a building. */
+const MIN_POROSITY = 0.01
+
+const layerShare = (base: number, top: number) => Math.max(0, Math.min(top, PED_LAYER) - Math.max(0, base)) / PED_LAYER
+const clampP = (p: number) => Math.min(1, Math.max(MIN_POROSITY, p))
+
+/** Screen pressure-loss coefficient from the open share of its face (see PorousScreen). */
+export function screenK(porosity: number): number {
+  const a = Math.pow(clampP(porosity), 0.4)
+  return (4 * (1 - a)) / a
+}
+/** A tree's drag per metre of crown, Cd · a (1/m) (see PorousTree). */
+export function treeDrag(t: Pick<PorousTree, 'crown' | 'porosity' | 'lad'>): number {
+  if (t.lad != null && Number.isFinite(t.lad)) return TREE_CD * Math.max(0, t.lad)
+  if (t.porosity != null && Number.isFinite(t.porosity)) return t.porosity >= 1 ? 0 : (TREE_CD * -Math.log(clampP(t.porosity))) / (LEAF_G * Math.max(0.5, t.crown))
+  return 1 / TREE_DRAG_LENGTH
+}
+
+/**
+ * Drag on the ground grid: per cell, the coefficient K of the lattice sink u ← u / (1 + τ K |u|) (lattice units:
+ * K = Cd · a · cell for a crown, ½ k for a screen one cell thick), each weighed by its share of the pedestrian layer.
+ * Null when nothing drags (no obstacles, or every one fully open), so the run is the one without them, bit for bit.
+ */
+export function porousDrag(list: PorousObstacle[] | undefined, grid: Grid): Float32Array | null {
+  if (!list?.length) return null
+  const { nx, ny, cell: cs } = grid, drag = new Float32Array(nx * ny)
+  let any = false
+  const add = (k: number, v: number) => { drag[k] += v; any = true }
+  for (const o of list) {
+    if (!(Number.isFinite(o.top))) continue
+    if (o.kind === 'tree') {
+      const share = layerShare(o.base ?? 2, o.top), r = o.crown / 2
+      const K = treeDrag(o) * cs * share
+      if (!(K > 0) || !(r > 0) || !o.at || !Number.isFinite(o.at[0]) || !Number.isFinite(o.at[1])) continue
+      const i0 = Math.max(0, Math.floor((o.at[0] - r - grid.x0) / cs)), i1 = Math.min(nx - 1, Math.floor((o.at[0] + r - grid.x0) / cs))
+      const j0 = Math.max(0, Math.floor((o.at[1] - r - grid.y0) / cs)), j1 = Math.min(ny - 1, Math.floor((o.at[1] + r - grid.y0) / cs))
+      let hit = 0
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        if (Math.hypot(grid.x0 + (i + 0.5) * cs - o.at[0], grid.y0 + (j + 0.5) * cs - o.at[1]) <= r) { add(j * nx + i, K); hit++ }
+      }
+      // A crown smaller than a cell: its drag on the cell it stands in, by its share of the cell's area.
+      if (!hit) {
+        const i = Math.floor((o.at[0] - grid.x0) / cs), j = Math.floor((o.at[1] - grid.y0) / cs)
+        if (i >= 0 && j >= 0 && i < nx && j < ny) add(j * nx + i, K * Math.min(1, (Math.PI * r * r) / (cs * cs)))
+      }
+    } else {
+      const K = 0.5 * screenK(o.porosity) * layerShare(o.base ?? 0, o.top)
+      if (!(K > 0) || !o.line || o.line.length < 2) continue
+      const cells = new Set<number>()
+      for (let s = 1; s < o.line.length; s++) {
+        const [ax, ay] = o.line[s - 1], [bx, by] = o.line[s]
+        if (![ax, ay, bx, by].every(Number.isFinite)) continue
+        const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / (cs / 4)))
+        for (let q = 0; q <= n; q++) {
+          const i = Math.floor((ax + ((bx - ax) * q) / n - grid.x0) / cs), j = Math.floor((ay + ((by - ay) * q) / n - grid.y0) / cs)
+          if (i >= 0 && j >= 0 && i < nx && j < ny) cells.add(j * nx + i)
+        }
+      }
+      for (const k of cells) add(k, K)
+    }
+  }
+  return any ? drag : null
+}
+
 /** Distance from a point to a box (0 inside). */
-type Box = [number, number, number, number]
+export type Box = [number, number, number, number]
 const union = (a: Box, b: Box): Box => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])]
 
 const boxDist = (x: number, y: number, b: Box) => Math.hypot(Math.max(b[0] - x, 0, x - b[2]), Math.max(b[1] - y, 0, y - b[3]))
@@ -147,8 +296,11 @@ function neighbours(solid: Uint8Array, nx: number, ny: number): Int32Array {
  * D2Q9 BGK flow driven by a body force toward `toDeg` (frame azimuth, clockwise from +y), as S&W runWind: τ 0.58, the
  * force adjusted each step to hold a mean lattice speed of 0.05, speeds capped at 0.25 in the equilibrium, max(nx, ny)
  * × 3.2 steps. Collision and streaming are fused into one pass (same arithmetic, same result as S&W's two loops).
+ * `drag` (porousDrag) adds a quadratic momentum sink per cell, taken semi-implicitly so it stays stable at any
+ * strength: the equilibrium velocity u* (after the body force) becomes u* / (1 + τ K |u*|), which removes about
+ * ρ K |u| u of momentum a step (the forcing is S&W's velocity shift, so a step's change is τ × force / ρ).
  */
-export function lbmRun(solid: Uint8Array, nx: number, ny: number, toDeg: number): { ux: Float32Array; uy: Float32Array } {
+export function lbmRun(solid: Uint8Array, nx: number, ny: number, toDeg: number, drag: Float32Array | null = null): { ux: Float32Array; uy: Float32Array } {
   const N = nx * ny, nb = neighbours(solid, nx, ny)
   let f = new Float32Array(9 * N), g = new Float32Array(9 * N)
   const wts = [W0, W1, W1, W1, W1, W2, W2, W2, W2]
@@ -168,6 +320,7 @@ export function lbmRun(solid: Uint8Array, nx: number, ny: number, toDeg: number)
       const rho = f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8
       let vx = (f1 - f3 + f5 - f6 - f7 + f8) / rho + Fx / rho
       let vy = (f2 - f4 + f5 + f6 - f7 - f8) / rho + Fy / rho
+      if (drag) { const K = drag[k]; if (K > 0) { const d = 1 / (1 + tau * K * Math.sqrt(vx * vx + vy * vy)); vx *= d; vy *= d } }
       ux[k] = vx; uy[k] = vy
       const ax = ux[k], ay = uy[k]
       const sp = Math.sqrt(vx * vx + vy * vy)
@@ -204,11 +357,14 @@ export function lbmRun(solid: Uint8Array, nx: number, ny: number, toDeg: number)
   return { ux, uy }
 }
 
-/** Speed-up over the free stream: |u| over the mean |u| of the open cells more than 24 m from any wall (S&W runWind). */
-function speedUp(solid: Uint8Array, nx: number, ny: number, cs: number, u: { ux: Float32Array; uy: Float32Array }): Float32Array {
+/**
+ * Speed-up over the free stream: |u| over the mean |u| of the open cells more than 24 m from any wall (S&W runWind).
+ * Trees and screens count as walls for that distance (`near`), so their lee is not read as the free stream.
+ */
+function speedUp(solid: Uint8Array, nx: number, ny: number, cs: number, u: { ux: Float32Array; uy: Float32Array }, near: Float32Array | null = null): Float32Array {
   const N = nx * ny, dist = new Float32Array(N).fill(1e9)
   for (let k = 0; k < N; k++) {
-    if (!solid[k]) continue
+    if (!solid[k] && !(near && near[k] > 0)) continue
     const x = k % nx, y = (k / nx) | 0
     for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) {
       const xx = x + dx, yy = y + dy
@@ -236,6 +392,8 @@ export interface WindOptions {
   range?: { d0: number; d1: number }
   /** One wind case instead of the rose (the Studio's "one wind case"): from `dir` ° true north at `speed` m/s at 10 m. */
   single?: { dir: number; speed: number }
+  /** Trees and porous screens on the ground (project frame), read as drag in both runs (with and without the towers). */
+  porous?: PorousObstacle[]
 }
 
 const NAMES16 = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
@@ -277,6 +435,8 @@ export interface WindStudy {
   /** Each wind sector's share of the hours, 10 m speed, the mean it gives over the study ground and the ground it makes a band windier. */
   sectors: { name: string; dir: number; f: number; s: number; groundMean: number; worse: number }[]
   runs: number
+  /** Open ground under trees and screens that drag at pedestrian level (m²); 0 without any. */
+  porousArea: number
 }
 
 export function runWindStudy(site: SitePayload, massing: MassingPayload, C: ClimatePayload, opt: WindOptions): WindStudy {
@@ -297,7 +457,12 @@ export function runWindStudy(site: SitePayload, massing: MassingPayload, C: Clim
   const solidB = new Uint8Array(N)
   for (const p of site.context) if (p.z1 > SOLID_TOP && p.z0 <= SOLID_BASE) fillPolygon(solidB, grid, p.ring)
   const solid = solidB.slice()
-  for (const t of massing.towers) for (const b of t.blocks) if (b.z1 > SOLID_TOP && b.z0 <= SOLID_BASE) fillPolygon(solid, grid, b.ring)
+  // A tower's storey counts with the storeys stacked on it (an imported 3 m ground storey under a tower is a wall).
+  for (const t of massing.towers) for (const b of t.blocks) if (b.z0 <= SOLID_BASE && (b.z1 > SOLID_TOP || stackTop(t.blocks, b) > SOLID_TOP)) fillPolygon(solid, grid, b.ring)
+  // trees and screens: drag per cell on the open ground
+  const drag = porousDrag(opt.porous, grid)
+  let porousArea = 0
+  if (drag) for (let k = 0; k < N; k++) { if (solid[k]) drag[k] = 0; else if (drag[k] > 0) porousArea += cellA }
 
   // neighbours' mean height within 120 m of each tower (S&W: siteRaster.bld, default 20 m) → downwash amplification
   const ctx = site.context.filter((p) => p.z1 >= 3).map((p) => { const b = ringBox(p.ring); return { x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2, top: p.z1 } })
@@ -327,16 +492,16 @@ export function runWindStudy(site: SitePayload, massing: MassingPayload, C: Clim
   const over15 = new Float32Array(N)
   let runs = 0
   const sectors: WindStudy['sectors'] = []
-  const hasContext = solidB.some((v) => v)
+  const hasContext = solidB.some((v) => v) || !!drag
   for (const r of rose.sectors) {
     if (!(r.f > 0)) continue
     // wind from r.dir (true north) → frame azimuth r.dir + northDeg; the flow goes the opposite way (S&W: dir + 180)
     const fromFrame = r.dir + site.northDeg, to = fromFrame + 180
     const th = to * Math.PI / 180, fx0 = Math.sin(th), fy0 = Math.cos(th)
-    const ratio = speedUp(solid, nx, ny, cs, lbmRun(solid, nx, ny, to)); runs++
+    const ratio = speedUp(solid, nx, ny, cs, lbmRun(solid, nx, ny, to, drag), drag); runs++
     // Without the towers: a context-free domain is a uniform stream (speed-up 1), so the run is skipped then.
     let ratioB: Float32Array
-    if (hasContext) { ratioB = speedUp(solidB, nx, ny, cs, lbmRun(solidB, nx, ny, to)); runs++ } else ratioB = new Float32Array(N).fill(1)
+    if (hasContext) { ratioB = speedUp(solidB, nx, ny, cs, lbmRun(solidB, nx, ny, to, drag), drag); runs++ } else ratioB = new Float32Array(N).fill(1)
     // downwash in front of each tower's windward face (S&W runWind zone)
     towers.forEach((t, ti) => {
       const amp = amps[ti].amp, depth = 0.22 * t.height, hw = Math.max(t.w, t.d) * 0.6
@@ -390,6 +555,6 @@ export function runWindStudy(site: SitePayload, massing: MassingPayload, C: Clim
   return {
     grid, mean, meanB, solid, study, studyR, studyArea, cats, catsB, worse, better, maxS,
     sitePeak: siteN ? sitePeak : null, sitePeakMean: siteN ? siteSum / siteN : null,
-    gusty, gustyB, unsafe, unsafeWorst, rose, amps, runs, sectors,
+    gusty, gustyB, unsafe, unsafeWorst, rose, amps, runs, sectors, porousArea,
   }
 }
