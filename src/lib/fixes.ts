@@ -184,7 +184,7 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^conductors$/, 'Keep a protected riser for the emergency, fire-pump and alarm conductors (1 h; smoke management 2 h).'],
   [/^radio$/, 'Plan the firefighters’ radio system: an equipment room and a communications riser.'],
   [/^emergency-power$/, 'Size the generator for at least 2 h at full load for every listed load (electrical engineer).'],
-  [/^plant-floors$/, 'Add plant floors: the button under Details puts one every few floors, or set "Plant floor every N tower floors" (Schematic › Core & floors).'],
+  [/^plant-floors$/, 'Add plant floors: the button under Details puts one every few floors, or set "Plant floor every N tower floors" (Schematic › Core & floors). Podium plant does not count: move it up above the podium.'],
   [/^bf-route$/, 'Give every occupied floor a passenger lift stop, the podium floors included (with the lift consultant).'],
   [/^bf-redundancy$/, 'Give each lift group a second accessible car (Schematic › Core & floors).'],
   [/^bf-transit$/, 'Show a step-free route from the station link to the lifts.'],

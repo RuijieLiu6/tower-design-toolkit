@@ -89,6 +89,30 @@ describe('plant, risers and emergency power (P11-M03)', () => {
     expect(towerFloors(t).filter((f) => f.use === 'mechanical').length).toBeGreaterThanOrEqual(pl.min)
     expect(find(run(t).r.systemRules, 'plant-floors').state).toBe('pass')
   })
+  it('counts tower plant floors as modelled, lists podium plant apart and names a plant roof storey (G44)', () => {
+    const floors = towerFloors(vtc())
+    const pod = floors.find((f) => f.podium)!
+    const [a, b] = floors.filter((f) => !f.podium && !f.skyLobby).slice(5, 7)
+    const top = floors.at(-1)!
+    const plant = (...levels: number[]) => vtc({ floorUses: Object.fromEntries(levels.map((l) => [l, 'mechanical'])) })
+    const { r } = run(plant(pod.level, a.level, b.level))
+    const pl = r.systems.plant
+    const need = pl.min === pl.max ? `${pl.min}` : `${pl.min}–${pl.max}`
+    expect(pl).toMatchObject({ modelled: 2, podiumModelled: 1, roofLevel: null })
+    expect(find(r.systemRules, 'plant-floors').value).toBe(`${need} needed; 2 modelled in the tower; 1 more in the podium`)
+    // No podium plant: the line reads as before.
+    expect(find(run(plant(a.level, b.level)).r.systemRules, 'plant-floors').value).toBe(`${need} needed; 2 modelled`)
+    // The state uses the tower count: podium plant does not make up a shortfall in the tower.
+    expect(pl.min).toBeGreaterThan(0)
+    const short = floors.filter((f) => !f.podium && !f.skyLobby).slice(5, 5 + pl.min - 1).map((f) => f.level)
+    const s1 = find(run(plant(pod.level, ...short)).r.systemRules, 'plant-floors')
+    expect(s1.state).toBe('warn')
+    expect(s1.value).toBe(`${need} needed; ${pl.min - 1} modelled in the tower; 1 more in the podium`)
+    // A plant top storey still counts, and the line says it is the roof storey.
+    const roof = run(plant(pod.level, a.level, top.level)).r
+    expect(roof.systems.plant).toMatchObject({ modelled: 2, podiumModelled: 1, roofLevel: top.level })
+    expect(find(roof.systemRules, 'plant-floors').value).toBe(`${need} needed; 2 modelled in the tower, one the roof storey L${top.level}; 1 more in the podium`)
+  })
   it('feeds the core: the riser estimate passes once the core uses it', () => {
     const { r } = run(vtc(), { servicesM2: 20 })
     expect(find(r.systemRules, 'risers').state).toBe('warn')

@@ -100,7 +100,12 @@ export interface PlantEstimate {
   airFloors: number
   min: number
   max: number
+  /** Plant floors modelled in the tower (above the podium), the roof storey included: what the range is compared with. */
   modelled: number
+  /** Plant floors modelled in the podium: reported apart, since the range counts tower floors only (G44). */
+  podiumModelled: number
+  /** Level of the top storey when it is a tower plant floor (counted, and named as the roof storey), else null. */
+  roofLevel: number | null
   towerFloors: number
   /** A plant floor every N tower floors that gives the minimum count (null = none needed). */
   suggestEvery: number | null
@@ -184,7 +189,11 @@ export function systemsEstimate(t: Tower, lifts: LiftResult, egress: EgressResul
   // Air handling: roof plant serves the top zone; each further zone needs a plant floor in the tower.
   const airFloors = Math.max(0, Math.ceil(tower.length / Math.max(1, p.airReachFloors)) - 1)
   const min = Math.max(hydronicBreaks, airFloors), max = hydronicBreaks + airFloors
-  const modelled = floors.filter((f) => f.use === 'mechanical').length
+  // Modelled plant counts tower floors only, as the range does; podium plant is reported apart (G44).
+  const modelled = tower.filter((f) => f.use === 'mechanical').length
+  const podiumModelled = floors.filter((f) => f.podium && f.use === 'mechanical').length
+  const top = tower.at(-1)
+  const roofLevel = top && top === floors.at(-1) && top.use === 'mechanical' ? top.level : null
   const suggestEvery = min > 0 ? Math.max(1, Math.floor(tower.length / (min + 1))) : null
   const snapTo = [...new Set([...(t.outriggerFloors ?? []), ...lifts.skyLobbies.map((f) => f.level)])].sort((a, b) => a - b)
 
@@ -213,10 +222,19 @@ export function systemsEstimate(t: Tower, lifts: LiftResult, egress: EgressResul
   const generatorKw = emergency.reduce((s, x) => s + x.kw, 0)
   const generatorM2 = Math.max(30, generatorKw * p.genM2PerKw)
   return {
-    water, hydronic, plant: { hydronicBreaks, airFloors, min, max, modelled, towerFloors: tower.length, suggestEvery, snapTo },
+    water, hydronic, plant: { hydronicBreaks, airFloors, min, max, modelled, podiumModelled, roofLevel, towerFloors: tower.length, suggestEvery, snapTo },
     risers, riserTotal, servicesNeeded: riserTotal + p.washroomsM2, emergency, generatorKw, generatorM2,
     baseM2: p.baseElectricalM2 + generatorM2 + p.controlRoomM2 + p.radioRoomM2,
   }
+}
+
+/** "3–4 needed; 3 modelled", or with podium plant "…; 3 modelled in the tower; 1 more in the podium" (G44). */
+export function plantValue(pl: PlantEstimate): string {
+  const need = pl.min === pl.max ? `${pl.min}` : `${pl.min}–${pl.max}`
+  const roof = pl.roofLevel !== null ? `, one the roof storey L${pl.roofLevel}` : ''
+  return pl.podiumModelled > 0
+    ? `${need} needed; ${pl.modelled} modelled in the tower${roof}; ${pl.podiumModelled} more in the podium`
+    : `${need} needed; ${pl.modelled} modelled${roof}`
 }
 
 const item = (clause: string, r: Omit<ChecklistItem, 'clause' | 'basis'>, basis: ChecklistItem['basis'] = 'model'): ChecklistItem => ({ ...r, clause, basis })
@@ -313,9 +331,9 @@ export function lifeSafety(t: Tower, lifts: LiftResult, egress: EgressResult, in
 
   const pl = sys.plant
   const systemRules: RuleResult[] = [
-    { id: 'plant-floors', label: 'Plant floors in the tower', value: `${pl.min === pl.max ? pl.min : `${pl.min}–${pl.max}`} needed; ${pl.modelled} modelled`, threshold: 'range from hydronic breaks and air-handling reach (team presets)',
+    { id: 'plant-floors', label: 'Plant floors in the tower', value: plantValue(pl), threshold: 'range from hydronic breaks and air-handling reach (team presets)',
       state: pl.modelled >= pl.min ? 'pass' : 'warn', flag: 'team_assumption', source: TEAM,
-      note: `${pl.hydronicBreaks} hydronic break${pl.hydronicBreaks === 1 ? '' : 's'} (equipment rated ${p.hydronicRatingKpa} kPa), ${pl.airFloors} air-handling floor${pl.airFloors === 1 ? '' : 's'} (one per ${p.airReachFloors} floors; roof plant serves the top). Roof and basement plant are extra.${pl.snapTo.length ? ` Snap plant to L${pl.snapTo.join(', L')} (outrigger or sky-lobby floors) where you can.` : ''}` },
+      note: `${pl.hydronicBreaks} hydronic break${pl.hydronicBreaks === 1 ? '' : 's'} (equipment rated ${p.hydronicRatingKpa} kPa), ${pl.airFloors} air-handling floor${pl.airFloors === 1 ? '' : 's'} (one per ${p.airReachFloors} floors; roof plant serves the top). Roof and basement plant are extra. Only floors above the podium count as modelled; podium plant is listed apart.${pl.roofLevel !== null ? ` The top storey L${pl.roofLevel} is plant and is counted; if it is the roof plant that serves the top zone, it is extra, so add one more in the tower.` : ''}${pl.snapTo.length ? ` Snap plant to L${pl.snapTo.join(', L')} (outrigger or sky-lobby floors) where you can.` : ''}` },
     { id: 'water-zones', label: 'Domestic water pressure zones', value: `${sys.water.length} zones of up to ${r1((PRV_LIMIT_KPA - p.pMinKpa) / KPA_PER_M)} m, a PRV station in the risers at each`, threshold: `at most ${PRV_LIMIT_KPA} kPa at any fixture; at least ${p.pMinKpa} kPa at the top one`,
       state: 'pass', flag: 'unverified', source: { ...VPBL_26, page: '2.6.3.3' }, note: `The ${p.pMinKpa} kPa minimum is a trade-article preset (${PHCP.label}); no Vancouver minimum-pressure clause was found.` },
     { id: 'risers', label: 'Risers and core services per floor', value: `${r1(sys.riserTotal)} m² of risers + ${p.washroomsM2} m² washrooms = ${r1(sys.servicesNeeded)} m²`, threshold: `the Core & lift check assumes ${input.liftPresets.servicesM2} m²`,
