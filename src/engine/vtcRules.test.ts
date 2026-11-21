@@ -47,3 +47,33 @@ describe('VTC rules', () => {
     expect(vtcRules([{ ...base, x: 70 }], { fsrTier: 2, transitLink: false }).find((r) => r.id === 'containment')!.state).toBe('fail')
   })
 })
+
+// G36 (vtc-entry urban review R3-15): the line read the use bands only, so a public sky room or civic floors set by level
+// read "at grade only".
+describe('G36: public uses extend vertically', () => {
+  const line = (t: Tower) => vtcRules([t], { fsrTier: 2, transitLink: false }).find((r) => r.id === 'vertical-public')!
+  const room = { access: 'shared' as const, free: true, hoursOpen: 12, visitorShare: 0.6, loadBasis: 'dining' as const, visitMinutes: 60 }
+  it('a tower with bands only of office, hotel and homes reads at grade only', () => {
+    expect(line(base).value).toBe('Public uses at grade only')
+    expect(line(base).state).toBe('warn')
+  })
+  it('a free sky room at L51 counts', () => {
+    const t: Tower = { ...base, skyLobbies: [51], skyRoom: { ...room, level: 51 } }
+    expect(towerFloors(t).find((f) => f.level === 51)?.skyLobby).toBe(true)
+    const l = line(t)
+    expect(l.state).toBe('pass')
+    expect(l.value).toBe('Public sky room at L51 (free entry, 60% of the floor open to visitors)')
+    // a sky lobby that stays tenant-only, or a room with no visitor area, does not
+    expect(line({ ...base, skyLobbies: [51] }).value).toBe('Public uses at grade only')
+    expect(line({ ...t, skyRoom: { ...room, level: 51, visitorShare: 0 } }).value).toBe('Public uses at grade only')
+  })
+  it('civic floors set by level above the podium count; one in the podium does not', () => {
+    const tower = towerFloors(base).filter((f) => !f.podium), podium = towerFloors(base).find((f) => f.podium)!
+    const l44 = tower.find((f) => f.level === 44)!.level
+    expect(line({ ...base, floorUses: { [l44]: 'civic' } }).value).toBe('Civic or amenity floor L44 above the podium (floor uses)')
+    expect(line({ ...base, floorUses: { [podium.level]: 'civic' } }).value).toBe('Public uses at grade only')
+    // the band rule as before, and every source listed
+    const both: Tower = { ...base, bands: [...base.bands, { use: 'amenity', share: 0.05 }], floorUses: { [l44]: 'civic' }, skyLobbies: [51], skyRoom: { ...room, level: 51, free: false } }
+    expect(line(both).value).toBe('Civic or amenity use above the podium; Civic or amenity floor L44 above the podium (floor uses); Public sky room at L51 (ticketed, 60% of the floor open to visitors)')
+  })
+})

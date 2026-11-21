@@ -1,7 +1,7 @@
 // VTC hard-rules checker (research module P01-M01 + P01-M07, simplified for v0.1).
 // Every rule cites the competition brief, which the team holds locally:
 // "03 Vancouver Tall Competition Brief/.../_Vancouver Tall Challenge - ENG.pdf" (Buildner, 2026).
-import { gfaByUse, towerFootprint, towerMasses } from './massing'
+import { gfaByUse, towerFloors, towerFootprint, towerMasses } from './massing'
 import type { RuleResult, Tower, UseId } from './types'
 
 export const BRIEF = 'Vancouver Tall Challenge brief (Buildner 2026)'
@@ -29,6 +29,22 @@ export function fsrSummary(towers: Tower[], siteArea: number = SITE.area) {
   const total = Object.values(gfa).reduce((a, b) => a + b, 0)
   const tier = (t: FsrTier) => TIER_USES[t].reduce((s, u) => s + gfa[u], 0) / siteArea
   return { gfa, total, totalFsr: total / siteArea, tier1: tier(1), tier2: tier(2), tier3: tier(3), siteArea }
+}
+
+/** What carries public uses above the podium, one phrase each (gap G36): bands, floors set by level, a public sky room. */
+export function verticalPublic(towers: Tower[]): string[] {
+  const out: string[] = []
+  const lv = (ls: number[]) => (ls.length > 3 ? `L${ls[0]}–L${ls[ls.length - 1]} (${ls.length} floors)` : ls.map((l) => `L${l}`).join(', '))
+  for (const t of towers) {
+    const who = towers.length > 1 ? `${t.name}: ` : ''
+    if (t.bands.some((b, i) => i > 0 && (b.use === 'civic' || b.use === 'amenity'))) out.push(`${who}Civic or amenity use above the podium`)
+    const floors = towerFloors(t)
+    const set = floors.filter((f) => !f.podium && !f.skyLobby && (f.use === 'civic' || f.use === 'amenity') && t.floorUses?.[f.level] === f.use).map((f) => f.level)
+    if (set.length) out.push(`${who}Civic or amenity floor${set.length > 1 ? 's' : ''} ${lv(set)} above the podium (floor uses)`)
+    const r = t.skyRoom, room = r ? floors.find((f) => f.level === r.level && f.skyLobby && !f.podium) : null
+    if (r && room && r.visitorShare > 0) out.push(`${who}Public sky room at L${r.level} (${r.free ? 'free entry' : 'ticketed'}, ${Math.round(r.visitorShare * 100)}% of the floor open to visitors)`)
+  }
+  return out
 }
 
 export function vtcRules(towers: Tower[], opts: { fsrTier: FsrTier; transitLink: boolean }): RuleResult[] {
@@ -93,16 +109,19 @@ export function vtcRules(towers: Tower[], opts: { fsrTier: FsrTier; transitLink:
     note: 'Declared by the designer; the tool does not yet check the route geometry.',
   })
 
-  // 5. Public-facing uses extending vertically (soft rule).
-  const upper = towers.some((t) => t.bands.some((b, i) => i > 0 && (b.use === 'civic' || b.use === 'amenity')))
+  // 5. Public-facing uses extending vertically (soft rule): a civic or amenity band above the podium, civic or amenity
+  // floors set one by one above the podium (floorUses), or a public sky room (gap G36: the line read the bands only).
+  const ups = verticalPublic(towers)
+  const upper = ups.length > 0
   out.push({
     id: 'vertical-public',
     label: 'Public uses extend vertically',
-    value: upper ? 'Civic or amenity use above the podium' : 'Public uses at grade only',
+    value: upper ? ups.join('; ') : 'Public uses at grade only',
     threshold: 'Encouraged, not required',
     state: upper ? 'pass' : 'warn',
     flag: 'verified',
     source: { label: BRIEF, page: 'p.19 "Explore how public-facing uses and spaces can extend vertically"' },
+    note: 'Counts a civic or amenity band above the podium, civic or amenity floors set one by one in Program above the podium, and a public sky room (a sky lobby opened to visitors, Schematic). Sky lobbies that stay tenant-only do not count.',
   })
   return out
 }

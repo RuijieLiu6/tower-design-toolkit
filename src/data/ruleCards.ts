@@ -74,7 +74,7 @@ export const RULE_CARDS: RuleCard[] = [
   {
     id: 'vtc.vertical-public', title: 'Public uses extend vertically', source: { label: BRIEF, page: 'p.19' },
     summary: 'Entrants are encouraged to explore public-facing uses and spaces higher up the tower; it is not a requirement.',
-    parameter: 'civic or amenity band above the podium', rule: 'encouraged, not required', deontic: 'permission', strength: 'defeasible', flag: 'verified',
+    parameter: 'civic or amenity band or floors above the podium, or a public sky room', rule: 'encouraged, not required', deontic: 'permission', strength: 'defeasible', flag: 'verified',
     usedBy: ['built.vtc-rules'], results: ['rules:vertical-public'],
     note: 'The check says Check, never Fail.',
   },
