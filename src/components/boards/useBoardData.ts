@@ -81,6 +81,8 @@ import { VTC_NORTH_DEG, useVtcContext } from '../../context'
 import { towerOccluders, vtcOccluders } from '../../engine/solarRules'
 import { floorPlates } from '../../lib/floorPick'
 import { coreSide } from '../../engine/massing'
+import { coreCentre } from '../../engine/storeyWeight'
+import type { Tower } from '../../engine/types'
 import { setDrawData, type DrawData } from '../../lib/boardDrawings'
 import { BRIEF_SITE } from '../../lib/vtcContextSource'
 import { cityDataLoaded } from '../CityContext'
@@ -91,6 +93,13 @@ import { useCityModel } from '../../lib/cityModel'
 import { useStore } from '../../store'
 
 type P2 = [number, number]
+/** An imported model's core (or one placed by hand) for the drawings: where the structure checks place it, along the tower's axes. */
+function placedCore(t: Tower): P2[] | null {
+  const side = coreSide(t)
+  if (!(side > 2)) return null
+  const cc = coreCentre(t), a = (t.rotation * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a), h = side / 2
+  return ([[-h, -h], [h, -h], [h, h], [-h, h]] as P2[]).map(([u, v]) => [t.x + (u + cc.x) * c - (v + cc.y) * s, t.y + (u + cc.x) * s + (v + cc.y) * c])
+}
 /** The indicative core for the drawings: a square of the core share, centred on the top plate, along its longest side. */
 function coreRing(prisms: { ring: P2[]; z0: number; z1: number }[], side: number): P2[] | null {
   if (!prisms.length || !(side > 2)) return null
@@ -131,7 +140,7 @@ export function useDrawData(): DrawData {
     const ts = towers.map((t) => {
       const prisms = towerOccluders([t]).prisms as { ring: P2[]; z0: number; z1: number }[]
       return {
-      id: t.id, name: t.name, prisms, core: coreRing(prisms, coreSide(t)),
+      id: t.id, name: t.name, prisms, core: t.imported || t.coreCentre ? placedCore(t) : coreRing(prisms, coreSide(t)),
       floors: floorPlates(t).map(({ f, rings }) => ({ level: f.level, z0: f.z0, z1: f.z1, use: f.use, area: f.area, rings })),
     } })
     const pts = [...(site ?? []), ...ts.flatMap((t) => t.prisms.flatMap((p) => p.ring))]

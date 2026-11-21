@@ -901,6 +901,15 @@
             "perimeter"
           ]
         },
+        "coreCentre": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number"
+          },
+          "description": "Core centre placed by hand, in the tower's own frame (m). Optional: absent, the core is read from the model."
+        },
         "outriggerFloors": {
           "type": "array",
           "maxItems": 20,

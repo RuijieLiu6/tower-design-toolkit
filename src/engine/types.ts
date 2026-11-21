@@ -62,6 +62,12 @@ export interface Tower {
   coreAuto?: boolean
   /** Schematic: tower floor levels used as sky lobbies (transfer floors, counted as public amenity). */
   skyLobbies?: number[]
+  /**
+   * Core centre placed by hand, in the tower's own frame (m from the tower origin, before the tower's rotation), for a
+   * massing that carries no core (an imported model). Absent: the core is read from the model (engine/storeyWeight.ts
+   * `coreCentre`). Used by the structure checks, the X-ray core and the export.
+   */
+  coreCentre?: [number, number]
   /** Schematic: levels with outrigger or belt-truss floors (structure screening; the floor keeps its use). */
   outriggerFloors?: number[]
   /** Schematic: one sky lobby opened to the public as a sky room (null = none). */

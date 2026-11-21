@@ -4,6 +4,7 @@
 // Pure: the writers (obj.ts, rhino.ts, gltf.ts) turn this into files. Coordinates: project frame, metres, Z up,
 // z = 0 at the tower base.
 import { coreSide, towerFloors, floorRing } from '../../engine/massing'
+import { coreCentre } from '../../engine/storeyWeight'
 import { USES, type Tower, type UseId } from '../../engine/types'
 import { basementLevels, basementRing } from '../../engine/basement'
 
@@ -85,10 +86,12 @@ export function buildScene(towers: Tower[], o: SceneOptions): ExportScene {
         },
       })
     }
-    // The core box, centred, through the floors (lift overrun and roof are not modelled).
+    // The core box through the floors (lift overrun and roof are not modelled): at the tower centre, or for an imported
+    // model where the structure checks place it (placed by hand, else read from the model).
     const top = floors.length ? floors[floors.length - 1].z1 : t.height
+    const cc = coreCentre(t)
     const half = coreSide(t) / 2, r = (t.rotation * Math.PI) / 180, c = Math.cos(r), sn = Math.sin(r)
-    const corner = (u: number, v: number): [number, number] => [t.x + u * c - v * sn, t.y + u * sn + v * c]
+    const corner = (u: number, v: number): [number, number] => [t.x + (u + cc.x) * c - (v + cc.y) * sn, t.y + (u + cc.x) * sn + (v + cc.y) * c]
     const core = prism([corner(-half, -half), corner(half, -half), corner(half, half), corner(-half, half)], 0, top)
     add({ name: `${t.name} · Core`, layer: LAYER.core, color: [60, 64, 72], ...core,
       strings: { tower: t.name, core_share: t.coreShare.toFixed(3), core_side_m: (half * 2).toFixed(2), core_mode: t.coreAuto === false ? 'set by hand' : 'sized to the lifts, stairs and risers',

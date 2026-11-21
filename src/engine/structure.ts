@@ -77,7 +77,7 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     `Weight centre of every tower floor and the roof (plate, open deck, facade and core walls, as in the weight line) against the core centre: ${weights.core.how}.`
     + (big && big.e >= 0.05 ? ` Largest offset ${m(big.e)} m at ${levelName(big)} (x ${m(big.ex)}, y ${m(big.ey)} m in the tower's own axes).` : '')
     + (g && g.ratio > 0.1 ? ' Beyond the code’s accidental arm: the torsion the code assumes is smaller than this design’s own.' : g && g.ratio > 0.05 ? ' Within the code’s accidental arm: declare it for the structural reviewer.' : '')
-    + ' The code applies torsion F·(e ± 0.10·D) at every level. The core centre stands in for the stiffness centre (exact for a doubly symmetric closed core) and the 0.05 band is a team value; podium storeys and the podium roof are left out, as their stiffness is not the core’s alone.')
+    + ' The code applies torsion F·(e ± 0.10·D) at every level. The core centre stands in for the stiffness centre (exact for a doubly symmetric closed core) and the 0.05 band is a team value; podium storeys, a wider one- or two-storey transitional run just above the podium, and the floor over them are left out, as their stiffness is not the core’s alone.')
   const mm = (v: number) => Math.round(v * 1000)
   const lt = grav.sway.lt
   add('gravity-net', 'Net gravity eccentricity and sustained sway', g ? `E = ${grav.net.e.toFixed(2)} m (e/D ${grav.net.ratio.toFixed(3)}); top sway ≈ ${mm(grav.sway.el)} mm elastic, ≈ ${mm(lt)} mm long term` : 'no tower storeys',

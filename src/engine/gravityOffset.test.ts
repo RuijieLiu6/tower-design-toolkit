@@ -3,7 +3,9 @@
 import { describe, expect, it } from 'vitest'
 import { useStore } from '../store'
 import { structureCheck } from './structure'
-import { DEFAULT_WEIGHT_PRESETS, GAMMA_C, gravityEccentricity, USE_LOADS, type WeightResult } from './storeyWeight'
+import { DEFAULT_WEIGHT_PRESETS, GAMMA_C, gravityEccentricity, storeyWeights, USE_LOADS, type WeightResult } from './storeyWeight'
+import { exportProject, readProject, toDesign } from '../lib/project/projectFile'
+import { defaultDesign } from '../lib/project/design'
 import { importedTower, rect, stack } from './testStoreys'
 import type { Tower } from './types'
 import { windProcedure } from './windStructure'
@@ -27,10 +29,10 @@ describe('G5: off-centre storey weight against the code’s accidental arm (R5 �
   /** Weight-centre offset of a typical floor of a w × d tier shifted by `off` from the core (plate and facade at its centre, core walls on the core). */
   const offset = (w: number, d: number, off: number) => { const W = w * d * q + 2 * (w + d) * 4 * DEFAULT_WEIGHT_PRESETS.facadeKpa; return (off * W) / (W + coreW) }
 
-  it('reads the core of an imported tower at its lowest tower storey, and each tier’s offset by weight', () => {
+  it('reads the core of an imported tower at its typical tower storey, and each tier’s offset by weight', () => {
     const r = run(c7(3))
     expect(r.weights.core).toMatchObject({ x: 30, y: 0 })
-    expect(r.weights.core.how).toMatch(/lowest tower storey, L5/)
+    expect(r.weights.core.how).toMatch(/typical tower storey, L5/)
     // A typical tier-3 floor (48 × 48 m, 3 m west and 3 m north): the plate's 4.24 m shrinks to about 3.1 m once the core walls count.
     const t3 = r.gravity.levels.find((l) => l.level === 55)! // L51–L58
     expect(t3.ex).toBeCloseTo(-offset(48, 48, 3), 6)
@@ -70,7 +72,7 @@ describe('G5: off-centre storey weight against the code’s accidental arm (R5 �
   })
 
   it('reproduces R5’s worked sway: 250 m, 70 floors of 22.5 MN all 0.8 m off the core give about 97 mm elastic, 0.32 m long term', () => {
-    const levels = Array.from({ length: 70 }, (_, i) => ({ level: i + 2, roof: false, z: ((i + 1) * 250) / 70, W: 22500, area: 2500, deck: 0, deckKind: 'none' as const, garden: false, podium: false, onPodium: false, use: 'residential' as const, cx: 0.8, cy: 0, dx: 50, dy: 50 }))
+    const levels = Array.from({ length: 70 }, (_, i) => ({ level: i + 2, roof: false, z: ((i + 1) * 250) / 70, W: 22500, area: 2500, deck: 0, deckKind: 'none' as const, garden: false, podium: false, transitional: false, onPodium: false, use: 'residential' as const, cx: 0.8, cy: 0, dx: 50, dy: 50 }))
     const w: WeightResult = { levels, total: 70 * 22500, density: 0, core: { x: 0, y: 0, side: 24, how: 'test' }, presets: DEFAULT_WEIGHT_PRESETS }
     const g = gravityEccentricity(w, 250)
     expect(g.sway.EI / 1e14).toBeCloseTo(2.7, 1)
@@ -90,6 +92,51 @@ describe('G5: off-centre storey weight against the code’s accidental arm (R5 �
     // A tower 17 m east of the podium's centre: the podium roof's weight is not read against the tower's core.
     const a8 = importedTower(stack([{ n: 4, f2f: 4, ring: rect(90, 60), podium: true }, { n: 30, f2f: 4, ring: rect(50, 50, 17, 2) }]), { podiumTop: 16 })
     expect(rule(run(a8), 'gravity-offset').state).toBe('pass')
+  })
+
+  // A11a in miniature: a 50 × 50 m shaft at (17, 2) on a podium whose upper storey, L5, is a wider 66 × 55 m plate centred
+  // at (9, 0.5) just above the podium top, then a double-height garden at 100 m behind a Z-shaped wind wall. Read from the
+  // lowest tower storey, the core sat at (9, 0.5) and the check read e/D 0.190 at L25 and E = 6 m (the coordinator's run).
+  const wall: [number, number][] = [[-8, -23], [5, -23], [5, -10], [29, -10], [29, 14], [42, 14], [42, 27], [-8, 27]]
+  const a11a = () => importedTower(stack([
+    { n: 4, f2f: 4.8, ring: rect(64, 60, 24, 0), podium: true },
+    { n: 1, f2f: 4.8, ring: rect(66, 55, 9, 0.5), use: 'office' },
+    { n: 19, f2f: 4, ring: rect(50, 50, 17, 2), use: 'office' },
+    { n: 2, f2f: 4, ring: wall, use: 'amenity' },
+    { n: 30, f2f: 4, ring: rect(50, 50, 17, 2), use: 'office' },
+  ]), { podiumTop: 19.2 })
+
+  it('A11a: reads the core at the typical tower storey, not a wider transitional storey above the podium', () => {
+    const r = run(a11a())
+    expect(r.weights.core).toMatchObject({ x: 17, y: 2 })
+    expect(r.weights.core.how).toMatch(/typical tower storey, L6/)
+    const l5 = r.weights.levels.find((l) => l.level === 5)!, l6 = r.weights.levels.find((l) => l.level === 6)!
+    expect(l5.transitional).toBe(true) // one storey, wider than the shaft, just above the podium
+    expect(l6.onPodium).toBe(true) // its floor is L5's roof
+    expect(r.gravity.levels.some((l) => l.level <= 6)).toBe(false)
+    // The shaft's own floors sit on the core; what is left is the enclosed half of the double-height garden (L26).
+    expect(r.gravity.levels.find((l) => l.level === 10)!.e).toBeLessThan(1e-6)
+    expect(r.gravity.worst!.level).toBe(26)
+    expect(r.gravity.worst!.ratio).toBeLessThan(0.1)
+    expect(r.gravity.net.e).toBeLessThan(0.2)
+    expect(r.gravity.sway.lt).toBeLessThan(0.05)
+    expect(rule(r, 'gravity-net').state).toBe('pass')
+    expect(rule(r, 'gravity-offset').value).not.toMatch(/0\.190/)
+  })
+
+  it('takes a core centre placed by hand, and saves it in the project file', () => {
+    const t = { ...a11a(), coreCentre: [9, 0.5] as [number, number] }
+    const r = run(t)
+    expect(r.weights.core).toMatchObject({ x: 9, y: 0.5 })
+    expect(r.weights.core.how).toMatch(/placed by hand/)
+    expect(r.gravity.worst!.ratio).toBeGreaterThan(0.1) // now the shaft is 8 m off the core you placed
+    // A parametric tower takes it too (the toolkit otherwise centres its core on the tower).
+    expect(storeyWeights({ ...useStore.getInitialState().towers.vtc[0], coreCentre: [3, -2] }).core).toMatchObject({ x: 3, y: -2 })
+    const d = defaultDesign()
+    const design = { ...d, towers: { ...d.towers, vtc: [{ ...d.towers.vtc[0], coreCentre: [4.5, -1.25] as [number, number] }] } }
+    const back = readProject(exportProject(design))
+    expect(back.ok).toBe(true)
+    expect(toDesign(back.file!).towers.vtc[0].coreCentre).toEqual([4.5, -1.25])
   })
 
   it('takes the core from an open garden storey whose plate is the core alone', () => {

@@ -1,10 +1,12 @@
 // Draws an imported mass in the 3D view (research P14-M02/M04/M05). The display mode (lib/displayMode.ts) colours it
 // as the parametric towers: the neutral proposal with its edges, or (Program) the real mesh coloured by the program of
 // each storey band (drawn once per band, clipped to it). Schematic: ghosted like the parametric towers, with the sliced
-// plate outlines and an assumed central core. Open edges show red, flipped faces magenta.
+// plate outlines and the core where the structure checks place it (engine/storeyWeight.ts coreCentre: placed by hand,
+// else read from the model). Open edges show red, flipped faces magenta.
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { coreSide, towerFloors } from '../engine/massing'
+import { coreCentre } from '../engine/storeyWeight'
 import { USES, type ImportedStorey, type Tower, type UseId } from '../engine/types'
 import { useImportStore, useMeshEntry, type MeshEntry } from '../lib/import/store'
 import { useStore } from '../store'
@@ -54,6 +56,7 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
   sectionPlane.constant = baseZ + sectionLevel
   const top = m.storeys.length ? m.storeys[m.storeys.length - 1].z1 : m.top
   const core = coreSide(t)
+  const cc = useMemo(() => coreCentre(t), [t])
   const unresolved = m.fileNorthDeg == null
 
   return (
@@ -83,7 +86,7 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
         <lineBasicMaterial color={xray ? '#4a6a8c' : byUse ? '#ffffff' : NEUTRAL_TOWER.edge} transparent opacity={xray ? 0.5 : byUse ? 0.6 : 0.35} clippingPlanes={section ? [sectionPlane] : null} />
       </lineSegments>
       {xray && anatomy.core && top > 0 && (
-        <mesh position={[0, 0, top / 2]}>
+        <mesh position={[cc.x, cc.y, top / 2]}>
           <boxGeometry args={[core, core, top]} />
           <meshStandardMaterial color={CORE_COLOR} roughness={0.6} transparent opacity={0.85} clippingPlanes={section ? [sectionPlane] : null} />
         </mesh>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { SEISMIC_FALSE_ASSUMPTIONS, structureCheck, suggestOutriggers } from '../engine/structure'
 import { CONTINUITY_RULE, windProcedure, type Fit } from '../engine/windStructure'
+import type { CoreCentre } from '../engine/storeyWeight'
 import { towerFloors } from '../engine/massing'
 import type { Tower } from '../engine/types'
 import { useStore, useTowers } from '../store'
@@ -53,6 +54,33 @@ function OutriggerPicker({ t, placed }: { t: Tower; placed: number[] }) {
   )
 }
 
+/** An imported model carries no core: where the structure checks place it (read from the model), or a centre you type. */
+function CorePicker({ t, core }: { t: Tower; core: CoreCentre }) {
+  const updateTower = useStore((s) => s.updateTower)
+  const placed = !!t.coreCentre
+  const set = (k: 0 | 1, v: number) => { if (!Number.isFinite(v)) return; const c: [number, number] = [core.x, core.y]; c[k] = v; updateTower(t.id, { coreCentre: c }) }
+  const field = (k: 0 | 1, label: string) => (
+    <label className="flex items-center gap-1 text-muted">{label}
+      <span className="flex items-center rounded border border-line bg-panel">
+        <input type="number" step={0.5} value={Number((k ? core.y : core.x).toFixed(2))} aria-label={`Core centre ${label}`}
+          onChange={(e) => set(k, Number(e.target.value))} className="w-16 bg-transparent px-1.5 py-0.5 text-right tabular-nums text-ink outline-none" />
+        <span className="pr-1.5">m</span>
+      </span>
+    </label>
+  )
+  return (
+    <div className="mt-2 rounded-md border border-line p-2 text-meta">
+      <div className="flex items-center justify-between gap-2"><span className="font-semibold">Core centre</span><FlagChip flag="team_assumption" /></div>
+      <div className="mt-1 line-clamp-2 text-muted" title={core.how}>{placed ? 'Placed by hand' : 'Read from the model'}: {core.how}</div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        {field(0, 'x')}{field(1, 'y')}
+        {placed && <button type="button" onClick={() => updateTower(t.id, { coreCentre: undefined })} className="rounded border border-line px-2 py-0.5 hover:border-accent hover:text-accent">Read from the model</button>}
+      </div>
+      <MethodFold title="About the core centre"><p>In the tower’s own frame (metres from the tower origin, before its rotation). The off-centre weight lines, the X-ray core, the drawings and the export use it. Read from the model: a garden storey that is the core alone, else the centre of the typical tower storey.</p></MethodFold>
+    </div>
+  )
+}
+
 export default function StructurePanel() {
   const results = useStructures()
   return (
@@ -64,6 +92,7 @@ export default function StructurePanel() {
             <Stat label="Period Ta (seismic only)" value={`≈ ${r.Ta.toFixed(2)}`} unit="s" />
           </Stats></div>
           <RuleRows rules={r.rules} />
+          {(r.tower.imported || r.tower.coreCentre) && <CorePicker t={r.tower} core={r.weights.core} />}
           <OutriggerPicker t={r.tower} placed={r.outriggers} />
           <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700" title="A shortlist, never a single best">Lateral systems at SC4 (shortlist)</h4>
           <ul className="grid min-w-0 gap-1">
