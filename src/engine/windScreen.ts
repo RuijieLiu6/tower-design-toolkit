@@ -3,13 +3,15 @@
 // corners and gaps between towers, each Low / Medium / High with a reason and its source, and indicative zones on the
 // ground. It predicts no speeds and no comfort class (research P03-M03 limits; P03-M04 needs wind-tunnel or CFD factors).
 import roseData from '../data/windRoseYVR.json'
+import { CREDIT_BB, towerCorners, type TowerCorners } from './corners'
 import { readsStoreys, towerFootprint } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 import { ANALOG_LABEL, windStudyTriggers } from './windStructure'
 
 export type Level = 'low' | 'medium' | 'high'
 export type Season = 'year' | 'winter' | 'summer'
-export type Corner = 'sharp' | 'chamfered' | 'rounded' | 'stepped'
+/** Tower corners: read from the model's storey outlines ('auto', research R5 §4.1), or declared. */
+export type Corner = 'auto' | 'sharp' | 'chamfered' | 'rounded' | 'stepped'
 
 export interface WindScreenPresets {
   /** Hourly station speed at or above which an hour counts as strong (km/h, a bin edge). */
@@ -29,7 +31,7 @@ export interface WindScreenPresets {
   cornerLength: number
 }
 
-export const DEFAULT_WIND_SCREEN: WindScreenPresets = { strongKmh: 30, season: 'year', sectorCover: 0.6, maxSectors: 4, exposureHigh: 2, exposureMedium: 1.25, podiumStepMin: 3, corner: 'sharp', zoneDepth: 0.5, cornerLength: 1.2 }
+export const DEFAULT_WIND_SCREEN: WindScreenPresets = { strongKmh: 30, season: 'year', sectorCover: 0.6, maxSectors: 4, exposureHigh: 2, exposureMedium: 1.25, podiumStepMin: 3, corner: 'auto', zoneDepth: 0.5, cornerLength: 1.2 }
 
 export const SCREEN_LABEL = 'Screening, not CFD: rules rank risk for discussion and predict no wind speeds or comfort classes.'
 export const ENGINE_NOTE = 'No credible wind engine runs in a browser yet (research P03-M05): steady CFD needs a server or a consultant, machine-learning surrogates are unvalidated for supertall towers, and at massing stage even CFD is weak on gusts and safety. Wind-tunnel testing by a wind engineer is the evidence a High-trigger tower needs.'
@@ -79,7 +81,7 @@ type P = [number, number]
 export interface ContextBox { footprint: P[]; height: number }
 export interface Zone { id: string; tower: string; kind: 'downwash' | 'corner' | 'gap'; level: Level; sector: string; share: number; z: number; poly: P[]; reason: string }
 export interface SectorRisk { sector: string; fromDeg: number; share: number; width: number; upwindMax: number | null; ratio: number | null; downwash: Level; podiumStep: number; base: Level; corner: Level }
-export interface TowerScreen { tower: string; name: string; height: number; sectors: SectorRisk[] }
+export interface TowerScreen { tower: string; name: string; height: number; sectors: SectorRisk[]; corners: TowerCorners & { declared: Exclude<Corner, 'auto'> | null; treated: boolean } }
 
 const dot = (a: P, b: P) => a[0] * b[0] + a[1] * b[1]
 const add = (a: P, b: P, s = 1): P => [a[0] + b[0] * s, a[1] + b[1] * s]
@@ -127,6 +129,13 @@ export interface WindScreenResult {
   contextLoaded: boolean
 }
 
+/** The corner line's value: the reading from the model with its cut ratio, and the declared setting beside it when there is one. */
+function cornerValue(s: TowerScreen, level: string): string {
+  const c = s.corners
+  const tall = c.treated ? '' : ` on a ${s.height.toFixed(0)} m tower`
+  return c.declared ? `declared ${c.declared}; read from the model: ${c.text}${tall}: ${level}` : `read from the model: ${c.text}${tall}: ${level}`
+}
+
 const rule = (id: string, label: string, value: string, threshold: string, state: RuleState, flag: Flag, source: Source, note?: string): RuleResult => ({ id, label, value, threshold, state, flag, source, note })
 const stateOf = (l: Level): RuleState => (l === 'low' ? 'pass' : 'warn')
 const LEVEL_WORD: Record<Level, string> = { low: 'Low', medium: 'Medium', high: 'High' }
@@ -145,6 +154,11 @@ export function windScreen(towers: Tower[], o: { northDeg: number; context: Cont
     const c = centroid(ring)
     const others: ContextBox[] = towers.filter((x) => x.id !== t.id).map((x) => ({ footprint: towerFootprint(x) as P[], height: x.height }))
     const radius = Math.max(400, 2 * t.height) // ContextSpec radius, research P03-M02 (2H is a team term)
+    // Corners: the geometric reading unless the preset declares them (then both are shown and the declared one governs).
+    // Read as treated when all four corners carry one modification at b/B ≥ 0.05 over at least half the height above H/3 (team).
+    const read = towerCorners(t)
+    const declared = p.corner === 'auto' ? null : p.corner
+    const treated = declared ? declared !== 'sharp' : read.credit >= 0.5
     const res: SectorRisk[] = []
     for (const s of sectors) {
       const u = upwind(s.fromDeg, o.northDeg)
@@ -159,7 +173,7 @@ export function windScreen(towers: Tower[], o: { northDeg: number; context: Cont
       const sheltered = !!pod && step >= p.podiumStepMin
       // The podium catches downwash before the street: one level lower at grade (benefit size unverified).
       const base: Level = sheltered && downwash !== 'low' ? (downwash === 'high' ? 'medium' : 'low') : downwash
-      const corner: Level = p.corner !== 'sharp' ? 'low' : t.height > 100 ? 'high' : 'medium'
+      const corner: Level = treated ? 'low' : t.height > 100 ? 'high' : 'medium'
       res.push({ sector: s.name, fromDeg: s.fromDeg, share: s.share, width: w, upwindMax: up, ratio, downwash, podiumStep: step, base, corner })
 
       // Indicative zones (team geometry): a band in front of the windward face, and a wedge off each windward corner.
@@ -179,7 +193,7 @@ export function windScreen(towers: Tower[], o: { northDeg: number; context: Cont
         zones.push({ id: `${t.id}-c${side}-${s.name}`, tower: t.id, kind: 'corner', level: maxLevel(corner, base === 'high' ? 'medium' : 'low'), sector: s.name, share: s.share, z: 0, poly: wedge, reason: `Corner stream off the ${side < 0 ? 'left' : 'right'} windward corner, wind from ${s.name}` })
       }
     }
-    screens.push({ tower: t.id, name: t.name, height: t.height, sectors: res })
+    screens.push({ tower: t.id, name: t.name, height: t.height, sectors: res, corners: { ...read, declared, treated } })
   }
 
   // Gaps between towers: a gap aligned within one sector of a strong wind channels flow (non-monotonic; Medium at most).
@@ -222,7 +236,8 @@ export function windScreen(towers: Tower[], o: { northDeg: number; context: Cont
     rules.push(
       rule(`downwash-${s.tower}`, `${s.name}: downwash exposure`, by('downwash') || '—', `tower height ÷ tallest upwind roof within max(400 m, 2H): High ≥ ${p.exposureHigh}×, Medium ≥ ${p.exposureMedium}×`, stateOf(worst('downwash')), 'team_assumption', SRC.hamilton, `Mechanism: tall, wide faces intercept the wind and push it down to the base (Toronto ToR, Hamilton). Hamilton's 2× surroundings is a study trigger; using it as a screening cut is a team choice. Ratios: ${ratios}.${o.contextLoaded ? '' : ' Context not loaded: open ground assumed (worst case).'}`),
       rule(`podium-${s.tower}`, `${s.name}: podium step toward the wind`, s.sectors.map((x) => `${x.sector} ${x.podiumStep.toFixed(1)} m`).join(', ') || '—', `≥ ${p.podiumStepMin} m of podium beyond the tower face catches downwash before the street`, stateOf(worst('base')), 'unverified', SRC.rwdiGeneral, 'Direction of the effect is sourced (podium set-back, deep canopies); the size of the benefit and the step depth are not (research P03-M03: calibrate with CFD).'),
-      rule(`corner-${s.tower}`, `${s.name}: windward corners`, `${p.corner}${p.corner === 'sharp' ? ` corners on a ${s.height.toFixed(0)} m tower` : ''}: ${LEVEL_WORD[worst('corner')]}`, 'chamfered, rounded, stepped or re-entrant corners rather than sharp corners on a tall windward volume', stateOf(worst('corner')), 'verified', { ...SRC.toronto, page: '6.7.2 building-form strategies' }, 'Qualitative rule; the 100 m cut between Medium and High is a team mapping of Toronto’s High tier.'),
+      rule(`corner-${s.tower}`, `${s.name}: windward corners`, cornerValue(s, LEVEL_WORD[worst('corner')]), 'chamfered, rounded, stepped or re-entrant corners rather than sharp corners on a tall windward volume', stateOf(worst('corner')), 'verified', { ...SRC.toronto, page: '6.7.2 building-form strategies' },
+        `Qualitative rule; the 100 m cut between Medium and High is a team mapping of Toronto’s High tier. Corners read from each tower storey above H/3 (minimum-area rectangle; cut ratio b/B with b the mean of the cut's two legs; research R5 §4.1, a team classifier): treated when all four carry one modification at b/B ≥ ${CREDIT_BB} over at least half that height (team).${s.corners.declared ? ' The declared setting governs; set the preset to "read from the model" to use the reading.' : ''}`),
     )
   }
   if (towers.length > 1) rules.push(rule('gaps', 'Gaps aligned with strong winds', gaps.length ? gaps.map((g) => `${g.clear.toFixed(0)} m gap, ${g.sector}`).join('; ') : 'none aligned', 'a through-gap between towers within one 22.5° sector of a strong-wind direction', gaps.length ? 'warn' : 'pass', 'team_assumption', SRC.toronto, 'Channelling is non-monotonic in gap width (an idealised study found larger windy zones at 2× height than 1×), so gaps never rate High (research P03-M03).'))

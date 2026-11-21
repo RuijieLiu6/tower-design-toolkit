@@ -107,7 +107,7 @@ export default function WindScreenResults() {
           <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Season</span>
             <select className={sel} value={presets.season} onChange={(e) => set({ season: e.target.value as WindScreenPresets['season'] })}><option value="year">All year</option><option value="winter">Winter (Nov–Apr)</option><option value="summer">Summer (May–Oct)</option></select></label>
           <label className="flex flex-col gap-1 text-xs"><span className="text-muted">Tower corners</span>
-            <select className={sel} value={presets.corner} onChange={(e) => set({ corner: e.target.value as WindScreenPresets['corner'] })}>{['sharp', 'chamfered', 'rounded', 'stepped'].map((v) => <option key={v} value={v}>{v}</option>)}</select></label>
+            <select className={sel} value={presets.corner} onChange={(e) => set({ corner: e.target.value as WindScreenPresets['corner'] })}>{(['auto', 'sharp', 'chamfered', 'rounded', 'stepped'] as const).map((v) => <option key={v} value={v}>{v === 'auto' ? 'read from the model' : `declared ${v}`}</option>)}</select></label>
           <NumberField label="Podium step that shelters" value={presets.podiumStepMin} unit="m" step={0.5} onChange={(v) => set({ podiumStepMin: Math.max(0, v) })} />
           <NumberField label="High at H ÷ upwind ≥" value={presets.exposureHigh} step={0.25} onChange={(v) => set({ exposureHigh: Math.max(1, v) })} />
           <NumberField label="Medium at H ÷ upwind ≥" value={presets.exposureMedium} step={0.05} onChange={(v) => set({ exposureMedium: Math.max(1, Math.min(v, presets.exposureHigh)) })} />
