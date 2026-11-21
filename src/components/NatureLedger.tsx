@@ -1,11 +1,12 @@
 // City in Nature evidence ledger (research P05-M01): indicators with value, threshold, force, flag and source, values
 // entered here until the modules that compute them are built. No composite score, by design.
 import { useMemo, type ReactNode } from 'react'
-import { DIRECTIONS, FORCE_LABEL, cityInNature, fourthStoreyTop, isBinding, type Direction, type Force, type NatureInput, type NatureRow, type SiteType } from '../engine/cityInNature'
+import { DIRECTIONS, FORCE_LABEL, cityInNature, fourthStoreyTop, isBinding, plantedSoil, type Direction, type Force, type NatureInput, type NatureRow, type SiteType } from '../engine/cityInNature'
 import { towerFloors } from '../engine/massing'
 import { useFacade } from '../hooks/useFacade'
 import { siteAreaNote, useProjectSiteArea } from '../lib/siteArea'
 import { useFacadeStore } from '../lib/facadeStore'
+import { trueNorthDeg } from '../lib/northView'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section } from './ui'
 import { Evidence, FalseList, KeyBar, Legend, MethodFold, StateStack, ruleKey } from './ResultViz'
@@ -30,7 +31,7 @@ export function useNature(cones: ConeResult[] | null) {
   const site = useProjectSiteArea()
   const facadeTreated = useFacadeStore((s) => s.treated)
   return useMemo(() => cityInNature(input, site.area, project === 'city' && cones ? cones.map((c) => c.overall) : null,
-    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces, deckFaces: facade.deckFaces, facadeTreated, qeFromCones: project === 'city' ? qeFromCones(cones) : undefined }), [input, project, cones, towers, facade, site.area, facadeTreated])
+    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces, deckFaces: facade.deckFaces, facadeTreated, qeFromCones: project === 'city' ? qeFromCones(cones) : undefined, plantedSoil: plantedSoil(towers, trueNorthDeg(project)) }), [input, project, cones, towers, facade, site.area, facadeTreated])
 }
 
 /** Solid = binding, dotted = target / guideline / aspiration, dashed = comparator or team assumption. */

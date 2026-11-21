@@ -2,7 +2,9 @@
 // threshold, force (how binding the rule is), evidence flag and source. Only by-law and rezoning-policy requirements can
 // fail; targets, guidelines, aspirations and comparators are reference lines that say "Check" at worst. Most values are
 // entered by the designer until the modules that compute them (P05-M02..M08) are built.
-import type { Flag, RuleResult, RuleState, Source } from './types'
+import { DEFAULT_WEIGHT_PRESETS } from './storeyWeight'
+import { deckUseOf, towerDecks } from './sw/decks'
+import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export type SiteType = 'A' | 'B' | 'C'
 export type Direction = '4.1' | '4.2' | '4.3' | '4.4'
@@ -81,6 +83,41 @@ export function detentionVolume(areaM2: number, C: number, tcMin = 5): { V: numb
 export function glazingBelow(faces: { z0: number; z1: number; length: number; wwr: number }[], top: number): number {
   return faces.reduce((s, f) => s + Math.max(0, Math.min(f.z1, top) - f.z0) * f.length * f.wwr, 0)
 }
+// --- Rain held in deck soil (gap G41, City in Nature review R4-9) ------------------------------------------------------
+/**
+ * Water a planted deck's growing medium holds in one rain event, per mm of medium (mm of water per mm of soil). TEAM
+ * ASSUMPTION, TO CONFIRM: no source checked. The figure to confirm is the medium's tested water-holding capacity (green-roof
+ * substrate standards such as the FLL guidelines test it; unverified here) less what the soil still holds from the last rain.
+ */
+export const SOIL_RETAIN = {
+  value: 0.2, low: 0.1, high: 0.35, unit: 'mm of water per mm of growing medium', flag: 'team_assumption' as Flag,
+  source: 'Team assumption, to confirm: no source checked; replace with the growing-medium supplier’s water-holding test (e.g. to the FLL green-roof guidelines, unverified) less the moisture left from the last rain',
+}
+/** One planted deck the deck-use input declares (`Tower.deckUses`), with the soil on it. */
+export interface SoilDeck { tower: string; level: number; area: number; soilMm: number; /** The soil depth was typed on the deck use (false: the weight presets' depth). */ given: boolean }
+/**
+ * The planted decks the deck-use input declares, for the rain-retention line (gap G41): only decks whose entry says
+ * `planted`, with its `soilMm`, else the storey-weight presets' soil depth (as the structure line reads them).
+ */
+export function plantedSoil(towers: Tower[], north = 0, presetSoilMm = DEFAULT_WEIGHT_PRESETS.soilMm): SoilDeck[] {
+  const out: SoilDeck[] = []
+  for (const t of towers) {
+    if (!t.deckUses?.some((u) => u?.use === 'planted')) continue
+    for (const d of towerDecks(t, north)) {
+      const u = deckUseOf(t, d)
+      if (u?.use !== 'planted') continue
+      const given = u.soilMm != null && Number.isFinite(u.soilMm) && u.soilMm > 0
+      out.push({ tower: t.name, level: d.level, area: d.area, soilMm: given ? u.soilMm! : presetSoilMm, given })
+    }
+  }
+  return out
+}
+/** Rain the declared deck soil holds in one event (m³), at the team coefficient (and its low and high). */
+export function soilRetained(decks: SoilDeck[]): { m3: number; low: number; high: number } {
+  const v = decks.reduce((s, d) => s + (d.area * d.soilMm) / 1000, 0)
+  return { m3: v * SOIL_RETAIN.value, low: v * SOIL_RETAIN.low, high: v * SOIL_RETAIN.high }
+}
+
 /** Layer 0 context for the rows that compute from the design: towers (storeys) and the facade node's faces. */
 /** Top of the 4th storey across the towers (Vancouver's bird zone; podium storeys count), or null with no towers. */
 export function fourthStoreyTop(floorsPerTower: { z1: number }[][]): number | null {
@@ -95,6 +132,8 @@ export interface NatureContext {
   facadeTreated?: number | null
   /** Real Vancouver: whether the towers rise into a Queen Elizabeth Park cone (3.2.x), from the view-cone check; null when uncertain. */
   qeFromCones?: boolean | null
+  /** Planted decks the deck-use input declares, with their soil (plantedSoil): their soil storage joins the retention line, shown apart from the typed volume (gap G41). */
+  plantedSoil?: SoilDeck[] | null
 }
 
 
@@ -181,13 +220,23 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
     note: 'Detention volume and release rates (5 then 25 L/s/ha) need the drainage design; not computed yet (P05-M04).',
   })
 
-  const depth = input.retainedM3 === null || !siteArea ? null : (input.retainedM3 / siteArea) * 1000
+  // The typed volume, and apart from it the rain held in the soil of the planted decks the deck-use input declares (G41).
+  const typedMm = input.retainedM3 === null || !siteArea ? null : (input.retainedM3 / siteArea) * 1000
+  const soilDecks = ctx.plantedSoil ?? []
+  const soil = soilRetained(soilDecks)
+  const soilMm = soil.m3 > 0 && siteArea ? (soil.m3 / siteArea) * 1000 : null
+  const depth = typedMm === null && soilMm === null ? null : (typedMm ?? 0) + (soilMm ?? 0)
+  const mm1 = (v: number) => (v < 9.95 ? v.toFixed(1) : String(Math.round(v)))
+  const soilNote = soilMm === null ? '' : ` Deck soil (deck-use input): ${soilDecks.map((d) => `${d.tower} L${d.level} ${Math.round(d.area).toLocaleString()} m² × ${Math.round(d.soilMm)} mm${d.given ? '' : ' (weight presets’ depth)'}`).join(', ')}; at ${SOIL_RETAIN.value} ${SOIL_RETAIN.unit} (team assumption, to confirm; ${SOIL_RETAIN.low}–${SOIL_RETAIN.high}) it holds about ${Math.round(soil.m3).toLocaleString()} m³ (${Math.round(soil.low).toLocaleString()}–${Math.round(soil.high).toLocaleString()}) over the site. If the typed volume already counts this soil, leave it out of the typed figure.`
   rows.push({
     id: 'retention', name: 'Rainfall retained (Rain City 48 mm, reference only)', half: 'space', direction: '4.1',
-    value: depth === null ? (siteArea ? 'not entered' : 'needs a site area') : `${Math.round(depth)} mm`, entered: input.retainedM3 === null ? null : true,
+    value: depth === null ? (siteArea ? 'not entered' : 'needs a site area')
+      : soilMm === null ? `${Math.round(depth)} mm`
+      : `${Math.round(depth)} mm: ${typedMm === null ? 'typed volume not entered' : `${Math.round(typedMm)} mm typed`} + ${mm1(soilMm)} mm held in deck soil`,
+    entered: input.retainedM3 !== null ? true : soilMm !== null ? false : null,
     threshold: '≥ 48 mm a day (earlier standard 24 mm)', state: judge(depth === null ? null : depth >= 48, 'city_aspiration'),
     force: 'city_aspiration', flag: 'verified', source: { ...S.rainCity, page: '48 mm design standard' },
-    note: 'The City’s GRI summary says Building By-law requirements supersede the private-property targets; kept as a stretch target.',
+    note: `The City’s GRI summary says Building By-law requirements supersede the private-property targets; kept as a stretch target.${soilNote}`,
   })
 
   // Detention, first stage and outdoor water (P05-M04): computed from the site area and the vegetated area entered above.

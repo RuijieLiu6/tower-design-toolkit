@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_NATURE, cityInNature, detentionVolume, fourthStoreyTop, glazingBelow, isBinding, type NatureInput } from './cityInNature'
+import { DEFAULT_NATURE, SOIL_RETAIN, cityInNature, detentionVolume, fourthStoreyTop, glazingBelow, isBinding, plantedSoil, soilRetained, type NatureInput } from './cityInNature'
+import { importedTower, rect, stack } from './testStoreys'
+import type { Tower } from './types'
 import { SITE } from './vtcRules'
 
 const run = (patch: Partial<NatureInput> = {}, site: number | null = SITE.area, cones: string[] | null = null) => cityInNature({ ...DEFAULT_NATURE, ...patch }, site, cones)
@@ -114,5 +116,41 @@ describe('the QE Park view answered by the view-cone check on Real Vancouver (no
   it('says what to do when the tower enters the view', async () => {
     const { fixFor } = await import('../lib/fixes')
     expect(fixFor('qe-view', 'warn', 'enters, via the Higher Buildings pathway')).toMatch(/pathway, not a failure/)
+  })
+})
+
+// G41 (vtc-entry TOOL_DEFICITS, City in Nature review R4-9): retention stayed a typed number while the deck-use input
+// records planted decks and their soil. Their soil storage now joins the reading, shown apart from the typed volume.
+describe('G41: rain held in the soil of declared planted decks', () => {
+  // 40 m square homes on a 60 m podium; the roof over the top storey (level 44) is the deck to declare.
+  const tower = (deckUses?: Tower['deckUses']): Tower => ({ ...importedTower(stack([{ n: 3, f2f: 4.5, ring: rect(60, 60), podium: true }, { n: 40, f2f: 3.2, ring: rect(40, 40) }]), { podiumTop: 13.5, coreSide: 16 }), ...(deckUses ? { deckUses } : {}) })
+  const ret = (t: Tower, typed: number | null = 300) => row(cityInNature({ ...DEFAULT_NATURE, retainedM3: typed }, SITE.area, null, { plantedSoil: plantedSoil([t]) }), 'retention')
+
+  it('declaring a 450 mm planted roof raises the retention reading, shown apart from the typed volume', () => {
+    const bare = ret(tower())
+    expect(bare.value).toBe(`${Math.round((300 / SITE.area) * 1000)} mm`) // as before: the typed volume alone
+    const decks = plantedSoil([tower([{ level: 44, use: 'planted', soilMm: 450 }])])
+    expect(decks).toHaveLength(1)
+    expect(decks[0]).toMatchObject({ level: 44, soilMm: 450, given: true })
+    expect(decks[0].area).toBeCloseTo(1600, 0)
+    const held = soilRetained(decks)
+    expect(held.m3).toBeCloseTo(1600 * 0.45 * SOIL_RETAIN.value, 0) // 144 m³ at 0.2 mm of water per mm of soil
+    const roof = ret(tower([{ level: 44, use: 'planted', soilMm: 450 }]))
+    // 300 m³ typed over 11,468 m² is 26 mm; 144 m³ in the roof soil adds 12.6 mm
+    expect(roof.value).toBe('39 mm: 26 mm typed + 13 mm held in deck soil')
+    expect(parseFloat(roof.value)).toBeGreaterThan(parseFloat(bare.value))
+    expect(roof.note).toMatch(/team assumption, to confirm/)
+    expect(SOIL_RETAIN.flag).toBe('team_assumption')
+    expect(SOIL_RETAIN.source).toMatch(/^Team assumption, to confirm/)
+  })
+
+  it('reads the soil alone when no volume is typed, and only decks the deck-use input calls planted', () => {
+    const soilOnly = ret(tower([{ level: 44, use: 'planted', soilMm: 450 }]), null)
+    expect(soilOnly.value).toMatch(/^\d+(\.\d)? mm: typed volume not entered \+ \d+(\.\d)? mm held in deck soil$/)
+    expect(soilOnly.entered).toBe(false) // computed, not entered
+    expect(soilOnly.state).toBe('warn') // a reference line: Check at worst
+    expect(plantedSoil([tower([{ level: 44, use: 'occupied' }])])).toEqual([])
+    // a planted deck without a depth takes the weight presets' soil (600 mm)
+    expect(plantedSoil([tower([{ level: 44, use: 'planted' }])])[0]).toMatchObject({ soilMm: 600, given: false })
   })
 })

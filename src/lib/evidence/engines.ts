@@ -4,7 +4,7 @@
 // The engagement-and-claims guard and the AI-use log run when a culture input is given (gap G15): the app passes the
 // browser's ledger (lib/cultureStore.ts), the design harness passes a design's records and board text.
 import { VTC_NORTH_DEG } from '../../context'
-import { cityInNature, fourthStoreyTop } from '../../engine/cityInNature'
+import { cityInNature, fourthStoreyTop, plantedSoil } from '../../engine/cityInNature'
 import { claimsLines, type Nation, type NationRecord } from '../../engine/culture'
 import { DEFAULT_ECON } from '../../engine/economics'
 import { egressCheck, type EgressPresets } from '../../engine/egress'
@@ -101,7 +101,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityStreetwallCheck(towers, i.cityStreets ?? null, i.cityRing ?? null, i.publicRealm.openPublicShare).rules : [],
     'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageCheck(towers, i.cityStreets ?? null).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],
-    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, (() => { const fa = facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0); return { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: fa.faces, deckFaces: fa.deckFaces } })()),
+    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, (() => { const fa = facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0); return { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: fa.faces, deckFaces: fa.deckFaces, plantedSoil: plantedSoil(towers, north, weightPresets.soilMm) } })()),
     'built.wind-procedure': wind.map((w) => w.rules),
     'built.structure': towers.map((t, k) => structureCheck(t, wind[k], weightPresets, north).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
