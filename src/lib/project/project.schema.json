@@ -952,6 +952,15 @@
             }
           }
         },
+        "stairAt": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number"
+          },
+          "description": "Edge stair centre placed by hand, in the tower's own frame (m). Optional: absent, at the plate corner (a twisted imported tower: a straight shaft inside every storey)."
+        },
         "stairCorner": {
           "enum": [
             "ne",

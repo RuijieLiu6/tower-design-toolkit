@@ -87,6 +87,12 @@ export interface Tower {
    * engine/egress.ts `cornerToward` finds the corner facing a true compass bearing.
    */
   stairCorner?: StairCorner
+  /**
+   * Schematic: the edge stair's centre placed by hand, in the tower's own frame (m), for 'mixed' (the edge stair) or
+   * 'perimeter' (the stair of the chosen corner). Absent: at the corner, or, for a twisted imported tower, where a
+   * straight shaft fits every storey (engine/egress.ts straightStairs, G31). Ignored with both stairs in the core.
+   */
+  stairAt?: [number, number]
   /** Schematic: exits of the podium itself (stairs at its edge, doors at grade), on top of the tower's core stairs. Absent: none. */
   podiumExits?: PodiumExits
   /** Imported massing (research P14-M02/M04): floors come from slicing the model instead of the parametric box. */

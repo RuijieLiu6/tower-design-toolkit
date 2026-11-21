@@ -76,6 +76,7 @@ export function addImportedTower(mass: ImportedMass, place: { x: number; y: numb
     coreShare: like?.coreShare ?? 0.25, plantEvery: 0, coreAuto: like?.coreAuto ?? true, skyLobbies: [], skyRoom: null,
     stairPlacement: like?.stairPlacement,
     ...(like?.stairCorner ? { stairCorner: like.stairCorner } : {}),
+    ...(like?.stairAt ? { stairAt: like.stairAt } : {}),
     ...(like?.podiumExits ? { podiumExits: like.podiumExits } : {}),
   }
   const t = withAutoCore({ ...base, ...towerPatch(mass) }, s.liftPresets, s.egressPresets)

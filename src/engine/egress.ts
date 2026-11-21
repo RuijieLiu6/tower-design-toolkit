@@ -4,6 +4,7 @@
 // so every rule carries an edition note. Early check, not a code review: a code consultant decides.
 import { coreSide, readsStoreys, towerFloors } from './massing'
 import { coreCentre, storeyCore } from './storeyWeight'
+import { towerTwist } from './twist'
 import type { Floor, RuleResult, StairCorner, StairPlacement, Tower } from './types'
 import { floorCounts } from './interior'
 
@@ -117,10 +118,16 @@ export function stairSpots(t: Tower, n: number, a: number, b: number, placement:
   const [ci, cj] = placement === 'core' ? CORNER_SIGN.sw : CORNER_SIGN[corner]
   const order = ([[1, 1], [-1, -1], [1, -1], [-1, 1]] as const).map(([i, j]) => [-ci * i, -cj * j] as const)
   const k = Math.min(4, Math.max(2, n))
-  if (placement === 'perimeter') return order.slice(0, k).map(([i, j]) => atEdge(i, j))
-  if (placement === 'mixed') return order.slice(0, k).map(([i, j], m) => (m === 1 ? atEdge(i, j) : inCore(i, j)))
+  // An edge stair placed by hand (G31) takes the chosen corner's spot.
+  const at = stairAtOf(t)
+  const edge = (i: number, j: number, m: number): StairSpot => (m === 1 && at ? { x: at[0], y: at[1], inCore: false } : atEdge(i, j))
+  if (placement === 'perimeter') return order.slice(0, k).map(([i, j], m) => edge(i, j, m))
+  if (placement === 'mixed') return order.slice(0, k).map(([i, j], m) => (m === 1 ? edge(i, j, m) : inCore(i, j)))
   return order.slice(0, k).map(([i, j]) => inCore(i, j))
 }
+
+/** The edge stair's centre placed by hand (tower frame, m), when it is two finite numbers. */
+const stairAtOf = (t: Tower): [number, number] | null => (t.stairAt?.length === 2 && t.stairAt.every(Number.isFinite) ? [t.stairAt[0], t.stairAt[1]] : null)
 
 type P = [number, number]
 
@@ -192,9 +199,9 @@ function winding(p: P, loops: P[][]): number {
 
 /**
  * The point of a storey's true outline farthest from every exit, straight line: its corners and edges (holes' too) and
- * a grid of points inside it (about 120 across), so an open gap between its parts is never counted as floor (G22).
+ * a grid of points inside it (about 120 across, or `across`), so an open gap between its parts is never counted as floor (G22).
  */
-export function farthestOnOutline(loops: P[][], exits: { x: number; y: number }[]): { x: number; y: number; d: number } {
+export function farthestOnOutline(loops: P[][], exits: { x: number; y: number }[], across = 120): { x: number; y: number; d: number } {
   let best = { x: 0, y: 0, d: -1 }
   const test = (x: number, y: number) => {
     let d = Infinity
@@ -205,7 +212,7 @@ export function farthestOnOutline(loops: P[][], exits: { x: number; y: number }[
   if (!pts.length) return best
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys)
-  const step = Math.max(0.25, Math.max(x1 - x0, y1 - y0) / 120)
+  const step = Math.max(0.25, Math.max(x1 - x0, y1 - y0) / across)
   for (const r of loops) for (let i = 0; i < r.length; i++) {
     const a = r[i], b = r[(i + 1) % r.length], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / step))
     for (let k = 0; k < n; k++) test(a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n)
@@ -225,6 +232,131 @@ function farthestPoint(W: number, D: number, exits: { x: number; y: number }[]):
     if (d > best.d) best = { x, y, d }
   }
   return best
+}
+
+// --- The edge stair of a twisted tower (tool gap G31, life-safety review R3-12) ----------------------------------------
+// The edge stair sat at the plate corner of the tower's rectangle. A twisted plate's corner turns with it (B23b: 1° and
+// 0.57 m a storey), so that stair's centre left the façade from L12 up, while a stair shaft is straight. For an imported
+// tower read storey by storey that twists STAIR_TWIST_MIN or more, each edge stair is now placed where a straight shaft
+// fits every tower storey: inside every storey's outline shrunk by half the enclosure's width (its short side, the
+// flights along the façade; team assumption), toward its corner, as far as it goes from the core stair ('mixed') or the
+// core centre ('perimeter'). Separation and tower travel are measured from it, travel on each storey's true outline.
+// An edge stair placed by hand (Tower.stairAt) is checked the same way. Podium storeys are not read: the podium plate
+// is taken to hold the shaft on its way down.
+
+/** Smallest twist (deg) from which an imported tower's edge stair is placed as a straight shaft (team: under it the
+ *  corner of a 60 m plate moves about 1 m, a third of the enclosure). */
+export const STAIR_TWIST_MIN = 2
+
+/** The tower storeys' true outlines (tower frame, m) of an imported tower read storey by storey: every tower storey
+ *  above grade with a floor. Null for a parametric or drawn tower and an import without storey outlines. */
+export function towerOutlines(t: Tower): { level: number; z0: number; loops: P[][] }[] | null {
+  if (!readsStoreys(t)) return null
+  const st = (t.imported?.storeys ?? []).filter((s) => !s.podium && s.hasFloor && s.z0 > 0.5 && s.loops?.some((r) => r.length >= 3))
+  return st.length ? st.map((s) => ({ level: s.level, z0: s.z0, loops: s.loops.filter((r) => r.length >= 3) as P[][] })) : null
+}
+
+/** A point lies inside a storey's loops at least r from every edge. */
+function insideBy(x: number, y: number, loops: P[][], r: number): boolean {
+  if (winding([x, y], loops) === 0) return false
+  for (const ring of loops) for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i], [bx, by] = ring[(i + 1) % ring.length], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy
+    const u = L2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0
+    if (Math.hypot(x - ax - u * dx, y - ay - u * dy) < r) return false
+  }
+  return true
+}
+
+/**
+ * The best straight position for an edge stair (G31): inside every storey's loops at least r from its edges, within 45°
+ * of `dir` seen from `origin`, farthest from `from`. A grid of about 100 across the storeys' common box, the farthest
+ * candidates tried first, then refined to a fifth of a step. Null when no point fits every storey.
+ */
+export function straightStairSpot(storeys: P[][][], r: number, from: { x: number; y: number }, origin: { x: number; y: number }, dir: [number, number]): { x: number; y: number } | null {
+  const seen = new Set<string>(), outs: P[][][] = []
+  for (const loops of storeys) { const k = JSON.stringify(loops.map((q) => q.map((p) => [Math.round(p[0] * 100), Math.round(p[1] * 100)]))); if (!seen.has(k)) { seen.add(k); outs.push(loops) } }
+  if (!outs.length) return null
+  let x0 = -Infinity, y0 = -Infinity, x1 = Infinity, y1 = Infinity
+  for (const loops of outs) {
+    const pts = loops.flat()
+    x0 = Math.max(x0, Math.min(...pts.map((p) => p[0])) + r); x1 = Math.min(x1, Math.max(...pts.map((p) => p[0])) - r)
+    y0 = Math.max(y0, Math.min(...pts.map((p) => p[1])) + r); y1 = Math.min(y1, Math.max(...pts.map((p) => p[1])) - r)
+  }
+  if (!(x1 >= x0 && y1 >= y0)) return null
+  const L = Math.hypot(dir[0], dir[1]) || 1, ux = dir[0] / L, uy = dir[1] / L
+  const toward = (x: number, y: number) => { const vx = x - origin.x, vy = y - origin.y, d = Math.hypot(vx, vy); return d > 1e-9 && (vx * ux + vy * uy) / d >= Math.SQRT1_2 - 1e-9 }
+  let killer = 0
+  const fits = (x: number, y: number) => {
+    if (!insideBy(x, y, outs[killer], r)) return false
+    for (let k = 0; k < outs.length; k++) if (k !== killer && !insideBy(x, y, outs[k], r)) { killer = k; return false }
+    return true
+  }
+  const step = Math.max(0.2, Math.max(x1 - x0, y1 - y0) / 100)
+  const cands: { x: number; y: number; d: number }[] = []
+  for (let x = x0; x <= x1 + 1e-9; x += step) for (let y = y0; y <= y1 + 1e-9; y += step) if (toward(x, y)) cands.push({ x, y, d: Math.hypot(x - from.x, y - from.y) })
+  cands.sort((a, b) => b.d - a.d)
+  for (const c of cands) {
+    if (!fits(c.x, c.y)) continue
+    let best = c
+    const f = step / 5
+    for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) {
+      const x = c.x + i * f, y = c.y + j * f, d = Math.hypot(x - from.x, y - from.y)
+      if (d > best.d && toward(x, y) && fits(x, y)) best = { x, y, d }
+    }
+    return { x: best.x, y: best.y }
+  }
+  return null
+}
+
+/** How the edge stairs of a twisted imported tower were placed (G31). */
+export interface StraightStairs {
+  /** The tower's twist (deg) and the tower storey levels read. */
+  twist: number
+  levels: number[]
+  /** Half the enclosure's width kept from every façade (m). */
+  clear: number
+  /** Every stair's centre (tower frame, m): core stairs at the core centre, edge stairs where they were placed. */
+  stairs: { x: number; y: number }[]
+  /** Each edge stair: its corner, how it was placed, where, and the storeys the corner (or hand-placed) position leaves. */
+  edge: { corner: StairCorner; how: 'placed' | 'found' | 'none'; x: number; y: number; outside: number[] }[]
+}
+
+const cornerOfSign = (x: number, y: number): StairCorner => (y >= 0 ? (x >= 0 ? 'ne' : 'nw') : (x >= 0 ? 'se' : 'sw'))
+const levelRuns = (lv: number[]) => {
+  const out: string[] = []
+  for (let i = 0; i < lv.length; i++) { let j = i; while (j + 1 < lv.length && lv[j + 1] === lv[j] + 1) j++; out.push(j > i ? `L${lv[i]}–L${lv[j]}` : `L${lv[i]}`); i = j }
+  return out.join(', ')
+}
+
+/**
+ * The edge stairs of an imported tower read storey by storey, as straight shafts (G31): when it twists STAIR_TWIST_MIN
+ * or more, or an edge stair is placed by hand. Null otherwise (the stairs stay at the corners of the tower's
+ * rectangle, as before) and with both stairs in the core.
+ */
+export function straightStairs(t: Tower, spots: StairSpot[], a: number, placement: StairPlacement): StraightStairs | null {
+  if (placement === 'core' || !spots.some((s) => !s.inCore)) return null
+  const outs = towerOutlines(t)
+  if (!outs) return null
+  const twist = towerTwist(t).deg, at = stairAtOf(t)
+  if (!at && twist < STAIR_TWIST_MIN) return null
+  const base = coreCentre(t), r = a / 2
+  const stairs = spots.map((s) => (s.inCore ? { x: s.x + base.x, y: s.y + base.y } : { x: s.x, y: s.y }))
+  const coreStair = spots.findIndex((s) => s.inCore)
+  const from = placement === 'mixed' && coreStair >= 0 ? stairs[coreStair] : { x: base.x, y: base.y }
+  const edge: StraightStairs['edge'] = []
+  spots.forEach((s, m) => {
+    if (s.inCore) return
+    const handed = m === 1 && !!at
+    // the corner of the tower's rectangle this stair stands for (a hand-placed stair: the chosen corner)
+    const [i, j] = handed ? CORNER_SIGN[t.stairCorner ?? 'sw'] : [Math.sign(s.x) || 1, Math.sign(s.y) || 1]
+    const corner = cornerOfSign(i, j)
+    const outside = outs.filter((o) => !insideBy(s.x, s.y, o.loops, r)).map((o) => o.level)
+    if (handed) { edge.push({ corner, how: 'placed', x: s.x, y: s.y, outside }); return }
+    const p = straightStairSpot(outs.map((o) => o.loops), r, from, base, [i * t.width, j * t.depth])
+    if (p) { stairs[m] = p; edge.push({ corner, how: 'found', x: p.x, y: p.y, outside }) }
+    else edge.push({ corner, how: 'none', x: s.x, y: s.y, outside })
+  })
+  return { twist, levels: outs.map((o) => o.level), clear: r, stairs, edge }
 }
 
 export const PLACEMENT_LABEL: Record<StairPlacement, string> = {
@@ -318,6 +450,9 @@ export interface EgressResult {
    * the farthest point, the core stairs there (tower frame) and how the core was placed. Null: the podium rectangle.
    */
   podiumOutline: { levels: number[]; level: number; stairs: { x: number; y: number }[]; core: string } | null
+  /** A twisted imported tower (or an edge stair placed by hand on one read storey by storey): how its edge stairs were
+   *  placed as straight shafts (G31); `spots` are then every stair's centre in the tower frame. Null: the corners. */
+  straightStairs: StraightStairs | null
   rules: RuleResult[]
 }
 
@@ -339,7 +474,10 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
   // Geometry (team assumption): stairs at the chosen spots on a plate with a square core centred on it.
   const c = coreSide(t)
   const placement = t.stairPlacement ?? 'core'
-  const spots = stairSpots(t, n, enclosure.a, enclosure.b, placement)
+  const corner = stairSpots(t, n, enclosure.a, enclosure.b, placement)
+  // G31: a twisted imported tower's edge stairs as straight shafts inside every tower storey
+  const straight = straightStairs(t, corner, enclosure.a, placement)
+  const spots = straight ? corner.map((s, m) => ({ ...s, ...straight.stairs[m] })) : corner
   let separation = 0
   for (let i = 0; i < spots.length; i++) for (let j = i + 1; j < spots.length; j++) separation = Math.max(separation, Math.hypot(spots[i].x - spots[j].x, spots[i].y - spots[j].y))
   const halfDiag = Math.hypot(t.width, t.depth) / 2
@@ -351,7 +489,17 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     return { x, y, d: Math.min(...spots.map((s) => Math.hypot(x - s.x, y - s.y))) }
   })
   const towerCorners = corners(t.width, t.depth)
-  const far = towerCorners.reduce((m, k) => (k.d > m.d ? k : m))
+  let far: { x: number; y: number; d: number; level?: number } = towerCorners.reduce((m, k) => (k.d > m.d ? k : m))
+  if (straight) {
+    // each tower storey on its true outline, its core stairs at that storey's core and the edge stairs where they stand
+    const base = coreCentre(t), coreAt = storeyCore(t, base)
+    far = towerOutlines(t)!.map((o) => {
+      const c = coreAt(o.level)
+      const exits = spots.map((s, m) => (s.inCore ? { x: corner[m].x + c.x, y: corner[m].y + c.y } : { x: s.x, y: s.y }))
+      // 40 across (about a metre on a tower plate): with two stairs the farthest point lies on the outline, sampled as finely
+      return { ...farthestOnOutline(o.loops, exits, 40), level: o.level }
+    }).reduce((m, x) => (x.d > m.d ? x : m))
+  }
   const travel = far.d
   // Podium travel: to the core stairs from the podium's corners; with podium exits, from the podium point farthest from
   // any of them or the core stairs (the corners are then no longer always the farthest).
@@ -364,7 +512,8 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
   let podiumOutline: EgressResult['podiumOutline'] = null
   if (outlines) {
     const base = coreCentre(t), coreAt = storeyCore(t, base)
-    const stairsAt = (level: number) => { const c = coreAt(level); return spots.map((s) => ({ x: s.x + c.x, y: s.y + c.y })) }
+    // edge stairs placed as straight shafts (G31) stand where they were placed; every other stair moves with the core
+    const stairsAt = (level: number) => { const c = coreAt(level); return spots.map((s, m) => (straight && !s.inCore ? { x: s.x, y: s.y } : { x: corner[m].x + c.x, y: corner[m].y + c.y })) }
     const far = outlines.map((o) => ({ ...farthestOnOutline(o.loops, [...stairsAt(o.level), ...podiumExits]), level: o.level })).reduce((m, x) => (x.d > m.d ? x : m))
     podFar = far
     podiumOutline = { levels: outlines.map((o) => o.level), level: far.level, stairs: stairsAt(far.level), core: base.how }
@@ -418,15 +567,37 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     source: { ...VBBL_EXITS, page: '3.4.2.3' },
     note: `Stairs ${PLACEMENT_LABEL[placement]}${placement === 'core' ? ` of a ${c.toFixed(1)} m core` : ''}${placement !== 'core' && t.stairCorner ? ` (the ${t.stairCorner.toUpperCase()} corner in the tower's frame)` : ''} (team assumption on geometry). ${openUses.length ? `Open-plan floors (${[...new Set(openUses.map((s) => s.use))].join(', ')}) need half the ${(2 * halfDiag).toFixed(1)} m diagonal; floors with a public corridor need only 9 m. ` : ''}${placement === 'core' ? 'A central core often fails this on open floors: move a stair to the plate edge, split or widen the core, or show a public corridor.' : `${edgeSpots} stair${edgeSpots > 1 ? 's' : ''} at the plate edge take about ${fmt(edgeSpots * enclosure.area)} m² of lettable floor and ${(edgeSpots * (enclosure.a + enclosure.b)).toFixed(0)} m of facade per floor.`}`,
   })
+  if (straight) {
+    const e1 = straight.edge.find((e) => e.how !== 'found') ?? straight.edge[0]
+    const lv = straight.levels.length > 1 ? `L${straight.levels[0]}–L${straight.levels[straight.levels.length - 1]}` : `L${straight.levels[0]}`
+    const tw = straight.twist >= STAIR_TWIST_MIN ? `The tower twists ${straight.twist.toFixed(0)}°, so its plate corners turn with it. ` : ''
+    const value = e1.how === 'found'
+      ? straight.edge.map((e) => `${e.corner.toUpperCase()} stair at (${e.x.toFixed(1)}, ${e.y.toFixed(1)}) m`).join('; ') + `, a straight shaft inside every tower storey (${lv})`
+      : e1.how === 'placed'
+        ? `Placed at (${e1.x.toFixed(1)}, ${e1.y.toFixed(1)}) m${e1.outside.length ? `: outside the plate (or within ${straight.clear.toFixed(1)} m of the façade) at ${levelRuns(e1.outside)}` : `, inside every tower storey (${lv})`}`
+        : `No straight position toward the ${e1.corner.toUpperCase()} corner lies inside every tower storey (${lv})`
+    const ok = straight.edge.every((e) => e.how === 'found' || (e.how === 'placed' && !e.outside.length))
+    const cornerLeaves = straight.edge.filter((e) => e.how !== 'placed' && e.outside.length)
+    rules.push({
+      id: `stair-straight-${t.id}`,
+      label: 'Edge stair, straight shaft',
+      value,
+      threshold: `the stair enclosure inside every tower storey's plate (its centre ${straight.clear.toFixed(1)} m or more from the façade)`,
+      state: ok ? 'pass' : 'warn',
+      flag: 'team_assumption',
+      source: { label: 'Team geometry check on the stair placement (not a code clause)' },
+      note: `${tw}${cornerLeaves.length ? `A stair at the ${cornerLeaves.map((e) => e.corner.toUpperCase()).join(' and ')} corner of the tower's rectangle would leave the plate at ${levelRuns(cornerLeaves[0].outside)}. ` : ''}${e1.how === 'found' ? `Placed inside every storey's outline shrunk by half the enclosure's width (${straight.clear.toFixed(1)} m), toward its corner and as far as it goes from the ${placement === 'mixed' ? 'core stair' : 'core centre'}; exit separation and tower travel are measured from it. Set the tower's stairAt to place it by hand.` : e1.how === 'placed' ? (e1.outside.length ? 'A straight shaft there leaves the plate on those storeys: move it inward (toward the core) or let the stair drift as an alternative solution (fire engineer).' : 'Exit separation and tower travel are measured from it.') : 'Separation and travel keep the corner position, which the plate leaves: place the stair by hand (stairAt) nearer the core, put both stairs in the core, or let it drift as an alternative solution (fire engineer).'} The shaft takes lettable floor inside the plate (judgement).`,
+    })
+  }
   rules.push({
     id: `travel-${t.id}`,
     label: 'Travel distance, tower floors',
-    value: `${travel.toFixed(1)} m from the farthest corner`,
+    value: straight && far.level != null ? `${travel.toFixed(1)} m from the farthest point of L${far.level}` : `${travel.toFixed(1)} m from the farthest corner`,
     threshold: `≤ ${TRAVEL_LIMIT_M} m, sprinklered (3.4.2.5.(1)(c))`,
     state: travel <= TRAVEL_LIMIT_M ? 'pass' : 'fail',
     flag: 'verified',
     source: { ...VBBL_EXITS, page: '3.4.2.5' },
-    note: 'Straight-line distance to the nearer stair, a proxy (unverified method): the real path bends around the core and furniture. Every new building is sprinklered (3.2.2.18.(3)).',
+    note: `Straight-line distance to the nearer stair, a proxy (unverified method): the real path bends around the core and furniture.${straight ? ' Read on every tower storey\'s true outline, from the stairs as placed for a straight shaft (G31).' : ''} Every new building is sprinklered (3.2.2.18.(3)).`,
   })
   if (podiumBusiest) {
     const width = podiumBusiest.load * rate
@@ -490,5 +661,5 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     note: `Office 9.3, personal services 4.6, mercantile 3.7 (first storey) or 5.6, dining 1.2, standing 0.4, public corridor 3.7 m² per person; 2 persons per sleeping room. Team mapping: amenity, civic and tenant sky-lobby floors at ${e.amenityFactor} m² per person until programmed, hotel keys as 2 persons, plant floors as 0, net area = floor less the core.`,
   })
 
-  return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, podiumExits, podiumFar: podFar ? [podFar.x, podFar.y] : null, podiumOutline, rules }
+  return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, podiumExits, podiumFar: podFar ? [podFar.x, podFar.y] : null, podiumOutline, straightStairs: straight, rules }
 }

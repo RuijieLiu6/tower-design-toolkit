@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CORNER_SIGN, DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, STAIR_MIN_MM, cornerToward, egressCheck, podiumExitSpots, postedLimitForRoom, stairEnclosure, stairSpots, storeyLoads } from './egress'
+import { CORNER_SIGN, DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, STAIR_MIN_MM, cornerToward, egressCheck, podiumExitSpots, postedLimitForRoom, stairEnclosure, stairSpots, storeyLoads, straightStairs } from './egress'
 import { DEFAULT_LIFT_PRESETS, liftCheck, planRises } from './lifts'
 import { skyRoomCheck, stablePostedLimit } from './skyRoom'
 import { importedTower, rect, ringArea, stack, type P } from './testStoreys'
@@ -315,5 +315,95 @@ describe('podium travel on the true outlines (G22)', () => {
   it('a parametric tower keeps the podium rectangle', () => {
     expect(run(vtc).podiumOutline).toBeNull()
     expect(run({ ...vtc, podiumExits: { count: 4 } }).podiumOutline).toBeNull()
+  })
+})
+
+// G31 (vtc-entry R3-12 life-safety review on B23b): the edge stair of a twisted tower sat at the plate corner, which
+// turns with the plate, so its centre left the façade higher up; a stair shaft is straight.
+describe('the edge stair of a twisted tower as a straight shaft (G31)', () => {
+  const run = (t: Tower) => egressCheck(t, DEFAULT_EGRESS_PRESETS, li)
+  const turned = (side: number, deg: number, dx = 0): P[] => {
+    const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a)
+    return rect(side, side).map(([x, y]) => [dx + x * c - y * s, x * s + y * c] as P)
+  }
+  // 71 storeys of 4 m on a 46 m square, turned 90° bottom to top (B23b turns 1° a storey), or straight
+  const twisted = (o: Partial<Tower> = {}, total = 90, side = 46, shift = 0): Tower => {
+    const st = stack(Array.from({ length: 71 }, (_, i) => ({ n: 1, f2f: 4, ring: turned(side, (total * i) / 70, shift * i), use: 'office' as const })))
+    return { ...importedTower(st, { coreSide: 16 }), stairPlacement: 'mixed', stairCorner: 'ne', ...o }
+  }
+  /** The point stands inside the turned square at least r from its edges. */
+  const inside = (x: number, y: number, side: number, deg: number, r: number) => {
+    const a = (-deg * Math.PI) / 180, u = x * Math.cos(a) - y * Math.sin(a), v = x * Math.sin(a) + y * Math.cos(a)
+    return Math.abs(u) <= side / 2 - r + 1e-6 && Math.abs(v) <= side / 2 - r + 1e-6
+  }
+
+  it('on a 90° twisted square the edge stair stays inside every storey and the separation falls against the corner', () => {
+    const t = twisted(), e = run(t)
+    const s = e.straightStairs!
+    expect(s.twist).toBeGreaterThan(85)
+    expect(s.levels.length).toBe(70) // the storeys above grade
+    expect(s.edge).toHaveLength(1)
+    expect(s.edge[0].how).toBe('found')
+    expect(s.edge[0].corner).toBe('ne')
+    const edge = e.spots.find((p) => !p.inCore)!
+    expect(edge.x).toBeGreaterThan(0)
+    expect(edge.y).toBeGreaterThan(0)
+    for (let i = 1; i <= 70; i++) expect(inside(edge.x, edge.y, 46, (90 * i) / 70, e.enclosure.a / 2)).toBe(true)
+    // the stair at the corner of the tower's rectangle leaves the plate on most storeys
+    expect(s.edge[0].outside.length).toBeGreaterThan(30)
+    // separation from the core stair, against the same square straight with its stair at the corner
+    const core = e.spots.find((p) => p.inCore)!
+    expect(e.separation).toBeCloseTo(Math.hypot(edge.x - core.x, edge.y - core.y), 9)
+    const straight = run(twisted({}, 0))
+    expect(straight.straightStairs).toBeNull()
+    expect(e.separation).toBeLessThan(straight.separation)
+    expect(e.separation).toBeGreaterThan(0.6 * straight.separation)
+    // as far from the core stair as a straight shaft goes: the inscribed circle less half the enclosure
+    expect(Math.hypot(edge.x, edge.y)).toBeGreaterThan(23 - e.enclosure.a / 2 - 0.3)
+    const rule = e.rules.find((r) => r.id === `stair-straight-${t.id}`)!
+    expect(rule.state).toBe('pass')
+    expect(rule.value).toMatch(/^NE stair at \(\d+\.\d, \d+\.\d\) m, a straight shaft inside every tower storey \(L2–L71\)$/)
+    expect(rule.note).toMatch(/twists 90°.*would leave the plate at L2–L\d+/)
+    // tower travel on each storey's true outline, from the stairs as placed
+    const travel = e.rules.find((r) => r.id === `travel-${t.id}`)!
+    expect(travel.value).toMatch(/from the farthest point of L\d+$/)
+    expect(e.travel).toBeLessThan(45)
+  })
+  it('an untwisted imported tower and a parametric tower keep the corner', () => {
+    const st = twisted({}, 0), e = run(st)
+    expect(e.straightStairs).toBeNull()
+    expect(e.spots).toEqual(stairSpots(st, 2, e.enclosure.a, e.enclosure.b, 'mixed'))
+    expect(e.rules.find((r) => r.id === `stair-straight-${st.id}`)).toBeUndefined()
+    expect(run({ ...plain, stairPlacement: 'mixed' }).straightStairs).toBeNull()
+    // both stairs in the core: nothing to place
+    expect(run(twisted({ stairPlacement: 'core' })).straightStairs).toBeNull()
+  })
+  it('an edge stair placed by hand is checked against every storey', () => {
+    const ok = run(twisted({ stairAt: [12, 12] }))
+    expect(ok.straightStairs!.edge[0]).toMatchObject({ how: 'placed', x: 12, y: 12, outside: [] })
+    expect(ok.spots.find((p) => !p.inCore)).toMatchObject({ x: 12, y: 12 })
+    expect(ok.rules.find((r) => r.id === 'stair-straight-i')!.state).toBe('pass')
+    const out = run(twisted({ stairAt: [21, 21] }))
+    expect(out.straightStairs!.edge[0].outside.length).toBeGreaterThan(10)
+    const rule = out.rules.find((r) => r.id === 'stair-straight-i')!
+    expect(rule.state).toBe('warn')
+    expect(rule.value).toMatch(/^Placed at \(21\.0, 21\.0\) m: outside the plate .* at L\d+/)
+    // a parametric tower takes the hand-placed stair as given
+    const par = stairSpots({ ...plain, stairAt: [5, -3] }, 2, 3, 6, 'mixed')
+    expect(par[1]).toEqual({ x: 5, y: -3, inCore: false })
+    expect(stairSpots({ ...plain, stairAt: [5, -3] }, 2, 3, 6, 'core').every((p) => p.inCore)).toBe(true)
+  })
+  it('reports when no straight position fits every storey', () => {
+    // a 20 m plate that twists 90° while it drifts 0.5 m a storey: its first and last storeys share no floor
+    const t = twisted({}, 90, 20, 0.5), e = run(t)
+    const s = straightStairs(t, stairSpots(t, 2, e.enclosure.a, e.enclosure.b, 'mixed'), e.enclosure.a, 'mixed')!
+    expect(s.edge[0].how).toBe('none')
+    const rule = e.rules.find((r) => r.id === `stair-straight-${t.id}`)!
+    expect(rule.state).toBe('warn')
+    expect(rule.value).toMatch(/^No straight position toward the NE corner lies inside every tower storey/)
+    // separation keeps the corner position
+    const corner = stairSpots(t, 2, e.enclosure.a, e.enclosure.b, 'mixed')
+    expect(e.spots[1]).toEqual(corner[1])
+    expect(e.separation).toBeCloseTo(Math.hypot(e.spots[1].x - e.spots[0].x, e.spots[1].y - e.spots[0].y), 9)
   })
 })
