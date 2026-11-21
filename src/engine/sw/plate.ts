@@ -13,6 +13,25 @@ export const ORI: Face[] = ['N', 'E', 'S', 'W']
 export const FACE_AZ: Record<Face, number> = { N: 0, E: 90, S: 180, W: 270 }
 export const FACE_NAME: Record<Face, string> = { N: 'North', E: 'East', S: 'South', W: 'West' }
 
+// Facets (tool gap G7, research R5 §5): an edge that faces none of its plate's main faces (a chamfer, a cut corner, a
+// splayed bay) is grouped by the direction it truly faces, in 8 sectors of 45° from true north, and takes the zone set
+// for those facets ('facet-W': facets facing true west), else an 'all' zone, else none (plain glass, "unassigned"). It no
+// longer borrows the device of the main face whose quadrant it falls in (B8a: the true-W chamfer took the SW face's
+// egg-crate because both were named W). Main faces keep their project-grid names N, E, S, W as before.
+export type Sector = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW'
+export const SECTORS: Sector[] = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+export type FacetFace = `facet-${Sector}`
+/** What a façade zone is set for: a main face, or the facets facing one sector. */
+export type ZoneFace = Face | FacetFace
+export const FACET_FACES: FacetFace[] = SECTORS.map((q) => `facet-${q}` as FacetFace)
+/** The 8-way sector of a true azimuth (degrees clockwise from true north). */
+export const sectorOf = (az: number): Sector => SECTORS[Math.round((((az % 360) + 360) % 360) / 45) % 8]
+export const isFacetFace = (f: ZoneFace | 'all'): f is FacetFace => f.startsWith('facet-')
+/** A zone face as people read it: "North", "W facets", "All". */
+export const zoneFaceName = (f: ZoneFace | 'all') => (f === 'all' ? 'All' : isFacetFace(f) ? `${f.slice(6)} facets` : FACE_NAME[f])
+/** An edge is a facet when its normal is more than this off the plate's main grid (degrees). */
+export const FACET_DEV = 22.5
+
 export type StratId = 'curtain' | 'punched' | 'overhang' | 'louvres' | 'fins' | 'eggcrate' | 'lightshelf' | 'balcony' | 'doubleskin' | 'pvspandrel' | 'greenwall' | 'windscreen'
 export interface Strat { name: string; blurb: string; d: { wwr: number; shgc: number; depth: number; pv: number }; device: boolean; depthLabel?: string; mod?: number; ventBoost?: number; screen?: boolean }
 
@@ -33,7 +52,7 @@ export const STRATS: Record<StratId, Strat> = {
 }
 
 /** One façade zone: a strategy for one face (or all) over a range of levels. Later zones win where they overlap. */
-export interface FacadeZone { face: Face | 'all'; from: number; to: number; strat: StratId; wwr: number; shgc: number; depth: number; pv: number; operable: boolean }
+export interface FacadeZone { face: ZoneFace | 'all'; from: number; to: number; strat: StratId; wwr: number; shgc: number; depth: number; pv: number; operable: boolean }
 
 export const DEFAULT_ZONE: FacadeZone = { face: 'all', from: 1, to: 999, strat: 'curtain', wwr: 0.4, shgc: 0.4, depth: 0, pv: 0, operable: false }
 /** The Studio's starting façade: plain north, fins east and west, an overhang south, all windows openable. */
@@ -47,7 +66,8 @@ export const DEFAULT_ZONES: FacadeZone[] = [
 /** The zones of a tower (its own, or the Studio's defaults). */
 export const zonesOf = (t: Tower): FacadeZone[] => (t.facadeZones && t.facadeZones.length ? t.facadeZones : DEFAULT_ZONES)
 
-export function zoneFor(zones: FacadeZone[], face: Face, level: number): FacadeZone {
+/** The zone of a face (or of the facets facing one sector) at a level: the last zone covering it. */
+export function zoneFor(zones: FacadeZone[], face: ZoneFace, level: number): FacadeZone {
   let z: FacadeZone | null = null
   for (const q of zones) if ((q.face === face || q.face === 'all') && level >= q.from && level <= q.to) z = q
   return z ?? DEFAULT_ZONE
@@ -83,7 +103,17 @@ export function cardinalOf(nx: number, ny: number, rot: number): Face {
   return deg <= 45 + e || deg > 315 + e ? 'E' : deg <= 135 + e ? 'N' : deg <= 225 + e ? 'W' : 'S'
 }
 
-export interface PlateEdge { o: Face; L: number; mx: number; my: number; ux: number; uy: number; ox: number; oy: number; /** compass azimuth of the outward normal (deg) */ az: number }
+export interface PlateEdge {
+  /** The quadrant the edge falls in, by the project-grid names (per-face sums read this). */
+  o: Face
+  L: number; mx: number; my: number; ux: number; uy: number; ox: number; oy: number
+  /** compass azimuth of the outward normal (deg) */
+  az: number
+  /** A facet (more than 22.5° off the plate's main grid): the sector it truly faces; null on a main face. */
+  facet: Sector | null
+  /** The zone key: the main face `o`, or `facet-<sector>` for a facet. */
+  zf: ZoneFace
+}
 export interface PlateMask { nx: number; ny: number; x0: number; y0: number; /** cell size (m) */ h: number; cells: Uint8Array }
 
 /** One floor as the Studio's studies see it, in the tower's own axes (x along its width), metres. */
@@ -240,15 +270,20 @@ export function swFloors(t: Tower, northDeg: number, cell = 1): SwFloor[] {
         const p: Pt = [x0 + (ix + 0.5) * cell, y0 + (iy + 0.5) * cell]
         if (local.some((r) => insideRing(p, r))) cells[iy * nx + ix] = 1
       }
-      const edges: PlateEdge[] = []
+      const raw: { a: Pt; b: Pt; L: number; ux: number; uy: number; ox: number; oy: number }[] = []
       for (const r of local) for (let k = 0; k < r.length; k++) {
         const a = r[k], b = r[(k + 1) % r.length], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy)
         if (L < 0.5) continue
-        const ux = dx / L, uy = dy / L, ox = uy, oy = -ux // outward of a counter-clockwise ring
+        const ux = dx / L, uy = dy / L
+        raw.push({ a, b, L, ux, uy, ox: uy, oy: -ux }) // outward of a counter-clockwise ring
+      }
+      const grid = mainGrid(raw)
+      const edges: PlateEdge[] = raw.map(({ a, b, L, ux, uy, ox, oy }) => {
         const wx = ox * Math.cos(rot) - oy * Math.sin(rot), wy = ox * Math.sin(rot) + oy * Math.cos(rot)
         const az = ((90 - (Math.atan2(wy, wx) * 180) / Math.PI) % 360 + 360) % 360
-        edges.push({ o: cardinalOf(ox, oy, rot), L, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2, ux, uy, ox, oy, az })
-      }
+        const o = cardinalOf(ox, oy, rot), facet = grid != null && gridDev(Math.atan2(oy, ox), grid) > FACET_DEV + 1e-6 ? sectorOf(az) : null
+        return { o, L, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2, ux, uy, ox, oy, az, facet, zf: facet ? (`facet-${facet}` as FacetFace) : o }
+      })
       g = { rings: local, mask: { nx, ny, x0, y0, h: cell, cells }, edges }
       memo.set(key, g)
     }
@@ -256,9 +291,36 @@ export function swFloors(t: Tower, northDeg: number, cell = 1): SwFloor[] {
   })
 }
 
+/**
+ * A plate's main grid: the orientation (radians, mod 90°) its edges line up with, from the length-weighted mean of four
+ * times each normal's angle; null when no grid dominates (round or octagonal plates, where every edge keeps its
+ * quadrant name and none is a facet). A chamfered square reads its long faces' grid, so the chamfers are facets.
+ */
+export function mainGrid(edges: { L: number; ox: number; oy: number }[]): number | null {
+  let c = 0, s = 0, t = 0
+  for (const e of edges) { const a = 4 * Math.atan2(e.oy, e.ox); c += e.L * Math.cos(a); s += e.L * Math.sin(a); t += e.L }
+  return t > 0 && Math.hypot(c, s) / t >= 0.5 ? Math.atan2(s, c) / 4 : null
+}
+/** Degrees between a normal's angle (radians) and the nearest axis of a grid (0–45). */
+export function gridDev(a: number, grid: number): number {
+  const d = ((((a - grid) * 180) / Math.PI) % 90 + 90) % 90
+  return Math.min(d, 90 - d)
+}
+/** The zone keys of an outline's edges given by true azimuth and length (a terrace's edges): main faces by quadrant,
+ *  facets (off the outline's own main grid) by the sector they face. */
+export function zoneFacesOf(edges: { az: number; L: number }[]): ZoneFace[] {
+  const n = edges.map((e) => { const r = (e.az * Math.PI) / 180; return { L: e.L, ox: Math.sin(r), oy: Math.cos(r) } })
+  const g = mainGrid(n)
+  return n.map((e, i) => (g != null && gridDev(Math.atan2(e.oy, e.ox), g) > FACET_DEV + 1e-6 ? (`facet-${sectorOf(edges[i].az)}` as FacetFace) : cardinalOf(e.ox, e.oy, 0)))
+}
+/** The zone keys a floor's edges use: the four faces, then the sectors of the facets it has. */
+export const zoneKeys = (f: Pick<SwFloor, 'edges'>): ZoneFace[] => [...ORI, ...new Set(f.edges.filter((e) => e.facet).map((e) => e.zf))]
+/** Which zone each of a floor's zone keys takes at its level (for memo signatures). */
+export const zoneSig = (f: Pick<SwFloor, 'edges' | 'level'>, zones: FacadeZone[]) => zoneKeys(f).map((k) => zones.indexOf(zoneFor(zones, k, f.level)))
+
 /** Floors that share plate, rotation, zone choice and height give the same interior result: a signature to compute once. */
 export function floorSig(f: SwFloor, zones: FacadeZone[], extra = ''): string {
-  return JSON.stringify([f.mask.nx, f.mask.ny, f.mask.x0, f.mask.y0, f.rings.length, f.edges.length, f.h.toFixed(2), f.rot.toFixed(3), f.core.half.toFixed(2), ORI.map((o) => zones.indexOf(zoneFor(zones, o, f.level))), extra])
+  return JSON.stringify([f.mask.nx, f.mask.ny, f.mask.x0, f.mask.y0, f.rings.length, f.edges.length, f.h.toFixed(2), f.rot.toFixed(3), f.core.half.toFixed(2), zoneSig(f, zones), extra])
 }
 
 export type { Floor }

@@ -80,7 +80,7 @@ export function photovoltaics(floors: SwFloor[], zones: FacadeZone[], C: Climate
   const topLevel = floors.reduce((s, f) => Math.max(s, f.level), 0)
   const acc = new Map<FacadeZone, { area: number; irrA: number; byFace: Partial<Record<Face, number>> }>()
   for (const f of floors) for (const e of f.edges) {
-    const z = zoneFor(zones, e.o, f.level)
+    const z = zoneFor(zones, e.zf, f.level)
     if (!(z.pv > 0)) continue
     const A = e.L * f.h * (1 - z.wwr) * z.pv
     if (A <= 0) continue

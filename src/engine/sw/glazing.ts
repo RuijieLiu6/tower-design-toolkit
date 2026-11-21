@@ -10,11 +10,14 @@
 //    over 3% of the face on clear-sky sample days, weighted by sunshine).
 //  - Devices are evaluated against the face's true azimuth (the Studio uses the cardinal azimuth for the device and the
 //    true geometry for the beam).
+//  - Facets (G7, plate.ts): an edge off its plate's main grid takes the zone of the facets facing its true sector, and
+//    when it shares a zone with main faces ('all', or none) its gain and glare are kept in their own row, so a chamfer's
+//    glare is reported as the chamfer's, not inside a neighbouring face's zone.
 //  - Added (not in the Studio): `diffuse`, sky and ground gain through the glass after the device's sky transmission,
 //    and monthly splits; the Studio's heat through glazing is beam only, and so are `un` / `sh` here.
 import { FULL_YEAR, faceHours, inPeriod, prepClimate, type Period } from './climate'
 import type { ClimatePayload } from './types'
-import { DEFAULT_ZONE, GLASS_VT, ORI, STRATS, band, stratParts, zoneAvgT, zoneFor, type Face, type FacadeZone, type StratId, type SwFloor } from './plate'
+import { DEFAULT_ZONE, GLASS_VT, ORI, STRATS, band, isFacetFace, stratParts, zoneAvgT, zoneFaceName, zoneFor, type Face, type FacadeZone, type Sector, type StratId, type SwFloor } from './plate'
 
 /** Share of beam a zone's glass lets through at one sun position (study.js stratT = (1 − cut) × dim of stratParts). */
 export function stratT(z: FacadeZone, alt: number, azDeg: number, faceAz: number, gh: number): number {
@@ -26,7 +29,7 @@ export function stratT(z: FacadeZone, alt: number, azDeg: number, faceAz: number
 export function zoneLabel(z: FacadeZone, topLevel = 999): string {
   if (z === DEFAULT_ZONE) return 'Unassigned faces'
   const to = Math.min(z.to, topLevel)
-  return `${z.face === 'all' ? 'All' : z.face} · L${z.from}${to > z.from ? '–L' + to : ''}`
+  return `${z.face === 'all' ? 'All' : isFacetFace(z.face) ? zoneFaceName(z.face) : z.face} · L${z.from}${to > z.from ? '–L' + to : ''}`
 }
 
 const tCache = new WeakMap<object, Map<string, number>>()
@@ -50,6 +53,8 @@ export interface GlazingZone {
   /** Index in `zones`, -1 for faces no zone covers (DEFAULT_ZONE). */
   i: number
   label: string
+  /** The facets of one sector kept apart from the main faces that share their zone (G7); absent for a zone's own row. */
+  facet?: Sector
   strat: StratId; stratName: string
   zone: FacadeZone
   /** kWh in the period: beam on the zone's façade, beam through its glass unshaded and with the device. */
@@ -85,7 +90,7 @@ export interface GlazingStudy {
 /** Area-weighted window-to-wall ratio over all faces and floors (keyItems 'strat'): edge length × floor height. */
 export function towerWWR(floors: SwFloor[], zones: FacadeZone[]): { wwr: number; byFace: Record<Face, number>; glass: number; wall: number } {
   const A: Record<Face, number> = { N: 0, E: 0, S: 0, W: 0 }, G: Record<Face, number> = { N: 0, E: 0, S: 0, W: 0 }
-  for (const f of floors) for (const e of f.edges) { const a = e.L * f.h; A[e.o] += a; G[e.o] += a * zoneFor(zones, e.o, f.level).wwr }
+  for (const f of floors) for (const e of f.edges) { const a = e.L * f.h; A[e.o] += a; G[e.o] += a * zoneFor(zones, e.zf, f.level).wwr }
   const wall = ORI.reduce((s, o) => s + A[o], 0), glass = ORI.reduce((s, o) => s + G[o], 0)
   const byFace = {} as Record<Face, number>
   for (const o of ORI) byFace[o] = A[o] ? G[o] / A[o] : 0
@@ -101,14 +106,16 @@ const GLARE_ALT = 25 * Math.PI / 180, SUN_OUT = 120
 export function glazingStudy(floors: SwFloor[], zones: FacadeZone[], C: ClimatePayload, period: Period = FULL_YEAR, opts: { shade?: number; vt?: number } = {}): GlazingStudy {
   const P = prepClimate(C), shade = opts.shade ?? 1, vt = opts.vt ?? GLASS_VT
   const topLevel = floors.reduce((s, f) => Math.max(s, f.level), 0)
-  const rowOf = new Map<FacadeZone, GlazingZone>()
+  const rowOf = new Map<string, GlazingZone>()
   const floorSets = new Map<GlazingZone, Set<number>>()
-  const row = (z: FacadeZone): GlazingZone => {
-    let r = rowOf.get(z)
+  // one row per zone; facets that share a zone with main faces get a row of their own per sector
+  const row = (z: FacadeZone, facet: Sector | null): GlazingZone => {
+    const i = zones.indexOf(z), apart = facet && !isFacetFace(z.face) ? facet : null, key = `${i}|${apart ?? ''}`
+    let r = rowOf.get(key)
     if (!r) {
-      const i = zones.indexOf(z)
-      r = { i, label: zoneLabel(z, topLevel), strat: z.strat, stratName: STRATS[z.strat].name, zone: z, beam: 0, un: 0, sh: 0, diffuse: 0, tAvg: 1, glare: 0, areaGl: 0, areaOp: 0, pvArea: 0, pvBeam: 0, aperture: z.wwr * vt, floors: 0, monSh: new Array(12).fill(0), monUn: new Array(12).fill(0) }
-      rowOf.set(z, r); floorSets.set(r, new Set())
+      const label = apart ? `${apart} facets · ${z === DEFAULT_ZONE ? 'no zone' : zoneLabel(z, topLevel)}` : zoneLabel(z, topLevel)
+      r = { i, label, ...(apart ? { facet: apart } : {}), strat: z.strat, stratName: STRATS[z.strat].name, zone: z, beam: 0, un: 0, sh: 0, diffuse: 0, tAvg: 1, glare: 0, areaGl: 0, areaOp: 0, pvArea: 0, pvBeam: 0, aperture: z.wwr * vt, floors: 0, monSh: new Array(12).fill(0), monUn: new Array(12).fill(0) }
+      rowOf.set(key, r); floorSets.set(r, new Set())
     }
     return r
   }
@@ -116,10 +123,10 @@ export function glazingStudy(floors: SwFloor[], zones: FacadeZone[], C: ClimateP
   interface Group { r: GlazingZone; o: Face; az: number; gh: number; A: number; z: FacadeZone; tn: number; tw: number }
   const groups = new Map<string, Group>()
   for (const f of floors) for (const e of f.edges) {
-    const z = zoneFor(zones, e.o, f.level), r = row(z), gh = band(f, z).gh, A = e.L * f.h, az = Math.round(e.az) % 360
+    const z = zoneFor(zones, e.zf, f.level), r = row(z, e.facet), gh = band(f, z).gh, A = e.L * f.h, az = Math.round(e.az) % 360
     floorSets.get(r)!.add(f.i)
     r.areaGl += A * z.wwr; r.areaOp += A * (1 - z.wwr); r.pvArea += A * (1 - z.wwr) * z.pv
-    const key = `${zones.indexOf(z)}|${e.o}|${az}|${gh.toFixed(2)}`
+    const key = `${zones.indexOf(z)}|${r.facet ?? ''}|${e.o}|${az}|${gh.toFixed(2)}`
     const g = groups.get(key)
     if (g) g.A += A
     else groups.set(key, { r, o: e.o, az, gh, A, z, tn: 0, tw: 0 })

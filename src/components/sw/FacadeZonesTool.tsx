@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useDisplayMode } from '../../lib/displayMode'
 import { towerFloors } from '../../engine/massing'
-import { DEFAULT_ZONES, FACE_NAME, ORI, STRATS, zonesOf, type Face, type FacadeZone, type StratId } from '../../engine/sw/plate'
+import { DEFAULT_ZONES, FACE_NAME, FACET_FACES, ORI, STRATS, zoneFaceName, zonesOf, type Face, type FacadeZone, type StratId } from '../../engine/sw/plate'
 import { useStore, useTowers } from '../../store'
 
 const STRAT_IDS = Object.keys(STRATS) as StratId[]
@@ -163,8 +163,9 @@ export default function FacadeZonesTool() {
         return (
           <div key={i} role="group" aria-label={`Zone ${i + 1}`} data-zone={i} onFocus={() => setPicked(i)} className={`grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5 rounded-md border p-2 ${on ? 'border-accent ring-1 ring-accent/40' : 'border-line'}`}>
             <div className="flex items-center gap-1.5">
-              <select value={z.face} onChange={(e) => patch(i, { face: e.target.value as FacadeZone['face'] })} className="h-8 w-[4.4rem] shrink-0 rounded-md border border-line bg-white px-1 text-control text-ink" aria-label="Face">
+              <select value={z.face} onChange={(e) => patch(i, { face: e.target.value as FacadeZone['face'] })} className="h-8 w-[5.4rem] shrink-0 rounded-md border border-line bg-white px-1 text-control text-ink" aria-label="Face" title="A main face, or the facets (chamfers, cut corners) that truly face one way">
                 <option value="all">All</option>{ORI.map((o) => <option key={o} value={o}>{FACE_NAME[o]}</option>)}
+                <optgroup label="Facets facing (true)">{FACET_FACES.map((k) => <option key={k} value={k}>{zoneFaceName(k)}</option>)}</optgroup>
               </select>
               <StratPicker value={z.strat} onPick={(st) => patch(i, { strat: st, ...STRATS[st].d })} />
               <button type="button" onClick={() => { set(zones.filter((_, k) => k !== i)); setPicked(null) }} disabled={zones.length <= 1} className="h-8 w-6 shrink-0 rounded-md text-meta text-muted hover:bg-panel disabled:opacity-40" aria-label={`Remove zone ${i + 1}`}>×</button>

@@ -10,7 +10,7 @@
 // exactly (the Studio steps a 0.125 m walker and then projects to the façade plane; the result is the same).
 import { prepClimate, sunAt, TZ_BY_MONTH } from './climate'
 import { skyPart, type DaylightOptions, type LightAtHour, type SkyPart } from './daylight'
-import { band, DL_R, DL_WP, FACE_AZ, faceOffset, GAP, GLASS_VT, obstructionAngles, ORI, STRATS, zoneFor, type Face, type FacadeZone, type SwFloor } from './plate'
+import { band, DL_R, DL_WP, FACE_AZ, faceOffset, GAP, GLASS_VT, obstructionAngles, ORI, STRATS, zoneFor, zoneKeys, type Face, type FacadeZone, type SwFloor } from './plate'
 import type { ClimatePayload } from './types'
 
 /** Curtain-wall mullions (study.js MULL): pitch along the façade, width, depth into the room. */
@@ -50,7 +50,7 @@ export function fineGridOf(f: SwFloor, want?: number): FineGrid {
 export function plateKey(f: SwFloor, zones: FacadeZone[], o: DaylightOptions, extra = ''): string {
   const obs = obstructionAngles(f, o.ctx ?? [])
   return JSON.stringify([f.towerId, f.rings.map((r) => r.map((p) => [Math.round(p[0] * 20), Math.round(p[1] * 20)])), f.mask.h, f.h.toFixed(2), f.rot.toFixed(4), f.core, Math.round(f.area),
-    ORI.map((q) => zoneFor(zones, q, f.level)), ORI.map((q) => Math.round(obs[q] * 90)), o.vt ?? GLASS_VT, !!o.noDev, extra])
+    zoneKeys(f).map((q) => zoneFor(zones, q, f.level)), ORI.map((q) => Math.round(obs[q] * 90)), o.vt ?? GLASS_VT, !!o.noDev, extra])
 }
 
 const skyMemo = new Map<string, SkyPart>(), baseMemo = new Map<string, HourBase>()
@@ -161,7 +161,7 @@ export function sunPatch(f: SwFloor, zones: FacadeZone[], base: HourBase, altRad
   for (const e of f.edges) {
     const so = sx * e.ox + sy * e.oy
     if (so <= 0.02) continue
-    const z = zoneFor(zones, e.o, f.level), B = band(f, z), st = STRATS[z.strat]
+    const z = zoneFor(zones, e.zf, f.level), B = band(f, z), st = STRATS[z.strat]
     E.push({ mx: e.mx, my: e.my, ux: e.ux, uy: e.uy, ox: e.ox, oy: e.oy, L: e.L, so, run: (sx * e.ux + sy * e.uy) / so, rise: tanA / so, o: faceIdx[e.o], sp: B.sp, head: B.head, gh: B.gh, D: z.depth || 0, strat: z.strat, device: st.device })
     maxHead = Math.max(maxHead, B.head)
   }

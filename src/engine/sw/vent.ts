@@ -15,7 +15,7 @@
 import { inPeriod, prepClimate, type Period } from './climate'
 import type { ClimatePayload } from './types'
 import { ALPHA } from './wind'
-import { FACE_AZ, GAP, ORI, STRATS, band, cardinalOf, faceOffset, inCore, solidAt, zoneFor, type Face, type FacadeZone, type SwFloor } from './plate'
+import { FACE_AZ, GAP, ORI, STRATS, band, cardinalOf, faceOffset, inCore, solidAt, zoneFor, zoneSig, type Face, type FacadeZone, type SwFloor } from './plate'
 import { ENERGY_DEFAULTS } from './energy'
 
 /** SW.vent: opening mode, comfort band, gust limit for open windows (m/s), free opening share of the glass, ΔT inside. */
@@ -224,7 +224,7 @@ export function ventFloorQuick(f: SwFloor, zones: FacadeZone[], vent: VentSettin
     if (d > 0 && d <= 8) within++
   }
   let free = 0
-  for (const e of f.edges) { const z = zoneFor(zones, e.o, f.level); if (z.operable) free += e.L * hh * z.wwr * open }
+  for (const e of f.edges) { const z = zoneFor(zones, e.zf, f.level); if (z.operable) free += e.L * hh * z.wwr * open }
   const A = area * h * h
   return { i: f.i, level: f.level, area: A, within8: area ? within / area : 0, freePct: A ? free / A * 100 : 0, operable: free > 0 }
 }
@@ -233,7 +233,7 @@ export function ventFloorQuick(f: SwFloor, zones: FacadeZone[], vent: VentSettin
 export function ventTower(floors: SwFloor[], zones: FacadeZone[], vent: VentSettings = VENT_DEFAULTS): VentTower {
   const memo = new Map<string, Omit<VentFloorQuick, 'i' | 'level'>>()
   const rows = floors.map((f) => {
-    const key = JSON.stringify([f.mask.nx, f.mask.ny, f.mask.x0, f.mask.y0, f.h.toFixed(2), f.rot.toFixed(3), f.core.half.toFixed(2), f.edges.length, ORI.map((o) => zones.indexOf(zoneFor(zones, o, f.level)))])
+    const key = JSON.stringify([f.mask.nx, f.mask.ny, f.mask.x0, f.mask.y0, f.h.toFixed(2), f.rot.toFixed(3), f.core.half.toFixed(2), f.edges.length, zoneSig(f, zones)])
     let r = memo.get(key)
     if (!r) { const q = ventFloorQuick(f, zones, vent); r = { area: q.area, within8: q.within8, freePct: q.freePct, operable: q.operable }; memo.set(key, r) }
     return { i: f.i, level: f.level, ...r }
@@ -253,7 +253,7 @@ interface Opening { o: Face; A: number; zb: number; gh: number; az: number }
 function ventOpenings(f: SwFloor, zones: FacadeZone[], vent: VentSettings): Opening[] {
   const open = vent.open || 0.1, off = faceOffset(f.rot), by: Partial<Record<Face, Opening>> = {}
   for (const e of f.edges) {
-    const z = zoneFor(zones, e.o, f.level)
+    const z = zoneFor(zones, e.zf, f.level)
     if (!z.operable) continue
     const B = band(f, z)
     const q = by[e.o] ?? (by[e.o] = { o: e.o, A: 0, zb: f.z + B.sp, gh: B.gh, az: FACE_AZ[e.o] + off })

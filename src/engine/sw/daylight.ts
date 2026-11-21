@@ -7,7 +7,7 @@
 import { faceHours, FULL_YEAR, inPeriod, prepClimate, sunAt, TZ_BY_MONTH, type ClimateHours, type Period } from './climate'
 import {
   band, cardinalOf, cieBand, devT, DL_E, DL_R, DL_SUB, DL_WP, FACE_AZ, faceOffset, floorSig, GAP, GLASS_VT, ND_PARTS, obstructionAngles, ORI,
-  solidAt, stratParts, vertSkyAbove, zoneAvgT, zoneFor, type ContextBlock, type Face, type FacadeZone, type SwFloor,
+  solidAt, stratParts, vertSkyAbove, zoneAvgT, zoneFor, type ContextBlock, type Face, type FacadeZone, type SwFloor, type ZoneFace,
 } from './plate'
 import type { ClimatePayload } from './types'
 
@@ -100,10 +100,36 @@ export interface LightAtHour {
   cells: number
 }
 
-type Hit = { D: number; o: Face }
+/** Where a ray leaves the plate: distance, the quadrant face, and on a plate with facets the edge it crosses (else -1). */
+type Hit = { D: number; o: Face; e: number }
+
+/** The edge nearest a point just outside the plate (floor axes). */
+function nearestEdge(f: SwFloor, x: number, y: number): number {
+  let best = -1, bd = Infinity
+  f.edges.forEach((e, i) => {
+    const t = Math.max(-e.L / 2, Math.min(e.L / 2, (x - e.mx) * e.ux + (y - e.my) * e.uy))
+    const d = Math.hypot(x - e.mx - e.ux * t, y - e.my - e.uy * t)
+    if (d < bd) { bd = d; best = i }
+  })
+  return best
+}
+/** The zone key of the face a ray leaves through (quadrant o, edge e): a facet's own (G7), else its quadrant's. */
+const zfOf = (f: SwFloor, o: Face, e: number): ZoneFace => (e >= 0 && f.edges[e].facet ? f.edges[e].zf : o)
+/** The true azimuth of that face: a facet's own, else the quadrant's. */
+const fazOf = (f: SwFloor, o: Face, e: number, off: number): number => (e >= 0 && f.edges[e].facet ? f.edges[e].az : FACE_AZ[o] + off)
 
 /** The ray walk every Studio study shares: from (x, y) along (dx, dy) to where it leaves the plate, or null into the core. */
 function walker(f: SwFloor) {
+  const walk = plainWalker(f)
+  if (!f.edges.some((e) => e.facet)) return walk
+  // a plate with facets: also the edge the ray crosses, nearest its exit point (kept out of the plain walk, which is hot)
+  return (x: number, y: number, dx: number, dy: number, ds: number, kmax: number): Hit | null => {
+    const hit = walk(x, y, dx, dy, ds, kmax)
+    if (hit) hit.e = nearestEdge(f, x + dx * hit.D, y + dy * hit.D)
+    return hit
+  }
+}
+function plainWalker(f: SwFloor) {
   const m = f.mask, h = m.h, cx0 = f.core.x, cy0 = f.core.y, ch = f.core.half
   return (x: number, y: number, dx: number, dy: number, ds: number, kmax: number): Hit | null => {
     let px = Math.floor((x - m.x0) / h), py = Math.floor((y - m.y0) / h)
@@ -114,7 +140,7 @@ function walker(f: SwFloor) {
       if (!solidAt(m, cx, cy)) {
         let nx = cx !== px ? Math.sign(cx - px) : 0, ny = cy !== py ? Math.sign(cy - py) : 0
         if ((nx && ny) || (!nx && !ny)) { if (Math.abs(dx) >= Math.abs(dy)) { nx = Math.sign(dx); ny = 0 } else { ny = Math.sign(dy); nx = 0 } }
-        return { D: k * ds, o: cardinalOf(nx, ny, f.rot) }
+        return { D: k * ds, o: cardinalOf(nx, ny, f.rot), e: -1 }
       }
       px = cx; py = cy
     }
@@ -145,8 +171,6 @@ export function skyPart(f: SwFloor, zones: FacadeZone[], o: DaylightOptions, ste
   const NR = DL_R.rays, dphi = (2 * Math.PI) / NR, dirs: [number, number][] = []
   for (let i = 0; i < NR; i++) { const a = (i + 0.5) * dphi; dirs.push([Math.cos(a), Math.sin(a)]) }
   const NSUB = step > 1 ? 3 : DL_SUB, offR = faceOffset(f.rot), cR = Math.cos(f.rot), sR = Math.sin(f.rot)
-  const FAZ = {} as Record<Face, number>
-  for (const q of ORI) FAZ[q] = FACE_AZ[q] + offR
   const G = gridOf(f, sub), DS = Math.min(0.5, G.h * 0.5), KMAX = Math.ceil(80 / DS)
   const nc = G.nx * G.ny, sc = new Float32Array(nc * 4), df = new Float32Array(nc), cellList: number[] = []
   const walk = walker(f), inF = inFloor(f, G)
@@ -157,12 +181,12 @@ export function skyPart(f: SwFloor, zones: FacadeZone[], o: DaylightOptions, ste
     for (const [dx, dy] of dirs) {
       const hit = walk(x0, y0, dx, dy, DS, KMAX)
       if (!hit) continue
-      const fo = hit.o, z = zoneFor(zones, fo, lvl), B = band(f, z), d = Math.max(0.5, hit.D)
+      const fo = hit.o, z = zoneFor(zones, zfOf(f, fo, hit.e), lvl), B = band(f, z), d = Math.max(0.5, hit.D)
       const sill = Math.max(0, B.sp - DL_WP), head = Math.max(sill + 0.1, B.head - DL_WP)
       const a0 = Math.atan(sill / d), a2 = Math.atan(head / d)
       if (a2 <= a0) continue
       const ob = obs[fo], wx = dx * cR - dy * sR, wy = dx * sR + dy * cR
-      const hsa = ((((Math.atan2(wx, wy) * 180) / Math.PI - FAZ[fo]) % 360) + 540) % 360 - 180
+      const hsa = ((((Math.atan2(wx, wy) * 180) / Math.PI - fazOf(f, fo, hit.e, offR)) % 360) + 540) % 360 - 180
       let v = 0
       for (let q = 0; q < NSUB; q++) {
         const lo = a0 + ((a2 - a0) * q) / NSUB, hi = a0 + ((a2 - a0) * (q + 1)) / NSUB, am = (lo + hi) / 2
@@ -179,7 +203,7 @@ export function skyPart(f: SwFloor, zones: FacadeZone[], o: DaylightOptions, ste
   // internally reflected component (BRE split flux), uniform over the plate
   let perim = 0
   const Wg: Record<Face, number> = { N: 0, E: 0, S: 0, W: 0 }
-  for (const e of f.edges) { const z = zoneFor(zones, e.o, lvl), B = band(f, z); perim += e.L; Wg[e.o] += e.L * B.gh * tau * (noDev ? 1 : zoneAvgT(z, B)) }
+  for (const e of f.edges) { const z = zoneFor(zones, e.zf, lvl), B = band(f, z); perim += e.L; Wg[e.o] += e.L * B.gh * tau * (noDev ? 1 : zoneAvgT(z, B)) }
   const Af = f.area || cellList.length * step * step * G.h * G.h, walls = (perim + 8 * f.core.half) * hh, Atot = 2 * Af + walls
   const Rm = (DL_R.floor * Af + DL_R.ceil * Af + DL_R.wall * walls) / Atot
   const Rfw = (DL_R.floor * Af + (DL_R.wall * walls) / 2) / (Af + walls / 2), Rcw = (DL_R.ceil * Af + (DL_R.wall * walls) / 2) / (Af + walls / 2), kI = 0.85 / (Atot * (1 - Rm))
@@ -255,7 +279,7 @@ function blindState(f: SwFloor, zones: FacadeZone[], P: ClimateHours, sky: DlSky
   }
   const c = Math.cos(-f.rot), sn = Math.sin(-f.rot)
   const B = [...bins.values()].map((b) => { const a = (b.az * Math.PI) / 180, sx = Math.sin(a), sy = Math.cos(a); return { b, dx: sx * c - sy * sn, dy: sx * sn + sy * c } })
-  const nC = cells.length, NB = B.length, hitO = new Int8Array(nC * NB).fill(-1), hitD = new Float32Array(nC * NB)
+  const nC = cells.length, NB = B.length, hitO = new Int8Array(nC * NB).fill(-1), hitD = new Float32Array(nC * NB), hitE = new Int16Array(nC * NB).fill(-1)
   const walk = walker(f)
   for (let ci2 = 0; ci2 < nC; ci2++) {
     const ci = cells[ci2], x0 = G.x0 + ((ci % G.nx) + 0.5) * G.h, y0 = G.y0 + (((ci / G.nx) | 0) + 0.5) * G.h
@@ -263,8 +287,8 @@ function blindState(f: SwFloor, zones: FacadeZone[], P: ClimateHours, sky: DlSky
       const { b, dx, dy } = B[bi]
       const hit = walk(x0, y0, dx, dy, 0.5, 200)
       if (!hit) continue
-      hitO[ci2 * NB + bi] = faceIdx[hit.o]; hitD[ci2 * NB + bi] = hit.D
-      const z = zoneFor(zones, hit.o, lvl), Bd = band(f, z), sp = Bd.sp, gh = Bd.gh, faz = FACE_AZ[hit.o] + off, C = cnt[hit.o]
+      hitO[ci2 * NB + bi] = faceIdx[hit.o]; hitD[ci2 * NB + bi] = hit.D; hitE[ci2 * NB + bi] = hit.e
+      const z = zoneFor(zones, zfOf(f, hit.o, hit.e), lvl), Bd = band(f, z), sp = Bd.sp, gh = Bd.gh, faz = fazOf(f, hit.o, hit.e, off), C = cnt[hit.o]
       for (let q = 0; q < b.j.length; q++) {
         const j = b.j[q]
         if (!sky.occ[j]) continue
@@ -285,7 +309,7 @@ function blindState(f: SwFloor, zones: FacadeZone[], P: ClimateHours, sky: DlSky
     for (let bi = 0; bi < NB; bi++) {
       const oi = hitO[ci2 * NB + bi]
       if (oi < 0) continue
-      const b = B[bi].b, o = ORI[oi], D = hitD[ci2 * NB + bi], z = zoneFor(zones, o, lvl), Bd = band(f, z), sp = Bd.sp, gh = Bd.gh, faz = FACE_AZ[o] + off, shut = closed[o]
+      const b = B[bi].b, o = ORI[oi], D = hitD[ci2 * NB + bi], he = hitE[ci2 * NB + bi], z = zoneFor(zones, zfOf(f, o, he), lvl), Bd = band(f, z), sp = Bd.sp, gh = Bd.gh, faz = fazOf(f, o, he, off), shut = closed[o]
       for (let q = 0; q < b.j.length; q++) {
         const al = b.alt[q], hz = DL_WP + D * Math.tan(al)
         if (hz < sp || hz > sp + gh) continue
@@ -508,7 +532,7 @@ export function aseFloor(f: SwFloor, zones: FacadeZone[], C: ClimatePayload | nu
     for (const { b, dx, dy } of B) {
       const hit = walk(x0, y0, dx, dy, DS, KMAX)
       if (!hit) continue
-      const z = zoneFor(zones, hit.o, lvl), Bd = band(f, z), sp = Bd.sp, gh = Bd.gh, faz = FACE_AZ[hit.o] + off
+      const z = zoneFor(zones, zfOf(f, hit.o, hit.e), lvl), Bd = band(f, z), sp = Bd.sp, gh = Bd.gh, faz = fazOf(f, hit.o, hit.e, off)
       for (let j = 0; j < b.alt.length; j++) {
         const al = b.alt[j], hz = DL_WP + hit.D * Math.tan(al)
         if (hz < sp || hz > sp + gh) continue
@@ -603,9 +627,9 @@ export function lightAtHour(f: SwFloor, zones: FacadeZone[], C: ClimatePayload |
       for (const oy of AA2) for (const ox of AA2) {
         const ex = walk(cx + ox * G.h, cy + oy * G.h, sx, sy, ds, km)
         if (!ex) continue
-        const z = zoneFor(zones, ex.o, lvl), B = band(f, z), hz = DL_WP + ex.D * tanA
+        const z = zoneFor(zones, zfOf(f, ex.o, ex.e), lvl), B = band(f, z), hz = DL_WP + ex.D * tanA
         if (hz < B.sp || hz > B.sp + B.gh) continue
-        const pr = noDev ? ND_PARTS : stratParts(z, p.alt, azDeg, FACE_AZ[ex.o] + faceOffset(f.rot), B.gh)
+        const pr = noDev ? ND_PARTS : stratParts(z, p.alt, azDeg, fazOf(f, ex.o, ex.e, faceOffset(f.rot)), B.gh)
         if (hz > B.sp + B.gh * (1 - pr.cut)) continue
         acc += pr.dim
         if (fo < 0) fo = faceIdx[ex.o]

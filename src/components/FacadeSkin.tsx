@@ -95,7 +95,7 @@ export default function FacadeSkin({ t, baseZ, north }: { t: Tower; baseZ: numbe
     let floors: ReturnType<typeof swFloors> = []
     try { floors = swFloors(t, north, 4) } catch { return out }
     const zones = zonesOf(t)
-    for (const f of floors) for (const e of f.edges) faceBoxes(zoneFor(zones, e.o, f.level), f, e, out)
+    for (const f of floors) for (const e of f.edges) faceBoxes(zoneFor(zones, e.zf, f.level), f, e, out)
     return out
   }, [t, north])
   return (

@@ -190,7 +190,7 @@ export function thermalFloor(f: SwFloor, floors: SwFloor[], zones: FacadeZone[],
   const tot = cnt.reduce((a, b) => a + b, 0) || 1, off = faceOffset(f.rot)
   const fac: Record<Face, { A: number; gl: number; sol: number }> = { N: { A: 0, gl: 0, sol: 0 }, E: { A: 0, gl: 0, sol: 0 }, S: { A: 0, gl: 0, sol: 0 }, W: { A: 0, gl: 0, sol: 0 } }
   for (const e of f.edges) {
-    const z = zoneFor(zones, e.o, lvl), A = e.L * f.h, t = zoneSolarT(C, z, e.az, band(f, z).gh)
+    const z = zoneFor(zones, e.zf, lvl), A = e.L * f.h, t = zoneSolarT(C, z, e.az, band(f, z).gh)
     fac[e.o].A += A; fac[e.o].gl += A * z.wwr; fac[e.o].sol += A * z.wwr * z.shgc * t
   }
   // the floor's own roof / terrace and the void under the floor above (the Studio: terrace + roof + below.coveredVoid)

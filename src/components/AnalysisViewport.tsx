@@ -36,7 +36,7 @@ import { ConeOverlays } from './ConeVolumes'
 import { clock, SolarScale, SurfaceSunScale, TowerUseKey, WindKey } from './DisplayMode'
 import EnergyOverlay from './EnergyOverlay'
 import FacadeSkin from './FacadeSkin'
-import { FACE_NAME, STRATS, zonesOf } from '../engine/sw/plate'
+import { STRATS, zoneFaceName, zonesOf } from '../engine/sw/plate'
 import { Box, Map as MapIcon, X } from './icons'
 import Label from './Label'
 import SolarOverlay from './SolarOverlay'
@@ -170,7 +170,7 @@ function FacadeKey({ towers }: { towers: Tower[] }) {
   const t = towers[0]
   if (!t) return null
   const zones = zonesOf(t)
-  return <div data-testid="facade-key"><div className="mb-1 font-semibold text-ink">Façade zones</div>{zones.map((z, i) => <div key={i} className="text-muted">{z.face === 'all' ? 'All faces' : FACE_NAME[z.face]} · {STRATS[z.strat].name}{z.to < 999 ? ` · L${z.from}–${z.to}` : ''}</div>)}</div>
+  return <div data-testid="facade-key"><div className="mb-1 font-semibold text-ink">Façade zones</div>{zones.map((z, i) => <div key={i} className="text-muted">{z.face === 'all' ? 'All faces' : zoneFaceName(z.face)} · {STRATS[z.strat].name}{z.to < 999 ? ` · L${z.from}–${z.to}` : ''}</div>)}</div>
 }
 
 function UseStack({ towers, base }: { towers: Tower[]; base: number }) {

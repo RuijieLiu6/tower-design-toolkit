@@ -7,7 +7,7 @@ import { towerOccluders } from '../engine/solarRules'
 import { aseTower, daylightTower, type DaylightTower, type AseTower } from '../engine/sw/daylight'
 import { hourBase, hourLight, type HourLight } from '../engine/sw/hourLight'
 import { energyModel, ENERGY_DEFAULTS, type EnergyFloor, type EnergyResult } from '../engine/sw/energy'
-import { cardinalOf, FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, band, STRATS, type Face, type SwFloor } from '../engine/sw/plate'
+import { FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, zoneFacesOf, band, STRATS, type Face, type SwFloor, type ZoneFace } from '../engine/sw/plate'
 import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainAngle, rainBySector, roofCollect, wdrBins, type FaceRain, type GroundShelter, type RainBySector, type RainTower, type RoofWater } from '../engine/sw/rain'
 import { facadeIrradiance, sunGround, SUN_DATES, type SunGround } from '../engine/sw/sun'
 import { periodLabel, periodRange } from './sunPeriod'
@@ -15,7 +15,7 @@ import { sunImpact } from '../engine/sw/sunImpact'
 import type { ClimatePayload, FacadeFace, Prism } from '../engine/sw/types'
 import { ALPHA, compass16, runWindStudy, SEASONS, windRose, type Rose, type WindStudy } from '../engine/sw/wind'
 import { CRITERIA, DECK_SEASONS, deckHours, freeStream, readSeasons, SECTOR8, stateOf, type CriteriaSet, type DeckSeason } from '../engine/sw/deckWind'
-import { towerDecks, type Deck, type DeckType } from '../engine/sw/decks'
+import { towerDecks, type Deck, type DeckEdge, type DeckType } from '../engine/sw/decks'
 import { K_WORD, terraceWind, type DeckWind, type Screen } from '../engine/sw/terraceWind'
 import { towerFloors } from '../engine/massing'
 import type { SkyTerraceLine } from '../engine/skyRoom'
@@ -78,7 +78,7 @@ export function planFloor(inp: SwInputs, s: SwStudySettings, cell = 1): { t: Tow
 export function faceGlazing(t: Tower, floors: SwFloor[]): Record<Face, { wwr: number; shgc: number; area: number }> {
   const zones = zonesOf(t)
   const acc = Object.fromEntries(ORI.map((o) => [o, { a: 0, g: 0, s: 0 }])) as Record<Face, { a: number; g: number; s: number }>
-  for (const f of floors) for (const e of f.edges) { const z = zoneFor(zones, e.o, f.level); const a = e.L * f.h; acc[e.o].a += a; acc[e.o].g += a * z.wwr; acc[e.o].s += a * z.wwr * z.shgc * (STRATS[z.strat].mod ?? 1) }
+  for (const f of floors) for (const e of f.edges) { const z = zoneFor(zones, e.zf, f.level); const a = e.L * f.h; acc[e.o].a += a; acc[e.o].g += a * z.wwr; acc[e.o].s += a * z.wwr * z.shgc * (STRATS[z.strat].mod ?? 1) }
   return Object.fromEntries(ORI.map((o) => [o, { wwr: acc[o].a ? acc[o].g / acc[o].a : 0, shgc: acc[o].g ? acc[o].s / acc[o].g : 0.35, area: acc[o].a }])) as Record<Face, { wwr: number; shgc: number; area: number }>
 }
 
@@ -198,7 +198,10 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const winds: DeckWind[] = inp.towers.flatMap((t) => {
       const zones = zonesOf(t)
       const neighbours = [...inp.context, ...inp.towers.filter((x) => x.id !== t.id).flatMap(prismsOf)].map((p) => ({ ring: p.ring, z1: p.z1 }))
-      return terraceWind(towerDecks(t, inp.north), HH, { ...dOpt, north: inp.north, screen, neighbours, edgeScreen: (d, e) => (STRATS[zoneFor(zones, faceOfAz(e.az), d.level).strat].screen ? FACADE_SCREEN : null) })
+      // a façade wind-screen zone on the edge's face (a facet's own zone, G7) at the deck's level screens that edge
+      const keys = new WeakMap<Deck, ZoneFace[]>()
+      const keyOf = (d: Deck, e: DeckEdge) => { let k = keys.get(d); if (!k) { k = zoneFacesOf(d.edges); keys.set(d, k) } return k[d.edges.indexOf(e)] ?? 'N' }
+      return terraceWind(towerDecks(t, inp.north), HH, { ...dOpt, north: inp.north, screen, neighbours, edgeScreen: (d, e) => (STRATS[zoneFor(zones, keyOf(d, e), d.level).strat].screen ? FACADE_SCREEN : null) })
     }).sort((a, b) => a.deck.z - b.deck.z)
     // A tower whose outlines give no deck (a pointed top) falls back to the free stream at each block top.
     const free = winds.length ? [] : [...new Map(inp.towers.flatMap((t) => prismsOf(t).map((p) => ({ tower: t.name, z: p.z1 }))).map((d) => [`${d.tower}|${Math.round(d.z)}`, d])).values()].sort((a, b) => a.z - b.z)
@@ -377,8 +380,6 @@ function deckHow(s: SwStudySettings, one: boolean): string {
 const DECK_SRC = (c: CriteriaSet) => ({ label: `Research R5 §1.2–§1.6: NBC 2020 Div. B 4.1.7.3.(5), 4.1.7.5.(2) and Commentary I para 12 (exposure, Cp); local factors, screens and neighbours are team values (R5 K table); ${c.source}; CWEC 2020 Vancouver Intl hourly` })
 /** A façade zone with the wind-screen strategy: 1.5 m glass screens on the terrace edges (STRATS.windscreen), solid. */
 const FACADE_SCREEN = { h: 1.5, porosity: 0 }
-/** The project-grid face (N, E, S, W) a true azimuth falls on, as the façade zones name faces. */
-const faceOfAz = (az: number): Face => cardinalOf(Math.sin((az * Math.PI) / 180), Math.cos((az * Math.PI) / 180), 0)
 const DECK_WORD: Record<DeckType, string> = { roof: 'Roof', setback: 'Terrace', openStorey: 'Open storey', loggia: 'Loggia' }
 const deckLabel = (d: Deck, multi: boolean) => `${multi ? `${d.tower}: ` : ''}${DECK_WORD[d.type]} at +${Math.round(d.z)} m${d.type === 'roof' ? '' : ` (L${d.level})`}`
 const C8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']

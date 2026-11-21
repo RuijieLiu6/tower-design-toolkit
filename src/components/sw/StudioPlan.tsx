@@ -38,7 +38,7 @@ function useGeometry(f: SwFloor, t: Tower, zones: FacadeZone[]) {
     for (const r of rings) { let a = 0; for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += r[j][0] * r[i][1] - r[i][0] * r[j][1]; gross += Math.abs(a / 2) }
     const inRings = (x: number, y: number) => { let o = false; for (const r of rings) for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) o = !o } return o }
     const edges = f.edges.map((e) => {
-      const m = rv(e.mx, e.my), u = rv(e.ux, e.uy), o = rv(e.ox, e.oy), z = zoneFor(zones, e.o, f.level), Bd = band(f, z)
+      const m = rv(e.mx, e.my), u = rv(e.ux, e.uy), o = rv(e.ox, e.oy), z = zoneFor(zones, e.zf, f.level), Bd = band(f, z)
       // the plan cut is at 1.2 m and steps up to catch the windows (the drafting convention), so a glazed face reads as glazing
       // even where its sill is higher; a face with next to no glass is solid wall
       return { m, u, o, L: e.L, face: e.o, z, st: STRATS[z.strat], D: z.depth || 0, inGlass: z.wwr > 0.05 && Bd.gh > 0.3, sill: Bd.sp }

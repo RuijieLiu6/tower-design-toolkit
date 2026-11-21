@@ -67,7 +67,7 @@ export default function FloorPlan({ f, zones, grid, values, ramp, children, size
       {cells}
       <rect x={c.x - c.half} y={-(c.y + c.half)} width={2 * c.half} height={2 * c.half} fill="#9aa1aa" opacity={0.75} />
       {f.edges.map((e, i) => {
-        const z = zoneFor(zones, e.o, f.level)
+        const z = zoneFor(zones, e.zf, f.level)
         const ax0 = e.mx - (e.ux * e.L) / 2, ay0 = e.my - (e.uy * e.L) / 2, bx = e.mx + (e.ux * e.L) / 2, by = e.my + (e.uy * e.L) / 2
         return <line key={i} x1={ax0} y1={-ay0} x2={bx} y2={-by} stroke={FACE_COL[e.o]} strokeWidth={z.operable ? 0.9 : 0.55} strokeDasharray={z.operable ? undefined : '1.2 0.8'}><title>{`${e.o} face · ${z.strat}${z.operable ? ' · operable' : ''}`}</title></line>
       })}

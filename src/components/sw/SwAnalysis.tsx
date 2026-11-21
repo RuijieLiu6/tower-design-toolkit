@@ -114,7 +114,7 @@ export function SwZones({ towers, base, north }: { towers: Tower[]; base: number
     const zones = zonesOf(t), nr = (-north * Math.PI) / 180, c = Math.cos(nr), s = Math.sin(nr)
     const back = ([x, y]: [number, number]): [number, number] => [x * c - y * s, x * s + y * c]
     return swFloors(t, north, 1).flatMap((f) => f.edges.map((e) => {
-      const z = zoneFor(zones, e.o, f.level)
+      const z = zoneFor(zones, e.zf, f.level)
       const a = back(toNorth(f, e.mx - (e.ux * e.L) / 2 + e.ox * 0.15, e.my - (e.uy * e.L) / 2 + e.oy * 0.15)), b = back(toNorth(f, e.mx + (e.ux * e.L) / 2 + e.ox * 0.15, e.my + (e.uy * e.L) / 2 + e.oy * 0.15))
       const hh = f.h * 0.92, gh = hh * z.wwr
       return { a, b, z0: f.z + hh - gh, z1: f.z + hh, color: STRAT_COL[z.strat] }
