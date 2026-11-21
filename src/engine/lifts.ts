@@ -2,11 +2,11 @@
 // Deterministic up-peak round-trip-time estimate per lift group, then the core area those lifts need, level by level.
 // Early sizing, not certification: waiting and destination times need simulation (roadmap).
 // Research: 04 Tool Plan/research/modules-completion/P11/revise-r2_P11.json (single pass since 22 Oct; see flags there).
-import { DEFAULT_EGRESS_PRESETS, skyRoomLoads, stairAreaByLevel, type EgressPresets } from './egress'
+import { DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, skyRoomLoads, stairAreaByLevel, type EgressPresets } from './egress'
 import { coreAreaAt, coreStepAt, coreStepsOf, netToGross, netToGrossAt, towerFloors } from './massing'
 import { floorCounts } from './interior'
 import { coreLayout } from './plan'
-import type { CoreStep, Floor, RuleResult, RuleState, Tower } from './types'
+import type { CoreStep, Floor, PublicStop, RuleResult, RuleState, Tower } from './types'
 
 export interface LiftPresets {
   /** Office net area per person (m²). Stopes: "expected 1 per 10" at 22 Bishopsgate (P11-S22); UQ uses 12 (P11-S25). */
@@ -238,7 +238,12 @@ export function planRises(t: Tower, p: LiftPresets): Group[] {
   const room = t.skyRoom ? sky.find((f) => f.level === t.skyRoom!.level) : undefined
   if (room && t.skyRoom) {
     const v5 = skyRoomVisitors5(t, room)
-    if (t.skyRoom.access === 'dedicated') out.push({ kind: 'shuttle', cls: 'public', floors: [room], base: null, riders: [], visitors5: v5 })
+    if (t.skyRoom.access === 'dedicated') {
+      // Its public lifts also stop at the further public levels (G43), carrying their visitors too.
+      const extra = publicStopFloors(t, all)
+      const floors = [room, ...extra.map((x) => x.floor)].sort((a, b) => a.z0 - b.z0)
+      out.push({ kind: 'shuttle', cls: 'public', floors, base: null, riders: [], visitors5: v5 + extra.reduce((s, x) => s + x.visitors5, 0) })
+    }
     else { const sh = out.find((g) => g.kind === 'shuttle' && g.floors[0].level === room.level); if (sh) sh.visitors5 = v5 }
   }
   return out
@@ -250,6 +255,35 @@ export function skyRoomVisitors5(t: Tower, room: Floor): number {
   const net = Math.max(0, room.area - coreAreaAt(t, room.level))
   const perHour = skyRoomLoads(t, net).visitors * (60 / Math.max(10, t.skyRoom.visitMinutes))
   return (perHour / 12) * VISITOR_PEAK
+}
+
+/** A further public level counted on the sky room's public lifts (gap G43). */
+export interface PublicStopFloor { stop: PublicStop; floor: Floor; net: number; visitorArea: number; visitors5: number }
+
+/**
+ * The further public levels the sky room's own public lifts stop at (`Tower.publicStops`, gap G43): only with a public
+ * sky room on dedicated lifts, each on a tower floor above the podium and grade that is not plant, not the room's own
+ * level, once per level, with a visitor share above 0. Visitor area: the storey less the core at its level
+ * (engine/massing.ts `coreAreaAt`), times its visitor share. Visitors: that area at the room's load basis and visit
+ * length, peak 5 min as for the room (no posted limit). Bottom-up.
+ */
+export function publicStopFloors(t: Tower, floors: Floor[] = towerFloors(t)): PublicStopFloor[] {
+  const r = t.skyRoom
+  if (!r || r.access !== 'dedicated' || !t.publicStops?.length) return []
+  if (!floors.some((f) => f.skyLobby && f.level === r.level)) return []
+  const seen = new Set<number>([r.level])
+  const out: PublicStopFloor[] = []
+  for (const stop of t.publicStops) {
+    if (!(stop.visitorShare > 0) || seen.has(stop.level)) continue
+    const floor = floors.find((f) => f.level === stop.level && !f.podium && f.z0 > 0.5 && f.use !== 'mechanical')
+    if (!floor) continue
+    seen.add(stop.level)
+    const net = Math.max(0, floor.area - coreAreaAt(t, floor.level))
+    const visitorArea = net * Math.min(1, stop.visitorShare)
+    const perHour = (visitorArea / (r.loadBasis === 'standing' ? LOAD_FACTOR.standing : LOAD_FACTOR.dining)) * (60 / Math.max(10, r.visitMinutes))
+    out.push({ stop, floor, net, visitorArea, visitors5: (perHour / 12) * VISITOR_PEAK })
+  }
+  return out.sort((a, b) => a.floor.z0 - b.floor.z0)
 }
 
 /** Suggest a level for the next sky lobby: a change of use near the middle of the remaining span, else the middle. */
@@ -316,14 +350,18 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
     const keys = g.riders.filter((f) => f.use === 'hotel').reduce((s, f) => s + (floorCounts(t, f)?.keys ?? (f.area * netToGrossAt(t, f)) / p.hotelM2PerKey), 0)
     const counted = t.interior ? ' (from the interior layout)' : ''
     const visitorsNote = g.visitors5 ? `about ${fmt(g.visitors5)} sky-room visitors per peak 5 min` : ''
-    const popBasis = g.cls === 'public' ? visitorsNote
+    // A public group with further public levels (G43): the sky room's level and the others, named apart.
+    const roomLevel = t.skyRoom?.level ?? first.level
+    const others = g.cls === 'public' ? g.floors.filter((f) => f.level !== roomLevel).map((f) => `L${f.level}`) : []
+    const othersWord = others.length ? `public level${others.length > 1 ? 's' : ''} ${others.join(', ')}` : ''
+    const popBasis = g.cls === 'public' ? (others.length && g.visitors5 ? `about ${fmt(g.visitors5)} visitors per peak 5 min to the sky room and ${othersWord}` : visitorsNote)
       : g.kind === 'shuttle' ? `everyone on levels ${g.riders[0].level}–${g.riders[g.riders.length - 1].level}${visitorsNote ? ` plus ${visitorsNote}` : ''}`
       : g.cls === 'residential' ? `${counted ? '' : 'about '}${fmt(homes)} homes${counted} × ${p.personsPerHome} persons`
       : g.cls === 'hotel' ? `${counted ? '' : 'about '}${fmt(keys)} keys${counted} × ${p.personsPerKey} persons`
       : `1 per ${p.officeM2PerPerson} m² net × ${Math.round(p.utilisation * 100)}% present`
     const expressFloors = all.filter((f) => f.z0 > baseZ + 0.5 && f.z0 < first.z0 - 0.01).length
     const id = g.cls === 'public' ? `P${++nPublic}` : g.kind === 'shuttle' ? `S${++nShuttle}` : `R${++nLocal}`
-    const label = g.cls === 'public' ? `${id} Public lifts to the sky room L${first.level}` : g.kind === 'shuttle' ? `${id} Shuttle to sky lobby L${first.level}${g.visitors5 ? ' (shared with sky-room visitors)' : ''}` : `${id} ${CLASS_LABEL[g.cls]}: levels ${first.level}–${top.level}${g.base ? ` (from sky lobby L${g.base.level})` : ''}`
+    const label = g.cls === 'public' ? `${id} Public lifts to the sky room L${others.length ? roomLevel : first.level}${others.length ? ` and ${othersWord}` : ''}` : g.kind === 'shuttle' ? `${id} Shuttle to sky lobby L${first.level}${g.visitors5 ? ' (shared with sky-room visitors)' : ''}` : `${id} ${CLASS_LABEL[g.cls]}: levels ${first.level}–${top.level}${g.base ? ` (from sky lobby L${g.base.level})` : ''}`
     return { ...g, id, label, baseZ, baseLevel: g.base ? g.base.level : ground?.level ?? 1, firstZ: first.z0, topZ: top.z0, population, popBasis, speed, cars, P: load, rtt, hc5, interval, state, expressFloors }
   })
 
@@ -354,7 +392,9 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
   for (const r of rises) {
     const office = r.cls === 'office'
     const pub = r.cls === 'public'
-    const capacity5 = (300 * (p.loadFactor * p.carPersons) * r.cars) / upPeakRtt({ n: 1, P: p.loadFactor * p.carPersons, dExpress: r.firstZ - r.baseZ, dFloor: r.floors[0].z1 - r.floors[0].z0, v: r.speed, a: p.accel, doorTime: p.doorTime, transferTime: p.transferTime }).rtt
+    // A public group with further public levels (G43) is measured over all its stops.
+    const nStops = r.floors.length
+    const capacity5 = (300 * (p.loadFactor * p.carPersons) * r.cars) / upPeakRtt({ n: nStops, P: p.loadFactor * p.carPersons, dExpress: r.firstZ - r.baseZ, dFloor: nStops > 1 ? (r.topZ - r.firstZ) / (nStops - 1) : r.floors[0].z1 - r.floors[0].z0, v: r.speed, a: p.accel, doorTime: p.doorTime, transferTime: p.transferTime }).rtt
     rules.push({
       id: `rise-${t.id}-${r.id}`,
       label: r.label,
@@ -364,7 +404,7 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
       state: r.state,
       flag: office && r.kind === 'local' ? 'verified' : 'team_assumption',
       source: office ? UQ : pub ? { label: 'Team assumption: no sourced lift criteria for public floors at height (research P06, P11)' } : { label: 'UQ DS-11 residential band (two-way) applied to an up-peak estimate: team assumption until the two-way template is built' },
-      note: pub ? `${r.popBasis}; one stop at the sky room, no transfer; round trip ${r.rtt.toFixed(0)} s. Separate public lifts keep visitors out of the tenant shuttles and lobbies but add shafts from grade.` : `${fmt(r.population)} people (${r.popBasis}); ${r.kind === 'shuttle' ? 'one stop, then one transfer to a local rise' : `${r.floors.length} floors served`}${r.expressFloors ? `, ${r.expressFloors} passed express` : ''}; round trip ${r.rtt.toFixed(0)} s with ${r.P.toFixed(1)} people per trip at the design demand; average wait about ${(r.interval / 2).toFixed(0)} s (estimate, simulation not performed).${r.kind === 'shuttle' ? ' Shuttle criteria are not sourced: the band of the use it carries is applied (team assumption); double-deck shuttles are roadmap.' : ''}${r.state !== 'pass' ? ` Even ${MAX_CARS} cars miss the band: split the rise or add a sky lobby.` : ''}`,
+      note: pub ? `${r.popBasis}; ${nStops > 1 ? `${nStops} stops (${r.floors.map((f) => `L${f.level}`).join(', ')}: the sky room and its public levels)` : 'one stop at the sky room'}, no transfer; round trip ${r.rtt.toFixed(0)} s. Separate public lifts keep visitors out of the tenant shuttles and lobbies but add shafts from grade.` : `${fmt(r.population)} people (${r.popBasis}); ${r.kind === 'shuttle' ? 'one stop, then one transfer to a local rise' : `${r.floors.length} floors served`}${r.expressFloors ? `, ${r.expressFloors} passed express` : ''}; round trip ${r.rtt.toFixed(0)} s with ${r.P.toFixed(1)} people per trip at the design demand; average wait about ${(r.interval / 2).toFixed(0)} s (estimate, simulation not performed).${r.kind === 'shuttle' ? ' Shuttle criteria are not sourced: the band of the use it carries is applied (team assumption); double-deck shuttles are roadmap.' : ''}${r.state !== 'pass' ? ` Even ${MAX_CARS} cars miss the band: split the rise or add a sky lobby.` : ''}`,
     })
   }
 

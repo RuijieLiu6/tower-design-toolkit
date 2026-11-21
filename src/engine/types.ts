@@ -93,6 +93,14 @@ export interface Tower {
   outriggerFloors?: number[]
   /** Schematic: one sky lobby opened to the public as a sky room (null = none). */
   skyRoom?: SkyRoom | null
+  /**
+   * Schematic: further public levels the sky room's own public lifts also stop at (gap G43), such as a public garden
+   * below and a restaurant above. Counted only with a public sky room on dedicated lifts (`skyRoom.access`), on a tower
+   * floor above the podium that is not plant. Each adds its storey less the core at its level, times its visitor share,
+   * to the public floor area above the podium, and its visitors to the public lift group (engine/lifts.ts
+   * `publicStopFloors`). Absent or empty: the sky room alone, as before.
+   */
+  publicStops?: PublicStop[]
   /** Schematic: where the exit stairs sit (default: opposite corners of the core). */
   stairPlacement?: StairPlacement
   /**
@@ -296,6 +304,19 @@ export interface SkyRoom {
   visitMinutes: number
   /** Posted occupant limit for the visitor room (people); null = the Table 3.1.17.1 load. */
   postedLimit?: number | null
+}
+
+/** A further public level on the sky room's public lifts (`Tower.publicStops`, gap G43). */
+export interface PublicStop {
+  level: number
+  /** Share of the storey's net area (less the core at its level) open to visitors, 0–1. */
+  visitorShare: number
+  /** Free to enter; absent: as the sky room. */
+  free?: boolean
+  /** Hours open per day; absent: as the sky room. */
+  hoursOpen?: number
+  /** What the level is, in a few words (a public garden, a restaurant). */
+  label?: string
 }
 
 export interface Floor {

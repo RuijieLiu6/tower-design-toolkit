@@ -1,7 +1,7 @@
 // Public sky room check: a sky lobby opened to the public (research P06-M07 public uses at height,
 // P11-M02 public access and security separation, P11-M07 barrier-free access). Early check, not a policy ruling.
 import { DEFAULT_EGRESS_PRESETS, postedLimitForRoom, skyRoomLoads, type EgressPresets, type EgressResult } from './egress'
-import { DEFAULT_LIFT_PRESETS, autoCoreShare, skyRoomVisitors5, type LiftPresets, type LiftResult, type Rise } from './lifts'
+import { DEFAULT_LIFT_PRESETS, autoCoreShare, publicStopFloors, skyRoomVisitors5, type LiftPresets, type LiftResult, type PublicStopFloor, type Rise } from './lifts'
 import { coreAreaAt, towerFloors } from './massing'
 import type { Floor, RuleResult, RuleState, Tower } from './types'
 
@@ -21,7 +21,9 @@ export interface SkyRoomResult {
   peak5: number
   /** Lift group that carries the visitors from grade. */
   group: Rise | null
-  /** Visitor area as a share of the gross floor area above the podium (%). */
+  /** Further public levels on the room's public lifts (`Tower.publicStops`, G43); empty without them. */
+  publicStops: PublicStopFloor[]
+  /** Visitor area of the room and its further public levels, as a share of the gross floor area above the podium (%). */
   shareAbovePodium: number
   rules: RuleResult[]
 }
@@ -61,7 +63,7 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
   const room = t.skyRoom ? floors.find((f) => f.skyLobby && f.level === t.skyRoom!.level) ?? null : null
   if (!room || !t.skyRoom) {
     return {
-      room: null, capacity: 0, tableLoad: 0, suggestedLimit: null, visitorArea: 0, visitorsPerHour: 0, peak5: 0, group: null, shareAbovePodium: 0,
+      room: null, capacity: 0, tableLoad: 0, suggestedLimit: null, visitorArea: 0, visitorsPerHour: 0, peak5: 0, group: null, publicStops: [], shareAbovePodium: 0,
       rules: [{
         id: `skyroom-none-${t.id}`,
         label: 'Public amenity at height',
@@ -84,16 +86,20 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
   const posted = r.postedLimit != null && loads.visitors < loads.table
   const visitorsPerHour = capacity * (60 / Math.max(10, r.visitMinutes))
   const peak5 = skyRoomVisitors5(t, room)
-  const group = lift.rises.find((g) => g.cls === 'public' && g.floors[0].level === room.level) ?? lift.rises.find((g) => g.kind === 'shuttle' && g.floors[0].level === room.level) ?? null
+  const group = lift.rises.find((g) => g.cls === 'public' && g.floors.some((f) => f.level === room.level)) ?? lift.rises.find((g) => g.kind === 'shuttle' && g.floors[0].level === room.level) ?? null
   const abovePodium = floors.filter((f) => !f.podium).reduce((s, f) => s + f.area, 0)
-  const shareAbovePodium = abovePodium > 0 ? (visitorArea / abovePodium) * 100 : 0
+  // Further public levels on the room's public lifts (G43): each storey less the core at its level, times its share.
+  const stops = publicStopFloors(t, floors)
+  const stopsArea = stops.reduce((s, x) => s + x.visitorArea, 0)
+  const shareAbovePodium = abovePodium > 0 ? ((visitorArea + stopsArea) / abovePodium) * 100 : 0
+  const stopsWord = stops.map((x) => `L${x.floor.level}${x.stop.label ? ` ${x.stop.label}` : ''} ${fmt(x.visitorArea)} m²`).join(', ')
   const storey = egress.storeys.find((s) => s.level === room.level)
 
   const rules: RuleResult[] = [
     {
       id: `skyroom-amenity-${t.id}`,
       label: 'Public amenity at height',
-      value: `Public sky room at level ${room.level}, +${Math.round(room.z0)} m, about ${fmt(visitorArea)} m² open to visitors`,
+      value: `Public sky room at level ${room.level}, +${Math.round(room.z0)} m, about ${fmt(visitorArea)} m² open to visitors${stops.length ? `; its public lifts also stop at ${stopsWord}` : ''}`,
       threshold: 'A public observation deck or other public amenity, where possible',
       state: 'pass',
       flag: 'verified',
@@ -103,12 +109,14 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
     {
       id: `skyroom-share-${t.id}`,
       label: 'Public floor area above the podium',
-      value: `${shareAbovePodium.toFixed(1)}% of tower floor area`,
+      value: `${shareAbovePodium.toFixed(1)}% of tower floor area${stops.length ? ` (sky room L${room.level} ${fmt(visitorArea)} m², ${stopsWord})` : ''}`,
       threshold: '≥ 5% good, < 1% weak (team preset)',
       state: shareAbovePodium >= 5 ? 'pass' : shareAbovePodium >= 1 ? 'warn' : 'fail',
       flag: 'team_assumption',
       source: { label: 'Team preset in research P06-M07; the 1997 policy and the VTC brief give no number' },
-      note: 'One floor of a 60-plus-storey tower is about 1.5%: a second public level, an outdoor terrace or a larger visitor share raises it.',
+      note: stops.length
+        ? 'Counts the sky room and the further public levels its public lifts stop at (publicStops): each storey less the core at its level, times its visitor share. Outdoor terraces are not counted.'
+        : 'One floor of a 60-plus-storey tower is about 1.5%: a second public level, an outdoor terrace or a larger visitor share raises it.',
     },
     {
       id: `skyroom-access-${t.id}`,
@@ -122,7 +130,7 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
     {
       id: `skyroom-lifts-${t.id}`,
       label: 'Visitor lifts from grade',
-      value: group ? `${group.id}: ${group.cars} cars at ${group.speed} m/s for about ${fmt(peak5)} visitors per peak 5 min` : 'No lift group reaches the room',
+      value: group ? `${group.id}: ${group.cars} cars at ${group.speed} m/s for about ${fmt(stops.length ? group.visitors5 ?? peak5 : peak5)} visitors per peak 5 min${stops.length ? ` (the room and ${stops.map((x) => `L${x.floor.level}`).join(', ')})` : ''}` : 'No lift group reaches the room',
       threshold: 'carry the peak visitors with an interval ≤ 40 s (team)',
       state: group ? group.state : 'fail',
       flag: 'team_assumption',
@@ -193,5 +201,5 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
       source: { label: 'Research P03-M08 (elevated public terrace and sky-lobby wind check, roadmap); research R5 §1' },
       note: 'Needed only if the room opens onto a terrace. Switch on Wind on terraces and roofs (Sun & Wind) to read it from the storey outlines.',
     })
-  return { room, capacity, tableLoad: loads.table, suggestedLimit, visitorArea, visitorsPerHour, peak5, group, shareAbovePodium, rules }
+  return { room, capacity, tableLoad: loads.table, suggestedLimit, visitorArea, visitorsPerHour, peak5, group, publicStops: stops, shareAbovePodium, rules }
 }

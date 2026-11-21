@@ -115,6 +115,7 @@ const TOWER_FIELDS: Partial<Record<keyof Tower, (v: never) => string>> = {
   stairCorner: (v: string | undefined) => (v ? v.toUpperCase() : 'SW (default)'),
   stairAt: (v: Tower['stairAt']) => (v ? `(${M(v[0])}, ${M(v[1])})` : 'at the corner'),
   deckUses: (v: Tower['deckUses']) => (v?.length ? v.map((u) => `L${u.level}${u.facing ? ` ${u.facing}` : ''} ${u.use}${u.use === 'planted' && u.soilMm != null ? ` ${u.soilMm} mm` : ''}`).join(', ') : 'every deck occupied'),
+  publicStops: (v: Tower['publicStops']) => (v?.length ? v.map((x) => `L${x.level}${x.label ? ` ${x.label}` : ''} ${Math.round(x.visitorShare * 100)}%`).join(', ') : 'none'),
   podiumExits: (v: Tower['podiumExits']) => (v?.at?.length ? `${v.at.length} placed` : v?.count ? `${v.count} round the edge` : 'none'),
   coreAuto: (v: boolean) => (v ? 'sized to the lifts' : 'set by hand'),
   podiumUse: (v: keyof typeof USES) => USES[v]?.label ?? String(v),
@@ -125,7 +126,7 @@ const TOWER_FIELDS: Partial<Record<keyof Tower, (v: never) => string>> = {
 const LABEL: Partial<Record<keyof Tower, string>> = {
   height: 'height', width: 'width', depth: 'depth', f2f: 'floor-to-floor', podiumHeight: 'podium height', podiumWidth: 'podium width', podiumDepth: 'podium depth',
   rotation: 'rotation', coreShare: 'core share', outriggerFloors: 'outrigger floors', plantEvery: 'plant floors', coreAuto: 'core', podiumUse: 'podium use', bands: 'program', skyLobbies: 'sky lobbies',
-  x: 'position x', y: 'position y', skyRoom: 'sky room', stairPlacement: 'stairs', stairCorner: 'stair corner', stairAt: 'edge stair position', deckUses: 'deck uses', podiumExits: 'podium exits', imported: 'imported massing', name: 'name',
+  x: 'position x', y: 'position y', skyRoom: 'sky room', stairPlacement: 'stairs', stairCorner: 'stair corner', stairAt: 'edge stair position', deckUses: 'deck uses', publicStops: 'public stops', podiumExits: 'podium exits', imported: 'imported massing', name: 'name',
 }
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const SITE = { vtc: 'competition site', city: 'Real Vancouver' } as const

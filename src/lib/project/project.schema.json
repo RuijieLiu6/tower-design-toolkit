@@ -952,6 +952,39 @@
             }
           }
         },
+        "publicStops": {
+          "type": "array",
+          "maxItems": 20,
+          "description": "Further public levels the sky room's own public lifts also stop at (gap G43): each a level, the share of its net floor (less the core at its level) open to visitors and, optionally, free entry, hours open and a label. Counted only with a public sky room on dedicated lifts. Optional: absent, the sky room alone.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["level", "visitorShare"],
+            "properties": {
+              "level": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "visitorShare": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "free": {
+                "type": "boolean"
+              },
+              "hoursOpen": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 24
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 80
+              }
+            }
+          }
+        },
         "stairAt": {
           "type": "array",
           "minItems": 2,

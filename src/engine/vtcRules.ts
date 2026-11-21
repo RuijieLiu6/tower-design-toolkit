@@ -1,7 +1,7 @@
 // VTC hard-rules checker (research module P01-M01 + P01-M07, simplified for v0.1).
 // Every rule cites the competition brief, which the team holds locally:
 // "03 Vancouver Tall Competition Brief/.../_Vancouver Tall Challenge - ENG.pdf" (Buildner, 2026).
-import { CLASS_LABEL, DEFAULT_LIFT_PRESETS, planRises } from './lifts'
+import { CLASS_LABEL, DEFAULT_LIFT_PRESETS, planRises, publicStopFloors } from './lifts'
 import { gfaByUse, towerFloors, towerFootprint, towerMasses } from './massing'
 import type { RuleResult, Tower, UseId } from './types'
 
@@ -36,11 +36,13 @@ export function fsrSummary(towers: Tower[], siteArea: number = SITE.area) {
  * Levels a public lift route stops at (gap G42): a public sky room's level, reached by its own public lifts (access
  * 'dedicated') or by the tenants' shuttle to a sky lobby opened to visitors (visitor share above 0). Every other lift
  * the lift plan runs is a tenant lift (office, hotel or residents'), so the levels it alone serves are not public.
+ * Since G43 the sky room's public lifts also stop at the further public levels declared in `Tower.publicStops`.
  */
 export function publicStops(t: Tower): number[] {
   const r = t.skyRoom
   if (!r || !(r.access === 'dedicated' || r.visitorShare > 0)) return []
-  return towerFloors(t).some((f) => f.level === r.level && f.skyLobby && !f.podium) ? [r.level] : []
+  const floors = towerFloors(t)
+  return floors.some((f) => f.level === r.level && f.skyLobby && !f.podium) ? [r.level, ...publicStopFloors(t, floors).map((x) => x.floor.level)] : []
 }
 
 /**
@@ -56,8 +58,11 @@ export function verticalPublicRead(towers: Tower[]): { counted: string[]; unreac
     const who = towers.length > 1 ? `${t.name}: ` : ''
     const floors = towerFloors(t)
     const stops = new Set(publicStops(t))
+    // further public levels on the sky room's public lifts (G43), each read as its own phrase below
+    const extra = publicStopFloors(t, floors)
+    const extraLevels = new Set(extra.map((x) => x.floor.level))
     // every civic or amenity level above the podium: from a band or set by level (a sky lobby is read as the sky room)
-    const civic = floors.filter((f) => !f.podium && !f.skyLobby && (f.use === 'civic' || f.use === 'amenity'))
+    const civic = floors.filter((f) => !f.podium && !f.skyLobby && !extraLevels.has(f.level) && (f.use === 'civic' || f.use === 'amenity'))
     const reached = civic.filter((f) => stops.has(f.level)).map((f) => f.level)
     const missed = civic.filter((f) => !stops.has(f.level))
     if (reached.length) counted.push(`${who}${floorsWord(reached)} above the podium, on the public route`)
@@ -70,6 +75,13 @@ export function verticalPublicRead(towers: Tower[]): { counted: string[]; unreac
     }
     const r = t.skyRoom, room = r ? floors.find((f) => f.level === r.level && f.skyLobby && !f.podium) : null
     if (r && room && r.visitorShare > 0) counted.push(`${who}Public sky room at L${r.level} (${r.free ? 'free entry' : 'ticketed'}, ${Math.round(r.visitorShare * 100)}% of the floor open to visitors${r.access === 'dedicated' ? ', its own public lifts' : ''})`)
+    for (const x of extra) {
+      const free = x.stop.free ?? r!.free, hours = x.stop.hoursOpen ?? r!.hoursOpen
+      counted.push(`${who}Public level L${x.floor.level}${x.stop.label ? ` ${x.stop.label}` : ''} (${free ? 'free entry' : 'ticketed'}, ${hours} h a day, ${Math.round(Math.min(1, x.stop.visitorShare) * 100)}% of the floor open to visitors, on the sky room's public lifts)`)
+    }
+    // declared public levels that no public lift reaches: no public sky room on its own lifts, or not a tower floor
+    const left = (t.publicStops ?? []).filter((x) => x.visitorShare > 0).map((x) => x.level).filter((l, i, a) => a.indexOf(l) === i && !extraLevels.has(l) && l !== r?.level)
+    if (left.length) unreached.push(`${who}Public level${left.length > 1 ? 's' : ''} L${left.join(', L')} not on a public route (further public levels need a public sky room on its own lifts and a tower floor above the podium that is not plant)`)
   }
   return { counted, unreached }
 }
