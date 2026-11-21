@@ -352,6 +352,7 @@ export function towerFromMass(mass: ImportedMass, place: { x: number; y: number;
     ...(o.like?.stairPlacement ? { stairPlacement: o.like.stairPlacement } : {}),
     ...(o.like?.stairCorner ? { stairCorner: o.like.stairCorner } : {}),
     ...(o.like?.stairAt ? { stairAt: o.like.stairAt } : {}),
+    ...(o.like?.deckUses?.length ? { deckUses: o.like.deckUses } : {}),
     ...(o.like?.podiumExits ? { podiumExits: o.like.podiumExits } : {}),
   }
   const core = o.coreShare != null ? { coreShare: o.coreShare, coreAuto: false } : {}

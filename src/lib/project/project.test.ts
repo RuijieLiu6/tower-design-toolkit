@@ -98,6 +98,17 @@ describe('project file: deterministic export and import', () => {
     ;(f.towers.vtc[0] as unknown as Record<string, unknown>).stairCorner = 'up'
     expect(readProject(JSON.stringify(f)).ok).toBe(false)
   })
+  it('keeps a tower\'s deck uses and soil per deck (G25, G32); a use it does not know is refused', () => {
+    const uses = [{ level: 43, use: 'occupied' as const }, { level: 46, facing: 'NE', use: 'planted' as const, soilMm: 450 }, { level: 75, use: 'none' as const }]
+    useStore.getState().updateTower('t1', { deckUses: uses })
+    const r = readProject(exportProject(pickDesign(useStore.getState())))
+    expect(r.ok).toBe(true)
+    expect(toDesign(r.file!).towers.vtc[0].deckUses).toEqual(uses)
+    const f = file()
+    expect(f.towers.vtc[0].deckUses).toBeUndefined()
+    ;(f.towers.vtc[0] as unknown as Record<string, unknown>).deckUses = [{ level: 46, use: 'lawn' }]
+    expect(readProject(JSON.stringify(f)).ok).toBe(false)
+  })
   it('keeps a declared damper apart from inherent damping (G20); a negative one is refused', () => {
     useStore.setState((s) => ({ windPresets: { ...s.windPresets, supplementalDamping: 0.02, damperNote: 'tuned sloshing tanks in the crown, +300–304 m' } }))
     const r = readProject(exportProject(pickDesign(useStore.getState())))

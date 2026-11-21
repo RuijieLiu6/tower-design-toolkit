@@ -961,6 +961,38 @@
           },
           "description": "Edge stair centre placed by hand, in the tower's own frame (m). Optional: absent, at the plate corner (a twisted imported tower: a straight shaft inside every storey)."
         },
+        "deckUses": {
+          "type": "array",
+          "maxItems": 200,
+          "description": "What each deck is for (gaps G25, G32): occupied (a terrace people use, the default), planted (closed to people but for maintenance; soilMm on it in the storey weights) or none. Matched by the deck's level and, when given, the way it faces.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["level", "use"],
+            "properties": {
+              "level": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "facing": {
+                "type": "string",
+                "maxLength": 8
+              },
+              "use": {
+                "enum": [
+                  "occupied",
+                  "planted",
+                  "none"
+                ]
+              },
+              "soilMm": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 3000
+              }
+            }
+          }
+        },
         "stairCorner": {
           "enum": [
             "ne",
