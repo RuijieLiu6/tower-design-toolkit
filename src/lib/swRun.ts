@@ -7,14 +7,18 @@ import { towerOccluders } from '../engine/solarRules'
 import { aseTower, daylightTower, type DaylightTower, type AseTower } from '../engine/sw/daylight'
 import { hourBase, hourLight, type HourLight } from '../engine/sw/hourLight'
 import { energyModel, ENERGY_DEFAULTS, type EnergyFloor, type EnergyResult } from '../engine/sw/energy'
-import { FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, band, STRATS, type Face, type SwFloor } from '../engine/sw/plate'
+import { cardinalOf, FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, band, STRATS, type Face, type SwFloor } from '../engine/sw/plate'
 import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainAngle, rainBySector, roofCollect, wdrBins, type FaceRain, type GroundShelter, type RainBySector, type RainTower, type RoofWater } from '../engine/sw/rain'
 import { facadeIrradiance, sunGround, SUN_DATES, type SunGround } from '../engine/sw/sun'
 import { periodLabel, periodRange } from './sunPeriod'
 import { sunImpact } from '../engine/sw/sunImpact'
 import type { ClimatePayload, FacadeFace, Prism } from '../engine/sw/types'
-import { ALPHA, runWindStudy, SEASONS, windRose, type Rose, type WindStudy } from '../engine/sw/wind'
-import { CRITERIA, deckHours, freeStream, readSeasons, SECTOR8, stateOf, type CriteriaSet, type DeckSeason } from '../engine/sw/deckWind'
+import { ALPHA, compass16, runWindStudy, SEASONS, windRose, type Rose, type WindStudy } from '../engine/sw/wind'
+import { CRITERIA, DECK_SEASONS, deckHours, freeStream, readSeasons, SECTOR8, stateOf, type CriteriaSet, type DeckSeason } from '../engine/sw/deckWind'
+import { towerDecks, type Deck, type DeckType } from '../engine/sw/decks'
+import { K_WORD, terraceWind, type DeckWind, type Screen } from '../engine/sw/terraceWind'
+import { towerFloors } from '../engine/massing'
+import type { SkyTerraceLine } from '../engine/skyRoom'
 import type { RuleResult, RuleState, Tower } from '../engine/types'
 import type { KeySpec } from '../components/ResultViz'
 import { faceSunHours, peopleOf, prismsToNorth, roofYear, shadowRange, stormOnFaces, windProfile } from '../engine/sw/detail'
@@ -186,15 +190,35 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const classBands = crit.classes.length === 5 ? [0, 1, 2, 3, 4] : [0, 1, 3, 4]
     const dOpt = { exposure: s.deckExposure, profile: s.deckProfile, criteria: s.deckCriteria }
     const HH = deckHours(C, s.windCase === 'one' ? { dir: s.windDir, speed: s.windSpeed } : undefined)
-    const decks = inp.towers.flatMap((t) => prismsOf(t).map((p) => ({ tower: t.name, z: p.z1 })))
-    const uniq = [...new Map(decks.map((d) => [`${d.tower}|${Math.round(d.z)}`, d])).values()].sort((a, b) => a.z - b.z)
-    const rows = uniq.map((d) => {
-      const r = readSeasons(HH, freeStream(d.z, dOpt), crit)
-      return { ...d, u: r.v, band: classBands[r.cls], cls: r.cls, season: r.worst, seasons: r.seasons, uOld: U10 * Math.pow(Math.max(10, d.z) / 10, ALPHA) }
-    })
-    const worst = rows.reduce((a, r) => (r.cls > a.cls || (r.cls === a.cls && r.u > a.u) ? r : a), rows[0] ?? { u: 0, z: 0, tower: '', band: 0, cls: 0, season: 'winter' as DeckSeason, uOld: 0 })
-    const deckState = stateOf(crit, worst.cls)
     const how = deckHow(s, HH.source === 'one')
+    // Every terrace, roof and open storey from the storey outlines (R5 §1.3–§1.6, gap G4): local factor by deck type and
+    // edge exposure, screens (the settings', or a façade wind-screen zone at the deck's level) and taller neighbours.
+    const screen = s.deckScreenH != null ? { h: s.deckScreenH, porosity: s.deckScreenPorosity } : null
+    const multi = inp.towers.length > 1
+    const winds: DeckWind[] = inp.towers.flatMap((t) => {
+      const zones = zonesOf(t)
+      const neighbours = [...inp.context, ...inp.towers.filter((x) => x.id !== t.id).flatMap(prismsOf)].map((p) => ({ ring: p.ring, z1: p.z1 }))
+      return terraceWind(towerDecks(t, inp.north), HH, { ...dOpt, north: inp.north, screen, neighbours, edgeScreen: (d, e) => (STRATS[zoneFor(zones, faceOfAz(e.az), d.level).strat].screen ? FACADE_SCREEN : null) })
+    }).sort((a, b) => a.deck.z - b.deck.z)
+    // A tower whose outlines give no deck (a pointed top) falls back to the free stream at each block top.
+    const free = winds.length ? [] : [...new Map(inp.towers.flatMap((t) => prismsOf(t).map((p) => ({ tower: t.name, z: p.z1 }))).map((d) => [`${d.tower}|${Math.round(d.z)}`, d])).values()].sort((a, b) => a.z - b.z)
+    const rows = [
+      ...winds.map((w) => ({ tower: w.deck.tower, z: w.deck.z, u: w.read.v, band: classBands[w.read.cls], cls: w.read.cls, season: w.read.worst, seasons: w.read.seasons, label: deckLabel(w.deck, multi), type: w.deck.type, uOld: U10 * Math.pow(Math.max(10, w.deck.z) / 10, ALPHA) })),
+      ...free.map((d) => { const r = readSeasons(HH, freeStream(d.z, dOpt), crit); return { ...d, u: r.v, band: classBands[r.cls], cls: r.cls, season: r.worst, seasons: r.seasons, label: `${multi ? `${d.tower}: ` : ''}Top at +${Math.round(d.z)} m (free stream)`, type: 'roof' as DeckType, uOld: U10 * Math.pow(Math.max(10, d.z) / 10, ALPHA) } }),
+    ]
+    const worst = rows.reduce((a, r) => (r.cls > a.cls || (r.cls === a.cls && r.u > a.u) ? r : a), rows[0] ?? { u: 0, z: 0, tower: '', band: 0, cls: 0, season: 'winter' as DeckSeason, uOld: 0, label: '' })
+    const worstWind = winds.find((w) => w.deck.z === worst.z && w.read.v === worst.u && w.deck.tower === worst.tower)
+    const deckState = stateOf(crit, worst.cls)
+    // The public sky room's terrace: the deck at the room's level, or none (engine/skyRoom.ts places the line).
+    const skyTerraces: Record<string, SkyTerraceLine> = {}
+    for (const t of inp.towers) {
+      if (!t.skyRoom) continue
+      const lv = t.skyRoom.level, room = towerFloors(t).find((f) => f.level === lv)
+      const w = winds.find((x) => x.deck.towerId === t.id && (x.deck.level === lv || (!!room && Math.abs(x.deck.z - room.z0) < 0.5)))
+      skyTerraces[t.id] = w
+        ? { value: `${crit.classes[w.read.cls]} in ${w.read.worst} (${w.read.v.toFixed(1)} m/s ${crit.stat})`, threshold: `${crit.classes[crit.target]} for a public terrace (${crit.name})`, state: stateOf(crit, w.read.cls), note: `${deckLabel(w.deck, false)}: ${deckNote(w, crit)}`, source: DECK_SRC(crit).label }
+        : { value: `No outdoor terrace at the room level (L${lv})`, threshold: 'Comfort criteria for a terrace at height', state: 'pass', note: 'The storey outlines show no roof, setback terrace or open storey at the sky room level, so the room has no outdoor deck to check (Wind on terraces and roofs).', source: DECK_SRC(crit).label }
+    }
     const H = Math.max(0, ...inp.towers.map((t) => t.height))
     const downwash = H > 0 ? U10 * Math.pow(Math.max(10, H * 0.7) / 10, ALPHA) : 0
     // The downwash section (study.js downwashSVG): the tallest tower against its neighbours' mean height within 120 m.
@@ -208,14 +232,16 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const topP = profile[profile.length - 1]
     const sec = { H, w: Math.max(tall.width, tall.depth), hn, amp, amp0, depth: 0.22 * H, podiumH: tall.podiumHeight, podiumW: Math.max(tall.podiumWidth, tall.podiumDepth), U10 }
     return {
-      data: { rows, rose, U10, downwash, H, profile, sec, classes: crit.classes, classBands, criteria: crit.name },
+      data: { rows, winds, skyTerraces, rose, U10, downwash, H, profile, sec, classes: crit.classes, classBands, criteria: crit.name },
       keys: [
         ...(rows.length ? [key('sw-wind-deck', 'Windiest deck', crit.name.replace(/ \d+$/, ''), worst.u.toFixed(1), deckState, `${crit.classes[worst.cls]} at ${Math.round(worst.z)} m in ${worst.season}: ${worst.u.toFixed(1)} m/s ${crit.stat}. ${how}`, { unit: 'm/s', bar: { max: 10, v: Math.min(10, worst.u), zone: [0, crit.limits[crit.target]], ticks: crit.limits.map((l, i) => [l, i === crit.limits.length - 1 ? `${l.toFixed(l % 1 ? 1 : 0)} m/s` : l.toFixed(l % 1 ? 1 : 0)] as [number, string]) } })] : []),
         key('sw-wind-downwash', 'Downwash', 'at 0.7 H', downwash.toFixed(1), downwash <= 5 ? 'pass' : downwash <= 7 ? 'warn' : 'fail', `Mean wind at 70% of the height, which the face sends down to the street; ×${amp.toFixed(2)} at the ground against the free wind. A podium or canopy helps over 5 m/s.`, { unit: 'm/s', bar: { max: 10, v: Math.min(10, downwash), zone: [0, 5], ticks: [[5, '5 m/s']] } }),
         ...(topP ? [key('sw-wind-gust', 'Gust at the top', '', topP.gust.toFixed(0), 'unknown', `Gusts 1.8 × the mean at the top of the tower: ${(topP.q / 1000).toFixed(1)} kPa on screens and operable windows.`, { unit: 'm/s', bar: { max: 40, v: Math.min(40, topP.gust) } })] : []),
       ],
       rules: [
-        ...(rows.length ? [rule('sw-wind-deck', 'Windiest roof or terrace', `${worst.u.toFixed(1)} m/s at ${Math.round(worst.z)} m (${crit.classes[worst.cls]}, ${worst.season})`, `${crit.classes[crit.target]} for a terrace people use: up to ${crit.limits[crit.target].toFixed(1)} m/s ${crit.stat} (${crit.name})`, deckState, `${how} Earlier reading (power law α ${ALPHA} on the season mean): ${worst.uOld.toFixed(1)} m/s.`, DECK_SRC(crit))] : []),
+        ...(rows.length ? [rule('sw-wind-deck', 'Windiest roof or terrace', `${worst.u.toFixed(1)} m/s at ${Math.round(worst.z)} m (${crit.classes[worst.cls]}, ${worst.season})`, `${crit.classes[crit.target]} for a terrace people use: up to ${crit.limits[crit.target].toFixed(1)} m/s ${crit.stat} (${crit.name})`, deckState, `${worst.label}${worstWind ? `, ${K_WORD[worstWind.governing.kCase]}` : ''}. ${how} Earlier reading (power law α ${ALPHA} on the season mean, no local factor): ${worst.uOld.toFixed(1)} m/s.`, DECK_SRC(crit))] : []),
+        ...winds.map((w) => rule(`sw-terrace-${w.deck.id}`, deckLabel(w.deck, multi), `${crit.classes[w.read.cls]} in ${w.read.worst} (${w.read.v.toFixed(1)} m/s)`, `${crit.classes[crit.target]} for a terrace people use (${crit.name}, ${crit.stat})`, stateOf(crit, w.read.cls), deckNote(w, crit), DECK_SRC(crit))),
+        ...inp.towers.filter((t) => skyTerraces[t.id]).map((t) => { const l = skyTerraces[t.id]; return rule(`sw-terrace-sky-room-${t.id}`, `${multi ? `${t.name}: ` : ''}Wind on the sky room terrace`, l.value, l.threshold, l.state, l.note, { label: l.source }) }),
         rule('sw-wind-downwash', 'Wind brought down the face', `${downwash.toFixed(1)} m/s`, 'a podium or canopy over 5 m/s', downwash <= 5 ? 'pass' : downwash <= 7 ? 'warn' : 'fail', 'Mean wind at 70% of the height, which the face sends down to the street.'),
       ],
     }
@@ -348,7 +374,32 @@ function deckHow(s: SwStudySettings, one: boolean): string {
     : `Profile: NBC 2020 exposure factor on the airport's open-terrain 10 m wind, Ce = 0.5 (z/12.7)^0.5 over rough fetch (${rough.length ? rough.join(', ') : 'no sector'}), (z/10)^0.28 open elsewhere (open formula unverified; sector table a team assumption).`
   return `${one ? 'One wind case: its speed at the deck read against the class limits, no exceedance statistics.' : 'CWEC 2020 hourly record, comfort hours 06:00–23:00, each season.'} ${prof}`
 }
-const DECK_SRC = (c: CriteriaSet) => ({ label: `Research R5 §1.2, §1.5: NBC 2020 Div. B 4.1.7.3.(5) and Commentary I para 12 (exposure); ${c.source}; CWEC 2020 Vancouver Intl hourly` })
+const DECK_SRC = (c: CriteriaSet) => ({ label: `Research R5 §1.2–§1.6: NBC 2020 Div. B 4.1.7.3.(5), 4.1.7.5.(2) and Commentary I para 12 (exposure, Cp); local factors, screens and neighbours are team values (R5 K table); ${c.source}; CWEC 2020 Vancouver Intl hourly` })
+/** A façade zone with the wind-screen strategy: 1.5 m glass screens on the terrace edges (STRATS.windscreen), solid. */
+const FACADE_SCREEN = { h: 1.5, porosity: 0 }
+/** The project-grid face (N, E, S, W) a true azimuth falls on, as the façade zones name faces. */
+const faceOfAz = (az: number): Face => cardinalOf(Math.sin((az * Math.PI) / 180), Math.cos((az * Math.PI) / 180), 0)
+const DECK_WORD: Record<DeckType, string> = { roof: 'Roof', setback: 'Terrace', openStorey: 'Open storey', loggia: 'Loggia' }
+const deckLabel = (d: Deck, multi: boolean) => `${multi ? `${d.tower}: ` : ''}${DECK_WORD[d.type]} at +${Math.round(d.z)} m${d.type === 'roof' ? '' : ` (L${d.level})`}`
+const C8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+const compass8 = (az: number) => C8[Math.round((((az % 360) + 360) % 360) / 45) % 8]
+const screenWord = (sc: Screen) => `${sc.h.toFixed(1)} m at ${Math.round(sc.porosity * 100)}% open`
+/** What a deck reading rests on, for its note: shape, seasons, the governing wind, screens, the other set, safety. */
+function deckNote(w: DeckWind, c: CriteriaSet): string {
+  const d = w.deck, r = w.read, o = CRITERIA[w.other.criteria]
+  const facings = [...new Set(d.edges.filter((e) => e.open && e.L >= 1).sort((a, b) => b.L - a.L).map((e) => compass8(e.az)))]
+  const dH = Math.max(0, ...d.edges.filter((e) => !e.open).map((e) => e.dH ?? 0))
+  const shape = `${fmt(d.area)} m², ${d.allRound ? 'open all round' : `open to the ${facings.join(', ') || 'sky'}`}${d.cover != null ? `, slab ${d.cover.toFixed(1)} m above` : ''}${d.type === 'setback' && dH > 0 ? `, the face above rises ${Math.round(dH)} m` : ''}.`
+  const seasons = `Seasons: ${DECK_SEASONS.map((k) => `${k} ${c.classes[r.seasons[k].cls]} (${r.seasons[k].v.toFixed(1)})`).join(', ')}.`
+  const g = w.governing
+  const gov = `Worst point: most hours over ${c.limits[c.target].toFixed(1)} m/s come from ${compass16(g.dir)}${g.edgeAz != null ? ` across the ${compass8(g.edgeAz)}-facing edge` : ''}, ${K_WORD[g.kCase]} (K ${g.k.toFixed(2)}); ${fmt(w.hoursOver)} comfort hours a year over it.`
+  const scr = w.screen ? (w.screen.from === 'setting' ? `Screen ${screenWord(w.screen)} on every open edge.` : `Façade wind screens (1.5 m glass) on ${w.screen.edges} open edge${w.screen.edges === 1 ? '' : 's'}.`) : 'No screen.'
+  const needOf = (n: Screen | 'none' | null, cls: number) => (n === 'none' ? `${c.classes[cls]} without one` : n ? `${c.classes[cls]} with ${screenWord(n)}` : `no screen up to 2.5 m reaches ${c.classes[cls]}`)
+  const need = `Smallest screen on every open edge: ${needOf(w.need.sitting, c.target)}; ${needOf(w.need.standing, c.check)}.`
+  const other = `${o.name}: ${o.classes[w.other.read.cls]} in ${w.other.read.worst}.`
+  const safe = w.safety ? `Safety (indicative, one typical year): ${fmt(w.safety.londonHours)} h at 15 m/s or more (London: dangerous over 1.9 h${w.safety.london ? ', exceeded' : ''}); gusts over 25 m/s in ${(w.safety.torontoShare * 100).toFixed(2)}% of hours (Toronto: unsafe over 0.1%${w.safety.toronto ? ', exceeded' : ''}).` : ''
+  return [shape, seasons, gov, scr, need, other, safe, 'Screening values: within one class of the target, test in a wind tunnel or CFD.'].filter(Boolean).join(' ')
+}
 
 // ------------------------------------------------------------------ shared helpers
 const FACE_WORD: Record<Face, string> = { N: 'North', E: 'East', S: 'South', W: 'West' }

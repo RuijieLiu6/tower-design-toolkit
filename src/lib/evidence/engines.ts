@@ -15,7 +15,7 @@ import { liftCheck, type LiftPresets } from '../../engine/lifts'
 import { towerFloors } from '../../engine/massing'
 import { DEFAULT_MOBILITY, mobilityCheck } from '../../engine/mobility'
 import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
-import { skyRoomCheck } from '../../engine/skyRoom'
+import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
 import type { Tower } from '../../engine/types'
 import { SITE, vtcRules, type FsrTier } from '../../engine/vtcRules'
@@ -39,6 +39,8 @@ export interface EvidenceInput {
   cityRing?: [number, number][] | null
   /** Real Vancouver: the site's streets and their settings (lib/siteStreets.ts streetsCtx), once found. */
   cityStreets?: CityStreetsCtx | null
+  /** The sky room terrace wind by tower id, from Wind on terraces and roofs (its data.skyTerraces), when it has run. */
+  skyTerraces?: Record<string, SkyTerraceLine> | null
 }
 
 /** Both projects' results side by side, so the hub lists every node's sources whichever project is open. */
@@ -59,7 +61,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.core-lifts': lifts.map((l) => l.rules),
     'built.egress': egress.map((e) => e.rules),
     'built.life-safety': towers.map((t, k) => lifeSafety(t, lifts[k], egress[k], { transitLink: i.transitLink, liftPresets: i.liftPresets, presets: i.systemsPresets ?? DEFAULT_SYSTEMS_PRESETS, entrances: vtc ? Object.values(i.publicRealm.frontage).reduce((n, f) => n + f.entrances, 0) : null }).rules),
-    'built.sky-room': towers.map((t, k) => skyRoomCheck(t, lifts[k], egress[k], i.egressPresets, i.liftPresets).rules),
+    'built.sky-room': towers.map((t, k) => skyRoomCheck(t, lifts[k], egress[k], i.egressPresets, i.liftPresets, i.skyTerraces?.[t.id]).rules),
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityStreetwallCheck(towers, i.cityStreets ?? null, i.cityRing ?? null, i.publicRealm.openPublicShare).rules : [],
     'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageCheck(towers, i.cityStreets ?? null).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],

@@ -300,7 +300,7 @@ function DownwashSection({ s }: { s: DownSec }) {
 function WindHeightBody() {
   const out = useSwOut((s) => s.out['built.sw-wind-height'])
   const C = useSwInputs().C
-  const d = out?.data as { rows: { tower: string; z: number; u: number; band: number; cls: number; season: string }[]; classes?: string[]; classBands?: number[]; criteria?: string; profile: ProfilePoint[]; sec: DownSec; U10: number; H: number } | undefined
+  const d = out?.data as { rows: { tower: string; z: number; u: number; band: number; cls: number; season: string; label?: string }[]; classes?: string[]; classBands?: number[]; criteria?: string; profile: ProfilePoint[]; sec: DownSec; U10: number; H: number } | undefined
   if (!d?.profile) return null
   const top = d.profile[d.profile.length - 1]
   return (
@@ -315,8 +315,8 @@ function WindHeightBody() {
         <DownwashSection s={d.sec} />
       </SwFig>
       {d.rows.length > 0 && <Fold title="Roofs and terraces">
-        <SwFig title="Wind on each deck" caption={`Worst season. ${d.criteria ?? 'Lawson'} class.`} tip="The speed the criteria read (London: exceeded in 5% of comfort hours), in the windiest season. Colour: the class.">
-          <BarRows label="Wind on each roof and terrace" labelW={58} textW={118} max={Math.max(8, ...d.rows.map((r) => r.u)) * 1.05} rows={[...d.rows].reverse().map((r) => ({ label: `${Math.round(r.z)} m`, v: r.u, color: BAND_COL[r.band], text: `${r.u.toFixed(1)} m/s · ${d.classes?.[r.cls] ?? BAND_NAME[r.band]}`, tip: `${r.tower} · deck at ${Math.round(r.z)} m: ${r.u.toFixed(1)} m/s in ${r.season}${d.classes ? `, ${d.classes[r.cls]}` : ''}` }))} />
+        <SwFig title="Wind on each deck" caption={`Worst point, worst season. ${d.criteria ?? 'Lawson'} class.`} tip="Every roof, setback terrace and open storey from the storey outlines: the speed the criteria read (London: exceeded in 5% of comfort hours) at the deck's windiest point in its windiest season, with the local factor of its type and edge facing. Colour: the class.">
+          <BarRows label="Wind on each roof and terrace" labelW={58} textW={118} max={Math.max(8, ...d.rows.map((r) => r.u)) * 1.05} rows={[...d.rows].reverse().map((r) => ({ label: `${Math.round(r.z)} m`, v: r.u, color: BAND_COL[r.band], text: `${r.u.toFixed(1)} m/s · ${d.classes?.[r.cls] ?? BAND_NAME[r.band]}`, tip: `${r.label ?? `${r.tower} · deck at ${Math.round(r.z)} m`}: ${r.u.toFixed(1)} m/s in ${r.season}${d.classes ? `, ${d.classes[r.cls]}` : ''}` }))} />
           <Chips items={(d.classes ?? BAND_NAME).map((n, i) => ({ name: n, color: BAND_COL[d.classBands?.[i] ?? i] }))} />
         </SwFig>
       </Fold>}

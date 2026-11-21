@@ -137,6 +137,17 @@ function DeckWindSet() {
           <option value="nbc">NBC 2020 exposure factor, by sector</option>
           <option value="power">power law (z/10)^0.25 · the earlier reading</option>
         </select></label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="grid gap-1"><span className={label} title="A screen along every open terrace edge (research R5 §1.4): no effect under 1.2 m; it calms the deck for up to 10 × its height.">Terraces · screen</span>
+          <select className={field} value={s.deckScreenH ?? ''} data-testid="deck-screen" onChange={(e) => s.set({ deckScreenH: e.target.value === '' ? null : Number(e.target.value) })}>
+            <option value="">none</option>
+            {[1.5, 2, 2.5].map((h) => <option key={h} value={h}>{h.toFixed(1)} m</option>)}
+          </select></label>
+        {s.deckScreenH != null && <label className="grid gap-1"><span className={label}>Open share</span>
+          <select className={field} value={s.deckScreenPorosity} data-testid="deck-porosity" onChange={(e) => s.set({ deckScreenPorosity: Number(e.target.value) })}>
+            {[[0, 'solid glass'], [0.25, '25% · mesh'], [0.5, '50% · slats'], [0.7, '70% · open rail']].map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+          </select></label>}
+      </div>
       {s.deckProfile === 'nbc' && <div className="grid gap-1">
         <span className={label} title="NBC 2020 4.1.7.3.(5): rough only where city runs upwind at least 1 km or 20 × the height; over water or open ground the sector is open.">Rough fetch upwind (city for 20 × the height)</span>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Wind sectors with rough fetch">

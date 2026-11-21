@@ -3,7 +3,10 @@
 import { DEFAULT_EGRESS_PRESETS, postedLimitForRoom, skyRoomLoads, type EgressPresets, type EgressResult } from './egress'
 import { DEFAULT_LIFT_PRESETS, autoCoreShare, skyRoomVisitors5, type LiftPresets, type LiftResult, type Rise } from './lifts'
 import { towerFloors } from './massing'
-import type { Floor, RuleResult, Tower } from './types'
+import type { Floor, RuleResult, RuleState, Tower } from './types'
+
+/** The wind on the deck at the sky room's level, worded by Wind on terraces and roofs (lib/swRun.ts, research R5 §1). */
+export interface SkyTerraceLine { value: string; threshold: string; state: RuleState; note: string; source: string }
 
 export interface SkyRoomResult {
   room: Floor | null
@@ -53,7 +56,7 @@ export function stablePostedLimit(t: Tower, liftP: LiftPresets = DEFAULT_LIFT_PR
   return cur
 }
 
-export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e: EgressPresets = DEFAULT_EGRESS_PRESETS, liftP: LiftPresets = DEFAULT_LIFT_PRESETS): SkyRoomResult {
+export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e: EgressPresets = DEFAULT_EGRESS_PRESETS, liftP: LiftPresets = DEFAULT_LIFT_PRESETS, terrace?: SkyTerraceLine | null): SkyRoomResult {
   const floors = towerFloors(t)
   const room = t.skyRoom ? floors.find((f) => f.skyLobby && f.level === t.skyRoom!.level) ?? null : null
   if (!room || !t.skyRoom) {
@@ -176,15 +179,18 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
       note: 'A posted limit needs a sign in the room, managed entry (timed tickets or a counter) and acceptance by the Chief Building Official; a code consultant confirms the route.',
     })
   }
-  rules.push({
-    id: `skyroom-wind-${t.id}`,
-    label: 'Wind on an outdoor terrace',
-    value: 'Not assessed',
-    threshold: 'Comfort criteria for a terrace at height',
-    state: 'unknown',
-    flag: 'unresolved',
-    source: { label: 'Research P03-M08 (elevated public terrace and sky-lobby wind check, roadmap)' },
-    note: 'Needed only if the room opens onto a terrace.',
-  })
+  // The terrace at the room's level, read from the storey outlines by Wind on terraces and roofs when it has run.
+  rules.push(terrace
+    ? { id: `skyroom-wind-${t.id}`, label: 'Wind on an outdoor terrace', value: terrace.value, threshold: terrace.threshold, state: terrace.state, flag: 'team_assumption', source: { label: terrace.source }, note: terrace.note }
+    : {
+      id: `skyroom-wind-${t.id}`,
+      label: 'Wind on an outdoor terrace',
+      value: 'Not assessed',
+      threshold: 'Comfort criteria for a terrace at height',
+      state: 'unknown',
+      flag: 'unresolved',
+      source: { label: 'Research P03-M08 (elevated public terrace and sky-lobby wind check, roadmap); research R5 §1' },
+      note: 'Needed only if the room opens onto a terrace. Switch on Wind on terraces and roofs (Sun & Wind) to read it from the storey outlines.',
+    })
   return { room, capacity, tableLoad: loads.table, suggestedLimit, visitorArea, visitorsPerHour, peak5, group, shareAbovePodium, rules }
 }

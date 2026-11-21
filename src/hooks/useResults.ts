@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { egressCheck } from '../engine/egress'
 import { liftCheck } from '../engine/lifts'
 import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck } from '../engine/publicRealm'
-import { skyRoomCheck } from '../engine/skyRoom'
+import { skyRoomCheck, type SkyTerraceLine } from '../engine/skyRoom'
 import { overall } from '../engine/viewCones'
 import { checkTowerCones } from '../engine/towerCones'
 import { fsrSummary, vtcRules } from '../engine/vtcRules'
@@ -59,8 +59,10 @@ export function useResults() {
   const swOut = useSwOut((s) => s.out)
   const swOn = useStore((s) => SW_IDS.filter((id) => s.analysis && s.enabled[id]).join(','))
   const swRules = useMemo(() => Object.fromEntries(swOn.split(',').filter(Boolean).map((id) => [nodeById(id)?.name ?? id, swOut[id as (typeof SW_IDS)[number]]?.rules ?? []]).filter(([, r]) => (r as unknown[]).length)), [swOut, swOn])
+  // The public sky room's terrace wind, from Wind on terraces and roofs while it is on (research R5 §1).
+  const skyTerraces = swOn.split(',').includes('built.sw-wind-height') ? (swOut['built.sw-wind-height']?.data as { skyTerraces?: Record<string, SkyTerraceLine> } | undefined)?.skyTerraces ?? null : null
 
-  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound, swRules], () => {
+  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound, swRules, skyTerraces], () => {
     // An engine that throws must not take the app down (about 16 components read these results): its check gets an
     // empty result and the reason, and the results panel shows an error state for it (components/ResultState.tsx).
     const errors: Record<string, string> = {}
@@ -78,7 +80,7 @@ export function useResults() {
       : []), [])
     const lifts = attempt('built.core-lifts', () => towers.map((t) => ({ tower: t, ...liftCheck(t, liftPresets, egressPresets) })), [])
     const egress = attempt('built.egress', () => towers.map((t) => ({ tower: t, ...egressCheck(t, egressPresets, liftPresets) })), [])
-    const skyRooms = attempt('built.sky-room', () => towers.map((t, i) => ({ tower: t, ...skyRoomCheck(t, lifts[i], egress[i], egressPresets, liftPresets) })), [])
+    const skyRooms = attempt('built.sky-room', () => towers.map((t, i) => ({ tower: t, ...skyRoomCheck(t, lifts[i], egress[i], egressPresets, liftPresets, skyTerraces?.[t.id]) })), [])
     // Public realm checks run on the competition block, whose streets are known (research P06).
     const vtc = project === 'vtc' && towers.length > 0
     // Real Vancouver: the study site's streets (right-of-way measured, types picked by the user) once they are found.
@@ -96,5 +98,5 @@ export function useResults() {
       errors?: Record<string, string>
     } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, ...swRules, ...(Object.keys(errors).length ? { errors } : {}) }
     return out
-  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound, swRules])
+  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound, swRules, skyTerraces])
 }

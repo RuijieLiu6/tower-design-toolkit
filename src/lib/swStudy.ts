@@ -33,6 +33,9 @@ export interface SwStudySettings {
   deckProfile: DeckProfile
   deckCriteria: Criteria
   deckExposure: Exposure[]
+  /** A screen on every open terrace edge: height (m; null = none) and open share (R5 §1.4). */
+  deckScreenH: number | null
+  deckScreenPorosity: number
   /** Daylight: lux target, blinds operated as LM-83 (off = blinds up, Sinnie's choice in the Studio). */
   dlTarget: number
   blinds: boolean
@@ -64,7 +67,7 @@ export interface SwStudySettings {
 export const SW_DEFAULTS: SwStudySettings = {
   sunScope: 'date', sunDate: 'autumn', sunPeriod: 'year', periodFrom: '01-01', periodTo: '12-31', h0: 10, h1: 16,
   season: 'year', windCase: 'period', windDir: 270, windSpeed: 3.5, windView: 'comfort',
-  deckProfile: 'nbc', deckCriteria: 'london2019', deckExposure: DEFAULT_EXPOSURE,
+  deckProfile: 'nbc', deckCriteria: 'london2019', deckExposure: DEFAULT_EXPOSURE, deckScreenH: null, deckScreenPorosity: 0.25,
   dlTarget: 300, blinds: false,
   month: 5, day: 21, hour: 13, level: null,
   vent: { mode: 'cross', band: 'fixed', tmin: 12, tmax: 24, umax: 8, open: 0.1, dT: 3 },
