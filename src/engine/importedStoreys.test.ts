@@ -1,9 +1,11 @@
-// T10 (vtc-entry tool proposals): an imported tower is read from its stored storey outlines, not from one hull of the
-// whole mesh. Storeys are built directly (no file I/O, no slicing), the way the import pipeline stores them.
+// T10 / T11 (vtc-entry tool proposals): an imported tower is read from its stored storey outlines, not from one hull
+// of the whole mesh, and its homes and hotel keys are laid out on each storey's own plate. Storeys are built directly
+// (no file I/O, no slicing), the way the import pipeline stores them.
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_ENERGY, areas, pvPotential, type Obstacle } from './energyCarbon'
 import { DEFAULT_FACADE, faces } from './facade'
 import { towerPatch } from './imported'
+import { DEFAULT_INTERIOR, homeFloor, interiorCheck, plateTower } from './interior'
 import { floorRing, readsStoreys, towerFloors, towerFootprint, towerMasses } from './massing'
 import type { ImportedMass, ImportedStorey, Tower, UseId } from './types'
 import { strategyOf, DEFAULT_WIND_PRESETS } from './windComfortInput'
@@ -144,5 +146,33 @@ describe('T10: an imported tower is read from its storey outlines', () => {
     expect(pod?.area).toBeCloseTo(5400 - 2500, 6)
     const setback = pvPotential([C], DEFAULT_ENERGY, ctx).surfaces.find((s) => s.id === `${C.id}-roof-1`)
     expect(setback?.area).toBeCloseTo(2916 - 44.28 * 44.28, 1)
+  })
+})
+
+describe('T11: an imported tower lays out each home and hotel floor on its own plate', () => {
+  it('sizes each floor from its own storey: the upper tier on the smaller plate', () => {
+    const fl = towerFloors(C)
+    const low = plateTower(C, fl.find((f) => f.level === 20)!), high = plateTower(C, fl.find((f) => f.level === 50)!)
+    expect([low.width, low.depth]).toEqual([C.width, C.depth])
+    expect(C.width).toBeCloseTo(54, 6)
+    expect(high.width).toBeCloseTo(44.28, 6)
+    expect(high.depth).toBeCloseTo(44.28, 6)
+    // The core keeps the tower's size.
+    expect(Math.sqrt(high.coreShare * high.width * high.depth)).toBeCloseTo(Math.sqrt(C.coreShare * C.width * C.depth), 6)
+  })
+
+  it('counts fewer homes on a two-tier tower than if every floor used the median plate', () => {
+    const fl = towerFloors(C)
+    const homes = interiorCheck(C, fl).totals.homes
+    const onTypical = homeFloor(C, DEFAULT_INTERIOR).homes * 50
+    const c = Math.sqrt(C.coreShare * C.width * C.depth)
+    const upper = homeFloor({ ...C, width: 44.28, depth: 44.28, coreShare: (c * c) / (44.28 * 44.28) }, DEFAULT_INTERIOR).homes
+    expect(homes).toBe(homeFloor(C, DEFAULT_INTERIOR).homes * 30 + upper * 20)
+    expect(homes).toBeLessThan(onTypical)
+  })
+
+  it('keeps every floor on the typical plate for a tower of equal storeys', () => {
+    const fl = towerFloors(A)
+    expect(interiorCheck(A, fl).totals.homes).toBe(homeFloor(A, DEFAULT_INTERIOR).homes * 60)
   })
 })

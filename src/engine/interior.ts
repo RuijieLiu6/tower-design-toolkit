@@ -173,14 +173,34 @@ export function publicFloor(t: Tower, f: Floor, i: InteriorInput, net: number): 
 /**
  * The tower as seen on one floor: the plate of the stacked block at that level, with the core kept at the tower's own
  * size (the core runs through every block). Layouts assume the core at the block centre (team approximation for a
- * shifted block).
+ * shifted block). An imported tower: that storey's own plate (`storeyPlate`).
  */
 export function plateTower(t: Tower, f: Pick<Floor, 'z0' | 'z1'>): Tower {
-  if (t.imported || !t.blocks?.length) return t
+  if (t.imported) return storeyPlate(t, f)
+  if (!t.blocks?.length) return t
   const b = spanAt(blockSpans(t), (f.z0 + f.z1) / 2)?.block
   if (!b || (b.width === t.width && b.depth === t.depth)) return t
   const c = coreSide(t)
   return { ...t, width: b.width, depth: b.depth, coreShare: Math.min(0.6, (c * c) / Math.max(1, b.width * b.depth)) }
+}
+
+/**
+ * An imported tower on one floor (T11): an equivalent rectangle of the storey at the floor's mid-height, with that
+ * storey's own area and the proportions of its own outline's bounds (as `towerPatch` sizes the typical plate; team
+ * approximation), the core kept at the tower's size. Before, every home and hotel floor was laid out on the typical
+ * plate, so a tower that narrows got the lower tier's homes all the way up. No storey there: the typical plate.
+ */
+function storeyPlate(t: Tower, f: Pick<Floor, 'z0' | 'z1'>): Tower {
+  const mid = (f.z0 + f.z1) / 2
+  const s = t.imported?.storeys?.find((x) => mid >= x.z0 && mid < x.z1)
+  const pts = s?.loops?.flat() ?? []
+  if (!s || !pts.length || !(s.area > 0)) return t
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
+  const r = Math.max(0.2, Math.min(5, Math.max(1, Math.max(...xs) - Math.min(...xs)) / Math.max(1, Math.max(...ys) - Math.min(...ys))))
+  const w = Math.round(Math.sqrt(s.area * r) * 100) / 100, d = Math.round(Math.sqrt(s.area / r) * 100) / 100
+  if (w === t.width && d === t.depth) return t
+  const c = coreSide(t)
+  return { ...t, width: w, depth: d, coreShare: Math.min(0.6, (c * c) / Math.max(1, w * d)) }
 }
 
 export function floorLayout(t: Tower, f: Floor): FloorLayout | null {
