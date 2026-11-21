@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { CORNER_SIGN, DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, STAIR_MIN_MM, cornerToward, egressCheck, podiumExitSpots, postedLimitForRoom, stairEnclosure, stairSpots, storeyLoads } from './egress'
 import { DEFAULT_LIFT_PRESETS, liftCheck, planRises } from './lifts'
 import { skyRoomCheck, stablePostedLimit } from './skyRoom'
+import { importedTower, rect, ringArea, stack, type P } from './testStoreys'
 import type { SkyRoom, Tower } from './types'
 
 const vtc: Tower = {
@@ -248,5 +249,71 @@ describe('posted limit with other busy floors and an auto core', () => {
     const posted: Tower = { ...t, skyRoom: room({ postedLimit: s.limit }) }
     const again = stablePostedLimit(posted, DEFAULT_LIFT_PRESETS, DEFAULT_EGRESS_PRESETS)!
     expect(Math.abs(again.limit - s.limit)).toBeLessThanOrEqual(2)
+  })
+})
+
+// G22 (vtc-entry R3-5 urban review on A20a): podium travel on the true podium storey outlines of an imported tower, not
+// on a stand-in rectangle about the model origin, with the core stairs at the core and the podium exits as declared.
+describe('podium travel on the true outlines (G22)', () => {
+  const run = (t: Tower) => egressCheck(t, DEFAULT_EGRESS_PRESETS, li)
+  const podRule = (t: Tower) => run(t).rules.find((r) => r.id === `travel-podium-${t.id}`)!
+  const corners = [[1, 1], [1, -1], [-1, 1], [-1, -1]] as const
+  // An L-shaped podium (four storeys of 4.5 m) with a 30 m tower over its north-east arm, its 12 m core at (25, 15).
+  const L: P[] = [[-40, -30], [40, -30], [40, 30], [10, 30], [10, 0], [-40, 0]]
+  const lTower = (o: Partial<Tower> = {}): Tower => ({ ...importedTower(stack([{ n: 4, f2f: 4.5, ring: L, podium: true }, { n: 30, f2f: 4, ring: rect(30, 30, 25, 15) }]), { podiumTop: 18, coreSide: 12 }), ...o })
+
+  it('an L-shaped podium reports its true far corner, from the core stairs at the core', () => {
+    const t = lTower()
+    const e = run(t)
+    expect(e.podiumOutline?.levels).toEqual([2, 3, 4]) // the ground storey exits through its street doors
+    expect(e.podiumOutline?.core).toMatch(/typical tower storey/)
+    const stairs = e.spots.map((s) => ({ x: s.x + 25, y: s.y + 15 }))
+    expect(e.podiumOutline?.stairs).toEqual(stairs)
+    expect(e.podiumFar).toEqual([-40, -30])
+    expect(e.podiumTravel!).toBeCloseTo(Math.min(...stairs.map((s) => Math.hypot(-40 - s.x, -30 - s.y))), 9)
+    expect(podRule(t).state).toBe('fail')
+    expect(podRule(t).value).toMatch(/^\d+\.\d m from the farthest point of L2 to the nearest exit \(core stairs\)$/)
+    expect(podRule(t).note).toMatch(/true outlines of the podium storeys L2–L4/)
+    // The stand-in rectangle (the podium's equal-area box about the origin, stairs about the origin) read it as a pass.
+    const standIn = Math.max(...corners.map(([i, j]) => Math.min(...e.spots.map((s) => Math.hypot((i * t.podiumWidth) / 2 - s.x, (j * t.podiumDepth) / 2 - s.y)))))
+    expect(standIn).toBeLessThan(45)
+    expect(e.podiumTravel!).toBeGreaterThan(70)
+    // A core placed by hand moves the stairs with it.
+    const moved = run(lTower({ coreCentre: [0, -15] }))
+    expect(moved.podiumOutline?.stairs).toEqual(e.spots.map((s) => ({ x: s.x, y: s.y - 15 })))
+    expect(moved.podiumTravel!).toBeLessThan(e.podiumTravel!)
+    // An exit at the far corner moves the farthest point elsewhere.
+    const exit = run(lTower({ podiumExits: { at: [[-40, -30]] } }))
+    expect(exit.podiumTravel!).toBeLessThan(e.podiumTravel!)
+    expect(exit.podiumFar).not.toEqual([-40, -30])
+    // Exits by count are spread round the true outline.
+    for (const s of podiumExitSpots(lTower({ podiumExits: { count: 5 } }))) {
+      const onEdge = L.some((a, i) => { const b = L[(i + 1) % L.length]; return Math.abs((b[0] - a[0]) * (s.y - a[1]) - (b[1] - a[1]) * (s.x - a[0])) < 1e-6 && s.x >= Math.min(a[0], b[0]) - 1e-9 && s.x <= Math.max(a[0], b[0]) + 1e-9 && s.y >= Math.min(a[1], b[1]) - 1e-9 && s.y <= Math.max(a[1], b[1]) + 1e-9 })
+      expect(onEdge).toBe(true)
+    }
+  })
+
+  it('a split podium (a forum cut) does not count the open gap as floor', () => {
+    // A west pavilion and the main podium, a 20 m forum between them, an exit in the pavilion; the tower over the east part.
+    const west = rect(30, 40, -35, 0), east = rect(40, 40, 20, 0)
+    const build = (loops: P[][]): Tower => {
+      const st = stack([{ n: 4, f2f: 4.5, ring: east, podium: true }, { n: 30, f2f: 4, ring: rect(30, 30, 20, 0) }])
+        .map((s) => (s.podium ? { ...s, loops, area: loops.reduce((a, r) => a + ringArea(r), 0) } : s))
+      return { ...importedTower(st, { podiumTop: 18, coreSide: 12 }), podiumExits: { at: [[-35, 0]] } }
+    }
+    const split = run(build([west, east])), solid = run(build([rect(90, 40, -5, 0)]))
+    const inGap = (p: [number, number] | null) => !!p && p[0] > -20 + 1e-6 && p[0] < -1e-6
+    expect(inGap(solid.podiumFar)).toBe(true)
+    expect(inGap(split.podiumFar)).toBe(false)
+    expect(split.podiumTravel!).toBeLessThan(solid.podiumTravel!)
+    // On the parts: the main podium's far corner, from the nearer core stair (the pavilion's corners are 25 m from its exit).
+    expect(split.podiumFar).toEqual([40, -20])
+    expect(split.podiumTravel!).toBeCloseTo(Math.min(...split.podiumOutline!.stairs.map((s) => Math.hypot(40 - s.x, -20 - s.y))), 9)
+    expect(podRule(build([west, east])).state).toBe('pass')
+  })
+
+  it('a parametric tower keeps the podium rectangle', () => {
+    expect(run(vtc).podiumOutline).toBeNull()
+    expect(run({ ...vtc, podiumExits: { count: 4 } }).podiumOutline).toBeNull()
   })
 })

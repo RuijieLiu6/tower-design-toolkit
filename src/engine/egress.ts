@@ -2,7 +2,8 @@
 // stair core area, exits per floor, exit separation, travel distance and flight rise.
 // Values are VBBL 2019 Part 3 (consolidated 1 Jul 2024), equal to VBBL 2007; VBBL 2025 and BCBC 2024 are unread,
 // so every rule carries an edition note. Early check, not a code review: a code consultant decides.
-import { coreSide, towerFloors } from './massing'
+import { coreSide, readsStoreys, towerFloors } from './massing'
+import { coreCentre, storeyCore } from './storeyWeight'
 import type { Floor, RuleResult, StairCorner, StairPlacement, Tower } from './types'
 import { floorCounts } from './interior'
 
@@ -121,16 +122,53 @@ export function stairSpots(t: Tower, n: number, a: number, b: number, placement:
   return order.slice(0, k).map(([i, j]) => inCore(i, j))
 }
 
+type P = [number, number]
+
 /**
- * Podium exits in the tower's own frame: the positions given, else `count` spread evenly round the podium rectangle
- * (podiumWidth × podiumDepth about the tower centre), counter-clockwise from the (−x, −y) corner, the first half a
- * spacing along. Empty without a podium or without exits.
+ * The podium storeys' true outlines (tower frame, m) of an imported tower read storey by storey (T10, gap G22): every
+ * podium storey above grade (the ground storey exits through its street doors), or the podium storeys at grade when the
+ * podium has no other. Null for a parametric or drawn tower and an import without storey outlines: those keep the
+ * podium rectangle (podiumWidth × podiumDepth about the tower centre).
+ */
+export function podiumOutlines(t: Tower): { level: number; z0: number; loops: P[][] }[] | null {
+  if (!(t.podiumHeight > 0) || !readsStoreys(t)) return null
+  const pod = (t.imported?.storeys ?? []).filter((s) => s.podium && s.hasFloor && s.loops?.some((r) => r.length >= 3))
+  if (!pod.length) return null
+  const upper = pod.filter((s) => s.z0 > 0.5)
+  return (upper.length ? upper : pod).map((s) => ({ level: s.level, z0: s.z0, loops: s.loops.filter((r) => r.length >= 3) as P[][] }))
+}
+
+const ringArea = (r: P[]) => r.reduce((a, [x, y], i) => { const [x2, y2] = r[(i + 1) % r.length]; return a + x * y2 - x2 * y }, 0) / 2
+
+/** `n` points spread evenly round a closed ring, the first half a spacing from its first corner. */
+function spreadRound(ring: P[], n: number): { x: number; y: number }[] {
+  const L = ring.map((p, i) => { const q = ring[(i + 1) % ring.length]; return Math.hypot(q[0] - p[0], q[1] - p[1]) })
+  const total = L.reduce((a, b) => a + b, 0)
+  if (!(total > 0)) return []
+  return Array.from({ length: n }, (_, k) => {
+    let s = ((k + 0.5) * total) / n, i = 0
+    while (i < L.length - 1 && s > L[i]) { s -= L[i]; i++ }
+    const a = ring[i], b = ring[(i + 1) % ring.length], f = L[i] > 0 ? s / L[i] : 0
+    return { x: a[0] + (b[0] - a[0]) * f, y: a[1] + (b[1] - a[1]) * f }
+  })
+}
+
+/**
+ * Podium exits in the tower's own frame: the positions given, else `count` spread evenly round the podium edge: the
+ * podium rectangle (podiumWidth × podiumDepth about the tower centre), counter-clockwise from the (−x, −y) corner, the
+ * first half a spacing along; for an imported tower read storey by storey, the outer ring of its largest podium outline
+ * (G22). Empty without a podium or without exits.
  */
 export function podiumExitSpots(t: Tower): { x: number; y: number }[] {
   const e = t.podiumExits
   if (!e || !(t.podiumHeight > 0)) return []
   if (e.at?.length) return e.at.filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1])).map(([x, y]) => ({ x, y }))
   const n = Math.max(0, Math.round(e.count ?? 0)), W = t.podiumWidth, D = t.podiumDepth, P = 2 * (W + D)
+  const outlines = n ? podiumOutlines(t) : null
+  if (outlines) {
+    const ring = outlines.flatMap((o) => o.loops).reduce<P[] | null>((m, r) => (!m || Math.abs(ringArea(r)) > Math.abs(ringArea(m)) ? r : m), null)
+    if (ring) return spreadRound(ring, n)
+  }
   if (!n || !(P > 0)) return []
   const at = (s: number) => {
     s = ((s % P) + P) % P
@@ -140,6 +178,40 @@ export function podiumExitSpots(t: Tower): { x: number; y: number }[] {
     return { x: -W / 2, y: D / 2 - (s - 2 * W - D) }
   }
   return Array.from({ length: n }, (_, k) => at(((k + 0.5) * P) / n))
+}
+
+/** Nonzero winding number of a point in a storey's loops (outer rings counter-clockwise, holes clockwise; parts that overlap stay covered). */
+function winding(p: P, loops: P[][]): number {
+  let w = 0
+  for (const r of loops) for (let i = 0; i < r.length; i++) {
+    const a = r[i], b = r[(i + 1) % r.length], c = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+    if (a[1] <= p[1]) { if (b[1] > p[1] && c > 0) w++ } else if (b[1] <= p[1] && c < 0) w--
+  }
+  return w
+}
+
+/**
+ * The point of a storey's true outline farthest from every exit, straight line: its corners and edges (holes' too) and
+ * a grid of points inside it (about 120 across), so an open gap between its parts is never counted as floor (G22).
+ */
+export function farthestOnOutline(loops: P[][], exits: { x: number; y: number }[]): { x: number; y: number; d: number } {
+  let best = { x: 0, y: 0, d: -1 }
+  const test = (x: number, y: number) => {
+    let d = Infinity
+    for (const s of exits) d = Math.min(d, Math.hypot(x - s.x, y - s.y))
+    if (d > best.d) best = { x, y, d }
+  }
+  const pts = loops.flat()
+  if (!pts.length) return best
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys)
+  const step = Math.max(0.25, Math.max(x1 - x0, y1 - y0) / 120)
+  for (const r of loops) for (let i = 0; i < r.length; i++) {
+    const a = r[i], b = r[(i + 1) % r.length], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / step))
+    for (let k = 0; k < n; k++) test(a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n)
+  }
+  for (let x = x0 + step / 2; x < x1; x += step) for (let y = y0 + step / 2; y < y1; y += step) if (winding([x, y], loops) !== 0) test(x, y)
+  return best
 }
 
 /** The point of a W × D plate (about the origin) farthest from every exit, sampled 80 × 80, straight line. */
@@ -238,9 +310,14 @@ export interface EgressResult {
   separationNeeded: number
   travel: number
   podiumTravel: number | null
-  /** The podium's own exits (tower frame), and the podium point farthest from any exit when there are some. */
+  /** The podium's own exits (tower frame), and the podium point farthest from any exit when there are some (an imported tower read on its true podium outlines: always). */
   podiumExits: { x: number; y: number }[]
   podiumFar: [number, number] | null
+  /**
+   * An imported tower read storey by storey (G22): the podium storey levels read on their true outlines, the storey with
+   * the farthest point, the core stairs there (tower frame) and how the core was placed. Null: the podium rectangle.
+   */
+  podiumOutline: { levels: number[]; level: number; stairs: { x: number; y: number }[]; core: string } | null
   rules: RuleResult[]
 }
 
@@ -279,7 +356,19 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
   // Podium travel: to the core stairs from the podium's corners; with podium exits, from the podium point farthest from
   // any of them or the core stairs (the corners are then no longer always the farthest).
   const podiumExits = podiumExitSpots(t)
-  const podFar = t.podiumHeight > 0 && podiumExits.length ? farthestPoint(t.podiumWidth, t.podiumDepth, [...spots, ...podiumExits]) : null
+  // An imported tower read storey by storey (G22): each upper podium storey's true outline, from its farthest point to
+  // the core stairs placed at that storey's core (the core placed by hand or read from the model, core steps applied)
+  // or a podium exit. Otherwise the podium rectangle about the tower centre, as before.
+  const outlines = podiumOutlines(t)
+  let podFar: { x: number; y: number; d: number } | null = null
+  let podiumOutline: EgressResult['podiumOutline'] = null
+  if (outlines) {
+    const base = coreCentre(t), coreAt = storeyCore(t, base)
+    const stairsAt = (level: number) => { const c = coreAt(level); return spots.map((s) => ({ x: s.x + c.x, y: s.y + c.y })) }
+    const far = outlines.map((o) => ({ ...farthestOnOutline(o.loops, [...stairsAt(o.level), ...podiumExits]), level: o.level })).reduce((m, x) => (x.d > m.d ? x : m))
+    podFar = far
+    podiumOutline = { levels: outlines.map((o) => o.level), level: far.level, stairs: stairsAt(far.level), core: base.how }
+  } else if (t.podiumHeight > 0 && podiumExits.length) podFar = farthestPoint(t.podiumWidth, t.podiumDepth, [...spots, ...podiumExits])
   const podiumTravel = t.podiumHeight > 0 ? (podFar ? podFar.d : Math.max(...corners(t.podiumWidth, t.podiumDepth).map((k) => k.d))) : null
   const edgeSpots = spots.filter((s) => !s.inCore).length
   const maxFlight = Math.max(...storeys.map((s) => stairEnclosure(s.stairMm, s.f2f, e).flightRise))
@@ -352,7 +441,22 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
       note: `${podiumBusiest.basis}. The tower core stairs are sized for the tower floors only (team assumption), so the podium needs exits of its own: ${podiumExits.length ? `${podiumExits.length} entered, about ${Math.ceil(width / Math.max(2, podiumExits.length) / 100) / 10} m each (their widths are not modelled: check them, and that none counts for more than half)` : `about ${Math.ceil(width / 2 / 100) / 10} m each if there are two, or more, narrower exits at its edges`}.`,
     })
   }
-  if (podiumTravel !== null) {
+  if (podiumTravel !== null && podiumOutline && podFar) {
+    const levels = podiumOutline.levels, lv = levels.length > 1 ? `L${levels[0]}–L${levels[levels.length - 1]}` : `L${levels[0]}`
+    const to = podiumExits.length ? `core stairs or ${podiumExits.length} podium exit${podiumExits.length > 1 ? 's' : ''}` : 'core stairs'
+    const ok = podiumTravel <= TRAVEL_LIMIT_M
+    const atGrade = (outlines ?? []).every((o) => o.z0 <= 0.5)
+    rules.push({
+      id: `travel-podium-${t.id}`,
+      label: 'Travel distance, podium floors',
+      value: `${podiumTravel.toFixed(1)} m from the farthest point of L${podiumOutline.level} to the nearest exit (${to})`,
+      threshold: `≤ ${TRAVEL_LIMIT_M} m`,
+      state: ok ? 'pass' : 'fail',
+      flag: 'verified',
+      source: { ...VBBL_EXITS, page: '3.4.2.5' },
+      note: `${ok ? `The ${to} reach every point of the podium storeys` : `Part of L${podiumOutline.level} is more than ${TRAVEL_LIMIT_M} m from an exit, farthest at (${podFar.x.toFixed(0)}, ${podFar.y.toFixed(0)}) m in the tower's frame: add an exit or move one toward it`}. Read on the true outlines of the podium storeys ${lv} (an open gap between parts is not floor; ${atGrade ? 'the podium has no storey above grade' : 'the ground storey exits through its street doors'}), straight line from each storey's farthest point to the nearest exit, a proxy (unverified method). Core stairs at the core: ${podiumOutline.core}${podiumExits.length ? '; podium exits as entered (team input)' : ''}.`,
+    })
+  } else if (podiumTravel !== null) {
     rules.push({
       id: `travel-podium-${t.id}`,
       label: 'Travel distance, podium floors',
@@ -386,5 +490,5 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     note: `Office 9.3, personal services 4.6, mercantile 3.7 (first storey) or 5.6, dining 1.2, standing 0.4, public corridor 3.7 m² per person; 2 persons per sleeping room. Team mapping: amenity, civic and tenant sky-lobby floors at ${e.amenityFactor} m² per person until programmed, hotel keys as 2 persons, plant floors as 0, net area = floor less the core.`,
   })
 
-  return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, podiumExits, podiumFar: podFar ? [podFar.x, podFar.y] : null, rules }
+  return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, podiumExits, podiumFar: podFar ? [podFar.x, podFar.y] : null, podiumOutline, rules }
 }
