@@ -1,6 +1,7 @@
 // VTC hard-rules checker (research module P01-M01 + P01-M07, simplified for v0.1).
 // Every rule cites the competition brief, which the team holds locally:
 // "03 Vancouver Tall Competition Brief/.../_Vancouver Tall Challenge - ENG.pdf" (Buildner, 2026).
+import { CLASS_LABEL, DEFAULT_LIFT_PRESETS, planRises } from './lifts'
 import { gfaByUse, towerFloors, towerFootprint, towerMasses } from './massing'
 import type { RuleResult, Tower, UseId } from './types'
 
@@ -31,20 +32,51 @@ export function fsrSummary(towers: Tower[], siteArea: number = SITE.area) {
   return { gfa, total, totalFsr: total / siteArea, tier1: tier(1), tier2: tier(2), tier3: tier(3), siteArea }
 }
 
-/** What carries public uses above the podium, one phrase each (gap G36): bands, floors set by level, a public sky room. */
-export function verticalPublic(towers: Tower[]): string[] {
-  const out: string[] = []
+/**
+ * Levels a public lift route stops at (gap G42): a public sky room's level, reached by its own public lifts (access
+ * 'dedicated') or by the tenants' shuttle to a sky lobby opened to visitors (visitor share above 0). Every other lift
+ * the lift plan runs is a tenant lift (office, hotel or residents'), so the levels it alone serves are not public.
+ */
+export function publicStops(t: Tower): number[] {
+  const r = t.skyRoom
+  if (!r || !(r.access === 'dedicated' || r.visitorShare > 0)) return []
+  return towerFloors(t).some((f) => f.level === r.level && f.skyLobby && !f.podium) ? [r.level] : []
+}
+
+/**
+ * What carries public uses above the podium, one phrase each (gap G36): civic or amenity levels (bands or floors set
+ * by level) and a public sky room. Since G42 a civic or amenity level counts only where a public lift route stops
+ * (publicStops); the others are listed apart as not reached by a public route, with the tenant lifts that serve them.
+ */
+export function verticalPublicRead(towers: Tower[]): { counted: string[]; unreached: string[] } {
+  const counted: string[] = [], unreached: string[] = []
   const lv = (ls: number[]) => (ls.length > 3 ? `L${ls[0]}–L${ls[ls.length - 1]} (${ls.length} floors)` : ls.map((l) => `L${l}`).join(', '))
+  const floorsWord = (ls: number[]) => `Civic or amenity floor${ls.length > 1 ? 's' : ''} ${lv(ls)}`
   for (const t of towers) {
     const who = towers.length > 1 ? `${t.name}: ` : ''
-    if (t.bands.some((b, i) => i > 0 && (b.use === 'civic' || b.use === 'amenity'))) out.push(`${who}Civic or amenity use above the podium`)
     const floors = towerFloors(t)
-    const set = floors.filter((f) => !f.podium && !f.skyLobby && (f.use === 'civic' || f.use === 'amenity') && t.floorUses?.[f.level] === f.use).map((f) => f.level)
-    if (set.length) out.push(`${who}Civic or amenity floor${set.length > 1 ? 's' : ''} ${lv(set)} above the podium (floor uses)`)
+    const stops = new Set(publicStops(t))
+    // every civic or amenity level above the podium: from a band or set by level (a sky lobby is read as the sky room)
+    const civic = floors.filter((f) => !f.podium && !f.skyLobby && (f.use === 'civic' || f.use === 'amenity'))
+    const reached = civic.filter((f) => stops.has(f.level)).map((f) => f.level)
+    const missed = civic.filter((f) => !stops.has(f.level))
+    if (reached.length) counted.push(`${who}${floorsWord(reached)} above the podium, on the public route`)
+    if (missed.length) {
+      // the tenant lifts that stop there, from the lift plan (civic and amenity floors ride with the group below)
+      const groups = planRises(t, DEFAULT_LIFT_PRESETS)
+      const classes = [...new Set(missed.map((f) => groups.find((g) => g.cls !== 'public' && g.floors.some((x) => x.level === f.level))?.cls).filter((c): c is NonNullable<typeof c> => !!c))]
+      const by = classes.length ? `reached by the ${classes.map((c) => (c === 'residential' ? "residents'" : CLASS_LABEL[c].toLowerCase())).join(' and ')} lifts only` : 'no lift stops there'
+      unreached.push(`${who}${floorsWord(missed.map((f) => f.level))} not reached by a public route (${by})`)
+    }
     const r = t.skyRoom, room = r ? floors.find((f) => f.level === r.level && f.skyLobby && !f.podium) : null
-    if (r && room && r.visitorShare > 0) out.push(`${who}Public sky room at L${r.level} (${r.free ? 'free entry' : 'ticketed'}, ${Math.round(r.visitorShare * 100)}% of the floor open to visitors)`)
+    if (r && room && r.visitorShare > 0) counted.push(`${who}Public sky room at L${r.level} (${r.free ? 'free entry' : 'ticketed'}, ${Math.round(r.visitorShare * 100)}% of the floor open to visitors${r.access === 'dedicated' ? ', its own public lifts' : ''})`)
   }
-  return out
+  return { counted, unreached }
+}
+
+/** What counts as public use above the podium (verticalPublicRead's counted phrases). */
+export function verticalPublic(towers: Tower[]): string[] {
+  return verticalPublicRead(towers).counted
 }
 
 export function vtcRules(towers: Tower[], opts: { fsrTier: FsrTier; transitLink: boolean }): RuleResult[] {
@@ -109,19 +141,19 @@ export function vtcRules(towers: Tower[], opts: { fsrTier: FsrTier; transitLink:
     note: 'Declared by the designer; the tool does not yet check the route geometry.',
   })
 
-  // 5. Public-facing uses extending vertically (soft rule): a civic or amenity band above the podium, civic or amenity
-  // floors set one by one above the podium (floorUses), or a public sky room (gap G36: the line read the bands only).
-  const ups = verticalPublic(towers)
-  const upper = ups.length > 0
+  // 5. Public-facing uses extending vertically (soft rule): civic or amenity levels above the podium where a public
+  // lift route stops (G42), or a public sky room (G36: the line read the bands only). Tenant-only levels are listed apart.
+  const vp = verticalPublicRead(towers)
+  const upper = vp.counted.length > 0
   out.push({
     id: 'vertical-public',
     label: 'Public uses extend vertically',
-    value: upper ? ups.join('; ') : 'Public uses at grade only',
+    value: [upper ? vp.counted.join('; ') : 'Public uses at grade only', ...vp.unreached].join('; '),
     threshold: 'Encouraged, not required',
     state: upper ? 'pass' : 'warn',
     flag: 'verified',
     source: { label: BRIEF, page: 'p.19 "Explore how public-facing uses and spaces can extend vertically"' },
-    note: 'Counts a civic or amenity band above the podium, civic or amenity floors set one by one in Program above the podium, and a public sky room (a sky lobby opened to visitors, Schematic). Sky lobbies that stay tenant-only do not count.',
+    note: "Counts a public sky room (a sky lobby opened to visitors, Schematic) and civic or amenity levels above the podium (bands or floors set in Program) only where a public lift route stops: the sky room's own public lifts, or the shuttle to a sky lobby opened to visitors. Levels the tenant lifts alone serve (office, hotel, residents') are listed as not reached by a public route; sky lobbies that stay tenant-only do not count.",
   })
   return out
 }

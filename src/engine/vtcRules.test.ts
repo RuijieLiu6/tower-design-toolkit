@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { towerFloors } from './massing'
 import type { Tower } from './types'
-import { SITE, fsrSummary, vtcRules } from './vtcRules'
+import { SITE, fsrSummary, publicStops, verticalPublic, verticalPublicRead, vtcRules } from './vtcRules'
 
 const base: Tower = {
   id: 't1', name: 'Tower 1', x: 0, y: 0, rotation: 0, width: 40, depth: 40, height: 270, f2f: 4,
@@ -67,13 +67,42 @@ describe('G36: public uses extend vertically', () => {
     expect(line({ ...base, skyLobbies: [51] }).value).toBe('Public uses at grade only')
     expect(line({ ...t, skyRoom: { ...room, level: 51, visitorShare: 0 } }).value).toBe('Public uses at grade only')
   })
-  it('civic floors set by level above the podium count; one in the podium does not', () => {
+  it('civic floors set by level above the podium are listed, but count only on a public route (G42); one in the podium is not read', () => {
     const tower = towerFloors(base).filter((f) => !f.podium), podium = towerFloors(base).find((f) => f.podium)!
     const l44 = tower.find((f) => f.level === 44)!.level
-    expect(line({ ...base, floorUses: { [l44]: 'civic' } }).value).toBe('Civic or amenity floor L44 above the podium (floor uses)')
+    expect(line({ ...base, floorUses: { [l44]: 'civic' } }).value).toBe('Public uses at grade only; Civic or amenity floor L44 not reached by a public route (reached by the hotel lifts only)')
+    expect(line({ ...base, floorUses: { [l44]: 'civic' } }).state).toBe('warn')
     expect(line({ ...base, floorUses: { [podium.level]: 'civic' } }).value).toBe('Public uses at grade only')
-    // the band rule as before, and every source listed
+    // a civic band and a floor set by level, both on tenant lifts, and a ticketed sky room: only the room counts
     const both: Tower = { ...base, bands: [...base.bands, { use: 'amenity', share: 0.05 }], floorUses: { [l44]: 'civic' }, skyLobbies: [51], skyRoom: { ...room, level: 51, free: false } }
-    expect(line(both).value).toBe('Civic or amenity use above the podium; Civic or amenity floor L44 above the podium (floor uses); Public sky room at L51 (ticketed, 60% of the floor open to visitors)')
+    const v = line(both).value
+    expect(v.startsWith('Public sky room at L51 (ticketed, 60% of the floor open to visitors); Civic or amenity floors ')).toBe(true)
+    expect(v).toMatch(/not reached by a public route \(reached by the (hotel and residents'|residents' and hotel) lifts only\)$/)
+    expect(line(both).state).toBe('pass')
+  })
+})
+
+// G42 (vtc-entry cultural review R4-10): L44 typed civic is reached only by the residents' lifts, yet it counted as a
+// public use. A civic or amenity level now counts only where a public lift route stops.
+describe('G42: a civic level counts only where a public lift route stops', () => {
+  const line = (t: Tower) => vtcRules([t], { fsrTier: 2, transitLink: false }).find((r) => r.id === 'vertical-public')!
+  const room = { access: 'shared' as const, free: true, hoursOpen: 12, visitorShare: 0.6, loadBasis: 'dining' as const, visitMinutes: 60 }
+  const resi = towerFloors(base).find((f) => !f.podium && f.level === 60)!
+  it("a civic floor reached only by residents' lifts no longer counts", () => {
+    expect(towerFloors(base).find((f) => f.level === 60)!.use).toBe('residential')
+    const l = line({ ...base, floorUses: { [resi.level]: 'civic' } })
+    expect(l.state).toBe('warn')
+    expect(l.value).toBe("Public uses at grade only; Civic or amenity floor L60 not reached by a public route (reached by the residents' lifts only)")
+    expect(verticalPublic([{ ...base, floorUses: { [resi.level]: 'civic' } }])).toEqual([])
+    expect(verticalPublicRead([{ ...base, floorUses: { [resi.level]: 'civic' } }]).unreached).toHaveLength(1)
+  })
+  it('a public sky room is a public stop: by its own lifts, or by the shuttle when visitors get part of the floor', () => {
+    expect(publicStops({ ...base, skyLobbies: [51], skyRoom: { ...room, level: 51 } })).toEqual([51])
+    expect(publicStops({ ...base, skyLobbies: [51], skyRoom: { ...room, level: 51, access: 'dedicated', visitorShare: 0 } })).toEqual([51])
+    expect(publicStops({ ...base, skyLobbies: [51], skyRoom: { ...room, level: 51, visitorShare: 0 } })).toEqual([])
+    expect(publicStops({ ...base, skyLobbies: [51] })).toEqual([])
+    const dedicated = line({ ...base, skyLobbies: [51], skyRoom: { ...room, level: 51, access: 'dedicated' }, floorUses: { [resi.level]: 'civic' } })
+    expect(dedicated.state).toBe('pass')
+    expect(dedicated.value).toBe("Public sky room at L51 (free entry, 60% of the floor open to visitors, its own public lifts); Civic or amenity floor L60 not reached by a public route (reached by the residents' lifts only)")
   })
 })

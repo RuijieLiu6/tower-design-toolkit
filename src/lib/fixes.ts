@@ -29,7 +29,7 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // A warning here passes on the reading in use but not on every reading of the brief (which uses count).
   [/^fsr-nonres$/, (st) => (st === 'warn' ? 'Passes on this reading of the brief but not on the strictest (office only): add office floor area to pass on every reading, or confirm the reading with Buildner.' : 'Add non-residential floor area (office, hotel, retail, civic) in Program until it reaches FSR 9.0.')],
   [/^transit$/, 'Turn on the transit link to the station (Program step › Ground & public realm).'],
-  [/^vertical-public$/, 'Carry public uses up the tower: a public sky room (Schematic) or civic floors in Program.'],
+  [/^vertical-public$/, 'Carry public uses up the tower: a public sky room (Schematic), with its own public lifts or a shuttle opened to visitors; civic floors in Program count only where that public route stops.'],
   // Core & lifts
   [/^rise-floors/, 'Split the tower into more lift rises, or add a sky lobby (Schematic › Core & floors).'],
   [/^rise-/, 'Add cars to this rise, or start the upper rises at a sky lobby (Schematic › Core & floors).'],
