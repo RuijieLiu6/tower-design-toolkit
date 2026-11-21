@@ -14,7 +14,7 @@ import { LOOKS, MOTION, type Look } from '../data/stages'
 import { stairEnclosure, stairSpots, storeyLoads } from '../engine/egress'
 import { liftCheck, type LiftClass } from '../engine/lifts'
 import { coreLayout } from '../engine/plan'
-import { blockSpans, coreSide, rectCorners, spanAt, towerFloors } from '../engine/massing'
+import { blockSpans, coreSide, coreSideAt, rectCorners, spanAt, towerFloors } from '../engine/massing'
 import { USES, type Tower, type UseId } from '../engine/types'
 import { sunPosition, sunVector, vancouverTime } from '../engine/sun'
 import { useStore, useTowers, type Phase, type Representation } from '../store'
@@ -248,7 +248,8 @@ function hatchTexture() {
 }
 
 /** A run of floors of one use inside one stacked block; w, d, dx, dy and rot are the block's, in the tower frame. */
-interface Zone { use: UseId; z0: number; z1: number; podium: boolean; levels: number[]; block: number; w: number; d: number; dx: number; dy: number; rot: number }
+/** `core`: the side of the zone's core (m); a core that steps with the tiers splits zones at its steps (G18). */
+interface Zone { use: UseId; z0: number; z1: number; podium: boolean; levels: number[]; block: number; w: number; d: number; dx: number; dy: number; rot: number; core: number }
 type Anatomy = { plates: boolean; core: boolean; plant: boolean; shell: boolean; lifts: boolean; stairs: boolean }
 
 function ZoneBody({ b, t, xray, floorLines, anatomy, clip, hatch, core, shellRef, coreRef, fill, vista = false }: {
@@ -395,11 +396,12 @@ function TowerMesh({ t, baseZ, xray, vista = false }: { t: Tower; baseZ: number;
       const sp = spanAt(spans, (f.z0 + f.z1) / 2)
       const blk = sp?.block, bi = sp?.index ?? 0
       const last = out[out.length - 1]
-      if (last && last.use === f.use && last.podium === f.podium && last.block === bi) { last.z1 = f.z1; last.levels.push(f.z0) }
-      else out.push({ use: f.use, z0: f.z0, z1: f.z1, podium: f.podium, levels: [f.z0], block: bi, w: blk?.width ?? t.width, d: blk?.depth ?? t.depth, dx: blk?.dx ?? 0, dy: blk?.dy ?? 0, rot: blk?.rotation ?? 0 })
+      const core = coreSideAt(t, f.level)
+      if (last && last.use === f.use && last.podium === f.podium && last.block === bi && last.core === core) { last.z1 = f.z1; last.levels.push(f.z0) }
+      else out.push({ use: f.use, z0: f.z0, z1: f.z1, podium: f.podium, levels: [f.z0], block: bi, w: blk?.width ?? t.width, d: blk?.depth ?? t.depth, dx: blk?.dx ?? 0, dy: blk?.dy ?? 0, rot: blk?.rotation ?? 0, core })
     }
     return out
-  }, [floors, spans, t.width, t.depth])
+  }, [floors, spans, t])
   const top = floors.length ? floors[floors.length - 1].z1 : 0
   const core = coreSide(t)
   // Section: world y is model z, so keep y <= base + level.
@@ -474,7 +476,7 @@ function TowerMesh({ t, baseZ, xray, vista = false }: { t: Tower; baseZ: number;
     <group position={[t.x, t.y, baseZ]} rotation={[0, 0, (t.rotation * Math.PI) / 180]} onPointerDown={(e) => { e.stopPropagation(); selectTower(t.id) }}>
       {zones.map((b, i) => (
         <group key={i} ref={(g) => { groups.current[i] = g }} position={[b.dx, b.dy, (b.z0 + b.z1) / 2]} rotation={[0, 0, (b.rot * Math.PI) / 180]}>
-          <ZoneBody b={b} t={t} xray={xray} floorLines={byUse} anatomy={anatomy} clip={clip} hatch={hatch} core={core} fill={byUse ? USES[b.use].color : NEUTRAL_TOWER.fill} vista={vista}
+          <ZoneBody b={b} t={t} xray={xray} floorLines={byUse} anatomy={anatomy} clip={clip} hatch={hatch} core={b.core} fill={byUse ? USES[b.use].color : NEUTRAL_TOWER.fill} vista={vista}
             shellRef={(m) => { shells.current[i] = m }} coreRef={(m) => { cores.current[i] = m }} />
         </group>
       ))}

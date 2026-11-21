@@ -3,7 +3,7 @@
 // blinds and climate are ignored (P02-M07 is the simulation). Every rule says where it comes from; the research has no
 // use-specific depth rule, so that line stays unresolved rather than invented.
 import { DEFAULT_INTERIOR } from './interior'
-import { coreSide } from './massing'
+import { coreSideAt } from './massing'
 import type { Floor, Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 /** Presets (all team assumptions in research P02-M06): reach factor k, rear-half reflectance Rb, share tiers. */
@@ -77,7 +77,7 @@ export function screenUse(t: Tower, use: ScreenedUse, floors: Floor[], k = DAYLI
   if (!fl.length) return null
   const f = fl[Math.floor(fl.length / 2)]
   const i = t.interior ?? DEFAULT_INTERIOR
-  const c = coreSide(t)
+  const c = coreSideAt(t, f.level) // the screened floor's core (a core that steps with the tiers, G18)
   // Homes and hotel rooms sit outside a corridor ring; an office floor is open from the core to the glass.
   const hole = Math.min(t.width, t.depth, use === 'office' ? c : c + 2 * i.corridor)
   const plate: Plate = { W: t.width, D: t.depth, hole }

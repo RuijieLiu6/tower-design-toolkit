@@ -4,7 +4,7 @@
 // gives each floor's facade length by orientation and its area; the exposed top of each floor is what the floor above
 // does not cover. Glazing comes from the facade node when it is on, else her default zones; the envelope and systems are
 // her defaults as presets; lighting is dimmed by the daylight port's monthly daylight share of each floor.
-import { coreSide, towerFloors } from './massing'
+import { coreSideAt, towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower, UseId } from './types'
 import type { DlFloor } from './daylightSW'
 import { floorLoops, noFloorsRule, plateOf, toHer, type GlazingChoice, type P } from './daylightSWInput'
@@ -33,12 +33,12 @@ export const DEFAULT_ENERGY_PRESETS: EnergyPresets = { ...DEFAULT_ENERGY, dimmin
 export interface EnergyModel { floors: EnergyFloor[]; plates: DlFloor[]; levels: number[]; posX: number; posY: number }
 /** Every floor of the tower in her terms: plate, core, facade lengths, area, exposed top, program, glazing by face. */
 export function energyModelOf(t: Tower, centre: P, north: number, glazing: GlazingChoice): EnergyModel {
-  const all = towerFloors(t), core = coreSide(t)
+  const all = towerFloors(t)
   const [posX, posY] = toHer(t.x, t.y, centre, north)
   const plates: DlFloor[] = [], levels: number[] = [], progs: Prog[] = []
   for (const f of all) {
     // An imported tower's own storey loops, not its whole hull on every floor (17 Nov review, 6).
-    const pl = plateOf(floorLoops(t, f).map((r) => r.map(([x, y]) => toHer(x, y, centre, north))), { i: plates.length, z: f.z0, h: f.z1 - f.z0, core })
+    const pl = plateOf(floorLoops(t, f).map((r) => r.map(([x, y]) => toHer(x, y, centre, north))), { i: plates.length, z: f.z0, h: f.z1 - f.z0, core: coreSideAt(t, f.level) })
     if (!pl) continue
     plates.push(pl); levels.push(f.level); progs.push(PROG_OF[f.use] ?? 'office')
   }

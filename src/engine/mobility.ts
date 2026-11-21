@@ -4,7 +4,7 @@
 // either a search extract (unverified), a range where secondary sources disagree, or unresolved. No unchecked row can
 // show a pass: research P09-M02 keeps them grey until two people have transcribed and checked the section.
 
-import { netToGross, towerFloors } from './massing'
+import { netToGrossAt, towerFloors } from './massing'
 import { edgeLength, STATION_CORNER, VTC_EDGES, VTC_SITE, type EdgeId, type StreetType } from './publicRealm'
 import type { RuleResult, RuleState, Tower, UseId } from './types'
 
@@ -63,8 +63,8 @@ export function program(towers: Tower[], homeM2: number, hotelM2PerKey: number):
   const gfa = { retail: 0, office: 0, hotel: 0, residential: 0, civic: 0, amenity: 0, mechanical: 0 } as Record<UseId, number>
   let dwellings = 0, hotelKeys = 0
   for (const t of towers) {
-    const ntg = netToGross(t)
     for (const f of towerFloors(t)) {
+      const ntg = netToGrossAt(t, f) // each floor's own core where the core steps (G18)
       gfa[f.use] += f.area
       if (f.use === 'residential') dwellings += (f.area * ntg) / Math.max(1, homeM2)
       if (f.use === 'hotel') hotelKeys += (f.area * ntg) / Math.max(1, hotelM2PerKey)

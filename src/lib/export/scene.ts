@@ -3,8 +3,8 @@
 // area, where the preset came from and its evidence flag) and document notes for units, north and datum.
 // Pure: the writers (obj.ts, rhino.ts, gltf.ts) turn this into files. Coordinates: project frame, metres, Z up,
 // z = 0 at the tower base.
-import { coreSide, towerFloors, floorRing } from '../../engine/massing'
-import { coreCentre } from '../../engine/storeyWeight'
+import { towerFloors, floorRing } from '../../engine/massing'
+import { coreBoxes } from '../../engine/storeyWeight'
 import { USES, type Tower, type UseId } from '../../engine/types'
 import { basementLevels, basementRing } from '../../engine/basement'
 
@@ -87,15 +87,19 @@ export function buildScene(towers: Tower[], o: SceneOptions): ExportScene {
       })
     }
     // The core box through the floors (lift overrun and roof are not modelled): at the tower centre, or for an imported
-    // model where the structure checks place it (placed by hand, else read from the model).
-    const top = floors.length ? floors[floors.length - 1].z1 : t.height
-    const cc = coreCentre(t)
-    const half = coreSide(t) / 2, r = (t.rotation * Math.PI) / 180, c = Math.cos(r), sn = Math.sin(r)
-    const corner = (u: number, v: number): [number, number] => [t.x + (u + cc.x) * c - (v + cc.y) * sn, t.y + (u + cc.x) * sn + (v + cc.y) * c]
-    const core = prism([corner(-half, -half), corner(half, -half), corner(half, half), corner(-half, half)], 0, top)
-    add({ name: `${t.name} · Core`, layer: LAYER.core, color: [60, 64, 72], ...core,
-      strings: { tower: t.name, core_share: t.coreShare.toFixed(3), core_side_m: (half * 2).toFixed(2), core_mode: t.coreAuto === false ? 'set by hand' : 'sized to the lifts, stairs and risers',
-        source: 'core & lift check and egress check (team presets)', evidence: 'team_assumption (LOD 100 space reservation)' } })
+    // model where the structure checks place it (placed by hand, else read from the model). A core that steps with the
+    // tiers (G18): one box per step.
+    const boxes = coreBoxes(t, floors)
+    const r = (t.rotation * Math.PI) / 180, c = Math.cos(r), sn = Math.sin(r)
+    boxes.forEach((b, k) => {
+      const half = b.side / 2
+      const corner = (u: number, v: number): [number, number] => [t.x + (u + b.x) * c - (v + b.y) * sn, t.y + (u + b.x) * sn + (v + b.y) * c]
+      const core = prism([corner(-half, -half), corner(half, -half), corner(half, half), corner(-half, half)], b.z0, b.z1)
+      add({ name: `${t.name} · Core${boxes.length > 1 ? ` ${k + 1}` : ''}`, layer: LAYER.core, color: [60, 64, 72], ...core,
+        strings: { tower: t.name, core_share: t.coreShare.toFixed(3), core_side_m: (half * 2).toFixed(2), core_mode: boxes.length > 1 ? `stepped core, part ${k + 1} of ${boxes.length} (Structure › Core steps)` : t.coreAuto === false ? 'set by hand' : 'sized to the lifts, stairs and risers',
+          ...(boxes.length > 1 ? { z0_m: b.z0.toFixed(2), z1_m: b.z1.toFixed(2) } : {}),
+          source: 'core & lift check and egress check (team presets)', evidence: 'team_assumption (LOD 100 space reservation)' } })
+    })
   }
   // Basement levels (engine/basement.ts), one closed solid each, below z = 0, on their own layer.
   for (const t of towers) {

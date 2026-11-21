@@ -10,7 +10,9 @@
 // its own. Decks are planted (soil by depth) at an open garden storey of an imported tower (a plate at most half the
 // storeys below and above it, as the core alone where the garden is open under a slab) and at a public-amenity floor
 // (the use the harness and the Program step give a sky garden or commons); every other deck is hard (pavers).
-import { blockSpans, coreSide, rectCorners, spanAt, towerFloors } from './massing'
+// A core that steps with the tiers (gap G18, `Tower.coreSteps`): each storey's walls are those of its own core, and the
+// off-centre lines measure each storey's weight centre from its own core.
+import { blockSpans, coreSide, coreSideAt, coreStepsOf, rectCorners, spanAt, towerFloors } from './massing'
 import type { Floor, Tower, UseId } from './types'
 
 type P = [number, number]
@@ -80,6 +82,10 @@ export interface StoreyWeight {
   /** Extent of the floor slab along the tower's own x and y (m): the plate, or the plate below where a deck is carried. */
   dx: number
   dy: number
+  /** The core of the storey above this floor (its own storey; the roof: the top storey's): centre in the tower frame and side (m). Absent: the tower's core (`WeightResult.core`). */
+  coreX?: number
+  coreY?: number
+  coreSide?: number
 }
 
 export interface CoreCentre { x: number; y: number; side: number; how: string }
@@ -176,13 +182,48 @@ export function coreCentre(t: Tower, floors: Floor[] = towerFloors(t), plates: P
   }
   if (!t.imported) return { x: 0, y: 0, side, how: 'the modelled core at the tower centre' }
   const g = gardens(t, floors)
-  const coreOnly = floors.findIndex((f, i) => g[i] && f.area <= 1.2 * side * side)
+  const coreOnly = floors.findIndex((f, i) => g[i] && f.area <= 1.2 * coreSideAt(t, f.level) ** 2)
   if (coreOnly >= 0) return { x: plates[coreOnly].c[0], y: plates[coreOnly].c[1], side, how: `the core-only plate of the open garden storey L${floors[coreOnly].level}` }
   const typ = typicalStorey(floors, plates)
   const k = typ >= 0 ? typ : 0
   const c = plates[k]?.c ?? [0, 0]
   const off = Math.hypot(c[0], c[1])
   return { x: c[0], y: c[1], side, how: `the centre of the typical tower storey, L${floors[k]?.level ?? 1} (no core in the imported model; place it by hand under Structure if it sits elsewhere${off > 0.5 ? `; the tower origin is ${off.toFixed(1)} m away` : ''})` }
+}
+
+/** One storey's core (tower frame, m). */
+export interface StoreyCore { side: number; x: number; y: number }
+
+/**
+ * The core of each floor level (gap G18): below the first core step, and on a tower without steps, the core share's
+ * core at the core centre; from a step up, the step's side at its centre, or at the centre of the core below.
+ */
+export function storeyCore(t: Tower, base: CoreCentre = coreCentre(t)): (level: number) => StoreyCore {
+  const steps = coreStepsOf(t)
+  const cores: StoreyCore[] = []
+  let c: P = [base.x, base.y]
+  for (const s of steps) { if (s.centre?.length === 2 && s.centre.every(Number.isFinite)) c = [s.centre[0], s.centre[1]]; cores.push({ side: s.side, x: c[0], y: c[1] }) }
+  const own: StoreyCore = { side: base.side, x: base.x, y: base.y }
+  return (level) => { let k = -1; for (let i = 0; i < steps.length; i++) if (steps[i].fromLevel <= level) k = i; return k < 0 ? own : cores[k] }
+}
+
+/** Two storey cores that are the same within 5 cm (a core share's side read back from a typed one). */
+export const sameCore = (a: StoreyCore, b: StoreyCore) => Math.abs(a.side - b.side) < 0.05 && Math.abs(a.x - b.x) < 0.05 && Math.abs(a.y - b.y) < 0.05
+
+/** The core as boxes up the tower (tower frame): one per run of storeys sharing a core; without core steps, one box from the ground to the top. */
+export function coreBoxes(t: Tower, floors: Floor[] = towerFloors(t)): (StoreyCore & { z0: number; z1: number })[] {
+  const base = coreCentre(t, floors)
+  const top = floors.length ? floors[floors.length - 1].z1 : t.height
+  const own = { side: base.side, x: base.x, y: base.y }
+  if (!coreStepsOf(t).length || !floors.length) return [{ ...own, z0: 0, z1: top }]
+  const at = storeyCore(t, base)
+  const out: (StoreyCore & { z0: number; z1: number })[] = []
+  for (const f of floors) {
+    const c = at(f.level), last = out[out.length - 1]
+    if (last && sameCore(last, c)) { last.z1 = f.z1; continue }
+    out.push({ ...c, z0: out.length ? f.z0 : 0, z1: f.z1 })
+  }
+  return out
 }
 
 /** Seismic weight of every suspended floor and the roof (R5 equation 6.1), with weight centres in the tower frame. */
@@ -192,17 +233,21 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
   const core = coreCentre(t, floors, plates)
   const garden = gardens(t, floors)
   const transitional = transitionalStoreys(floors, plates, typicalStorey(floors, plates))
-  const Lc = 4 * core.side, coreKpm = Lc * p.coreWall * GAMMA_C // kN per metre of height
+  // Core walls per metre of height (kN/m), storey by storey: a core that steps carries its own walls (G18).
+  const at = storeyCore(t, core)
+  const cores = floors.map((f) => at(f.level))
+  const coreKpm = (k: number) => 4 * cores[k].side * p.coreWall * GAMMA_C
+  const coreC = (k: number): P => [cores[k].x, cores[k].y]
   const plantedQ = PLANTED_SLAB * GAMMA_C + soilKpa(p.soilMm) + PLANTED_BUILDUP + SNOW_W
   const hardQ = (u: UseId) => USE_LOADS[u].slab * GAMMA_C + HARD_DECK + SNOW_W
   const plateQ = (u: UseId) => USE_LOADS[u].slab * GAMMA_C + USE_LOADS[u].sdl + USE_LOADS[u].part
   const perimOf = (i: number) => (garden[i] ? 0 : plates[i].perim)
   const levels: StoreyWeight[] = []
   const n = floors.length
-  const push = (parts: { w: number; c: P }[], l: Omit<StoreyWeight, 'W' | 'cx' | 'cy'>) => {
+  const push = (parts: { w: number; c: P }[], l: Omit<StoreyWeight, 'W' | 'cx' | 'cy' | 'coreX' | 'coreY' | 'coreSide'>, k: number) => {
     const W = parts.reduce((s, x) => s + x.w, 0)
     const cx = W > 0 ? parts.reduce((s, x) => s + x.w * x.c[0], 0) / W : 0, cy = W > 0 ? parts.reduce((s, x) => s + x.w * x.c[1], 0) / W : 0
-    levels.push({ ...l, W, cx, cy })
+    levels.push({ ...l, W, cx, cy, coreX: cores[k].x, coreY: cores[k].y, coreSide: cores[k].side })
   }
   for (let i = 0; i < n; i++) {
     const f = floors[i], pl = plates[i]
@@ -218,9 +263,10 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
       { w: deck * (planted ? plantedQ : hardQ(f.use)), c: deckC },
       { w: below ? perimOf(i - 1) * hLow * p.facadeKpa : 0, c: below?.pc ?? pl.c },
       { w: perimOf(i) * hUp * p.facadeKpa, c: pl.pc },
-      { w: coreKpm * (hLow + hUp), c: [core.x, core.y] },
+      { w: i > 0 ? coreKpm(i - 1) * hLow : 0, c: i > 0 ? coreC(i - 1) : coreC(i) },
+      { w: coreKpm(i) * hUp, c: coreC(i) },
     ], { level: f.level, roof: false, z: f.z0, area: pl.area, deck, deckKind: deck > 0 ? (planted ? 'planted' : 'hard') : 'none', garden: garden[i], podium: f.podium, transitional: transitional[i], onPodium: !f.podium && !transitional[i] && i > 0 && (floors[i - 1].podium || transitional[i - 1]), use: f.use,
-      dx: below && deck > 0 ? Math.max(pl.ext[0], below.ext[0]) : pl.ext[0], dy: below && deck > 0 ? Math.max(pl.ext[1], below.ext[1]) : pl.ext[1] })
+      dx: below && deck > 0 ? Math.max(pl.ext[0], below.ext[0]) : pl.ext[0], dy: below && deck > 0 ? Math.max(pl.ext[1], below.ext[1]) : pl.ext[1] }, i)
   }
   if (n) {
     const f = floors[n - 1], pl = plates[n - 1], h = Math.max(0, (f.z1 - f.z0) / 2)
@@ -228,8 +274,8 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
     push([
       { w: pl.area * (planted ? plantedQ : hardQ(f.use)), c: pl.c },
       { w: perimOf(n - 1) * h * p.facadeKpa, c: pl.pc },
-      { w: coreKpm * h, c: [core.x, core.y] },
-    ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', garden: false, podium: f.podium, transitional: transitional[n - 1], onPodium: false, use: f.use, dx: pl.ext[0], dy: pl.ext[1] })
+      { w: coreKpm(n - 1) * h, c: coreC(n - 1) },
+    ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', garden: false, podium: f.podium, transitional: transitional[n - 1], onPodium: false, use: f.use, dx: pl.ext[0], dy: pl.ext[1] }, n - 1)
   }
   const total = levels.reduce((s, l) => s + l.W, 0)
   const volume = floors.reduce((s, f) => s + f.area * Math.max(0, f.z1 - f.z0), 0)
@@ -272,13 +318,14 @@ export interface GravityReading {
 }
 
 /**
- * Per level, the weight centre's offset from the core centre against the code's accidental arm 0.10·D (NBC 4.1.8.11(11)(a)),
+ * Per level, the weight centre's offset from the core centre (its own storey's core, where the core steps) against the
+ * code's accidental arm 0.10·D (NBC 4.1.8.11(11)(a)),
  * the net offset of the whole tower, and the sustained sway it drives (R5 equations 5.2–5.5, textbook cantilever, inference).
  */
 export function gravityEccentricity(w: WeightResult, H: number): GravityReading {
   const tower = (l: StoreyWeight) => !l.podium && !l.transitional && !l.onPodium
   const levels: Offset[] = w.levels.filter(tower).map((l) => {
-    const ex = l.cx - w.core.x, ey = l.cy - w.core.y
+    const ex = l.cx - (l.coreX ?? w.core.x), ey = l.cy - (l.coreY ?? w.core.y)
     const rx = l.dy > 0 ? Math.abs(ey) / l.dy : 0, ry = l.dx > 0 ? Math.abs(ex) / l.dx : 0
     return { level: l.level, roof: l.roof, z: l.z, W: l.W, ex, ey, e: Math.hypot(ex, ey), ratio: Math.max(rx, ry), across: rx >= ry ? Math.abs(ey) : Math.abs(ex), D: rx >= ry ? l.dy : l.dx }
   })

@@ -1,7 +1,7 @@
 import { bandCounts, bandF2f, blockSpans, blocksOf, legacyBlocks, rectCorners, spanAt, summarize, typicalIndex, type BlockSpan } from './blocks'
 import { importedFloors } from './imported'
 import { convexHull, ringArea } from './importGeom'
-import type { Block, Floor, ImportedStorey, Tower, UseId } from './types'
+import type { Block, CoreStep, Floor, ImportedStorey, Tower, UseId } from './types'
 
 // Block geometry lives in ./blocks (no dependencies, usable in workers); re-exported here for every other reader.
 export { bandCounts, bandF2f, blockSpans, blocksOf, fitBlocks, legacyBlocks, podiumRun, rectCorners, spanAt, summarize, typicalBlock, typicalIndex, type BlockSpan, type BoxFields } from './blocks'
@@ -194,6 +194,41 @@ export function coreSide(t: Tower): number {
 /** Net-to-gross on a typical tower floor if only the core is deducted (team assumption). */
 export function netToGross(t: Tower): number {
   return 1 - Math.max(0, Math.min(0.6, t.coreShare))
+}
+
+// --- Core steps (gap G18) -------------------------------------------------------------------------------------------
+// A core that steps with the tiers: from each step's level up, a square core of its own side (and centre, when given).
+// Below the first step, and on every tower without steps, the core is the one the core share sets (`coreSide`).
+
+/** The tower's core steps, valid (a side over 1 m, a finite level) and sorted by level; the last of equal levels wins. */
+export function coreStepsOf(t: Tower): CoreStep[] {
+  const ok = (t.coreSteps ?? []).filter((s) => s && Number.isFinite(s.fromLevel) && Number.isFinite(s.side) && s.side > 1)
+  const byLevel = new Map<number, CoreStep>()
+  for (const s of ok) byLevel.set(Math.round(s.fromLevel), s)
+  return [...byLevel.entries()].sort((a, b) => a[0] - b[0]).map(([fromLevel, s]) => ({ ...s, fromLevel }))
+}
+
+/** The core step that applies on one floor level, or null below the first step (the core share's core). */
+export function coreStepAt(t: Tower, level: number): CoreStep | null {
+  let out: CoreStep | null = null
+  for (const s of coreStepsOf(t)) if (s.fromLevel <= level) out = s
+  return out
+}
+
+/** Side of the square core on one floor level (m): its step's, else the core share's. */
+export function coreSideAt(t: Tower, level: number): number {
+  return coreStepAt(t, level)?.side ?? coreSide(t)
+}
+
+/**
+ * Net-to-gross on one floor if only the core is deducted. Without core steps: the tower's share (`netToGross`), as
+ * before. With them, every floor deducts its own core from its own plate (the floor's area), so a stepped-in core
+ * gives the upper tiers back their floor.
+ */
+export function netToGrossAt(t: Tower, f: Pick<Floor, 'level' | 'area'>): number {
+  if (!t.coreSteps?.length || !coreStepsOf(t).length || !(f.area > 0)) return netToGross(t)
+  const c = coreSideAt(t, f.level)
+  return Math.max(0, Math.min(1, 1 - (c * c) / f.area))
 }
 
 export function gfaByUse(towers: Tower[]): Record<UseId, number> {

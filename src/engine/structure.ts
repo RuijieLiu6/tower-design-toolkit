@@ -1,9 +1,9 @@
 // Structure screening (research P10-M01 system shortlist, P10-M03 seismic route, P10-M05 continuity and regularity).
 // Screening only: no member sizing, no design values. Packet P10 had two critique rounds and no final gate, so code
 // readings the research corrected are "unverified" here.
-import { towerFloors } from './massing'
+import { coreStepsOf, towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
-import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, SNOW_W, soilKpa, storeyWeights, worstWeightStep, type GravityReading, type WeightPresets, type WeightResult } from './storeyWeight'
+import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, sameCore, SNOW_W, soilKpa, storeyCore, storeyWeights, worstWeightStep, type GravityReading, type WeightPresets, type WeightResult } from './storeyWeight'
 import { systemShortlist, type SystemFit, type WindProcedure } from './windStructure'
 
 const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.8 (2nd printing, 2025)', url: 'https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en' }
@@ -44,19 +44,35 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     'Dynamic base shear at least 0.8 V for a regular structure, 1.0 V if irregular.')
 
   const imported = !!t.imported
-  add('continuity', 'Core walls continuous to the foundation', imported ? 'core not modelled for imported massing' : 'the modelled core runs from the foundation to the top',
-    'required where Ta ≥ 1 s and IE·S(1.0) > 0.25: no wall that ends, steps or is transferred (Types 4 and 5)', imported ? 'unknown' : 'pass', 'verified', { ...NBC, page: '4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
-    'Keep it that way in design: open podium spaces wrap around the core; a wall transfer is not permitted, with no nonlinear-analysis route.')
+  // A core that steps with the tiers (gap G18): each upper core must stand inside the core below, so its walls can run
+  // down to the foundation; walls that end at a step are continuous from their own top down (4.1.8.10(4)).
+  const floors = towerFloors(t)
+  const steps = coreStepsOf(t)
+  const weights = storeyWeights(t, wpr)
+  const runs: { from: number; side: number; x: number; y: number }[] = []
+  if (steps.length) {
+    const at = storeyCore(t, weights.core)
+    for (const f of floors) { const c = at(f.level), last = runs[runs.length - 1]; if (!last || !sameCore(last, c)) runs.push({ from: f.level, ...c }) }
+  }
+  const outside = runs.slice(1).map((c, k) => ({ c, below: runs[k], over: Math.max(Math.abs(c.x - runs[k].x) + c.side / 2 - runs[k].side / 2, Math.abs(c.y - runs[k].y) + c.side / 2 - runs[k].side / 2) })).filter((x) => x.over > 0.05)
+  const m1 = (v: number) => v.toFixed(1)
+  if (runs.length > 1) {
+    add('continuity', 'Core walls continuous to the foundation', outside.length ? `the core from ${outside.map((x) => `L${x.c.from}`).join(', ')} stands ${outside.map((x) => `${m1(x.over)} m`).join(', ')} outside the core below` : `the core steps in ${runs.length - 1} time${runs.length > 2 ? 's' : ''}, each upper core inside the one below`,
+      'required where Ta ≥ 1 s and IE·S(1.0) > 0.25: walls continuous from their top to the foundation, none transferred or offset (Types 4 and 5)', outside.length ? 'fail' : 'pass', 'verified', { ...NBC, page: '4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
+      `Core steps: ${runs.map((c) => `L${c.from} ${m1(c.side)} m at (${m1(c.x)}, ${m1(c.y)})`).join(' → ')} (tower frame). The walls of each upper core must run down to the foundation inside the larger cores below; the outer walls end at the step, continuous from their own top down. An upper core outside the one below needs a transfer, which is not permitted, with no nonlinear-analysis route. A core whose centre moves at a step carries its upper part off the centre of its lower part: the off-centre lines measure each storey from its own core, so that jog is not in them; tell the engineer.`)
+  } else {
+    add('continuity', 'Core walls continuous to the foundation', imported ? 'core not modelled for imported massing' : 'the modelled core runs from the foundation to the top',
+      'required where Ta ≥ 1 s and IE·S(1.0) > 0.25: no wall that ends, steps or is transferred (Types 4 and 5)', imported ? 'unknown' : 'pass', 'verified', { ...NBC, page: '4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
+      'Keep it that way in design: open podium spaces wrap around the core; a wall transfer is not permitted, with no nonlinear-analysis route.')
+  }
 
   // Weight irregularity (Type 2) by storey weight (gap G6, research R5 §3); the floor-area ratio stays in the note.
-  const floors = towerFloors(t)
   let worst = { ratio: 1, level: 0 }
   for (let i = 1; i < floors.length; i++) {
     const a = floors[i - 1].area, b = floors[i].area
     const r = Math.max(a, b) / Math.max(1e-9, Math.min(a, b))
     if (r > worst.ratio) worst = { ratio: r, level: floors[i].level }
   }
-  const weights = storeyWeights(t, wpr)
   const step = worstWeightStep(weights.levels)
   const stepped = !!step && step.ratio >= 1.005
   const byArea = worst.ratio > 1 ? `${Math.round(worst.ratio * 100)}% between L${worst.level - 1} and L${worst.level}` : 'uniform'
@@ -74,7 +90,7 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   const m = (v: number) => v.toFixed(1)
   add('gravity-offset', 'Off-centre storey weight (e / D)', g ? (g.e < 0.05 ? 'weight centred on the core at every tower storey' : `largest e/D ${g.ratio.toFixed(3)} at ${levelName(g)} (${m(g.across)} m across a ${g.D.toFixed(0)} m plate)`) : 'no tower storeys',
     'e/D ≤ 0.05; 0.05–0.10 declare it; over 0.10 the inherent offset exceeds the code’s accidental arm of 0.10·D', !g ? 'unknown' : g.ratio > 0.05 ? 'warn' : 'pass', 'verified', { ...NBC, page: '4.1.8.11(11)(a); research R5 §2' },
-    `Weight centre of every tower floor and the roof (plate, open deck, facade and core walls, as in the weight line) against the core centre: ${weights.core.how}.`
+    `Weight centre of every tower floor and the roof (plate, open deck, facade and core walls, as in the weight line) against the core centre: ${weights.core.how}${runs.length > 1 ? `; where the core steps, each storey against the core of its own step (${runs.slice(1).map((c) => `from L${c.from} at (${m1(c.x)}, ${m1(c.y)})`).join(', ')}), whose walls move with it` : ''}.`
     + (big && big.e >= 0.05 ? ` Largest offset ${m(big.e)} m at ${levelName(big)} (x ${m(big.ex)}, y ${m(big.ey)} m in the tower's own axes).` : '')
     + (g && g.ratio > 0.1 ? ' Beyond the code’s accidental arm: the torsion the code assumes is smaller than this design’s own.' : g && g.ratio > 0.05 ? ' Within the code’s accidental arm: declare it for the structural reviewer.' : '')
     + ' The code applies torsion F·(e ± 0.10·D) at every level. The core centre stands in for the stiffness centre (exact for a doubly symmetric closed core) and the 0.05 band is a team value; podium storeys, a wider one- or two-storey transitional run just above the podium, and the floor over them are left out, as their stiffness is not the core’s alone.')
@@ -87,8 +103,12 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     + (lt > 0.1 ? ' Over 100 mm: plan a tie-down or outrigger strategy (Vancouver House: post-tensioned rods and a torsion box, each floor cambered).' : lt > 0.025 ? ' Declare a pre-set (camber) of the floors for the structural reviewer.' : '')
     + ` Sway of a cantilever core with EI from the empirical f1 = 46/H (±50%), creep φ = ${CREEP_PHI} (ACI 209, unverified): an upper bound, since floors cast plumb on the frame below hide earlier sway, which a designed pre-set exploits. Bands are team values.`)
 
-  add('geometric', 'Vertical geometric irregularity (Type 3)', 'core constant over the height', 'SFRS dimension ≤ 130% of the adjacent storey', 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 3' },
-    'The SFRS here is the core, which keeps its size; a wider podium only counts if its walls join the SFRS.')
+  // A core that steps (gap G18) changes the SFRS's plan dimension from storey to storey.
+  const jumps = runs.slice(1).map((c, k) => ({ c, ratio: Math.max(c.side, runs[k].side) / Math.max(1e-9, Math.min(c.side, runs[k].side)) }))
+  const geo = jumps.reduce<(typeof jumps)[number] | null>((m, x) => (!m || x.ratio > m.ratio ? x : m), null)
+  add('geometric', 'Vertical geometric irregularity (Type 3)', geo ? `core ${m1(runs[runs.indexOf(geo.c) - 1].side)} → ${m1(geo.c.side)} m at L${geo.c.from}: ${Math.round(geo.ratio * 100)}%` : 'core constant over the height',
+    'SFRS dimension ≤ 130% of the adjacent storey', geo && geo.ratio > 1.3 ? 'warn' : 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 3' },
+    geo ? `The SFRS here is the core, and it steps: ${jumps.map((x) => `${Math.round(x.ratio * 100)}% at L${x.c.from}`).join(', ')}.${geo.ratio > 1.3 ? ' Over 130% is a Type 3 irregularity: the dynamic analysis carries it, or smaller steps (each within 130%) avoid it.' : ' Each step stays within 130%.'}` : 'The SFRS here is the core, which keeps its size; a wider podium only counts if its walls join the SFRS.')
 
   const cs = t.coreShare
   add('core-ratio', 'Core ratio (core ÷ gross plate)', `${Math.round(cs * 1000) / 10}%`, 'good ≤ 25%; above 35% check', cs > 0.35 ? 'warn' : cs > 0.25 ? 'warn' : 'pass', 'team_assumption', TEAM,

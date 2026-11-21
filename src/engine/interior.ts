@@ -2,7 +2,7 @@
 // layouts by use (unit mix for homes, keys for hotels, lease depth for offices) and an activity programme for public
 // floors. When a tower has `interior` set, the lift check, egress and economics read the counts from here instead of
 // their area proxies; without it they keep the proxies (flagged as such). Every preset is a team assumption.
-import { coreSide, blockSpans, spanAt } from './massing'
+import { coreSide, coreSideAt, coreStepsOf, blockSpans, spanAt, towerFloors } from './massing'
 import type { Floor, Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export type UnitType = 'studio' | 'one' | 'two' | 'three'
@@ -170,18 +170,29 @@ export function publicFloor(t: Tower, f: Floor, i: InteriorInput, net: number): 
   return { kind: 'public', activities, design: activities.reduce((s, a) => s + a.design, 0), egress: activities.reduce((s, a) => s + a.egress, 0), net, room }
 }
 
+/** The floor level at a floor's mid-height (when only its heights are given). */
+function levelOf(t: Tower, f: Pick<Floor, 'z0' | 'z1'> & { level?: number }): number {
+  if (f.level !== undefined) return f.level
+  const mid = (f.z0 + f.z1) / 2
+  return towerFloors(t).find((x) => mid >= x.z0 && mid < x.z1)?.level ?? 0
+}
+
+/** The core on one floor (m): the tower's, or the step of a core that steps with the tiers (gap G18). */
+const floorCore = (t: Tower, f: Pick<Floor, 'z0' | 'z1'> & { level?: number }) => (coreStepsOf(t).length ? coreSideAt(t, levelOf(t, f)) : coreSide(t))
+
 /**
- * The tower as seen on one floor: the plate of the stacked block at that level, with the core kept at the tower's own
- * size (the core runs through every block). Layouts assume the core at the block centre (team approximation for a
- * shifted block). An imported tower: that storey's own plate (`storeyPlate`).
+ * The tower as seen on one floor: the plate of the stacked block at that level, with the core of that floor: the
+ * tower's own size (the core runs through every block), or its step where the core steps with the tiers. Layouts
+ * assume the core at the block centre (team approximation for a shifted block). An imported tower: that storey's own
+ * plate (`storeyPlate`).
  */
-export function plateTower(t: Tower, f: Pick<Floor, 'z0' | 'z1'>): Tower {
-  if (t.imported) return storeyPlate(t, f)
-  if (!t.blocks?.length) return t
-  const b = spanAt(blockSpans(t), (f.z0 + f.z1) / 2)?.block
-  if (!b || (b.width === t.width && b.depth === t.depth)) return t
-  const c = coreSide(t)
-  return { ...t, width: b.width, depth: b.depth, coreShare: Math.min(0.6, (c * c) / Math.max(1, b.width * b.depth)) }
+export function plateTower(t: Tower, f: Pick<Floor, 'z0' | 'z1'> & { level?: number }): Tower {
+  const c = floorCore(t, f)
+  if (t.imported) return storeyPlate(t, f, c)
+  const b = t.blocks?.length ? spanAt(blockSpans(t), (f.z0 + f.z1) / 2)?.block : undefined
+  const w = b?.width ?? t.width, d = b?.depth ?? t.depth
+  if (w === t.width && d === t.depth && c === coreSide(t)) return t
+  return { ...t, width: w, depth: d, coreShare: Math.min(0.6, (c * c) / Math.max(1, w * d)) }
 }
 
 /**
@@ -190,16 +201,16 @@ export function plateTower(t: Tower, f: Pick<Floor, 'z0' | 'z1'>): Tower {
  * approximation), the core kept at the tower's size. Before, every home and hotel floor was laid out on the typical
  * plate, so a tower that narrows got the lower tier's homes all the way up. No storey there: the typical plate.
  */
-function storeyPlate(t: Tower, f: Pick<Floor, 'z0' | 'z1'>): Tower {
+function storeyPlate(t: Tower, f: Pick<Floor, 'z0' | 'z1'>, c = coreSide(t)): Tower {
   const mid = (f.z0 + f.z1) / 2
   const s = t.imported?.storeys?.find((x) => mid >= x.z0 && mid < x.z1)
   const pts = s?.loops?.flat() ?? []
-  if (!s || !pts.length || !(s.area > 0)) return t
+  const own = c === coreSide(t)
+  if (!s || !pts.length || !(s.area > 0)) return own ? t : { ...t, coreShare: Math.min(0.6, (c * c) / Math.max(1, t.width * t.depth)) }
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
   const r = Math.max(0.2, Math.min(5, Math.max(1, Math.max(...xs) - Math.min(...xs)) / Math.max(1, Math.max(...ys) - Math.min(...ys))))
   const w = Math.round(Math.sqrt(s.area * r) * 100) / 100, d = Math.round(Math.sqrt(s.area / r) * 100) / 100
-  if (w === t.width && d === t.depth) return t
-  const c = coreSide(t)
+  if (w === t.width && d === t.depth && own) return t
   return { ...t, width: w, depth: d, coreShare: Math.min(0.6, (c * c) / Math.max(1, w * d)) }
 }
 
@@ -210,7 +221,7 @@ export function floorLayout(t: Tower, f: Floor): FloorLayout | null {
   if (f.use === 'residential' && !f.skyLobby) return homeFloor(pt, i)
   if (f.use === 'hotel' && !f.skyLobby) return hotelFloor(pt, i)
   if (f.use === 'office') return officeFloor(pt, f, i)
-  if (f.use === 'amenity' || f.skyLobby) return publicFloor(pt, f, i, Math.max(0, f.area - coreSide(t) ** 2))
+  if (f.use === 'amenity' || f.skyLobby) return publicFloor(pt, f, i, Math.max(0, f.area - floorCore(t, f) ** 2))
   return null
 }
 
@@ -244,10 +255,11 @@ export function interiorCheck(t: Tower, floors: Floor[]): InteriorResult {
   const homeF = floors.filter((f) => !f.podium && !f.skyLobby && f.use === 'residential')
   const hotelF = floors.filter((f) => !f.podium && !f.skyLobby && f.use === 'hotel')
   const officeF = floors.filter((f) => !f.podium && f.use === 'office')
-  // Stacked blocks: floors of one use can sit on different plates, so each plate is laid out once and counted per floor.
+  // Stacked blocks: floors of one use can sit on different plates (and cores, where the core steps), so each plate is
+  // laid out once and counted per floor.
   const byPlate = <L,>(list: Floor[], lay: (pt: Tower) => L) => {
     const groups = new Map<string, { pt: Tower; n: number }>()
-    for (const f of list) { const pt = plateTower(tw, f), k = `${pt.width}x${pt.depth}`; const g = groups.get(k); if (g) g.n++; else groups.set(k, { pt, n: 1 }) }
+    for (const f of list) { const pt = plateTower(tw, f), k = `${pt.width}x${pt.depth}x${pt.coreShare}`; const g = groups.get(k); if (g) g.n++; else groups.set(k, { pt, n: 1 }) }
     return [...groups.values()].map((g) => ({ layout: lay(g.pt), n: g.n }))
   }
   const homes = byPlate(homeF, (pt) => homeFloor(pt, i)), hotels = byPlate(hotelF, (pt) => hotelFloor(pt, i))
@@ -257,7 +269,7 @@ export function interiorCheck(t: Tower, floors: Floor[]): InteriorResult {
   const hotel = most(hotels)
   const officeMid = officeF[Math.floor(officeF.length / 2)]
   const office = officeF.length ? officeFloor(plateTower(tw, officeMid), officeMid, i) : null
-  const publics = floors.filter((f) => !f.podium && (f.use === 'amenity' || f.skyLobby)).map((f) => ({ level: f.level, layout: publicFloor(plateTower(tw, f), f, i, Math.max(0, f.area - coreSide(t) ** 2)) }))
+  const publics = floors.filter((f) => !f.podium && (f.use === 'amenity' || f.skyLobby)).map((f) => ({ level: f.level, layout: publicFloor(plateTower(tw, f), f, i, Math.max(0, f.area - floorCore(t, f) ** 2)) }))
   const units = Object.fromEntries(UNIT_TYPES.map((u) => [u, homes.reduce((s, g) => s + g.layout.units[u] * g.n, 0)])) as Record<UnitType, number>
   const totals = { homes: homes.reduce((s, g) => s + g.layout.homes * g.n, 0), bedrooms: homes.reduce((s, g) => s + g.layout.bedrooms * g.n, 0), keys: hotels.reduce((s, g) => s + g.layout.keys * g.n, 0), units }
   const rules: RuleResult[] = []

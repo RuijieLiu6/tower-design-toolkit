@@ -3,9 +3,9 @@
 import { useMemo, useState } from 'react'
 import { SEISMIC_FALSE_ASSUMPTIONS, structureCheck, suggestOutriggers } from '../engine/structure'
 import { CONTINUITY_RULE, windProcedure, type Fit } from '../engine/windStructure'
-import type { CoreCentre } from '../engine/storeyWeight'
-import { towerFloors } from '../engine/massing'
-import type { Tower } from '../engine/types'
+import { storeyCore, type CoreCentre } from '../engine/storeyWeight'
+import { coreSide, coreStepsOf, towerFloors } from '../engine/massing'
+import type { CoreStep, Tower } from '../engine/types'
 import { useStore, useTowers } from '../store'
 import { FalseAssumptions } from './WindStructurePanel'
 import { FlagChip, Section } from './ui'
@@ -81,6 +81,50 @@ function CorePicker({ t, core }: { t: Tower; core: CoreCentre }) {
   )
 }
 
+/**
+ * A core that steps with the tiers (gap G18): from a level up, a smaller square core (and its centre, optional). Each
+ * storey's homes, net area, daylight depth, weight, off-centre line and lift fit then read its own core.
+ */
+function CoreSteps({ t }: { t: Tower }) {
+  const updateTower = useStore((s) => s.updateTower)
+  const steps = coreStepsOf(t)
+  const tower = towerFloors(t).filter((f) => !f.podium)
+  const at = storeyCore(t)
+  const set = (next: CoreStep[]) => updateTower(t.id, { coreSteps: next.length ? next : undefined })
+  const edit = (k: number, patch: Partial<CoreStep>) => set(steps.map((s, i) => (i === k ? { ...s, ...patch } : s)))
+  const add = () => {
+    const last = steps[steps.length - 1]
+    const from = last ? Math.min(tower[tower.length - 1]?.level ?? last.fromLevel + 1, last.fromLevel + 10) : tower[Math.floor(tower.length / 2)]?.level ?? 1
+    set([...steps, { fromLevel: from, side: Math.max(4, Math.round((last?.side ?? coreSide(t)) * 0.75 * 2) / 2) }])
+  }
+  const num = (label: string, value: number, on: (v: number) => void, step = 0.5, unit = 'm') => (
+    <label className="flex items-center gap-1 text-muted">{label}
+      <span className="flex items-center rounded border border-line bg-panel">
+        <input type="number" step={step} value={Number(value.toFixed(2))} aria-label={`Core step ${label}`}
+          onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) on(v) }} className="w-14 bg-transparent px-1.5 py-0.5 text-right tabular-nums text-ink outline-none" />
+        {unit && <span className="pr-1.5">{unit}</span>}
+      </span>
+    </label>
+  )
+  return (
+    <div className="mt-2 rounded-md border border-line p-2 text-meta">
+      <div className="flex items-center justify-between gap-2"><span className="font-semibold">Core steps</span><FlagChip flag="team_assumption" /></div>
+      <div className="mt-1 text-muted">{steps.length ? `Below L${steps[0].fromLevel}: ${coreSide(t).toFixed(1)} m core` : `One ${coreSide(t).toFixed(1)} m core for the whole height`}</div>
+      {steps.map((s, k) => (
+        <div key={k} className="mt-1.5 flex flex-wrap items-center gap-2">
+          {num('from L', s.fromLevel, (v) => edit(k, { fromLevel: Math.max(1, Math.round(v)) }), 1, '')}
+          {num('side', s.side, (v) => edit(k, { side: Math.max(2, v) }))}
+          {num('x', at(s.fromLevel).x, (v) => edit(k, { centre: [v, at(s.fromLevel).y] }))}
+          {num('y', at(s.fromLevel).y, (v) => edit(k, { centre: [at(s.fromLevel).x, v] }))}
+          <button type="button" onClick={() => set(steps.filter((_, i) => i !== k))} className="rounded border border-line px-2 py-0.5 hover:border-accent hover:text-accent" aria-label={`Remove the core step from L${s.fromLevel}`}>Remove</button>
+        </div>
+      ))}
+      <button type="button" onClick={add} className="mt-1.5 rounded border border-line px-2 py-0.5 hover:border-accent hover:text-accent">Add a step</button>
+      <MethodFold title="About core steps"><p>From each step’s level up, the core is a square of that side, centred at x, y in the tower’s own frame (until you type a centre, the centre of the core below). Homes and hotel keys, net-to-gross, daylight depth, storey weights and the off-centre lines read each storey’s own core; “Core holds the lifts” checks each core against the lift rises that pass through it; continuity checks each upper core stands inside the one below, and Type 3 flags a step over 130%.</p></MethodFold>
+    </div>
+  )
+}
+
 export default function StructurePanel() {
   const results = useStructures()
   return (
@@ -93,6 +137,7 @@ export default function StructurePanel() {
           </Stats></div>
           <RuleRows rules={r.rules} />
           {(r.tower.imported || r.tower.coreCentre) && <CorePicker t={r.tower} core={r.weights.core} />}
+          <CoreSteps t={r.tower} />
           <OutriggerPicker t={r.tower} placed={r.outriggers} />
           <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700" title="A shortlist, never a single best">Lateral systems at SC4 (shortlist)</h4>
           <ul className="grid min-w-0 gap-1">

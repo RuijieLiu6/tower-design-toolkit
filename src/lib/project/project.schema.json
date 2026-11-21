@@ -922,6 +922,36 @@
           },
           "description": "Core centre placed by hand, in the tower's own frame (m). Optional: absent, the core is read from the model."
         },
+        "coreSteps": {
+          "type": "array",
+          "maxItems": 20,
+          "description": "A core that steps with the tiers (gap G18): from fromLevel up, a square core of side metres, centred at centre (tower frame, m) or, absent, at the centre of the core below. Optional: absent, one core for the whole height.",
+          "items": {
+            "type": "object",
+            "required": [
+              "fromLevel",
+              "side"
+            ],
+            "properties": {
+              "fromLevel": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "side": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "centre": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
         "stairCorner": {
           "enum": [
             "ne",

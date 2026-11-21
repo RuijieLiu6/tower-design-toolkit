@@ -33,7 +33,7 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Core & lifts
   [/^rise-floors/, 'Split the tower into more lift rises, or add a sky lobby (Schematic › Core & floors).'],
   [/^rise-/, 'Add cars to this rise, or start the upper rises at a sky lobby (Schematic › Core & floors).'],
-  [/^core-fit/, 'Turn on "Size to the lifts", or raise the core share (Schematic › Core & floors).'],
+  [/^core-fit/, (_st, v) => (/from L\d+, [\d.]+ m core/.test(v) ? 'A core is smaller than the lifts that run through it (the lowest, or a step): widen it, move the step higher, or end a rise below the step with a sky lobby (Structure › Core steps; Schematic › Core & floors).' : 'Turn on "Size to the lifts", or raise the core share (Schematic › Core & floors).')],
   [/^ntg/, 'Win back net area: a sky lobby (fewer shafts low down), a smaller core, or a larger plate.'],
   [/^firefighter/, 'Give firefighters a lift that reaches the top in about a minute with one change at most (a sky-lobby shuttle).'],
   [/^stretcher/, 'Make one car in each group stretcher-sized.'],
@@ -50,7 +50,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
     ? 'Bring the tower’s weight back over the core (align the tiers, or shift the core under the heavy side); as built, plan a tie-down or outrigger strategy and a pre-set (camber), as at Vancouver House.'
     : 'Declare a pre-set (camber) of the floors for the structural reviewer; aligning the tiers over the core lowers the sway.')],
   [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],
-  [/^continuity$/, 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.'],
+  [/^continuity$/, (st) => (st === 'fail' ? 'An upper core stands outside the core below: move its centre or shrink it so it sits inside the lower core (Structure › Core steps), so its walls can run down to the foundation.'
+    : 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.')],
+  [/^geometric$/, 'The core steps by more than 130% at one level: split it into smaller steps (each within 130%, Structure › Core steps), or carry the Type 3 irregularity in the dynamic analysis.'],
   // Egress & stairs
   [/^stair-width/, 'Widen the exit stairs or add one (Schematic › Exit stairs), or lower the busiest floor\'s occupant load.'],
   [/^exits/, 'Add an exit stair so every floor has at least two (Schematic › Exit stairs).'],

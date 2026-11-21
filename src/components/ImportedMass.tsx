@@ -5,8 +5,8 @@
 // else read from the model). Open edges show red, flipped faces magenta.
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { coreSide, towerFloors } from '../engine/massing'
-import { coreCentre } from '../engine/storeyWeight'
+import { towerFloors } from '../engine/massing'
+import { coreBoxes } from '../engine/storeyWeight'
 import { USES, type ImportedStorey, type Tower, type UseId } from '../engine/types'
 import { useImportStore, useMeshEntry, type MeshEntry } from '../lib/import/store'
 import { useStore } from '../store'
@@ -55,8 +55,8 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
   const sectionPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), [])
   sectionPlane.constant = baseZ + sectionLevel
   const top = m.storeys.length ? m.storeys[m.storeys.length - 1].z1 : m.top
-  const core = coreSide(t)
-  const cc = useMemo(() => coreCentre(t), [t])
+  // One box per run of storeys sharing a core: a core that steps with the tiers shows its steps (G18).
+  const cores = useMemo(() => coreBoxes(t), [t])
   const unresolved = m.fileNorthDeg == null
 
   return (
@@ -85,12 +85,12 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
       <lineSegments geometry={plates} visible={xray ? anatomy.plates : true}>
         <lineBasicMaterial color={xray ? '#4a6a8c' : byUse ? '#ffffff' : NEUTRAL_TOWER.edge} transparent opacity={xray ? 0.5 : byUse ? 0.6 : 0.35} clippingPlanes={section ? [sectionPlane] : null} />
       </lineSegments>
-      {xray && anatomy.core && top > 0 && (
-        <mesh position={[cc.x, cc.y, top / 2]}>
-          <boxGeometry args={[core, core, top]} />
+      {xray && anatomy.core && top > 0 && cores.map((c, i) => (
+        <mesh key={i} position={[c.x, c.y, (c.z0 + c.z1) / 2]}>
+          <boxGeometry args={[c.side, c.side, Math.max(0.01, c.z1 - c.z0)]} />
           <meshStandardMaterial color={CORE_COLOR} roughness={0.6} transparent opacity={0.85} clippingPlanes={section ? [sectionPlane] : null} />
         </mesh>
-      )}
+      ))}
       {problems && selected && showProblems && (
         <>
           {problems.open && <lineSegments geometry={problems.open}><lineBasicMaterial color="#d0312d" depthTest={false} transparent opacity={0.95} /></lineSegments>}

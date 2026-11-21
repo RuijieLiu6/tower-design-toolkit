@@ -68,6 +68,12 @@ export interface Tower {
    * `coreCentre`). Used by the structure checks, the X-ray core and the export.
    */
   coreCentre?: [number, number]
+  /**
+   * Schematic: a core that steps with the tiers (gap G18). From `fromLevel` up, the core is a square of `side` metres,
+   * centred at `centre` (tower frame, m) or, absent, at the core centre below; below the first step the core is the one
+   * the core share sets. Absent or empty: one core for the whole height, as before. engine/massing.ts `coreSideAt`.
+   */
+  coreSteps?: CoreStep[]
   /** Schematic: levels with outrigger or belt-truss floors (structure screening; the floor keeps its use). */
   outriggerFloors?: number[]
   /** Schematic: one sky lobby opened to the public as a sky room (null = none). */
@@ -106,6 +112,16 @@ export interface Tower {
   autoAligned?: boolean
   /** The tower form shaping the shaft (engine/towerForms.ts, after dtmass): its type, parameters and the base it starts from. */
   form?: { type: import('./towerForms').FormType; p: Record<string, number>; base: import('./towerForms').FormBase }
+}
+
+/** One step of a core that steps with the tiers (`Tower.coreSteps`): from this floor level up, a square core of this side. */
+export interface CoreStep {
+  /** First floor level (the storey's level number) that has this core. */
+  fromLevel: number
+  /** Side of the square core (m). */
+  side: number
+  /** Core centre in the tower's own frame (m); absent: the centre of the core below. */
+  centre?: [number, number]
 }
 
 /** A drawn mass (lib/draw/mass.ts): outline rings in the project frame (metres), base above grade, storeys and their height. */

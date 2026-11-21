@@ -6,7 +6,7 @@
 
 import { chargeSchedule, COST_LEDGER, costRange, heightPremium, NO_CHARGES, CHARGE_LEDGER, SF as SQFT, type AccTreatment, type ChargeLine, type ChargeParts, type CRow, type Premium } from './costCharges'
 import { floorCounts } from './interior'
-import { netToGross, towerFloors } from './massing'
+import { netToGrossAt, towerFloors } from './massing'
 import type { Flag, Tower, UseId } from './types'
 
 export interface Row { value: number; unit: string; flag: Flag; source: string; note?: string; low?: number; high?: number }
@@ -217,7 +217,6 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
   const avgHard = pricedArea ? pricedCost / pricedArea : (line('office') ?? p.hardCost.office!).value
   const construction: Construction['towers'] = []
   for (const t of towers) {
-    const ntg = netToGross(t)
     const all = towerFloors(t)
     const tGfa = all.reduce((a, f) => a + f.area, 0)
     const prem = heightPremium(all.length, tGfa ? all.filter((f) => f.use === 'residential').reduce((a, f) => a + f.area, 0) / tGfa : 0, L)
@@ -241,7 +240,7 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
       if (f.use === 'office') h += f.area * p.tenantAllowance.value
       // Keys and homes come from the interior layout when the tower has one (engine/interior.ts), else the area proxy.
       const counts = floorCounts(t, f)
-      if (f.use === 'hotel') h += (counts?.keys ?? (f.area * ntg) / Math.max(1, inp.hotelM2PerKey)) * p.ffePerKey.value
+      if (f.use === 'hotel') h += (counts?.keys ?? (f.area * netToGrossAt(t, f)) / Math.max(1, inp.hotelM2PerKey)) * p.ffePerKey.value
       const cont = h * c
       // Statutory charges by component (P08-M04): plant floors pay nothing; designated public uses pay $10 per permit.
       const res = f.use === 'residential'
@@ -253,7 +252,7 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
         parts.udcl = f.area * (res ? rates.udclRes : rates.udclCom)
       }
       if (reduced) sums.reduced = 3 * CHARGE_LEDGER.reducedPerPermit.value // one permit, three schedules
-      const fHomes = res ? (counts?.homes ?? (f.area * ntg) / Math.max(1, inp.homeM2)) : 0
+      const fHomes = res ? (counts?.homes ?? (f.area * netToGrossAt(t, f)) / Math.max(1, inp.homeM2)) : 0
       if (inp.includeRegional && f.use !== 'mechanical') {
         if (res) { parts.metro = fHomes * p.metroPerHome.value; parts.translink = fHomes * p.translinkPerHome.value }
         else { parts.metro = f.area * p.metroNonRes.value; parts.translink = f.area * (f.use === 'retail' ? p.translinkRetail.value : f.use === 'civic' ? p.translinkInstitutional.value : p.translinkOffice.value) }

@@ -6,7 +6,7 @@
 // port uses (the block centre on the competition site, the selected tower on Real Vancouver), then turned about it.
 import type { FacadeInput, FacadeSystem, Quadrant } from './facade'
 import { SYSTEMS } from './facade'
-import { coreSide, floorRing, towerFloors } from './massing'
+import { coreSideAt, floorRing, towerFloors } from './massing'
 import type { Flag, Floor, RuleResult, RuleState, Source, Tower, UseId } from './types'
 import { DEFAULT_TARGET, DEFAULT_VT, DEFAULT_ZONES, maskFloor, sdaPoints, type AseTower, type DlBuilding, type DlFloor, type DlPeriod, type DlTower, type StratId, type Zone } from './daylightSW'
 
@@ -125,14 +125,13 @@ export interface DaylightModel { floors: DlFloor[]; levels: number[]; uses: UseI
 export function daylightModelOf(t: Tower, centre: P, north: number): DaylightModel {
   const all = towerFloors(t)
   const floors: DlFloor[] = [], levels: number[] = [], uses: UseId[] = []
-  const core = coreSide(t)
   const [posX, posY] = toHer(t.x, t.y, centre, north)
   let left = 0
   for (const f of all) {
     if (UNOCCUPIED.includes(f.use)) { left++; continue }
     const loops = floorLoops(t, f).map((r) => r.map(([x, y]) => toHer(x, y, centre, north)))
     // i is the floor's position among those analysed (17 Nov review, 4); levels[i] is only its label.
-    const pl = plateOf(loops, { i: floors.length, z: f.z0, h: f.z1 - f.z0, core })
+    const pl = plateOf(loops, { i: floors.length, z: f.z0, h: f.z1 - f.z0, core: coreSideAt(t, f.level) })
     if (!pl) { left++; continue }
     floors.push(pl); levels.push(f.level); uses.push(f.use)
   }
