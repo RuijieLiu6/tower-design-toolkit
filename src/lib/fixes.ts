@@ -209,6 +209,14 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^views$/, 'Bring the tower out of the protected views: View-cone height check says by how much to lower it, or move it (Place on map).'],
   [/^qe-view$/, 'Entering the Queen Elizabeth Park view is a pathway, not a failure: answer the Exceptional Downtown Site criteria below and make a skyline case, or lower the tower under the 3.2 cones.'],
   [/^nav-canada/, 'Ask NAV CANADA for a land-use review (and the City for its NAV CANADA height layer); allow for cranes.'],
+  // Engagement & claims guard and AI-use log (lines from data, gap G15)
+  [/^cc-lint$/, (st) => (st === 'fail' ? 'Rewrite the flagged wording to what each Nation’s declared status allows (the fixed statements in Engagement & claims), or record the engagement that supports it; never claim engagement that did not happen.'
+    : 'Paste the board and narrative text into Engagement & claims so the guard can check it.')],
+  [/^cc-claim-\d+$/, 'Rewrite this sentence to the wording the Nation’s declared status allows, or record the engagement (evidence, counterpart, date, reference) that supports it in Engagement & claims.'],
+  [/^cc-record-/, (st) => (st === 'warn' ? 'Complete this Nation’s record for its declared status in Engagement & claims: the evidence, counterpart, date and reference the level needs.'
+    : 'Confirm this Nation’s status in Engagement & claims once the team has checked it is true.')],
+  [/^prov-log$/, (st) => (st === 'warn' ? 'Fix the logged elements the AI-use log lists (who decided, the tool’s licence, a reviewer, sources).' : 'Log every board element in the AI-use log: how it was made, the tool, and who decided.')],
+  [/^prov-entry-\d+$/, 'Complete this element in the AI-use log: what a person contributed, a person’s decision, the tool’s licence, a named reviewer for AI-drafted cultural text, or the result’s source, as the line says.'],
 ]
 
 /** The instruction for a rule that does not pass, or null when it passes. `key` is the rule id without its tower suffix. */

@@ -1,6 +1,7 @@
 // Engagement ledger and claims guard (research P07-M01, round 4). Stage A: claim-restricting rules and fixed text only,
 // with no cultural content and no AI verdict. The ladder, phrase list and counterpart list are team designs awaiting
 // paid Indigenous review (unreviewed platform rule). Only people can engage the Nations; the tool never does.
+import type { RuleResult, Source } from './types'
 
 export const NATIONS = ['Musqueam', 'Squamish', 'Tsleil-Waututh'] as const
 export type Nation = (typeof NATIONS)[number]
@@ -155,4 +156,48 @@ export function exportGate(records: Record<Nation, NationRecord>, findings: Clai
     { id: 'contact', label: 'No-contact rule acknowledged', ok: contactAck },
     { id: 'eligibility', label: 'Eligibility records: each author, the associate question, instructor confirmation', ok: eligibility.authors && eligibility.associate && eligibility.instructor },
   ]
+}
+
+// --- Result lines from data (gap G15) ------------------------------------------------------------------------------
+// The guard as result lines, so it runs from a design's data (the Sources hub, the design harness) as well as from the
+// browser's ledger. The lint above is unchanged; these lines only report it. No evidence notes, counterpart names or
+// eligibility records go into a line: the status, the fixed statement and the flagged wording only.
+
+const GUARD: Source = { label: 'Research P07-M01 (round 4): engagement ledger and claims guard, team rules awaiting paid Indigenous review' }
+
+/** Full records from partial ones: a Nation or field left out takes DEFAULT_RECORD (N0 · No engagement, not confirmed). */
+export function fullRecords(r: Partial<Record<Nation, Partial<NationRecord>>> = {}): Record<Nation, NationRecord> {
+  return Object.fromEntries(NATIONS.map((n) => [n, { ...DEFAULT_RECORD, ...(r[n] ?? {}) }])) as Record<Nation, NationRecord>
+}
+
+const clip = (s: string, n = 140) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
+
+/** Claims-lint summary, one line per flagged phrase, and one line per Nation's record. */
+export function claimsLines(text: string | string[], partial: Partial<Record<Nation, Partial<NationRecord>>> = {}): RuleResult[] {
+  const records = fullRecords(partial)
+  const board = Array.isArray(text) ? text.join('\n') : text
+  const findings = board.trim() ? lintClaims(board, records) : []
+  const bad = findings.filter((f) => !f.pass)
+  const out: RuleResult[] = [{
+    id: 'cc-lint', label: 'Claims lint: wording above each Nation’s declared status',
+    value: !board.trim() ? 'no board text to check' : bad.length ? `${bad.length} phrase${bad.length > 1 ? 's' : ''} above status: ${[...new Set(bad.map((f) => `"${f.phrase}"`))].join(', ')}` : `no wording above status (${findings.length} engagement phrase${findings.length === 1 ? '' : 's'} found, all allowed)`,
+    threshold: 'no engagement, consultation, approval or collaboration wording above the status declared for each Nation it names (N0–N4)',
+    state: !board.trim() ? 'unknown' : bad.length ? 'fail' : 'pass', flag: 'team_assumption', source: GUARD,
+    note: 'Regex only, no AI verdict: a sentence is checked when it names a Nation, or the Nations or Indigenous peoples in general (then against all three). The phrase list is the frozen stage A list.',
+  }]
+  findings.forEach((f, k) => out.push({
+    id: `cc-claim-${k}`, label: `"${f.phrase}" (${f.rule.label})`, value: clip(f.sentence),
+    threshold: f.rule.need === 'banned' ? 'never in a competition entry' : `${f.nations.join(', ')} at N${f.rule.need} or above${f.rule.need === 4 ? ' with a reference' : ''}`,
+    state: f.pass ? 'pass' : 'fail', flag: 'team_assumption', source: GUARD, note: f.reason,
+  }))
+  for (const n of NATIONS) {
+    const r = records[n], issues = recordIssues(r)
+    out.push({
+      id: `cc-record-${n.toLowerCase()}`, label: `Engagement record: ${n}`, value: `${LADDER[r.status]?.name ?? `N${r.status}`}${r.confirmed ? ', confirmed' : ', not confirmed'}`,
+      threshold: 'status confirmed by the team, with the evidence, counterpart, date and reference its level needs',
+      state: issues.length ? 'warn' : r.confirmed ? 'pass' : 'unknown', flag: 'team_assumption', source: GUARD,
+      note: issues.length ? issues.join(' ') : `Board statement: ${statementFor(n, r)}`,
+    })
+  }
+  return out
 }

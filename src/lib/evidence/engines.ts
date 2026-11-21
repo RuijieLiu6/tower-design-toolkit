@@ -1,8 +1,11 @@
 // Every built node's results for one design, computed straight from the engines (no React), for the Sources hub and
 // its tests. Nodes whose inputs live in their own stores (economics, parking, facade) get the defaults here; energy and
 // solar run only when switched on (their declared sources stand in). The hub page swaps in live results.
+// The engagement-and-claims guard and the AI-use log run when a culture input is given (gap G15): the app passes the
+// browser's ledger (lib/cultureStore.ts), the design harness passes a design's records and board text.
 import { VTC_NORTH_DEG } from '../../context'
 import { cityInNature, fourthStoreyTop } from '../../engine/cityInNature'
+import { claimsLines, type Nation, type NationRecord } from '../../engine/culture'
 import { DEFAULT_ECON } from '../../engine/economics'
 import { egressCheck, type EgressPresets } from '../../engine/egress'
 import { DEFAULT_FACADE, facadeCheck } from '../../engine/facade'
@@ -14,6 +17,7 @@ import { CITY_ORIGIN } from '../../store'
 import { liftCheck, type LiftPresets } from '../../engine/lifts'
 import { towerFloors } from '../../engine/massing'
 import { DEFAULT_MOBILITY, mobilityCheck } from '../../engine/mobility'
+import { provenanceLines, type ProvEntry } from '../../engine/provenance'
 import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
 import { silhouetteReading } from '../../engine/silhouette'
 import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
@@ -22,6 +26,17 @@ import type { Tower } from '../../engine/types'
 import { SITE, vtcRules, type FsrTier } from '../../engine/vtcRules'
 import { windProcedure, windStudyRules, type WindPresets } from '../../engine/windStructure'
 import type { NatureInput } from '../../engine/cityInNature'
+
+/** The engagement ledger's data, as lib/cultureStore.ts holds it (that store's state can be passed as it is). */
+export interface CultureInput {
+  /** Engagement record per Nation (engine/culture.ts NationRecord: status 0 = N0 · No engagement … 4 = N4 · Written
+   *  permission). A Nation or field left out takes DEFAULT_RECORD: N0, not confirmed. */
+  records: Partial<Record<Nation, Partial<NationRecord>>>
+  /** Board and narrative text to check: the store's one string, or a list of sentences or paragraphs. */
+  claimsText: string | string[]
+  /** AI-use log entries (engine/provenance.ts ProvEntry); fields left out take the log's new-entry defaults. Absent = nothing logged. */
+  prov?: Partial<ProvEntry>[]
+}
 
 export interface EvidenceInput {
   project: 'vtc' | 'city'
@@ -44,6 +59,8 @@ export interface EvidenceInput {
   skyTerraces?: Record<string, SkyTerraceLine> | null
   /** Skyline silhouette: the viewing distance (m); default 2 km (engine/silhouette.ts). */
   silhouetteDistance?: number
+  /** Engagement records, board text and the AI-use log; with it, the claims guard and the AI-use log give lines. */
+  culture?: CultureInput | null
 }
 
 /** Both projects' results side by side, so the hub lists every node's sources whichever project is open. */
@@ -80,5 +97,6 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),
     'built.relax-aviation': towers.map((t) => [...(i.project === 'city' ? relaxationChecklist(t, [], 15, i.studyArea ?? null, CITY_ORIGIN) : []), ...aviationChecklist(t, i.project === 'city' ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)]),
+    ...(i.culture ? { 'built.culture-claims': claimsLines(i.culture.claimsText, i.culture.records), 'built.provenance': provenanceLines(i.culture.prov ?? []) } : {}),
   }
 }

@@ -1,6 +1,7 @@
 // AI-use and provenance log (research P07-M07, round 4): who or what made each element, what each person decided,
 // and the IPTC digital-source-type term for each image. The board appendix lists AI use, sources, module names and
 // licences only, never people. Stripping identity from exported files belongs to the board export (backlog item 5).
+import type { RuleResult, Source } from './types'
 
 export type Involvement = 'capture' | 'capture-montage' | 'none' | 'assist' | 'generative-edit' | 'composite' | 'generated'
 export type ElementKind = 'image' | 'text' | 'drawing' | 'result'
@@ -84,3 +85,38 @@ export const MODULES: { name: string; licence: string }[] = [
   { name: 'react-three-fiber and drei', licence: 'MIT' }, { name: 'React Flow (xyflow)', licence: 'MIT' }, { name: 'Zustand', licence: 'MIT' },
   { name: 'rhino3dm', licence: 'MIT' }, { name: 'web-ifc', licence: 'MPL-2.0' }, { name: 'Ajv', licence: 'MIT' }, { name: 'fflate', licence: 'MIT' },
 ]
+
+// --- Result lines from data (gap G15) ------------------------------------------------------------------------------
+// The log as result lines, so it runs from a design's data (the Sources hub, the design harness) as well as from the
+// browser's log. Like the board appendix, no line names a person: no reviewer, no handle.
+
+const IPTC_SOURCE: Source = { label: 'IPTC NewsCodes, digital source type (research P07-M07, P07-S38)', url: IPTC_BASE }
+
+/** A log entry from a partial one: fields left out take the log's new-entry defaults (an image made with non-AI tools, decided by a person). */
+export function provEntry(e: Partial<ProvEntry>, k = 0): ProvEntry {
+  return { id: `p${k}`, element: '', kind: 'image', involvement: 'none', tool: '', toolGenerative: false, date: '', humanContribution: '', decidedBy: 'person', cultural: false, reviewer: '', licence: '', sourceIds: '', ...e }
+}
+
+/** The log's summary and one line per element, each with its IPTC term and what is left to fix. */
+export function provenanceLines(partial: Partial<ProvEntry>[] = []): RuleResult[] {
+  const list = partial.map(provEntry)
+  const issues = provenanceIssues(list)
+  const n = list.length, k = issues.length
+  const out: RuleResult[] = [{
+    id: 'prov-log', label: 'AI-use log', value: n ? `${n} element${n > 1 ? 's' : ''} logged, ${k ? `${k} to fix` : 'complete'}` : 'nothing logged yet',
+    threshold: 'every board element logged: how it was made (IPTC digital source type), the tool, and who decided',
+    state: !n ? 'unknown' : k ? 'warn' : 'pass', flag: 'team_assumption', source: IPTC_SOURCE,
+    note: 'The IPTC term per level is the team’s mapping (research P07-M07); when unsure, declare more AI use.',
+  }]
+  list.forEach((e, j) => {
+    const lvl = IPTC[e.involvement] ?? IPTC.none
+    const mine = issues.filter((x) => x.entry === e.id)
+    out.push({
+      id: `prov-entry-${j}`, label: `${e.element || '(unnamed element)'} (${e.kind})`, value: `${lvl.visible} (IPTC ${lvl.term})${e.tool ? `, tool: ${e.tool}` : ''}`,
+      threshold: 'a person decided or accepted it; licence, reviewer and sources as its kind needs',
+      state: mine.length ? 'warn' : 'pass', flag: 'team_assumption', source: IPTC_SOURCE,
+      note: mine.length ? mine.map((x) => x.text).join(' ') : `${DECIDER_LABEL[e.decidedBy] ?? e.decidedBy}; the person’s contribution is recorded.`,
+    })
+  })
+  return out
+}

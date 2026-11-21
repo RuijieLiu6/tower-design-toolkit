@@ -23,6 +23,7 @@ import { useEnergyCarbon } from '../hooks/useEnergyCarbon'
 import { useFacade } from '../hooks/useFacade'
 import { useMobility } from '../hooks/useMobility'
 import { useSolar } from '../hooks/useSolarAccess'
+import { useCultureStore } from '../lib/cultureStore'
 import { saveFile } from '../lib/download'
 import { evidenceGroups, mergeGroups } from '../lib/evidence/engines'
 import { FLAG_LABEL, FLAGS, bibliography, buildHub, type EvidenceItem, type FalseItem, type SourceEntry } from '../lib/evidence/hub'
@@ -152,11 +153,13 @@ export default function Sources() {
   const citySite = useStore((x) => x.citySite)
   const cityStreets = useSiteStreets(true).result
   const cityArea = projectSiteArea('city', studyArea, citySite).area
+  // The engagement ledger stays in this browser (lib/cultureStore.ts); its records, board text and AI-use log feed the claims guard and log lines.
+  const culture = useCultureStore(useShallow((c) => ({ records: c.records, claimsText: c.claimsText, prov: c.prov })))
   const hub = useMemo(() => {
-    const base = { fsrTier: s.fsrTier, transitLink: s.transitLink, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets, systemsPresets: s.systemsPresets }
+    const base = { fsrTier: s.fsrTier, transitLink: s.transitLink, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets, systemsPresets: s.systemsPresets, culture }
     const live = { 'built.mobility': mobility.rules, 'built.facade': facade.rules, 'built.economics': [econ.presets, (econ.result as { charges?: { lines?: unknown } } | undefined)?.charges?.lines ?? []], ...(energy ? { 'built.energy-carbon': energy } : {}), ...(solar ? { 'built.solar-access': (solar as { lines?: unknown }).lines ?? [] } : {}) }
     return buildHub(mergeGroups(evidenceGroups({ ...base, project: 'vtc', towers: s.towers.vtc }), evidenceGroups({ ...base, project: 'city', towers: s.towers.city, studyArea: cityArea, cityRing: (citySite?.ring ?? null) as [number, number][] | null, cityStreets: streetsCtx(citySite, cityStreets) }), live))
-  }, [s, mobility, facade, econ, energy, solar, cityArea, citySite, cityStreets])
+  }, [s, mobility, facade, econ, energy, solar, cityArea, citySite, cityStreets, culture])
 
   const [tab, setTab] = useState<Tab>('sources')
   const [flag, setFlag] = useState<Flag | 'all'>('all')

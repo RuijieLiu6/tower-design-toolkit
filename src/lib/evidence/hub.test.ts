@@ -78,3 +78,75 @@ describe('sources & assumptions hub (P16-M01)', () => {
     expect(board.split('\n').filter((l) => /^\d+\. /.test(l))).toHaveLength(hub.sources.length)
   })
 })
+
+// G15 (vtc-entry TOOL_DEFICITS): the claims guard and the AI-use log never ran in the design harness, because their
+// records lived only in the browser's ledger. With a culture input, evidenceGroups gives their lines from data.
+describe('G15: the engagement-and-claims guard and the AI-use log from data', () => {
+  const run = (culture?: Parameters<typeof evidenceGroups>[0]['culture']) =>
+    evidenceGroups({ project: 'vtc', towers: s.towers.vtc, fsrTier: s.fsrTier, transitLink: s.transitLink, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets, systemsPresets: s.systemsPresets, culture })
+  type Line = { id: string; label: string; value: string; threshold: string; state: string; flag: string; note?: string }
+  const lines = (g: Record<string, unknown>, node: string) => g[node] as Line[]
+  const line = (g: Record<string, unknown>, node: string, id: string) => lines(g, node).find((l) => l.id === id)!
+  const noEngagement = { status: 0 as const, confirmed: true }
+
+  it('passes the guard with the three host Nations at "no engagement" and the board saying so', () => {
+    const g = run({ records: { Musqueam: noEngagement, Squamish: noEngagement, 'Tsleil-Waututh': noEngagement }, claimsText: 'No Nation engaged; every cultural item: not sought' })
+    const lint = line(g, 'built.culture-claims', 'cc-lint')
+    expect(lint).toMatchObject({ state: 'pass', flag: 'team_assumption' })
+    expect(lint.value).toMatch(/^no wording above status/)
+    expect(lines(g, 'built.culture-claims').filter((l) => l.id.startsWith('cc-claim-'))).toEqual([])
+    for (const n of ['musqueam', 'squamish', 'tsleil-waututh']) {
+      const r = line(g, 'built.culture-claims', `cc-record-${n}`)
+      expect(r).toMatchObject({ value: 'N0 · No engagement, confirmed', state: 'pass' })
+      expect(r.note).toMatch(/^Board statement: No .+ representative took part in this work/)
+    }
+    expect(lines(g, 'built.culture-claims').some((l) => l.state === 'fail' || l.state === 'warn')).toBe(false)
+  })
+
+  it('fails the guard on "co-designed with" a Nation when no engagement is recorded', () => {
+    const g = run({ records: {}, claimsText: ['The welcome stair was co-designed with the Musqueam Nation.', 'Its pattern is our own.'] })
+    const lint = line(g, 'built.culture-claims', 'cc-lint')
+    expect(lint.state).toBe('fail')
+    expect(lint.value).toBe('1 phrase above status: "co-designed"')
+    const claim = line(g, 'built.culture-claims', 'cc-claim-0')
+    expect(claim).toMatchObject({ label: '"co-designed" (Collaboration phrase)', value: 'The welcome stair was co-designed with the Musqueam Nation.', threshold: 'Musqueam at N4 or above with a reference', state: 'fail' })
+    expect(claim.note).toMatch(/Musqueam is below N4/)
+    // No record: N0, not confirmed, so open rather than passed.
+    expect(line(g, 'built.culture-claims', 'cc-record-musqueam')).toMatchObject({ value: 'N0 · No engagement, not confirmed', state: 'unknown' })
+    // A general reference to the Nations is checked against all three; the wording guard itself is unchanged.
+    const general = run({ records: { Musqueam: { status: 4, counterpart: 'authorized', reference: 'L-1', use: 'the stair', date: '2026-10-01', evidence: 'letter', confirmed: true } }, claimsText: 'Co-designed with the host Nations.' })
+    expect(line(general, 'built.culture-claims', 'cc-claim-0').note).toMatch(/^Squamish, Tsleil-Waututh are below N4/)
+    expect(line(run({ records: {}, claimsText: '' }), 'built.culture-claims', 'cc-lint')).toMatchObject({ value: 'no board text to check', state: 'unknown' })
+  })
+
+  it('logs AI use per element with its IPTC term, and names no person', () => {
+    expect(line(run({ records: {}, claimsText: '' }), 'built.provenance', 'prov-log')).toMatchObject({ value: 'nothing logged yet', state: 'unknown' })
+    const g = run({ records: {}, claimsText: '', prov: [
+      { element: 'Hero render', kind: 'image', involvement: 'generative-edit', tool: 'gpt-image-2', toolGenerative: true, humanContribution: 'massing and camera', licence: 'OpenAI terms', decidedBy: 'ai-proposed-person-accepted' },
+      { element: 'Site plan', kind: 'drawing', involvement: 'generated', humanContribution: '', reviewer: 'A. Person' },
+    ] })
+    expect(line(g, 'built.provenance', 'prov-log')).toMatchObject({ value: '2 elements logged, 1 to fix', state: 'warn' })
+    expect(line(g, 'built.provenance', 'prov-entry-0')).toMatchObject({ value: 'Edited with generative AI (IPTC compositeWithTrainedAlgorithmicMedia), tool: gpt-image-2', state: 'pass' })
+    expect(line(g, 'built.provenance', 'prov-entry-1')).toMatchObject({ value: 'AI-generated (IPTC trainedAlgorithmicMedia)', state: 'warn' })
+    expect(line(g, 'built.provenance', 'prov-entry-1').note).toMatch(/say what a person contributed/)
+    expect(JSON.stringify(g['built.provenance'])).not.toMatch(/A\. Person/)
+  })
+
+  it('gives every warning and failure an instruction of its own, and leaves the groups as they were without a culture input', async () => {
+    const { fixFor } = await import('../fixes')
+    const g = run({ records: { Squamish: { status: 4 } }, claimsText: 'We consulted the Squamish Nation and co-designed the plaza with First Nations.', prov: [{ element: 'Plan', kind: 'result' }] })
+    const bad = [...lines(g, 'built.culture-claims'), ...lines(g, 'built.provenance')].filter((l) => l.state === 'warn' || l.state === 'fail')
+    expect(bad.map((l) => l.id)).toEqual(expect.arrayContaining(['cc-lint', 'cc-claim-0', 'cc-claim-1', 'cc-record-squamish', 'prov-log', 'prov-entry-0']))
+    for (const l of bad) expect(fixFor(l.id, l.state as 'warn', l.value, l.threshold, l.flag), l.id).not.toMatch(/^Rule: |See Details for the rule/)
+    const none = run()
+    expect('built.culture-claims' in none || 'built.provenance' in none).toBe(false)
+  })
+
+  it('takes the browser ledger as it is, so the app passes the store', async () => {
+    const { useCultureStore } = await import('../cultureStore')
+    useCultureStore.getState().set({ claimsText: 'Engagement with the Tsleil-Waututh Nation shaped the plaza.' })
+    const g = run(useCultureStore.getState())
+    expect(line(g, 'built.culture-claims', 'cc-lint').state).toBe('fail')
+    expect(line(g, 'built.culture-claims', 'cc-claim-0').label).toBe('"Engagement with" (Engagement wording)')
+  })
+})
