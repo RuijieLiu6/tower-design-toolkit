@@ -16,6 +16,12 @@
 //     through-flow, windward open edge and open downwind   1.14  inference: √(Cp,ww − Cp,lw) = √(0.8 + 0.5), NBC 4.1.7.5.(2)
 //     windward open edge, wall downwind (loggia)            0.6   team
 //   within 0.2 L of the upwind corner of a side edge       1.3   inference: Bernoulli √(1 − Cp), Cp = −0.7 (NBC 4.1.7.5.(2)(c)); roofs, setbacks and loggias (R5: T1, T2, T4)
+// Cover factor (gap G24, team step; review R3-8 cites Gu et al. 2023, unverified): a slab shelters by how deep the deck
+// reaches under it against the headroom. Depth D = twice the mean distance of the deck's sample points to its nearest
+// open edge (a strip open on one side: its width; open on both sides: half of it); f = (D/h − 0.25) / 0.75, held to 0–1.
+// At D ≥ h (f = 1) the slab-above K values hold; at D ≤ h/4 (f = 0) the cover is an overhang and the deck reads as open
+// to the sky; between, K = K_open + f (K_slab − K_open) per point and wind direction, the two end points being the table's
+// own values (wind under a canopy reaches about as far in as the opening is high: team reading, unverified).
 // Screen factor (R5 §1.4, team values after Hörteborn et al. 2023): none under 1.2 m; full within 3 h of the screen, back
 // to 1 at 10 h; by porosity β: ≤ 0.10 → 0.5 (1.1 when the wind meets it over 60° off square), ≤ 0.40 → 0.4, ≤ 0.60 → 0.6,
 // else 0.85. Neighbour factor (team): 0.7 when a building taller than the deck lies upwind within the hour's sector
@@ -64,6 +70,9 @@ export interface DeckWind {
   safety: { londonHours: number; london: boolean; torontoShare: number; toronto: boolean } | null
   /** The screen in place: from the wind settings on every open edge, or the façade's wind-screen zones on some. */
   screen: (Screen & { from: 'setting' | 'facade'; edges: number }) | null
+  /** A deck with a slab above: its depth under the slab, the headroom and the cover factor (1 = the slab-above K values,
+   *  0 = read as open to the sky); null when open to the sky. */
+  cover: { depth: number; headroom: number; factor: number } | null
   /** The smallest screen on every open edge that reaches the target ("sitting") and the next class ("standing"):
    *  'none' when no screen is needed, null when no screen in the set reaches it. */
   need: { sitting: Screen | 'none' | null; standing: Screen | 'none' | null }
@@ -90,6 +99,23 @@ export function screenFactor(sc: Screen | null | undefined, x: number, gamma: nu
 }
 const gem = (ti: number) => Math.max(1, (1 + 3 * ti) / 1.85)
 
+/** Cover ratio (depth over headroom) below which a slab is an overhang (f = 0), and from which it shelters fully (f = 1). Team step. */
+export const COVER_OPEN = 0.25, COVER_FULL = 1
+/** The cover factor for a deck reaching `depth` under a slab `headroom` above it (gap G24, team step): 0–1. */
+export function coverFactor(depth: number, headroom: number): number {
+  if (!(headroom > 0)) return 1
+  const r = depth / headroom
+  return Math.max(0, Math.min(1, (r - COVER_OPEN) / (COVER_FULL - COVER_OPEN)))
+}
+/** A covered deck's depth under the slab: twice the mean distance of its sample points to the nearest open edge (m). */
+export function coverDepth(d: Pick<Deck, 'pts' | 'edges'>): number {
+  const open = d.edges.filter((e) => e.open)
+  if (!open.length || !d.pts.length) return Infinity
+  let s = 0
+  for (const p of d.pts) { let m = Infinity; for (const e of open) m = Math.min(m, segDist(p, e.a, e.b)); s += m }
+  return (2 * s) / d.pts.length
+}
+
 /** The wind on each deck (R5 §1.6). */
 export function terraceWind(decks: Deck[], H: DeckHours, o: TerraceOptions): DeckWind[] {
   const crit = CRITERIA[o.criteria] ?? CRITERIA.london2019
@@ -99,6 +125,7 @@ export function terraceWind(decks: Deck[], H: DeckHours, o: TerraceOptions): Dec
 
 function deckWind(d: Deck, H: DeckHours, o: TerraceOptions, crit: CriteriaSet, otherKey: Criteria): DeckWind {
   const { edges, pts, z } = d, P = pts.length, covered = d.cover != null
+  const depth = covered ? coverDepth(d) : 0, f = covered ? coverFactor(depth, d.cover!) : 0
   const prof = new Float32Array(BINS), nb = new Float32Array(BINS).fill(1)
   const gam = edges.map((e) => { const g = new Float32Array(BINS); for (let b = 0; b < BINS; b++) g[b] = angDiff(binDir(b), e.az); return g })
   const cx = pts.reduce((s, p) => s + p[0], 0) / P, cy = pts.reduce((s, p) => s + p[1], 0) / P
@@ -122,23 +149,31 @@ function deckWind(d: Deck, H: DeckHours, o: TerraceOptions, crit: CriteriaSet, o
     for (let p = 0; p < P; p++) {
       const at = p * BINS + b, q = pts[p], eu = rayHit(q, w, edges), ed = rayHit(q, wd, edges)
       const E = eu >= 0 ? edges[eu] : null, Dn = ed >= 0 ? edges[ed] : null, g = eu >= 0 ? gam[eu][b] : 0
-      let k: number, c: KCase, ti = 0
-      if (E && !E.open) { k = covered ? 0.5 : 0.7; c = covered ? 'sheltered' : 'wake'; ti = 1 }
-      else if (covered) {
-        if (g <= 45) { if (!Dn || Dn.open) { k = 1.14; c = 'through' } else { k = 0.6; c = 'loggia' } }
-        else { k = 0.5; c = 'across' }
-      } else {
-        k = g <= 45 ? 1.2 : 1.0; c = g <= 45 ? 'edge' : 'side'
+      // the deck as open to the sky, and (covered) under its slab; the cover factor blends the two
+      const sky = (): { k: number; c: KCase; ti: number } => {
+        if (E && !E.open) return { k: 0.7, c: 'wake', ti: 1 }
+        let k = g <= 45 ? 1.2 : 1.0, c: KCase = g <= 45 ? 'edge' : 'side'
         if (Dn && !Dn.open && (Dn.dH ?? 0) > 0 && angDiff(th, Dn.az + 180) <= 45) {
           // the larger of R5's downwash ratio and the open-edge factor (team: at height the NBC profile is flat, so the
           // ratio alone would read under a plain roof edge)
           k = Math.max(k, profileRatio(z + 0.7 * (Dn.dH ?? 0), th, o.exposure, o.profile) / prof[b]); c = 'downwash'
         }
-      }
-      if ((!covered && c !== 'wake') || c === 'loggia') {
         for (const cr of corners) if (cr && Math.hypot(q[0] - cr.c[0], q[1] - cr.c[1]) <= cr.r && k < 1.3) { k = 1.3; c = 'corner' }
+        return { k, c, ti: 0 }
       }
-      K[at] = k; TI[at] = ti; up[at] = eu; kc[at] = K_CASES.indexOf(c)
+      const slab = (): { k: number; c: KCase; ti: number } => {
+        if (E && !E.open) return { k: 0.5, c: 'sheltered', ti: 1 }
+        if (g > 45) return { k: 0.5, c: 'across', ti: 0 }
+        if (!Dn || Dn.open) return { k: 1.14, c: 'through', ti: 0 }
+        let k = 0.6, c: KCase = 'loggia'
+        for (const cr of corners) if (cr && Math.hypot(q[0] - cr.c[0], q[1] - cr.c[1]) <= cr.r && k < 1.3) { k = 1.3; c = 'corner' }
+        return { k, c, ti: 0 }
+      }
+      let r: { k: number; c: KCase; ti: number }
+      if (!covered || f <= 0) r = sky()
+      else if (f >= 1) r = slab()
+      else { const a = sky(), s2 = slab(); r = { k: a.k + f * (s2.k - a.k), c: s2.c, ti: s2.ti } }
+      K[at] = r.k; TI[at] = r.ti; up[at] = eu; kc[at] = K_CASES.indexOf(r.c)
       xs[at] = E ? segDist(q, E.a, E.b) : 0
     }
   }
@@ -186,6 +221,7 @@ function deckWind(d: Deck, H: DeckHours, o: TerraceOptions, crit: CriteriaSet, o
     hoursOver: hoursAbove(H.comfort.year, fW, lim),
     safety: H.source === 'one' ? null : (() => { const lh = hoursAbove(H.all, fW, 15), ts = hoursAbove(H.all, gW, 25) / H.all.n; return { londonHours: lh, london: lh / H.all.n > 0.00022, torontoShare: ts, toronto: ts > 0.001 } })(),
     screen: o.screen ? { ...o.screen, from: 'setting', edges: screened } : firstFacade ? { ...firstFacade, from: 'facade', edges: screened } : null,
+    cover: covered ? { depth, headroom: d.cover!, factor: f } : null,
     need: screenNeed(H, crit, P, read.cls, (sc) => mults(() => sc).Fc),
   }
 }

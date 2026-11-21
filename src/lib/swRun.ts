@@ -387,7 +387,8 @@ function deckHow(s: SwStudySettings, one: boolean): string {
 const DECK_SRC = (c: CriteriaSet) => ({ label: `Research R5 §1.2–§1.6: NBC 2020 Div. B 4.1.7.3.(5), 4.1.7.5.(2) and Commentary I para 12 (exposure, Cp); local factors, screens and neighbours are team values (R5 K table); ${c.source}; CWEC 2020 Vancouver Intl hourly` })
 /** A façade zone with the wind-screen strategy: 1.5 m glass screens on the terrace edges (STRATS.windscreen), solid. */
 const FACADE_SCREEN = { h: 1.5, porosity: 0 }
-const DECK_WORD: Record<DeckType, string> = { roof: 'Roof', setback: 'Terrace', openStorey: 'Open storey', loggia: 'Loggia' }
+// Every deck with a slab above it is a loggia (gap G24): one open on opposite sides or all round says so.
+const DECK_WORD: Record<DeckType, string> = { roof: 'Roof', setback: 'Terrace', openStorey: 'Loggia (open storey)', loggia: 'Loggia' }
 const deckLabel = (d: Deck, multi: boolean) => `${multi ? `${d.tower}: ` : ''}${DECK_WORD[d.type]} at +${Math.round(d.z)} m${d.type === 'roof' ? '' : ` (L${d.level})`}`
 const C8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
 const compass8 = (az: number) => C8[Math.round((((az % 360) + 360) % 360) / 45) % 8]
@@ -398,6 +399,7 @@ function deckNote(w: DeckWind, c: CriteriaSet): string {
   const facings = [...new Set(d.edges.filter((e) => e.open && e.L >= 1).sort((a, b) => b.L - a.L).map((e) => compass8(e.az)))]
   const dH = Math.max(0, ...d.edges.filter((e) => !e.open).map((e) => e.dH ?? 0))
   const shape = `${fmt(d.area)} m², ${d.allRound ? 'open all round' : `open to the ${facings.join(', ') || 'sky'}`}${d.cover != null ? `, slab ${d.cover.toFixed(1)} m above` : ''}${d.type === 'setback' && dH > 0 ? `, the face above rises ${Math.round(dH)} m` : ''}.`
+    + (w.cover ? ` Cover factor ${w.cover.factor.toFixed(2)}: ${Number.isFinite(w.cover.depth) ? `${w.cover.depth.toFixed(1)} m deep` : 'no open edge'} under ${w.cover.headroom.toFixed(1)} m of headroom (1 at a depth of the headroom or more, the slab-above K values; 0 at a quarter of it or less, read as open to the sky; team step, Gu et al. 2023 unverified).` : '')
   const seasons = `Seasons: ${DECK_SEASONS.map((k) => `${k} ${c.classes[r.seasons[k].cls]} (${r.seasons[k].v.toFixed(1)})`).join(', ')}.`
   const g = w.governing
   const gov = `Worst point: most hours over ${c.limits[c.target].toFixed(1)} m/s come from ${compass16(g.dir)}${g.edgeAz != null ? ` across the ${compass8(g.edgeAz)}-facing edge` : ''}, ${K_WORD[g.kCase]} (K ${g.k.toFixed(2)}); ${fmt(w.hoursOver)} comfort hours a year over it.`

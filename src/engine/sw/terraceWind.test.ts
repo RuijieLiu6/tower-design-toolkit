@@ -5,7 +5,7 @@ import { withBlocks } from '../massing'
 import type { ImportedStorey, Tower } from '../types'
 import { DEFAULT_EXPOSURE, deckHours } from './deckWind'
 import { towerDecks } from './decks'
-import { screenFactor, terraceWind, type TerraceOptions } from './terraceWind'
+import { coverDepth, coverFactor, screenFactor, terraceWind, type TerraceOptions } from './terraceWind'
 import { computeSw } from '../../lib/swRun'
 import { SW_DEFAULTS } from '../../lib/swStudy'
 import type { SwInputs } from '../../lib/swInputs'
@@ -155,5 +155,62 @@ describe('the terraces in Wind on terraces and roofs, and the sky room', () => {
     const t = setback({ skyLobbies: [20], skyRoom: { ...DEFAULT_SKY_ROOM, level: 20 } })
     const out = await computeSw('built.sw-wind-height', inp(t), SW_DEFAULTS)
     expect((out.data as { skyTerraces: Record<string, SkyTerraceLine> }).skyTerraces.t.value).toMatch(/No outdoor terrace/)
+  })
+})
+
+// G24 (vtc-entry C21b, wind review R3-8): a deck under the storey above carried out over it, with no end walls, read as an
+// "Open storey", so the terrace lines seemed to drop it; and the slab sheltered alike whatever its headroom and depth.
+type Pt2 = [number, number]
+const box = (x0: number, y0: number, x1: number, y1: number): Pt2[] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+/** A 50 m square to +60 m whose south side is a deck `depth` m deep under a roof `head` m above it (the storey above carried
+ *  out over it), with 1.5 m end walls or open ends; the tower above the roof keeps the inset plate to +120 m. */
+const roofed = (depth: number, head: number, walls: boolean): Tower => {
+  const storeys: ImportedStorey[] = []
+  for (let i = 0; i < 30; i++) {
+    const z0 = i * 4, inset = box(-25, -25 + depth, 25, 25)
+    const loops = z0 < 60 ? [box(-25, -25, 25, 25)]
+      : z0 < 60 + head ? (walls ? [inset, box(-25, -25, -23.5, -25 + depth), box(23.5, -25, 25, -25 + depth)] : [inset])
+        : z0 < 64 + head ? [box(-25, -25, 25, 25)] : [inset]
+    storeys.push({ level: i + 1, z0, z1: z0 + 4, area: 0, use: 'office', podium: false, hasFloor: true, loops })
+  }
+  return { ...base({ height: 120 }), imported: { storeys } as unknown as Tower['imported'] }
+}
+
+describe('G24: every deck under a slab is a loggia, sheltered by its depth against its headroom', () => {
+  const inp = (t: Tower): SwInputs => ({ project: 'city', towers: [t], north: 0, site: null, context: [], ctxBlocks: [], C })
+  it('a deck under a roof with open sides is listed, as a loggia', async () => {
+    const open = towerDecks(roofed(9, 8, false), 0).find((d) => d.z === 60)!
+    expect(open.cover).toBeCloseTo(8, 6)
+    expect(open.type).toBe('openStorey') // open at both ends as well as the south
+    const lines = (await computeSw('built.sw-wind-height', inp(roofed(9, 8, false)), SW_DEFAULTS)).rules
+    const line = lines.find((r) => r.id === 'sw-terrace-t-L16')!
+    expect(line.label).toBe('Loggia (open storey) at +60 m (L16)')
+    expect(line.note).toMatch(/slab 8\.0 m above\. Cover factor (0\.\d\d|1\.00): [\d.]+ m deep under 8\.0 m of headroom/)
+    // with end walls it is a loggia open to the south only, as before
+    const walled = (await computeSw('built.sw-wind-height', inp(roofed(9, 8, true)), SW_DEFAULTS)).rules.find((r) => r.id === 'sw-terrace-t-L16')!
+    expect(walled.label).toBe('Loggia at +60 m (L16)')
+  })
+  it('the cover factor runs from an overhang (D up to h/4: open to the sky) to full shelter (D of h or more), linear between', () => {
+    expect(coverFactor(1, 8)).toBe(0)
+    expect(coverFactor(2, 8)).toBe(0)
+    expect(coverFactor(5, 8)).toBeCloseTo(0.5, 6)
+    expect(coverFactor(8, 8)).toBe(1)
+    expect(coverFactor(20, 4)).toBe(1)
+    // depth: twice the mean distance to the nearest open edge (a walled strip open on one side reads about its width)
+    expect(coverDepth(towerDecks(roofed(12, 4, true), 0).find((d) => d.z === 60)!)).toBeCloseTo(12, 0)
+  })
+  it('a deeper, lower cover shelters more than a shallow, high one', () => {
+    const south = deckHours(C, { dir: 180, speed: 3 }) // onto the open south edge
+    const read = (depth: number, head: number) => terraceWind(towerDecks(roofed(depth, head, true), 0).filter((d) => d.z === 60), south, opts())[0]
+    const deepLow = read(12, 4), shallowHigh = read(3, 8), deepHigh = read(6, 8), sameLow = read(6, 4)
+    expect(deepLow.cover!.factor).toBe(1)
+    expect(shallowHigh.cover!.factor).toBeLessThan(0.2)
+    expect(deepLow.read.v).toBeLessThan(shallowHigh.read.v)
+    // the end points are the table's own values: full cover reads the loggia K 0.6, no cover the open edge
+    expect(deepLow.governing.k).toBeCloseTo(0.6, 6)
+    expect(shallowHigh.governing.k).toBeGreaterThan(1)
+    // the same 6 m depth shelters more under 4 m of headroom than under 8 m
+    expect(sameLow.cover!.factor).toBeGreaterThan(deepHigh.cover!.factor)
+    expect(sameLow.read.v).toBeLessThan(deepHigh.read.v)
   })
 })
