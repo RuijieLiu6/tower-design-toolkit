@@ -173,6 +173,11 @@ export interface ImportedStorey {
   hasFloor: boolean
   /** Plate outlines in the tower frame (m); outer rings counter-clockwise, holes clockwise. */
   loops: [number, number][][]
+  /**
+   * Outlines of the storey's glazed enclosure parts (tower frame, m), when the model marks them: glass one sees into, not
+   * through. The sky-through reading (engine/silhouette.ts) counts it as blocked and reports it apart (gap G23).
+   */
+  glazed?: [number, number][][]
   /** Id of the model element (Layer 0 interchange) that set this storey's use; absent when it follows the program bands. */
   src?: string
 }

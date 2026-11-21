@@ -19,7 +19,7 @@ import { towerFloors } from '../../engine/massing'
 import { DEFAULT_MOBILITY, mobilityCheck } from '../../engine/mobility'
 import { provenanceLines, type ProvEntry } from '../../engine/provenance'
 import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
-import { silhouetteReading } from '../../engine/silhouette'
+import { silhouetteReading, skyContext, type SkyContext } from '../../engine/silhouette'
 import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
 import type { Tower } from '../../engine/types'
@@ -59,6 +59,11 @@ export interface EvidenceInput {
   skyTerraces?: Record<string, SkyTerraceLine> | null
   /** Skyline silhouette: the viewing distance (m); default 2 km (engine/silhouette.ts). */
   silhouetteDistance?: number
+  /**
+   * Skyline silhouette, sky through the tower (gap G23): masses to check behind each tower besides the design's other
+   * towers (always checked), e.g. the city's buildings, and what they are in words.
+   */
+  silhouetteContext?: SkyContext | null
   /** Engagement records, board text and the AI-use log; with it, the claims guard and the AI-use log give lines. */
   culture?: CultureInput | null
 }
@@ -92,7 +97,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
     'built.mobility': mobilityCheck(towers, DEFAULT_MOBILITY, { project: i.project, transitLink: i.transitLink, homeM2: i.liftPresets.homeM2, hotelM2PerKey: i.liftPresets.hotelM2PerKey }).rules,
     'built.facade': facadeCheck(towers, DEFAULT_FACADE, north).rules,
-    'built.silhouette': towers.map((t) => silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance }).rules),
+    'built.silhouette': towers.map((t) => silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context: skyContext(towers, t, i.silhouetteContext) }).rules),
     'built.economics': DEFAULT_ECON,
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),

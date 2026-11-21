@@ -5,7 +5,7 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
 import { VTC_NORTH_DEG } from '../context'
-import { ACUITY_ARCMIN, DEFAULT_VIEW_M, LEGIBLE_ARCMIN, LEGIBLE_NOTE, LEGIBLE_VIEWS, metresAt, silhouetteReading, type AxisReading, type SilhouetteReading } from '../engine/silhouette'
+import { ACUITY_ARCMIN, DEFAULT_VIEW_M, LEGIBLE_ARCMIN, LEGIBLE_NOTE, LEGIBLE_VIEWS, metresAt, silhouetteReading, SKY_ARCMIN2, SKY_NOTE, SKY_VIEWS, skyContext, type AxisReading, type SilhouetteReading } from '../engine/silhouette'
 import { useStore, useTowers } from '../store'
 import { MethodFold, RuleRows, STATE_COL, Stat, Stats } from './ResultViz'
 import SheetFrame from './SheetFrame'
@@ -20,7 +20,7 @@ export function useSilhouettes(): SilhouetteReading[] {
   const towers = useTowers()
   const north = useStore((s) => (s.project === 'vtc' ? VTC_NORTH_DEG : 0))
   const distance = useSilhouetteView((s) => s.distance)
-  return useMemo(() => towers.map((t) => silhouetteReading(t, { northDeg: north, distance })), [towers, north, distance])
+  return useMemo(() => towers.map((t) => silhouetteReading(t, { northDeg: north, distance, context: skyContext(towers, t) })), [towers, north, distance])
 }
 
 /** One view pair's outline, centred on its base, to the shared scale `k` (px per m). */
@@ -89,6 +89,7 @@ export default function SilhouettePanel() {
               <Stat label="Legible views" value={`${r.legibleViews} / 8`} color={STATE_COL[r.state]} tip={`Views with a change of ${LEGIBLE_ARCMIN}′ or more from ${km(r.distance)}; ${LEGIBLE_VIEWS} or more reads as a pass`} />
               <Stat label="Largest change" value={r.largest ? r.largest.size.toFixed(1) : '0'} unit={r.largest ? `m · ${r.largest.arcmin < 9.95 ? r.largest.arcmin.toFixed(1) : Math.round(r.largest.arcmin)}′` : 'm'} tip={r.largest ? `Seen from ${r.largest.pair}, at +${Math.round(r.largest.z0)} m` : 'The outline is straight'} />
               <Stat label="Widest view turns" value={r.turn ? `${Math.round(Math.abs(r.turn.deg))}°` : '—'} tip="How far the direction the tower looks widest from turns between its base and its top" />
+              <Stat label="Sky through" value={r.sky.read ? `${r.sky.legibleViews} / 8` : '—'} color={STATE_COL[r.sky.state]} tip={r.sky.read ? `Views with an opening of sky through the tower of ${SKY_ARCMIN2} arcmin² or more from ${km(r.distance)}; ${SKY_VIEWS} or more reads as a pass` : 'The storeys of this mass are not known'} />
             </Stats>
             <Elevations r={r} />
             <RuleRows rules={r.rules} />
@@ -96,6 +97,7 @@ export default function SilhouettePanel() {
           <MethodFold>
             <p>The tower part above the podium is cut at every block or storey change and seen straight on from 8 compass views (true north applied); a view and its opposite see the same outline, mirrored. A change is how far the outline's two edges move where it steps, slides, tapers or twists; steps that keep moving it the same way with up to 10 m of straight outline between them count as one.</p>
             <p>{LEGIBLE_NOTE}</p>
+            <p>{SKY_NOTE}</p>
             <p>Visual acuity sets the floor at {ACUITY_ARCMIN}′; the toolkit does not yet read the outline from the view-cone origins or the board cameras, beside the future towers.</p>
           </MethodFold>
         </Section>
