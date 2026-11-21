@@ -1,8 +1,12 @@
 // A twisted tower read by the interior studies (tool gaps G27, G28; energy review R3-7 on B21c).
 import { describe, expect, it } from 'vitest'
 import type { ImportedStorey, Tower } from '../types'
-import { swFloors } from './plate'
+import type { ClimatePayload } from './types'
+import climateJson from '../../data/climate/yvr-cwec2020.json'
+import { swFloors, type FacadeZone } from './plate'
 import { floorExposure, formStudy } from './form'
+import { glazingStudy } from './glazing'
+import { FULL_YEAR } from './climate'
 
 type P = [number, number]
 const base = (patch: Partial<Tower> = {}): Tower => ({
@@ -61,5 +65,33 @@ describe('a twist\'s storey steps are a warped wall, not terraces and soffits (G
     const jog = floorExposure(swFloors(imported(Array.from({ length: 10 }, (_, i) => rect(45, 45, 0, i * 2, 0))), 0))
     expect(jog[4].terrace).toBeGreaterThan(80)
     expect(jog[4].warped).toBe(0)
+  })
+})
+
+const C = climateJson as unknown as ClimatePayload
+/** B21c's devices: fins on every face, so each zone's glare is the low sun past its fins. */
+const FINS: FacadeZone[] = (['N', 'E', 'S', 'W'] as const).map((face) => ({ face, from: 1, to: 999, strat: 'fins', wwr: 0.5, shgc: 0.3, depth: 0.6, pv: 0, operable: false }))
+
+describe('glare per storey, not unioned over the facings a zone sweeps (G28)', () => {
+  it('on a twisted tower each zone reads its worst storey, below the hours of its faces taken together', () => {
+    const g = glazingStudy(swFloors(twisted(40, 45), 0), FINS, C, FULL_YEAR)
+    for (const z of g.zones) {
+      expect(z.glareStoreys.length).toBeGreaterThan(0)
+      expect(z.glare).toBe(Math.max(...z.glareStoreys.map((s) => s.h)))
+      expect(z.glare).toBeLessThanOrEqual(z.glareUnion)
+      expect(z.glareStoreys.find((s) => s.level === z.glareLevel)!.h).toBe(z.glare)
+    }
+    const swept = g.zones.filter((z) => z.glareUnion > 0)
+    expect(swept.length).toBeGreaterThan(0)
+    expect(swept.some((z) => z.glare < z.glareUnion)).toBe(true)
+  })
+  it('an untwisted tower is unchanged: every storey reads the same hours, the zone value is the union as before', () => {
+    const g = glazingStudy(swFloors(straight(), 0), FINS, C, FULL_YEAR)
+    expect(g.zones.some((z) => z.glare > 0)).toBe(true)
+    for (const z of g.zones) {
+      expect(z.glare).toBe(z.glareUnion)
+      expect(new Set(z.glareStoreys.map((s) => s.h)).size).toBe(1)
+      expect(z.glareStoreys.length).toBe(N)
+    }
   })
 })

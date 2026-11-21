@@ -15,6 +15,11 @@
 //    glare is reported as the chamfer's, not inside a neighbouring face's zone.
 //  - Added (not in the Studio): `diffuse`, sky and ground gain through the glass after the device's sky transmission,
 //    and monthly splits; the Studio's heat through glazing is beam only, and so are `un` / `sh` here.
+//  - Glare by storey (tool gap G28, energy review R3-7): a zone's glare is its worst storey's, the hours when the low sun
+//    gets past the device on any of the zone's faces on that storey. It used to union every storey's faces, so on a
+//    twisted tower, whose zone sweeps 45° of facings up its height, it counted hours no one storey sees (B21c: 192 h,
+//    175 h per storey with the same devices). Where every storey has the same faces (an untwisted tower) the two agree;
+//    the union is kept as `glareUnion` and each storey's hours as `glareStoreys`.
 import { FULL_YEAR, faceHours, inPeriod, prepClimate, type Period } from './climate'
 import type { ClimatePayload } from './types'
 import { DEFAULT_ZONE, GLASS_VT, ORI, STRATS, band, isFacetFace, stratParts, zoneAvgT, zoneFaceName, zoneFor, type Face, type FacadeZone, type Sector, type StratId, type SwFloor } from './plate'
@@ -63,8 +68,14 @@ export interface GlazingZone {
   diffuse: number
   /** Beam-weighted share let through the device. */
   tAvg: number
-  /** Hours with low sun glare on any of the zone's faces. */
+  /** Hours with low sun glare on any of the zone's faces of its worst storey (G28). */
   glare: number
+  /** That storey's level (0 without glare). */
+  glareLevel: number
+  /** Hours with low sun glare on any of the zone's faces on any storey (the reading before G28). */
+  glareUnion: number
+  /** Glare hours of each storey the zone covers, bottom-up. */
+  glareStoreys: { level: number; h: number }[]
   /** Glazed, opaque and PV areas (m²). */
   areaGl: number; areaOp: number; pvArea: number
   /** Beam on the PV share of the spandrel (kWh). */
@@ -114,24 +125,29 @@ export function glazingStudy(floors: SwFloor[], zones: FacadeZone[], C: ClimateP
     let r = rowOf.get(key)
     if (!r) {
       const label = apart ? `${apart} facets · ${z === DEFAULT_ZONE ? 'no zone' : zoneLabel(z, topLevel)}` : zoneLabel(z, topLevel)
-      r = { i, label, ...(apart ? { facet: apart } : {}), strat: z.strat, stratName: STRATS[z.strat].name, zone: z, beam: 0, un: 0, sh: 0, diffuse: 0, tAvg: 1, glare: 0, areaGl: 0, areaOp: 0, pvArea: 0, pvBeam: 0, aperture: z.wwr * vt, floors: 0, monSh: new Array(12).fill(0), monUn: new Array(12).fill(0) }
+      r = { i, label, ...(apart ? { facet: apart } : {}), strat: z.strat, stratName: STRATS[z.strat].name, zone: z, beam: 0, un: 0, sh: 0, diffuse: 0, tAvg: 1, glare: 0, glareLevel: 0, glareUnion: 0, glareStoreys: [], areaGl: 0, areaOp: 0, pvArea: 0, pvBeam: 0, aperture: z.wwr * vt, floors: 0, monSh: new Array(12).fill(0), monUn: new Array(12).fill(0) }
       rowOf.set(key, r); floorSets.set(r, new Set())
     }
     return r
   }
   // group floor faces that see the same sun the same way: zone, face, azimuth and glass height
-  interface Group { r: GlazingZone; o: Face; az: number; gh: number; A: number; z: FacadeZone; tn: number; tw: number }
+  interface Group { r: GlazingZone; o: Face; az: number; gh: number; A: number; z: FacadeZone; tn: number; tw: number; fl: Set<number> }
   const groups = new Map<string, Group>()
-  for (const f of floors) for (const e of f.edges) {
+  floors.forEach((f, q) => { for (const e of f.edges) {
     const z = zoneFor(zones, e.zf, f.level), r = row(z, e.facet), gh = band(f, z).gh, A = e.L * f.h, az = Math.round(e.az) % 360
     floorSets.get(r)!.add(f.i)
     r.areaGl += A * z.wwr; r.areaOp += A * (1 - z.wwr); r.pvArea += A * (1 - z.wwr) * z.pv
     const key = `${zones.indexOf(z)}|${r.facet ?? ''}|${e.o}|${az}|${gh.toFixed(2)}`
     const g = groups.get(key)
-    if (g) g.A += A
-    else groups.set(key, { r, o: e.o, az, gh, A, z, tn: 0, tw: 0 })
-  }
+    if (g) { g.A += A; g.fl.add(q) }
+    else groups.set(key, { r, o: e.o, az, gh, A, z, tn: 0, tw: 0, fl: new Set([q]) })
+  } })
   const G = [...groups.values()]
+  const GF = G.map((g) => [...g.fl])
+  // glare hours by row and storey (index in `floors`), each hour counted once per storey
+  const nF = floors.length
+  const perStorey = new Map<GlazingZone, { n: Int32Array; last: Int32Array }>()
+  for (const r of rowOf.values()) perStorey.set(r, { n: new Int32Array(nF), last: new Int32Array(nF).fill(-1) })
   const Fh = G.map((g) => faceHours(P, g.az))
   const avgT = G.map((g) => zoneAvgT(g.z, { sp: 0, gh: g.gh, head: g.gh }))
   const byFace = {} as Record<Face, { un: number; sh: number }>
@@ -152,12 +168,21 @@ export function glazingStudy(floors: SwFloor[], zones: FacadeZone[], C: ClimateP
       g.tn += t * beam; g.tw += beam
       byFace[g.o].un += gain; byFace[g.o].sh += gain * t
       r.pvBeam += beam * (1 - z.wwr) * z.pv
-      if (low && t > 0.5 && bw / Math.max(1, P.dni[k]) > 0.03 && glaredAt.get(r) !== k) { glaredAt.set(r, k); r.glare++ }
+      if (low && t > 0.5 && bw / Math.max(1, P.dni[k]) > 0.03) {
+        if (glaredAt.get(r) !== k) { glaredAt.set(r, k); r.glareUnion++ }
+        const S = perStorey.get(r)!
+        for (const q of GF[j]) if (S.last[q] !== k) { S.last[q] = k; S.n[q]++ }
+      }
     }
   }
   const out = [...rowOf.values()]
   for (const r of out) {
     r.floors = floorSets.get(r)!.size
+    const S = perStorey.get(r)!, on = new Set<number>()
+    for (let j = 0; j < G.length; j++) if (G[j].r === r) for (const q of GF[j]) on.add(q)
+    const qs = [...on].sort((a, b) => floors[a].level - floors[b].level)
+    r.glareStoreys = qs.map((q) => ({ level: floors[q].level, h: S.n[q] }))
+    for (const q of qs) if (S.n[q] > r.glare) { r.glare = S.n[q]; r.glareLevel = floors[q].level }
     let tn = 0, tw = 0
     for (const g of G) if (g.r === r) { tn += g.tn; tw += g.tw }
     r.tAvg = tw ? tn / tw : (STRATS[r.strat].mod || 1)

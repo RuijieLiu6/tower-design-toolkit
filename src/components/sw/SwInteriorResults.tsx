@@ -81,7 +81,7 @@ function GlazingBody({ G }: { G: GlazingStudy }) {
         <BarRows label="Beam solar gain by façade zone, with and without devices" labelW={92} textW={64} rows={G.zones.map((z) => ({ label: zl(z.label), v: z.sh / 1000, v2: z.un / 1000, color: SUN_C, text: `${Math.round(z.sh / 1000)} / ${Math.round(z.un / 1000)}`, tip: `${z.label} · ${z.stratName}: ${fmtI(z.sh)} kWh with the device, ${fmtI(z.un)} without (${Math.round((1 - z.sh / Math.max(1, z.un)) * 100)}% blocked)` }))} />
       </SwFig>
       <SwFig title="Low-sun glare hours" caption="Sun under 25° past the device. Tick: 200 h." tip="Hours a year the sun is under 25° in front of the face and gets past the device.">
-        <BarRows label="Low-sun glare hours by façade zone" labelW={92} textW={44} rows={G.zones.map((z) => ({ label: zl(z.label), v: z.glare, mark: 200, color: z.glare > 400 ? '#c53030' : z.glare > 200 ? '#e08a3c' : '#86b86a', text: `${Math.round(z.glare)} h` }))} />
+        <BarRows label="Low-sun glare hours by façade zone (worst storey)" labelW={92} textW={44} rows={G.zones.map((z) => ({ label: zl(z.label), v: z.glare, mark: 200, color: z.glare > 400 ? '#c53030' : z.glare > 200 ? '#e08a3c' : '#86b86a', text: `${Math.round(z.glare)} h`, tip: `${z.label}: ${Math.round(z.glare)} h on its worst storey${z.glareLevel ? ` (L${z.glareLevel})` : ''}${z.glareUnion > z.glare ? `; ${Math.round(z.glareUnion)} h on all its storeys' faces taken together` : ''}` }))} />
       </SwFig>
     </>
   )

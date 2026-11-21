@@ -1,7 +1,7 @@
 // The interior Sun & Wind Studio tools (ventilation, air flow, indoor temperature, form, glazing, PV), registered with
 // the runner (lib/swRun.ts addRuns). Each reads the façade zones of its tower.
 import { formStudy, RATE_L, WARP_OVERLAP, WARP_STEP_MAX } from '../engine/sw/form'
-import { glazingStudy, towerWWR } from '../engine/sw/glazing'
+import { glazingStudy, towerWWR, type GlazingZone } from '../engine/sw/glazing'
 import { zonesOf } from '../engine/sw/plate'
 import { photovoltaics } from '../engine/sw/pv'
 import { thermalFloor, THERM_SYS, type ThermSys } from '../engine/sw/thermal'
@@ -11,6 +11,14 @@ import { addRuns, allFloors, key, LOSS_COL, planFloor, rule, T_COL, T_NAME, useS
 
 const pc = (v: number) => `${Math.round(v * 100)}%`
 const fmt = (v: number) => Math.round(v).toLocaleString()
+/** Where a zone's worst storey is, and the spread of its storeys' glare hours (G28). */
+const glareAt = (z: GlazingZone) => (z.glareLevel && z.glareStoreys.length > 1 ? `, worst at L${z.glareLevel}` : '')
+const glareRange = (z: GlazingZone) => {
+  const h = z.glareStoreys.map((s) => s.h)
+  if (!h.length) return 'no storey'
+  const lo = Math.min(...h), hi = Math.max(...h)
+  return lo === hi ? `${fmt(hi)} h on each of its ${h.length} storeys` : `${fmt(lo)}–${fmt(hi)} h over its ${h.length} storeys`
+}
 
 addRuns({
   'built.sw-form': (inp) => {
@@ -42,12 +50,12 @@ addRuns({
       keys: [
         key('sw-wwr', 'Window-to-wall', 'ASHRAE 90.1', pc(wwr), wwr <= 0.4 ? 'pass' : 'warn', 'Glazing as a share of the gross wall. Above 40% the ASHRAE 90.1 prescriptive path no longer applies and the energy performance path is needed.', { bar: { max: 1, v: wwr, zone: [0, 0.4], ticks: [[0.4, '40% max']] } }),
         ...(G ? [key('sw-blocked', 'Sun blocked', 'by devices', pc(G.blocked), 'unknown', `${fmt(G.shTot)} kWh of beam through the glass a year after the shading devices, ${fmt(G.unTot)} without.`, { bar: { max: 1, v: G.blocked } })] : []),
-        ...(glare ? [key('sw-glare', 'Low-sun glare', 'worst zone', fmt(glare.glare), glare.glare <= 200 ? 'pass' : glare.glare <= 400 ? 'warn' : 'fail', `${glare.label}: hours a year the sun is under 25° in front of the zone and more than half the beam gets past its device.`, { unit: 'h', bar: { max: Math.max(600, glare.glare * 1.1), v: glare.glare, zone: [0, 200], ticks: [[200, '200 h']] } })] : []),
+        ...(glare ? [key('sw-glare', 'Low-sun glare', 'worst storey', fmt(glare.glare), glare.glare <= 200 ? 'pass' : glare.glare <= 400 ? 'warn' : 'fail', `${glare.label}${glareAt(glare)}: hours a year the sun is under 25° in front of the zone's faces on one storey and more than half the beam gets past its device.`, { unit: 'h', bar: { max: Math.max(600, glare.glare * 1.1), v: glare.glare, zone: [0, 200], ticks: [[200, '200 h']] } })] : []),
       ],
       rules: [
         rule('sw-wwr', 'Window-to-wall ratio', pc(wwr), 'ASHRAE 90.1 prescriptive: at most 40%', wwr <= 0.4 ? 'pass' : 'warn', 'Over 40% needs the performance path.', { label: 'ASHRAE 90.1 prescriptive envelope' }),
         ...(G ? [rule('sw-blocked', 'Solar heat the devices block', pc(G.blocked), 'reading', 'unknown', `${fmt(G.shTot)} kWh of beam through the glass a year after devices, ${fmt(G.unTot)} without.`)] : []),
-        ...(glare ? [rule('sw-glare', 'Most low-sun glare (one zone)', `${fmt(glare.glare)} h a year`, 'under 200 h', glare.glare <= 200 ? 'pass' : glare.glare <= 400 ? 'warn' : 'fail', glare.label)] : []),
+        ...(glare ? [rule('sw-glare', 'Most low-sun glare (worst storey of one zone)', `${fmt(glare.glare)} h a year`, 'under 200 h', glare.glare <= 200 ? 'pass' : glare.glare <= 400 ? 'warn' : 'fail', `${glare.label}${glareAt(glare)}. Read storey by storey: ${glareRange(glare)}.${glare.glareUnion > glare.glare ? ` The zone's faces taken together over all its storeys read ${fmt(glare.glareUnion)} h (the facings a twist sweeps); no one storey sees that.` : ''}`)] : []),
       ],
     }
   },
