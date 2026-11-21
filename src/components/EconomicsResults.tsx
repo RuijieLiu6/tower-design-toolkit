@@ -287,7 +287,7 @@ const STATUS_CLASS: Record<ChargeLine['status'], string> = {
 
 /** Gap G29: the concept's own items (open storeys, a declared damper, public lifts, trees) at team-assumption unit costs. */
 function ConceptSection({ r }: { r: EconResult }) {
-  const { conceptTrees, conceptPublicLifts, set } = useEconStore()
+  const { conceptTrees, conceptPublicLifts, conceptTreesGrade, set } = useEconStore()
   const c = r.concept
   const num = (v: string) => (v.trim() === '' ? null : Math.max(0, Math.round(Number(v)) || 0))
   return (
@@ -295,6 +295,8 @@ function ConceptSection({ r }: { r: EconResult }) {
       <div className="grid gap-2 text-xs">
         <label className="flex items-center justify-between gap-2"><span className="text-muted">Trees on the decks (declared)</span>
           <input type="number" min={0} value={conceptTrees} onChange={(e) => set({ conceptTrees: num(e.target.value) ?? 0 })} className="w-20 rounded border border-line bg-panel px-1.5 py-0.5 text-right text-meta" aria-label="Trees on the decks" /></label>
+        <label className="flex items-center justify-between gap-2"><span className="text-muted">Trees at grade (own rate; blank: the ground wind's trees)</span>
+          <input type="number" min={0} value={conceptTreesGrade ?? ''} onChange={(e) => set({ conceptTreesGrade: num(e.target.value) })} className="w-20 rounded border border-line bg-panel px-1.5 py-0.5 text-right text-meta" aria-label="Trees at grade" /></label>
         <label className="flex items-center justify-between gap-2"><span className="text-muted">Public lift cars (blank: the sky room's dedicated lifts)</span>
           <input type="number" min={0} value={conceptPublicLifts ?? ''} onChange={(e) => set({ conceptPublicLifts: num(e.target.value) })} className="w-20 rounded border border-line bg-panel px-1.5 py-0.5 text-right text-meta" aria-label="Public lift cars" /></label>
       </div>
