@@ -101,7 +101,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityStreetwallCheck(towers, i.cityStreets ?? null, i.cityRing ?? null, i.publicRealm.openPublicShare).rules : [],
     'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageCheck(towers, i.cityStreets ?? null).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],
-    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0).faces }),
+    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, (() => { const fa = facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0); return { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: fa.faces, deckFaces: fa.deckFaces } })()),
     'built.wind-procedure': wind.map((w) => w.rules),
     'built.structure': towers.map((t, k) => structureCheck(t, wind[k], weightPresets, north).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),

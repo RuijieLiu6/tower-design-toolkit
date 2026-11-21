@@ -30,7 +30,7 @@ export function useNature(cones: ConeResult[] | null) {
   const site = useProjectSiteArea()
   const facadeTreated = useFacadeStore((s) => s.treated)
   return useMemo(() => cityInNature(input, site.area, project === 'city' && cones ? cones.map((c) => c.overall) : null,
-    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces, facadeTreated, qeFromCones: project === 'city' ? qeFromCones(cones) : undefined }), [input, project, cones, towers, facade, site.area, facadeTreated])
+    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces, deckFaces: facade.deckFaces, facadeTreated, qeFromCones: project === 'city' ? qeFromCones(cones) : undefined }), [input, project, cones, towers, facade, site.area, facadeTreated])
 }
 
 /** Solid = binding, dotted = target / guideline / aspiration, dashed = comparator or team assumption. */

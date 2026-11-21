@@ -89,6 +89,8 @@ export function fourthStoreyTop(floorsPerTower: { z1: number }[][]): number | nu
 }
 export interface NatureContext {
   fourthStoreyTop?: number | null; faces?: { z0: number; z1: number; length: number; wwr: number }[] | null
+  /** The facade node's glass beside planted decks (gap G34, facade.ts plantedDeckFaces): counts at any height. */
+  deckFaces?: { z0: number; z1: number; length: number; wwr: number; deckZ: number }[] | null
   /** The Facade node's treated share of glass in the bird zone (0–1), used when the ledger's own is not entered. */
   facadeTreated?: number | null
   /** Real Vancouver: whether the towers rise into a Queen Elizabeth Park cone (3.2.x), from the view-cone check; null when uncertain. */
@@ -227,15 +229,20 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
 
   // Bird-friendly glazing zone and lighting (P05-M05): Vancouver's zone from the storeys, glazing from the facade node.
   const zoneTop = ctx.fourthStoreyTop ?? null
-  const zoneGlass = zoneTop !== null && ctx.faces ? glazingBelow(ctx.faces, zoneTop) : null
+  const lowGlass = zoneTop !== null && ctx.faces ? glazingBelow(ctx.faces, zoneTop) : null
+  // Glass beside planted decks joins the zone at any height (3.3(c)(ii), as cited by the team; gap G34), reported apart.
+  const decks = zoneTop !== null && ctx.deckFaces ? ctx.deckFaces.filter((f) => f.z1 > zoneTop) : []
+  const deckGlass = zoneTop !== null ? decks.reduce((s, f) => s + Math.max(0, f.z1 - Math.max(f.z0, zoneTop)) * f.length * f.wwr, 0) : 0
+  const deckAt = [...new Set(decks.map((f) => Math.round(f.deckZ)))].sort((a, b) => a - b).map((z) => `+${z} m`).join(', ')
+  const zoneGlass = lowGlass !== null ? lowGlass + deckGlass : null
   const untreated = zoneGlass !== null && input.birdTreatedPct !== null ? zoneGlass * (1 - input.birdTreatedPct / 100) : null
   rows.push({
     id: 'bird-zone', name: 'Glazing in Vancouver’s bird-collision zone', half: 'space', direction: '4.3',
-    value: zoneTop === null ? 'needs the storeys from the design' : `zone to ${zoneTop.toFixed(1)} m (top of the 4th storey; mature trees not entered)${zoneGlass !== null ? `: about ${Math.round(zoneGlass).toLocaleString()} m² of glazing${untreated !== null ? `, ${Math.round(untreated).toLocaleString()} m² untreated` : ''}` : '; switch on the facade node for the glazing'}`,
+    value: zoneTop === null ? 'needs the storeys from the design' : `zone to ${zoneTop.toFixed(1)} m (top of the 4th storey; mature trees not entered)${zoneGlass !== null ? `: about ${Math.round(zoneGlass).toLocaleString()} m² of glazing${deckGlass > 0.5 ? ` (${Math.round(deckGlass).toLocaleString()} m² of it beside planted decks at ${deckAt}, any height)` : ''}${untreated !== null ? `, ${Math.round(untreated).toLocaleString()} m² untreated` : ''}` : '; switch on the facade node for the glazing'}`,
     entered: input.birdTreatedPct === null ? null : true,
     threshold: 'treat glazing up to the mature tree height or the 4th floor, whichever is higher (3.3(a)(i)); no percentage set', state: untreated === null ? 'unknown' : untreated <= 0.5 ? 'pass' : 'warn',
     force: 'voluntary_guideline', flag: 'verified', source: { ...S.bird, page: '3.3(a)(i)' },
-    note: 'The explanatory note gives about 12 m as a typical 4th floor; Toronto and UBC use 16 m (the facade node’s zone). Interior planting near glass joins the zone at any height (3.3(c)(ii)).',
+    note: 'The explanatory note gives about 12 m as a typical 4th floor; Toronto and UBC use 16 m (the facade node’s zone). Planting next to glass joins the zone at any height (3.3(c)(ii), as cited by the team, to confirm): the walls rising from each deck marked planted, over its storey and the one above, are added and reported apart.',
   })
   rows.push({
     id: 'bird-markers', name: 'Exterior markers and corners', half: 'space', direction: '4.3',

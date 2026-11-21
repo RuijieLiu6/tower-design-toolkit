@@ -2,7 +2,8 @@
 // round 2. Geometry only: energy (TEUI, TEDI, GHGI) belongs to the energy node. Reference WWR, VLT and SHGC lines are
 // US or legacy VBBL values shown without a pass badge, as the research requires.
 
-import { readsStoreys, towerFootprint, towerMasses } from './massing'
+import { readsStoreys, towerFloors, towerFootprint, towerMasses } from './massing'
+import { deckUseOf, towerDecks } from './sw/decks'
 import type { RuleResult, RuleState, Tower } from './types'
 
 export type FacadeSystem = 'curtain-wall' | 'window-wall' | 'punched' | 'double-skin'
@@ -90,10 +91,47 @@ export function faces(towers: Tower[], input: FacadeInput, northDeg: number): Fa
 /** Bird-collision zone top: 16 m above grade or 4 m above the tallest vegetation, whichever is greater (UBC, P12-S31). */
 export const zoneTop = (vegetation: number) => Math.max(16, vegetation + 4)
 
+/** Facade glass beside a planted deck: a wall rising from the deck, over the deck's storey and the one above (gap G34). */
+export interface DeckFace { tower: string; level: number; deckZ: number; z0: number; z1: number; length: number; wwr: number }
+
+/**
+ * Glass next to planting counts at any height (Vancouver Bird Friendly Design Guidelines 3.3(c)(ii), as cited by the
+ * team in the City in Nature review R3-13; to confirm against the guideline text). For every deck the deck-use input
+ * marks planted, the walls rising from it (its closed edges) over the deck's storey and the one above, capped at the
+ * wall's own rise and any slab over the deck; the glass share is the facade's window-to-wall ratio for the wall's facing.
+ */
+export function plantedDeckFaces(towers: Tower[], input: FacadeInput, northDeg: number): DeckFace[] {
+  const out: DeckFace[] = []
+  for (const t of towers) {
+    if (!t.deckUses?.some((u) => u?.use === 'planted')) continue
+    const floors = towerFloors(t)
+    for (const d of towerDecks(t, northDeg)) {
+      if (deckUseOf(t, d)?.use !== 'planted') continue
+      const up = floors.filter((f) => f.z0 >= d.z - 0.05).slice(0, 2)
+      const h = up.length ? up[up.length - 1].z1 - d.z : 2 * t.f2f
+      for (const e of d.edges) {
+        if (e.open) continue
+        const rise = Math.min(h, e.dH ?? h, d.cover ?? Infinity)
+        if (!(rise > 0)) continue
+        // the deck's outward normal at a closed edge points into the wall; the wall faces the deck
+        const wwr = input.wwr[quadOf(e.az + 180)] ?? SYSTEMS[input.system].wwr
+        out.push({ tower: t.id, level: d.level, deckZ: d.z, z0: d.z, z1: d.z + rise, length: e.L, wwr })
+      }
+    }
+  }
+  return out
+}
+
+/** Glass on a set of faces above a height (m²): the part a lower zone has not already counted. */
+export const glazingAbove = (fs: { z0: number; z1: number; length: number; wwr: number }[], top: number) => fs.reduce((s, f) => s + Math.max(0, f.z1 - Math.max(f.z0, top)) * f.length * f.wwr, 0)
+
+/** "+100 m" or "+40 m, +100 m": the planted decks' heights the extra glass sits on. */
+export const deckHeights = (fs: DeckFace[], top: number) => [...new Set(fs.filter((f) => f.z1 > top).map((f) => Math.round(f.deckZ)))].sort((a, b) => a - b).map((z) => `+${z} m`).join(', ')
+
 /** UBC Bird Backgrounder Table 1 (P12-S31): treated share by tier; Tier 4 sets no percentage. */
 export const TIERS: { tier: number; share: number }[] = [{ tier: 1, share: 0.9 }, { tier: 2, share: 0.85 }, { tier: 3, share: 0.55 }]
 
-export interface FacadeResult { faces: Face[]; rules: RuleResult[]; wall: number; glass: number; zoneGlass: number; byBin: Record<string, { wall: number; glass: number }> }
+export interface FacadeResult { faces: Face[]; rules: RuleResult[]; wall: number; glass: number; zoneGlass: number; byBin: Record<string, { wall: number; glass: number }>; /** Glass beside planted decks above the zone (G34), and its faces. */ deckGlass: number; deckFaces: DeckFace[] }
 
 export function facadeCheck(towers: Tower[], input: FacadeInput, northDeg: number): FacadeResult {
   const fs = faces(towers, input, northDeg)
@@ -102,6 +140,9 @@ export function facadeCheck(towers: Tower[], input: FacadeInput, northDeg: numbe
   for (const f of fs) { byBin[f.bin].wall += f.area; byBin[f.bin].glass += f.glass }
   const top = zoneTop(input.vegetation)
   const zoneGlass = fs.reduce((s, f) => s + Math.max(0, Math.min(f.z1, top) - f.z0) * f.length * f.wwr, 0)
+  // Glass beside planted decks counts at any height (G34): added to the zone's glass and reported apart.
+  const deckFaces = plantedDeckFaces(towers, input, northDeg)
+  const deckGlass = glazingAbove(deckFaces, top)
   const wwr = wall ? glass / wall : 0
   const rules: RuleResult[] = []
   const pct = (v: number) => `${Math.round(v * 100)}%`
@@ -124,10 +165,12 @@ export function facadeCheck(towers: Tower[], input: FacadeInput, northDeg: numbe
   const tier = tr == null ? null : TIERS.find((t) => tr >= t.share - 1e-9)
   const birdState: RuleState = tr == null ? 'unknown' : tr >= 0.9 ? 'pass' : tr >= 0.55 ? 'warn' : 'fail'
   rules.push({
-    id: 'fa-bird', label: 'Bird-friendly glass in the collision zone', value: tr == null ? `${Math.round(zoneGlass).toLocaleString()} m² of glass below ${top} m: treated share not entered` : `${pct(tr)} of ${Math.round(zoneGlass).toLocaleString()} m² treated below ${top} m${tier ? ` (meets UBC Tier ${tier.tier})` : ' (below UBC Tier 3)'}`,
+    id: 'fa-bird', label: 'Bird-friendly glass in the collision zone',
+    value: (tr == null ? `${Math.round(zoneGlass).toLocaleString()} m² of glass below ${top} m: treated share not entered` : `${pct(tr)} of ${Math.round(zoneGlass + deckGlass).toLocaleString()} m² treated below ${top} m${deckGlass > 0.5 ? ' and beside planted decks' : ''}${tier ? ` (meets UBC Tier ${tier.tier})` : ' (below UBC Tier 3)'}`)
+      + (deckGlass > 0.5 ? `; plus ${Math.round(deckGlass).toLocaleString()} m² of glass beside planted decks at ${deckHeights(deckFaces, top)} (any height, 3.3(c)(ii))` : ''),
     threshold: '90% treated (Tier 1, aligned with CSA A460); 85% Tier 2; 55% Tier 3; zone to 16 m or 4 m above the tallest vegetation',
     state: birdState, flag: 'unverified', source: { label: 'UBC Bird Backgrounder, Table 1 (research P12-S31, opened); CSA summary in Construction Canada (P12-S32)', url: 'https://planning.ubc.ca/sites/default/files/2024-05/UBC%20Bird%20Backgrounder_CCP-websiteR1.pdf' },
-    note: (input.treatedFrom && tr != null ? `Treated share from ${input.treatedFrom}. ` : '') + 'UBC campus policy used as a proxy: the City Bird Friendly Guidelines (2017) and CSA A460-2019 were not opened. Markers 50 mm apart or closer ("2 × 2 rule"); treat glass corners 5 m each way and remove fly-through conditions (all tiers). Sky gardens: apply the 4 m rule around each planted terrace (team reading).',
+    note: (input.treatedFrom && tr != null ? `Treated share from ${input.treatedFrom}. ` : '') + 'UBC campus policy used as a proxy: the City Bird Friendly Guidelines (2017) and CSA A460-2019 were not opened. Markers 50 mm apart or closer ("2 × 2 rule"); treat glass corners 5 m each way and remove fly-through conditions (all tiers). Glass next to planting counts at any height (Vancouver guideline 3.3(c)(ii), as cited by the team, to confirm): the walls rising from each deck marked planted, over its storey and the one above, join the zone and are reported apart.',
   })
   rules.push({
     id: 'fa-vlt', label: 'Vision glass light transmittance (views)', value: input.vlt == null ? 'Not entered' : pct(input.vlt), threshold: 'above 40% (LEED quality views)',
@@ -145,5 +188,5 @@ export function facadeCheck(towers: Tower[], input: FacadeInput, northDeg: numbe
     source: { label: 'Research P12-M06b feasibility checklist (owners: structure, systems, energy)' },
     note: 'None is computed here. Wind and drift come from the structure nodes; fire containment and access from systems; condensation from energy.',
   })
-  return { faces: fs, rules, wall, glass, zoneGlass, byBin }
+  return { faces: fs, rules, wall, glass, zoneGlass, byBin, deckGlass, deckFaces }
 }
