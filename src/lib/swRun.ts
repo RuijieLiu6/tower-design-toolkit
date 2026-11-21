@@ -18,6 +18,7 @@ import { ALPHA, compass16, runWindStudy, SEASONS, windRose, type Rose, type Wind
 import { CRITERIA, DECK_SEASONS, deckHours, freeStream, readSeasons, SECTOR8, stateOf, type CriteriaSet, type DeckSeason } from '../engine/sw/deckWind'
 import { deckUseOf, towerDecks, type Deck, type DeckEdge, type DeckType } from '../engine/sw/decks'
 import { K_WORD, terraceWind, type DeckWind, type Screen } from '../engine/sw/terraceWind'
+import { DOWNWASH_FACTOR_LABEL, downwashReading, downwashReliefText } from '../engine/sw/downwash'
 import { towerFloors } from '../engine/massing'
 import type { SkyTerraceLine } from '../engine/skyRoom'
 import type { DeckUse, RuleResult, RuleState, Tower, UseId } from '../engine/types'
@@ -242,9 +243,14 @@ const RUNS: Partial<Record<SwId, Run>> = {
         : { value: `No outdoor terrace at the room level (L${lv})`, threshold: 'Comfort criteria for a terrace at height', state: 'pass', note: 'The storey outlines show no roof, setback terrace or open storey at the sky room level, so the room has no outdoor deck to check (Wind on terraces and roofs).', source: DECK_SRC(crit).label }
     }
     const H = Math.max(0, ...inp.towers.map((t) => t.height))
-    const downwash = H > 0 ? U10 * Math.pow(Math.max(10, H * 0.7) / 10, ALPHA) : 0
     // The downwash section (study.js downwashSVG): the tallest tower against its neighbours' mean height within 120 m.
     const tall = [...inp.towers].sort((a, b) => b.height - a.height)[0]
+    // Gap G40: the brought-down speed also reads the podium step toward the strong winds and a canopy (team factor).
+    const DW = downwashReading(tall, H, U10, { north: inp.north, canopy: inp.canopy })
+    const downwash = DW.value
+    const dwRelief = downwashReliefText(DW)
+    const dwState: RuleState = downwash <= 5 ? 'pass' : downwash <= 7 ? 'warn' : 'fail'
+    const dwHow = dwRelief ? `${DW.raw.toFixed(1)} m/s from the height alone; ${dwRelief} (${DOWNWASH_FACTOR_LABEL}).` : 'From the height alone: no podium step of 3 m or more toward the strong winds and no canopy to catch it.'
     let hs = 0, hc = 0
     for (const p of inp.context) { if (p.z1 < 3) continue; const cx = p.ring.reduce((q, v) => q + v[0], 0) / p.ring.length, cy = p.ring.reduce((q, v) => q + v[1], 0) / p.ring.length; if (Math.hypot(cx - tall.x, cy - tall.y) < 120) { hs += p.z1; hc++ } }
     const hn = hc ? hs / hc : 20
@@ -254,10 +260,10 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const topP = profile[profile.length - 1]
     const sec = { H, w: Math.max(tall.width, tall.depth), hn, amp, amp0, depth: 0.22 * H, podiumH: tall.podiumHeight, podiumW: Math.max(tall.podiumWidth, tall.podiumDepth), U10 }
     return {
-      data: { rows, winds, skyTerraces, rose, U10, downwash, H, profile, sec, classes: crit.classes, classBands, criteria: crit.name },
+      data: { rows, winds, skyTerraces, rose, U10, downwash, downwashRead: DW, H, profile, sec, classes: crit.classes, classBands, criteria: crit.name },
       keys: [
         ...(used.length ? [key('sw-wind-deck', 'Windiest deck', crit.name.replace(/ \d+$/, ''), worst.u.toFixed(1), deckState, `${crit.classes[worst.cls]} at ${Math.round(worst.z)} m in ${worst.season}: ${worst.u.toFixed(1)} m/s ${crit.stat}. ${how}`, { unit: 'm/s', bar: { max: 10, v: Math.min(10, worst.u), zone: [0, crit.limits[crit.target]], ticks: crit.limits.map((l, i) => [l, i === crit.limits.length - 1 ? `${l.toFixed(l % 1 ? 1 : 0)} m/s` : l.toFixed(l % 1 ? 1 : 0)] as [number, string]) } })] : []),
-        key('sw-wind-downwash', 'Downwash', 'at 0.7 H', downwash.toFixed(1), downwash <= 5 ? 'pass' : downwash <= 7 ? 'warn' : 'fail', `Mean wind at 70% of the height, which the face sends down to the street; ×${amp.toFixed(2)} at the ground against the free wind. A podium or canopy helps over 5 m/s.`, { unit: 'm/s', bar: { max: 10, v: Math.min(10, downwash), zone: [0, 5], ticks: [[5, '5 m/s']] } }),
+        key('sw-wind-downwash', 'Downwash', 'at 0.7 H', downwash.toFixed(1), dwState, `Mean wind at 70% of the height, which the face sends down to the street; ×${amp.toFixed(2)} at the ground against the free wind. ${dwHow} A screening value: only a wind-tunnel study clears it.`, { unit: 'm/s', bar: { max: 10, v: Math.min(10, downwash), zone: [0, 5], ticks: [[5, '5 m/s']] } }),
         ...(topP ? [key('sw-wind-gust', 'Gust at the top', '', topP.gust.toFixed(0), 'unknown', `Gusts 1.8 × the mean at the top of the tower: ${(topP.q / 1000).toFixed(1)} kPa on screens and operable windows.`, { unit: 'm/s', bar: { max: 40, v: Math.min(40, topP.gust) } })] : []),
       ],
       rules: [
@@ -266,7 +272,7 @@ const RUNS: Partial<Record<SwId, Run>> = {
           ? rule(`sw-terrace-${w.deck.id}`, deckLabel(w.deck, multi, 'planted'), `maintenance access: ${crit.classes[w.read.cls]} in ${w.read.worst} (${w.read.v.toFixed(1)} m/s)`, `no comfort target: planted, closed to people but for maintenance (${crit.name}, ${crit.stat})`, plantedState(w, crit), `Deck use: planted (the deck-use input), so the comfort class is reported for maintenance access, not judged against a terrace people use${plantedState(w, crit) === 'warn' ? '; plan access in calm weather, with fall arrest at the edge' : ''}. ${deckNote(w, crit)}`, DECK_SRC(crit))
           : rule(`sw-terrace-${w.deck.id}`, deckLabel(w.deck, multi), `${crit.classes[w.read.cls]} in ${w.read.worst} (${w.read.v.toFixed(1)} m/s)`, `${crit.classes[crit.target]} for a terrace people use (${crit.name}, ${crit.stat})`, stateOf(crit, w.read.cls), deckNote(w, crit), DECK_SRC(crit))),
         ...inp.towers.filter((t) => skyTerraces[t.id]).map((t) => { const l = skyTerraces[t.id]; return rule(`sw-terrace-sky-room-${t.id}`, `${multi ? `${t.name}: ` : ''}Wind on the sky room terrace`, l.value, l.threshold, l.state, l.note, { label: l.source }) }),
-        rule('sw-wind-downwash', 'Wind brought down the face', `${downwash.toFixed(1)} m/s`, 'a podium or canopy over 5 m/s', downwash <= 5 ? 'pass' : downwash <= 7 ? 'warn' : 'fail', 'Mean wind at 70% of the height, which the face sends down to the street.'),
+        rule('sw-wind-downwash', 'Wind brought down the face (screening)', `${downwash.toFixed(1)} m/s${dwRelief ? ` (${DW.raw.toFixed(1)} m/s from the height alone)` : ''}`, '≤ 5 m/s at the base (≤ 7 near); over 5 m/s, a podium step or canopy toward the strong winds', dwState, `Mean wind at 70% of the height, which the face sends down to the street. ${dwHow} A screening value, not a prediction: only a wind-tunnel study by a wind engineer clears a tall tower's base, whatever this line reads.`),
       ],
     }
   },
@@ -477,7 +483,7 @@ const TIME_TOOLS: SwId[] = ['built.sw-light-hour', 'built.sw-indoor-temp'], LEVE
 export function inputKey(inp: SwInputs, s: SwStudySettings, id: SwId): string {
   // Dragging the hour slider of the daylight viewer must not start the shadow, wind or energy studies again.
   const mine = { ...s, windView: '', rainCase: null, ...(TIME_TOOLS.includes(id) ? {} : { month: 0, day: 0, hour: 0 }), ...(LEVEL_TOOLS.includes(id) ? {} : { level: null }) }
-  return JSON.stringify([id, inp.project, inp.north, inp.towers, inp.site?.length ?? 0, inp.context.length, !!inp.C, mine, id === 'built.sw-wind-comfort' ? inp.porous ?? null : null])
+  return JSON.stringify([id, inp.project, inp.north, inp.towers, inp.site?.length ?? 0, inp.context.length, !!inp.C, mine, id === 'built.sw-wind-comfort' ? inp.porous ?? null : null, id === 'built.sw-wind-height' ? inp.canopy ?? 0 : null])
 }
 
 let queue: Promise<void> = Promise.resolve()

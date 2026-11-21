@@ -116,6 +116,28 @@ export function upwindMax(c: P, u: P, context: ContextBox[], radius: number, hal
   return top
 }
 
+/** A tower's plan outline, its podium outline (null when it has none of its own) and the outline's centre. */
+export function podiumOutline(t: Tower): { ring: P[]; pod: P[] | null; c: P } {
+  const ring = towerFootprint(t) as P[]
+  // An imported tower read storey by storey has its own podium outline (T10); a drawn mass or a bare hull has none.
+  const pod = t.podiumHeight > 0 && (!t.imported || readsStoreys(t)) ? (towerFootprint(t, true) as P[]) : null
+  return { ring, pod, c: centroid(ring) }
+}
+
+/** How far the podium reaches beyond the tower face toward the wind (u points upwind), in metres; 0 without a podium. */
+export function podiumStep(o: { ring: P[]; pod: P[] | null; c: P }, u: P): number {
+  if (!o.pod) return 0
+  const reach = (r: P[]) => Math.max(...r.map((q) => dot([q[0] - o.c[0], q[1] - o.c[1]], u)))
+  return Math.max(0, reach(o.pod) - reach(o.ring))
+}
+
+/** The podium step toward each strong-wind sector, as the screen reads it (shared with the downwash line, gap G40). */
+export function podiumStepsToward(t: Tower, northDeg: number, p: WindScreenPresets = DEFAULT_WIND_SCREEN, rose: WindRose = YVR_ROSE): { sector: string; fromDeg: number; share: number; step: number }[] {
+  const o = podiumOutline(t)
+  return strongSectors(sectorStats(rose, p.season, p.strongKmh), p.sectorCover, p.maxSectors)
+    .map((s) => ({ sector: s.name, fromDeg: s.fromDeg, share: s.share, step: podiumStep(o, upwind(s.fromDeg, northDeg)) }))
+}
+
 // --- Screen --------------------------------------------------------------------------------------------------------
 
 export interface WindScreenResult {
@@ -148,10 +170,8 @@ export function windScreen(towers: Tower[], o: { northDeg: number; context: Cont
   const H = Math.max(0, ...towers.map((t) => t.height))
 
   for (const t of towers) {
-    const ring = towerFootprint(t) as P[]
-    // An imported tower read storey by storey has its own podium outline (T10); a drawn mass or a bare hull has none.
-    const pod = t.podiumHeight > 0 && (!t.imported || readsStoreys(t)) ? (towerFootprint(t, true) as P[]) : null
-    const c = centroid(ring)
+    const outline = podiumOutline(t)
+    const { ring, pod, c } = outline
     const others: ContextBox[] = towers.filter((x) => x.id !== t.id).map((x) => ({ footprint: towerFootprint(x) as P[], height: x.height }))
     const radius = Math.max(400, 2 * t.height) // ContextSpec radius, research P03-M02 (2H is a team term)
     // Corners: the geometric reading unless the preset declares them (then both are shown and the declared one governs).
@@ -168,8 +188,7 @@ export function windScreen(towers: Tower[], o: { northDeg: number; context: Cont
       const ratio = up === null ? null : up > 0 ? t.height / up : Infinity
       const downwash: Level = ratio === null ? 'high' : ratio >= p.exposureHigh ? 'high' : ratio >= p.exposureMedium ? 'medium' : 'low'
       const front = Math.max(...ring.map((q) => dot([q[0] - c[0], q[1] - c[1]], u)))
-      const podFront = pod ? Math.max(...pod.map((q) => dot([q[0] - c[0], q[1] - c[1]], u))) : front
-      const step = Math.max(0, podFront - front)
+      const step = podiumStep(outline, u)
       const sheltered = !!pod && step >= p.podiumStepMin
       // The podium catches downwash before the street: one level lower at grade (benefit size unverified).
       const base: Level = sheltered && downwash !== 'low' ? (downwash === 'high' ? 'medium' : 'low') : downwash

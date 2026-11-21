@@ -11,6 +11,7 @@ import type { PorousObstacle } from '../engine/sw/wind'
 import type { Pt } from '../engine/shadow'
 import type { Tower } from '../engine/types'
 import { useStore, useTowers } from '../store'
+import { useWindComfortStore } from '../hooks/useWindComfort'
 
 let climate: Promise<ClimatePayload> | null = null
 /** The CWEC 2020 typical year for Vancouver Intl, loaded once on demand. */
@@ -40,6 +41,8 @@ export interface SwInputs {
    * (engine/sw/wind.ts PorousObstacle). Optional: none is the study as before. No tool fills it in the app yet.
    */
   porous?: PorousObstacle[]
+  /** A canopy around the tower's base (m deep; the wind comfort node's canopy depth), read by the downwash line (G40). */
+  canopy?: number
 }
 
 const REACH = 260
@@ -53,6 +56,7 @@ export function useSwInputs(): SwInputs {
   const removal = useRemoval(project === 'city' ? data : null)
   const { ctx } = useVtcContext()
   const C = useSwClimate()
+  const canopy = useWindComfortStore((s) => s.presets.canopy)
   const north = project === 'vtc' ? VTC_NORTH_DEG : 0
   const centre = useMemo<Pt>(() => (towers.length ? [towers.reduce((s, t) => s + t.x, 0) / towers.length, towers.reduce((s, t) => s + t.y, 0) / towers.length] : [0, 0]), [towers])
   const context = useMemo<Prism[]>(() => {
@@ -78,5 +82,5 @@ export function useSwInputs(): SwInputs {
     const nr = (north * Math.PI) / 180, c = Math.cos(nr), s = Math.sin(nr)
     return context.map((p) => { const x = p.ring.reduce((a, q) => a + q[0], 0) / p.ring.length, y = p.ring.reduce((a, q) => a + q[1], 0) / p.ring.length; return { x: x * c - y * s, y: x * s + y * c, top: p.z1 } })
   }, [context, north])
-  return useMemo(() => ({ project, towers, north, site, context, ctxBlocks, C }), [project, towers, north, site, context, ctxBlocks, C])
+  return useMemo(() => ({ project, towers, north, site, context, ctxBlocks, C, canopy }), [project, towers, north, site, context, ctxBlocks, C, canopy])
 }
