@@ -3,7 +3,7 @@
 // Design and Development Guidelines (CDDG, Council report RTS 18459 Appendix A, approved 28 Jul 2026, final text not
 // yet posted), so every clause value carries that caveat; presets without a source are team assumptions.
 // Research: 04 Tool Plan/research/modules-completion/P06/revise-r2_P06.json (single pass since 22 Oct).
-import { towerFloors, towerFootprint, towerMasses } from './massing'
+import { storeyOutline, towerFloors, towerFootprint, towerMasses, type OutlinePart } from './massing'
 import { againstStreet, distanceToStreet, extentAlong, spanOn, type CityLinkInput, type SiteStreet, type StreetEdge, type StreetSetting } from './siteStreets'
 import type { RuleResult, RuleState, Tower, UseId } from './types'
 
@@ -77,7 +77,8 @@ export const DEFAULT_PUBLIC_REALM: PublicRealmInput = {
 
 // ---------- geometry ----------
 type Pt = [number, number]
-interface Mass { poly: Pt[]; height: number; base: number; kind: 'podium' | 'tower'; tower: Tower }
+/** One plan part of a tower: its outline, any holes in it (a courtyard), its height and what it is. */
+interface Mass { poly: Pt[]; holes: Pt[][]; height: number; base: number; kind: 'podium' | 'tower'; tower: Tower }
 
 /** Plan outlines of a tower's blocks above the podium (an imported mass: its hull). */
 function shafts(t: Tower): [number, number][][] {
@@ -86,16 +87,34 @@ function shafts(t: Tower): [number, number][][] {
   return up.length ? up.map((m) => m.ring) : [towerFootprint(t)]
 }
 
-/** Plan footprints: every stacked block of each tower (podium blocks first), rotated and shifted with it. */
+/**
+ * A tower's plan polygons (outer ring, then holes) for one part: an imported tower's true storey outlines, several parts
+ * and non-convex shapes kept (G10, engine/massing.ts `storeyOutline`); otherwise, or if they cannot be read, the
+ * footprint as before (the hull of an imported mass; the lowest block of a parametric tower at grade).
+ */
+function planParts(t: Tower, part: OutlinePart): Pt[][][] {
+  const o = storeyOutline(t, part)
+  if (o?.length) return o
+  if (part === 'ground') return [[t.imported ? (t.podiumHeight > 0 ? towerFootprint(t, true) : towerFootprint(t)) : (towerMasses(t)[0]?.ring ?? towerFootprint(t))]]
+  return [[towerFootprint(t, part === 'podium')]]
+}
+/** Outer rings of a tower's plan parts (the street checks measure faces; a courtyard has none on the street). */
+const partRings = (t: Tower, part: OutlinePart): Pt[][] => planParts(t, part).map((pg) => pg[0])
+
+/**
+ * Plan footprints: every stacked block of each tower (podium blocks first), rotated and shifted with it. An imported
+ * tower: the outlines of its podium storeys and of its tower storeys, each part on its own (G10: a forum or lane cut
+ * between two podium parts stays open ground and the link through it stays clear).
+ */
 export function masses(towers: Tower[]): Mass[] {
   const out: Mass[] = []
   for (const t of towers) {
     if (t.imported) {
-      if (t.podiumHeight > 0) out.push({ poly: towerFootprint(t, true), height: t.podiumHeight, base: 0, kind: 'podium', tower: t })
-      out.push({ poly: towerFootprint(t), height: t.height, base: t.podiumHeight > 0 ? t.podiumHeight : 0, kind: 'tower', tower: t })
+      if (t.podiumHeight > 0) for (const [poly, ...holes] of planParts(t, 'podium')) out.push({ poly, holes, height: t.podiumHeight, base: 0, kind: 'podium', tower: t })
+      for (const [poly, ...holes] of planParts(t, 'tower')) out.push({ poly, holes, height: t.height, base: t.podiumHeight > 0 ? t.podiumHeight : 0, kind: 'tower', tower: t })
       continue
     }
-    for (const m of towerMasses(t)) out.push({ poly: m.ring, height: m.z1, base: m.z0, kind: m.podium ? 'podium' : 'tower', tower: t })
+    for (const m of towerMasses(t)) out.push({ poly: m.ring, holes: [], height: m.z1, base: m.z0, kind: m.podium ? 'podium' : 'tower', tower: t })
   }
   return out
 }
@@ -107,6 +126,54 @@ function inside(p: Pt, poly: Pt[]): boolean {
     if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c
   }
   return c
+}
+/**
+ * Raster of the cells (centres at x0 + (i + 0.5)·cx, y0 + (j + 0.5)·cy) under any of the masses. A centre lies under a
+ * mass when an odd number of the mass's ring crossings on its row lie to its right: the rule of `inside`, so a courtyard
+ * stays open. Masses may overlap (an imported tower's storeys, G10). Each edge is visited once, for the rows it spans,
+ * so a free form's many storey outlines stay quick.
+ */
+function builtCells(ms: Pick<Mass, 'poly' | 'holes'>[], x0: number, y0: number, cx: number, cy: number, nx: number, ny: number): Uint8Array {
+  const built = new Uint8Array(nx * ny)
+  const rows: number[][] = Array.from({ length: ny }, () => [])
+  for (const m of ms) {
+    const touched: number[] = []
+    for (const r of [m.poly, ...m.holes]) {
+      for (let i = 0, k = r.length - 1; i < r.length; k = i++) {
+        const xi = r[i][0], yi = r[i][1], xj = r[k][0], yj = r[k][1], hi = Math.max(yi, yj)
+        for (let j = Math.max(0, Math.floor((Math.min(yi, yj) - y0) / cy - 0.5) - 1); j < ny; j++) {
+          const y = y0 + (j + 0.5) * cy
+          if (y >= hi) break
+          if ((yi > y) !== (yj > y)) {
+            if (!rows[j].length) touched.push(j)
+            rows[j].push(((xj - xi) * (y - yi)) / (yj - yi) + xi)
+          }
+        }
+      }
+    }
+    // Odd crossings to the right of x: x lies in [xs[2k], xs[2k + 1]).
+    for (const j of touched) {
+      const xs = rows[j].sort((a, b) => a - b)
+      for (let k = 0; k + 1 < xs.length; k += 2) {
+        for (let i = Math.max(0, Math.floor((xs[k] - x0) / cx - 0.5) - 1); i < nx; i++) {
+          const x = x0 + (i + 0.5) * cx
+          if (x >= xs[k + 1]) break
+          if (x >= xs[k]) built[j * nx + i] = 1
+        }
+      }
+      rows[j] = []
+    }
+  }
+  return built
+}
+/** Total length of spans along a line, overlaps counted once. */
+function mergedLength(spans: [number, number][]): number {
+  const s = [...spans].sort((a, b) => a[0] - b[0])
+  let total = 0, cur: [number, number] | null = null
+  for (const sp of s) {
+    if (!cur || sp[0] > cur[1]) { if (cur) total += cur[1] - cur[0]; cur = [sp[0], sp[1]] } else cur[1] = Math.max(cur[1], sp[1])
+  }
+  return cur ? total + cur[1] - cur[0] : total
 }
 function segDist(p: Pt, a: Pt, b: Pt): number {
   const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy
@@ -140,6 +207,17 @@ function onEdge(poly: Pt[], e: SiteEdge): { setback: number; from: number; to: n
   const lo = n[0] === 0 ? VTC_SITE.xMin : VTC_SITE.yMin, hi = n[0] === 0 ? VTC_SITE.xMax : VTC_SITE.yMax
   return { setback, from: Math.max(lo, Math.min(...poly.map(along))), to: Math.min(hi, Math.max(...poly.map(along))) }
 }
+/** `onEdge` over a tower's parts (they may overlap): the nearest part's setback, and the length the parts within `near` m of the line cover along it. */
+function onEdgeParts(polys: Pt[][], e: SiteEdge, near = 1): { setback: number; covered: number } {
+  let setback = Infinity
+  const spans: [number, number][] = []
+  for (const poly of polys) {
+    const o = onEdge(poly, e)
+    setback = Math.min(setback, o.setback)
+    if (o.setback <= near && o.to > o.from) spans.push([o.from, o.to])
+  }
+  return { setback, covered: mergedLength(spans) }
+}
 
 // ---------- open space raster ----------
 const CELL = 0.5
@@ -163,10 +241,9 @@ export function openSpace(towers: Tower[], input: PublicRealmInput): OpenSpace {
   const cx = (VTC_SITE.xMax - VTC_SITE.xMin) / nx, cy = (VTC_SITE.yMax - VTC_SITE.yMin) / ny
   const free = new Uint8Array(nx * ny)
   let open = 0
-  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
-    const p: Pt = [VTC_SITE.xMin + (i + 0.5) * cx, VTC_SITE.yMin + (j + 0.5) * cy]
-    if (!ms.some((m) => inside(p, m.poly))) { free[j * nx + i] = 1; open++ }
-  }
+  // Open ground: under no part of any mass at any height (a storey bridging a gap covers it; free of overhead mass).
+  const built = builtCells(ms, VTC_SITE.xMin, VTC_SITE.yMin, cx, cy, nx, ny)
+  for (let k = 0; k < nx * ny; k++) if (!built[k]) { free[k] = 1; open++ }
   // Largest clear axis-aligned rectangle (histogram method over the grid rows).
   let largest: OpenSpace['largest'] = null
   const hgt = new Int32Array(nx)
@@ -236,20 +313,21 @@ export function streetwallCheck(towers: Tower[], input: PublicRealmInput, neighb
   const enhanced = (os.largest?.area ?? 0) >= 300
   const edges: EdgeWall[] = VTC_EDGES.map((e) => {
     // The streetwall on this street is the nearest mass; a tower within 1.5 m of its podium face rises in the wall.
+    // Podium and tower are read part by part (G10: an imported mass's true storey outlines, not one hull).
     let wallHeight = 0, stepBack: number | null = null, setback = Infinity, covered = 0
     for (const t of towers) {
-      const tw = onEdge(towerFootprint(t), e)
+      const tw = onEdgeParts(partRings(t, 'tower'), e)
       if (t.podiumHeight > 0) {
-        const pd = onEdge(towerFootprint(t, true), e)
+        const pd = onEdgeParts(partRings(t, 'podium'), e)
         const sb = tw.setback - pd.setback
         stepBack = stepBack === null ? sb : Math.min(stepBack, sb)
         wallHeight = Math.max(wallHeight, sb >= 1.5 ? t.podiumHeight : t.height)
         setback = Math.min(setback, pd.setback)
-        if (pd.setback <= 1) covered += Math.max(0, pd.to - pd.from)
+        covered += pd.covered
       } else {
         wallHeight = Math.max(wallHeight, t.height)
         setback = Math.min(setback, tw.setback)
-        if (tw.setback <= 1) covered += Math.max(0, tw.to - tw.from)
+        covered += tw.covered
       }
     }
     const frontage = edgeLength(e.id)
@@ -442,6 +520,28 @@ export interface CityWall { street: SiteStreet; wallHeight: number; max: number;
  * 1.5–3.0 m step-back that reads as a break. A tower further back stands behind a forecourt, not in the streetwall.
  */
 export const STREETWALL_REACH = 3.0
+/**
+ * `againstStreet` over a tower's parts (G10; they may overlap): on each side of the street, the nearest part's setback,
+ * the length the parts span and the length the parts within `near` m of it cover, overlaps counted once.
+ */
+function streetParts(polys: Pt[][], edges: readonly StreetEdge[], near = 1): { setback: number; covered: number; span: number } {
+  if (polys.length === 1) return againstStreet(polys[0], edges, near)
+  let setback = Infinity, covered = 0, span = 0
+  for (const e of edges) {
+    const all: [number, number][] = [], close: [number, number][] = []
+    for (const poly of polys) {
+      const sp = spanOn(poly, e)
+      if (!sp) continue
+      const sb = Math.min(...poly.map((p) => (e.a[0] - p[0]) * e.out[0] + (e.a[1] - p[1]) * e.out[1]))
+      setback = Math.min(setback, sb)
+      all.push(sp)
+      if (sb <= near) close.push(sp)
+    }
+    span += mergedLength(all)
+    covered += mergedLength(close)
+  }
+  return { setback, covered, span }
+}
 
 /** Streetwall & tower form on Real Vancouver: the tower rules always; the street rules once the site's streets are known. */
 export function cityStreetwallCheck(towers: Tower[], ctx: CityStreetsCtx | null = null, ring: Pt[] | null = null, openPublicShare = DEFAULT_PUBLIC_REALM.openPublicShare): { rules: RuleResult[]; edges: EdgeWall[]; walls: CityWall[] } {
@@ -465,9 +565,9 @@ export function cityStreetwallCheck(towers: Tower[], ctx: CityStreetsCtx | null 
   const walls: CityWall[] = mainStreets(ctx).map((st) => {
     let wallHeight = 0, stepBack: number | null = null, setback = Infinity, covered = 0
     for (const t of towers) {
-      const tw = againstStreet(towerFootprint(t), st.edges)
+      const tw = streetParts(partRings(t, 'tower'), st.edges)
       if (t.podiumHeight > 0) {
-        const pd = againstStreet(towerFootprint(t, true), st.edges)
+        const pd = streetParts(partRings(t, 'podium'), st.edges)
         if (pd.span <= 0) continue
         setback = Math.min(setback, pd.setback)
         covered += pd.covered
@@ -535,10 +635,11 @@ export function cityStreetwallCheck(towers: Tower[], ctx: CityStreetsCtx | null 
 function frontageLength(towers: Tower[], e: SiteEdge): number {
   const spans: [number, number][] = []
   for (const t of towers) {
-    // The block standing at grade (an imported mass: podium or hull, as before).
-    const poly = t.imported ? (t.podiumHeight > 0 ? towerFootprint(t, true) : towerFootprint(t)) : (towerMasses(t)[0]?.ring ?? towerFootprint(t))
-    const o = onEdge(poly, e)
-    if (o.to > o.from) spans.push([o.from, o.to])
+    // The block standing at grade: an imported mass's ground storey, part by part (G10), else its podium or hull.
+    for (const poly of partRings(t, 'ground')) {
+      const o = onEdge(poly, e)
+      if (o.to > o.from) spans.push([o.from, o.to])
+    }
   }
   spans.sort((a, b) => a[0] - b[0])
   let total = 0, cur: [number, number] | null = null
@@ -611,9 +712,10 @@ function cityFrontageLength(towers: Tower[], edges: readonly StreetEdge[]): numb
   for (const e of edges) {
     const spans: [number, number][] = []
     for (const t of towers) {
-      const poly = t.imported ? (t.podiumHeight > 0 ? towerFootprint(t, true) : towerFootprint(t)) : (towerMasses(t)[0]?.ring ?? towerFootprint(t))
-      const sp = spanOn(poly, e)
-      if (sp) spans.push(sp)
+      for (const poly of partRings(t, 'ground')) {
+        const sp = spanOn(poly, e)
+        if (sp) spans.push(sp)
+      }
     }
     spans.sort((a, b) => a[0] - b[0])
     let cur: [number, number] | null = null
@@ -857,18 +959,19 @@ export function siteFrame(ring: Pt[]): { toLocal: (p: Pt) => Pt; toWorld: (p: Pt
 export function cityOpenSpace(towers: Tower[], ring: Pt[], openPublicShare: number, plazaNear: readonly StreetEdge[] | null = null): OpenSpace & { siteArea: number; largestRing: Pt[] | null; plazaRing: Pt[] | null } {
   const f = siteFrame(ring)
   const R = ring.map(f.toLocal)
-  const ms = masses(towers).map((m) => m.poly.map(f.toLocal))
+  const ms = masses(towers).map((m) => ({ poly: m.poly.map(f.toLocal), holes: m.holes.map((h) => h.map(f.toLocal)) }))
   const xs = R.map((p) => p[0]), ys = R.map((p) => p[1])
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys)
   const nx = Math.max(1, Math.ceil((x1 - x0) / CELL)), ny = Math.max(1, Math.ceil((y1 - y0) / CELL))
   const cx = (x1 - x0) / nx, cy = (y1 - y0) / ny
   const free = new Uint8Array(nx * ny)
   let siteCells = 0, open = 0
+  const built = builtCells(ms, x0, y0, cx, cy, nx, ny)
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const p: Pt = [x0 + (i + 0.5) * cx, y0 + (j + 0.5) * cy]
     if (!inside(p, R)) continue
     siteCells++
-    if (!ms.some((m) => inside(p, m))) { free[j * nx + i] = 1; open++ }
+    if (!built[j * nx + i]) { free[j * nx + i] = 1; open++ }
   }
   let largest: OpenSpace['largest'] = null
   const hgt = new Int32Array(nx)

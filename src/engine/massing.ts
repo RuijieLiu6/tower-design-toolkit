@@ -1,6 +1,6 @@
 import { bandCounts, bandF2f, blockSpans, blocksOf, legacyBlocks, rectCorners, spanAt, summarize, typicalIndex, type BlockSpan } from './blocks'
 import { importedFloors } from './imported'
-import { convexHull } from './importGeom'
+import { convexHull, ringArea } from './importGeom'
 import type { Block, Floor, ImportedStorey, Tower, UseId } from './types'
 
 // Block geometry lives in ./blocks (no dependencies, usable in workers); re-exported here for every other reader.
@@ -236,4 +236,109 @@ export function towerFootprint(t: Tower, podium = false): [number, number][] {
 export function massOutline(t: Tower): [number, number][] {
   if (t.imported?.hull.length) return placeRing(t, t.imported.hull)
   return convexHull(towerMasses(t).flatMap((m) => m.ring))
+}
+
+// --- True storey outlines for the public-realm checks (G10) -----------------------------------------------------------
+// `towerFootprint` and `towerMasses` hull each storey, so a podium in separate parts (a forum or lane cut between a
+// pavilion and the main podium) still read as one block: open space, POPS, the mid-block link and the frontage never saw
+// the cut. These are the storeys' own outlines, several parts, non-convex shapes and courtyards kept. They are not
+// joined by a polygon union (polygon-clipping fails or takes a quarter of a second on a twisting free form's storeys):
+// each different storey keeps its polygons, those lying within a larger one are dropped, and the readers take the union
+// (a point under any part is covered; lengths along a street are merged).
+
+/** Which storeys an outline is read from: the storey at grade, the podium storeys, or the tower storeys above them. */
+export type OutlinePart = 'ground' | 'podium' | 'tower'
+/** A plan polygon: its outer ring (counter-clockwise), then its holes (clockwise). */
+export type PlanPolygon = [number, number][][]
+
+const outlineCache = new WeakMap<ImportedStorey[], Map<OutlinePart, PlanPolygon[]>>()
+
+const openRing = (r: P[]): P[] => (r.length > 3 && r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1] ? r.slice(0, -1) : r)
+function inRing(p: P, r: P[]): boolean {
+  let c = false
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const [xi, yi] = r[i], [xj, yj] = r[j]
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c
+  }
+  return c
+}
+const turn = (a: P, b: P, c: P) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+/** Two segments cross at a point inside both (touching or running along each other does not count). */
+function properCross(a: P, b: P, c: P, d: P): boolean {
+  const d1 = turn(c, d, a), d2 = turn(c, d, b), d3 = turn(a, b, c), d4 = turn(a, b, d)
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))
+}
+
+/**
+ * One storey's loops as polygons: counter-clockwise rings are outer rings, each with the clockwise rings inside it as
+ * holes (a courtyard). A clockwise ring inside no outer ring is an outer ring wound the other way (flipped faces).
+ * Overlapping outer rings (parts of a model that intersect) stay two polygons: their overlap is covered, not cancelled
+ * as even-odd would.
+ */
+function storeyPolygons(s: ImportedStorey): PlanPolygon[] {
+  const rings = s.loops.map(openRing).filter((r) => r.length >= 3)
+  const a = rings.map(ringArea)
+  const polys: PlanPolygon[] = [], holes: P[][] = []
+  rings.forEach((r, i) => {
+    if (Math.abs(a[i]) < 1e-6) return
+    if (a[i] < 0 && rings.some((o, j) => a[j] > 0 && inRing(r[0], o))) holes.push(r)
+    else polys.push([a[i] > 0 ? r : [...r].reverse()])
+  })
+  for (const h of holes) polys.find((pg) => inRing(h[0], pg[0]))?.push(h)
+  return polys
+}
+
+interface Sized { pg: PlanPolygon; area: number; box: [number, number, number, number] }
+const sized = (pg: PlanPolygon): Sized => {
+  const xs = pg[0].map((p) => p[0]), ys = pg[0].map((p) => p[1])
+  return { pg, area: ringArea(pg[0]), box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] }
+}
+/** True when `a` lies within `b` (a polygon without holes): every corner inside it or within 1 cm of it, no edges crossing. */
+function within(a: Sized, b: Sized, tol = 0.01): boolean {
+  if (b.pg.length > 1) return false
+  const [ax0, ay0, ax1, ay1] = a.box, [bx0, by0, bx1, by1] = b.box
+  if (ax0 < bx0 - tol || ay0 < by0 - tol || ax1 > bx1 + tol || ay1 > by1 + tol) return false
+  const A = a.pg[0], B = b.pg[0]
+  if (!A.every((p) => inRing(p, B) || toRing(p, B) <= tol)) return false
+  for (let i = 0; i < A.length; i++) for (let j = 0; j < B.length; j++) {
+    if (properCross(A[i], A[(i + 1) % A.length], B[j], B[(j + 1) % B.length])) return false
+  }
+  return true
+}
+
+/** Plan polygons of these storeys in the tower frame: each different storey's, less those within a larger one. */
+function storeyParts(storeys: ImportedStorey[]): PlanPolygon[] {
+  const seen = new Set<string>(), all: Sized[] = []
+  for (const s of storeys) {
+    const k = JSON.stringify(s.loops)
+    if (seen.has(k)) continue
+    seen.add(k)
+    all.push(...storeyPolygons(s).map(sized))
+  }
+  all.sort((x, y) => y.area - x.area)
+  const kept: Sized[] = []
+  for (const c of all) if (!kept.some((k) => within(c, k))) kept.push(c)
+  return kept.map((k) => k.pg)
+}
+
+/**
+ * True plan outline of an imported (not drawn) tower in the project frame (G10): the polygons (outer ring, then holes)
+ * of the chosen storeys, several parts and non-convex shapes kept. 'ground' is the lowest storey, 'podium' every podium
+ * storey, 'tower' every storey above the podium. Parts may overlap (storeys stacked); the area they cover is their
+ * union. Null for a parametric or drawn tower or an import without storey outlines: the callers keep `towerFootprint`.
+ * An empty list: no storey of that part.
+ */
+export function storeyOutline(t: Tower, part: OutlinePart): PlanPolygon[] | null {
+  if (!readsStoreys(t)) return null
+  const st = outlinedStoreys(t)!
+  const key = t.imported!.storeys
+  let cache = outlineCache.get(key)
+  if (!cache) { cache = new Map(); outlineCache.set(key, cache) }
+  let local = cache.get(part)
+  if (!local) {
+    const z0 = Math.min(...st.map((s) => s.z0))
+    local = storeyParts(part === 'ground' ? st.filter((s) => s.z0 <= z0 + 0.01) : st.filter((s) => s.podium === (part === 'podium')))
+    cache.set(part, local)
+  }
+  return local.map((pg) => pg.map((r) => placeRing(t, r)))
 }

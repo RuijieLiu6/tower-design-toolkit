@@ -1,8 +1,7 @@
 // Results for the three public realm nodes (research P06): a site plan coloured by the check, then rule cards.
 import SheetFrame from './SheetFrame'
 import type { ReactNode } from 'react'
-import { STATION_CORNER, VTC_EDGES, VTC_SITE, type CityFrontage, type CityWall, type EdgeId } from '../engine/publicRealm'
-import { towerFootprint } from '../engine/massing'
+import { masses, STATION_CORNER, VTC_EDGES, VTC_SITE, type CityFrontage, type CityWall, type EdgeId } from '../engine/publicRealm'
 import type { RuleResult, RuleState } from '../engine/types'
 const STATE_KEY = [{ label: 'pass', color: '#2e8b57' }, { label: 'check', color: '#d98b1c' }, { label: 'fail', color: '#d0453a' }, { label: 'open', color: '#8a8f98' }]
 import { useResults } from '../hooks/useResults'
@@ -44,12 +43,18 @@ function SitePlanDrawing({ edgeState, children }: { edgeState: Partial<Record<Ed
         )
       })}
       {children}
-      {towers.map((t) => (
-        <g key={t.id}>
-          {t.podiumHeight > 0 && <polygon points={pts(towerFootprint(t, true))} fill="#e3a07a" fillOpacity="0.45" stroke="#b5651d" strokeWidth="0.6" />}
-          <polygon points={pts(towerFootprint(t))} fill="#6b8fb5" fillOpacity="0.75" stroke="#1f2328" strokeWidth="0.6" />
-        </g>
-      ))}
+      {/* The parts the checks read (G10): a podium in separate parts or with a courtyard is drawn as it is, not as one hull.
+          Parts may overlap (stacked storeys), so each kind is one path filled non-zero: covered once, courtyards open. */}
+      {towers.map((t) => {
+        const ms = masses([t])
+        const d = (kind: 'podium' | 'tower') => ms.filter((m) => m.kind === kind).flatMap((m) => [m.poly, ...m.holes]).map((r) => `M${pts(r)}Z`).join(' ')
+        return (
+          <g key={t.id}>
+            {t.podiumHeight > 0 && <path d={d('podium')} fillRule="nonzero" fill="#e3a07a" fillOpacity="0.45" stroke="#b5651d" strokeWidth="0.6" />}
+            <path d={d('tower')} fillRule="nonzero" fill="#6b8fb5" fillOpacity="0.75" stroke="#1f2328" strokeWidth="0.6" />
+          </g>
+        )
+      })}
       <circle cx={X(STATION_CORNER[0])} cy={Y(STATION_CORNER[1])} r="3" fill="#2a8f86" />
       <text x={X(STATION_CORNER[0]) - 4} y={Y(STATION_CORNER[1]) + 10} fontSize="6.5" textAnchor="end" fill="#2a8f86">to station</text>
     </svg>

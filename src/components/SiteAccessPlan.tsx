@@ -68,9 +68,14 @@ function SiteAccessPlanDrawing({ bays }: { bays: number }) {
           )
         })}
         <rect x={xMin} y={-yMax} width={xMax - xMin} height={yMax - yMin} fill="#ffffff" stroke="#1f5f8b" strokeWidth={0.8} />
-        {masses(towers).map((m, i) => (
-          <polygon key={i} points={m.poly.map(([x, y]) => `${x},${-y}`).join(' ')} fill={m.kind === 'podium' ? '#d9d4ca' : '#a7b4c2'} stroke="#59636e" strokeWidth={0.4} opacity={0.9} />
-        ))}
+        {/* One path per tower and kind, filled non-zero: an imported tower's parts may overlap (stacked storeys, G10). */}
+        {towers.flatMap((t) => {
+          const ms = masses([t])
+          return (['podium', 'tower'] as const).map((kind) => {
+            const d = ms.filter((m) => m.kind === kind).flatMap((m) => [m.poly, ...m.holes]).map((r) => `M${r.map(([x, y]) => `${x},${-y}`).join(' ')}Z`).join(' ')
+            return d ? <path key={`${t.id}-${kind}`} d={d} fillRule="nonzero" fill={kind === 'podium' ? '#d9d4ca' : '#a7b4c2'} stroke="#59636e" strokeWidth={0.4} opacity={0.9} /> : null
+          })
+        })}
         <g>
           <circle cx={STATION_CORNER[0]} cy={-STATION_CORNER[1]} r={3.5} fill="#1f5f8b" />
           <text x={STATION_CORNER[0] - 2} y={-STATION_CORNER[1] + 9} fontSize={3.6} fill="#1f5f8b">Station (next block)</text>
