@@ -9,7 +9,7 @@
 //   toPresent        drawings, boards and Present captures: outlines and the provenance caption
 //   toCustomize      the Customize canvas: the model as a node output (lines with flags and sources)
 //   toExportScene    export back to .3dm, OBJ and glTF with roles and provenance as user strings
-import { floorRing, massOutline, towerFloors, towerFootprint, towerMasses, PODIUM_F2F } from '../../engine/massing'
+import { floorAreasByUse, floorRing, massOutline, towerFloors, towerFootprint, towerMasses, PODIUM_F2F } from '../../engine/massing'
 import { ringArea } from '../../engine/importGeom'
 import type { Occluders, Prism } from '../../engine/shadow'
 import { towerOccluders } from '../../engine/solarRules'
@@ -49,11 +49,11 @@ export function toNodeTowers(model: InterchangeModel, towers: Tower[]): NodeTowe
     const mt = model.towers.find((x) => x.id === t.id)
     const floors = towerFloors(t)
     const byUse: Partial<Record<UseId, number>> = {}
-    for (const f of floors) byUse[f.use] = (byUse[f.use] ?? 0) + f.area
+    for (const f of floors) for (const [u, a] of Object.entries(floorAreasByUse(f)) as [UseId, number][]) byUse[u] = (byUse[u] ?? 0) + a
     const ids = t.imported!.source!.elementIds
     const fromModel = mt?.coreShare != null && t.coreAuto === false && Math.abs(t.coreShare - mt.coreShare) < 1e-9
     return {
-      id: t.id, name: t.name, height: t.height, floors, gfa: floors.reduce((s, f) => s + f.area, 0), gfaByUse: byUse,
+      id: t.id, name: t.name, height: t.height, floors, gfa: floors.reduce((s, f) => s + Object.values(floorAreasByUse(f)).reduce((x, a) => x + a, 0), 0), gfaByUse: byUse,
       core: fromModel ? { share: t.coreShare, source: `Measured from the core volumes (${layersOf(model, ids.filter((id) => model.elements.find((e) => e.id === id)?.role === 'core')).join(', ')})`, flag: 'team_assumption' }
         : { share: t.coreShare, source: t.coreAuto === false ? 'Set by hand in the app' : 'Sized to the lifts, stairs and risers (core & lift check)', flag: 'team_assumption' },
       provenance: { file: model.source.fileName, layers: layersOf(model, ids), elementIds: ids },

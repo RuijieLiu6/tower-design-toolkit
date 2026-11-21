@@ -18,7 +18,7 @@ export function importedFloors(t: Tower): Floor[] {
     if (!s.podium) towerIndex++
     const plant = !s.podium && t.plantEvery > 0 && towerIndex % t.plantEvery === 0
     const isSky = sky.has(s.level) && s.z0 > 0.5 && !s.podium
-    out.push({ level: s.level, z0: s.z0, z1: s.z1, use: isSky ? 'amenity' : plant ? 'mechanical' : s.use, area: s.area, podium: s.podium, ...(isSky ? { skyLobby: true } : {}) })
+    out.push({ level: s.level, z0: s.z0, z1: s.z1, use: isSky ? 'amenity' : plant ? 'mechanical' : s.use, area: s.area, podium: s.podium, ...(isSky ? { skyLobby: true } : {}), ...(s.useAreas?.length ? { useAreas: s.useAreas } : {}) })
   }
   return out
 }
@@ -52,7 +52,7 @@ export function carryTags(next: ImportedStorey[], prev: ImportedStorey[]): Impor
   return next.map((s) => {
     const mid = (s.z0 + s.z1) / 2
     const old = prev.find((p) => mid >= p.z0 && mid < p.z1)
-    return old ? { ...s, use: old.use, hasFloor: old.hasFloor && s.area >= MIN_FLOOR_AREA ? true : s.hasFloor && old.hasFloor, ...(old.src ? { src: old.src } : {}) } : s
+    return old ? { ...s, use: old.use, hasFloor: old.hasFloor && s.area >= MIN_FLOOR_AREA ? true : s.hasFloor && old.hasFloor, ...(old.src ? { src: old.src } : {}), ...(old.useAreas?.length ? { useAreas: old.useAreas } : {}) } : s
   })
 }
 

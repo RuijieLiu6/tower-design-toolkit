@@ -2,7 +2,7 @@
 // layouts by use (unit mix for homes, keys for hotels, lease depth for offices) and an activity programme for public
 // floors. When a tower has `interior` set, the lift check, egress and economics read the counts from here instead of
 // their area proxies; without it they keep the proxies (flagged as such). Every preset is a team assumption.
-import { coreSide, coreSideAt, coreStepsOf, blockSpans, spanAt, towerFloors } from './massing'
+import { coreSide, coreSideAt, coreStepsOf, blockSpans, ownUseArea, spanAt, towerFloors } from './massing'
 import type { Floor, Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export type UnitType = 'studio' | 'one' | 'two' | 'three'
@@ -209,7 +209,9 @@ function storeyPlate(t: Tower, f: Pick<Floor, 'z0' | 'z1'>, c = coreSide(t)): To
   if (!s || !pts.length || !(s.area > 0)) return own ? t : { ...t, coreShare: Math.min(0.6, (c * c) / Math.max(1, t.width * t.depth)) }
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
   const r = Math.max(0.2, Math.min(5, Math.max(1, Math.max(...xs) - Math.min(...xs)) / Math.max(1, Math.max(...ys) - Math.min(...ys))))
-  const w = Math.round(Math.sqrt(s.area * r) * 100) / 100, d = Math.round(Math.sqrt(s.area / r) * 100) / 100
+  // Parts of the storey in another use (gap G14: a winter garden on a home storey) are not laid out as this use.
+  const a = Math.max(1, ownUseArea(s))
+  const w = Math.round(Math.sqrt(a * r) * 100) / 100, d = Math.round(Math.sqrt(a / r) * 100) / 100
   if (w === t.width && d === t.depth && own) return t
   return { ...t, width: w, depth: d, coreShare: Math.min(0.6, (c * c) / Math.max(1, w * d)) }
 }
@@ -221,7 +223,7 @@ export function floorLayout(t: Tower, f: Floor): FloorLayout | null {
   if (f.use === 'residential' && !f.skyLobby) return homeFloor(pt, i)
   if (f.use === 'hotel' && !f.skyLobby) return hotelFloor(pt, i)
   if (f.use === 'office') return officeFloor(pt, f, i)
-  if (f.use === 'amenity' || f.skyLobby) return publicFloor(pt, f, i, Math.max(0, f.area - floorCore(t, f) ** 2))
+  if (f.use === 'amenity' || f.skyLobby) return publicFloor(pt, f, i, Math.max(0, ownUseArea(f) - floorCore(t, f) ** 2))
   return null
 }
 
@@ -269,7 +271,7 @@ export function interiorCheck(t: Tower, floors: Floor[]): InteriorResult {
   const hotel = most(hotels)
   const officeMid = officeF[Math.floor(officeF.length / 2)]
   const office = officeF.length ? officeFloor(plateTower(tw, officeMid), officeMid, i) : null
-  const publics = floors.filter((f) => !f.podium && (f.use === 'amenity' || f.skyLobby)).map((f) => ({ level: f.level, layout: publicFloor(plateTower(tw, f), f, i, Math.max(0, f.area - floorCore(t, f) ** 2)) }))
+  const publics = floors.filter((f) => !f.podium && (f.use === 'amenity' || f.skyLobby)).map((f) => ({ level: f.level, layout: publicFloor(plateTower(tw, f), f, i, Math.max(0, ownUseArea(f) - floorCore(t, f) ** 2)) }))
   const units = Object.fromEntries(UNIT_TYPES.map((u) => [u, homes.reduce((s, g) => s + g.layout.units[u] * g.n, 0)])) as Record<UnitType, number>
   const totals = { homes: homes.reduce((s, g) => s + g.layout.homes * g.n, 0), bedrooms: homes.reduce((s, g) => s + g.layout.bedrooms * g.n, 0), keys: hotels.reduce((s, g) => s + g.layout.keys * g.n, 0), units }
   const rules: RuleResult[] = []

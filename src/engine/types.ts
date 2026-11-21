@@ -3,6 +3,13 @@ import { DATA } from '../lib/design/tokens'
 // Shared types for Layer 0 and evaluation results.
 
 export type UseId = 'retail' | 'office' | 'hotel' | 'residential' | 'civic' | 'amenity' | 'mechanical'
+/**
+ * The use of a part of a storey (gap G14): a building use, or 'none' for space that is enclosed but not conditioned
+ * (an unheated glazed winter garden): kept out of floor area and out of every use.
+ */
+export type PartUse = UseId | 'none'
+/** A part of a storey given to another use than the storey's own (m² of plate). */
+export interface UseArea { use: PartUse; area: number }
 
 /**
  * Building uses in the design system's categorical data palette (lib/design/tokens.ts DATA.categorical; §9: uses are
@@ -214,6 +221,12 @@ export interface ImportedStorey {
   glazedT?: (number | null)[]
   /** Id of the model element (Layer 0 interchange) that set this storey's use; absent when it follows the program bands. */
   src?: string
+  /**
+   * Parts of this storey given to another use (gap G14), e.g. a 378 m² unheated winter garden ('none') or an amenity
+   * room on a home storey: homes, keys and offices are laid out on the storey's area less these parts, and floor area
+   * by use counts each part in its own use ('none': in none). Absent: the whole storey is in `use`.
+   */
+  useAreas?: UseArea[]
 }
 
 /** How an imported file was placed: units, north and zero level are confirmed by the user, never assumed. */
@@ -285,7 +298,11 @@ export interface SkyRoom {
   postedLimit?: number | null
 }
 
-export interface Floor { level: number; z0: number; z1: number; use: UseId; area: number; podium: boolean; skyLobby?: boolean }
+export interface Floor {
+  level: number; z0: number; z1: number; use: UseId; area: number; podium: boolean; skyLobby?: boolean
+  /** Parts of the floor in another use (imported storeys, gap G14); `area` stays the whole plate, `use` holds the rest. */
+  useAreas?: UseArea[]
+}
 
 /** Evidence status, shared with the research logs. */
 export type Flag = 'verified' | 'team_assumption' | 'unverified' | 'unresolved' | 'false_assumption'

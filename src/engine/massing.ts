@@ -240,9 +240,32 @@ export function netToGrossAt(t: Tower, f: Pick<Floor, 'level' | 'area'>): number
   return Math.max(0, Math.min(1, 1 - (c * c) / f.area))
 }
 
+/**
+ * A floor's area split by use (gap G14): each part in `useAreas` in its own use ('none' left out of every use), the
+ * rest in the floor's use. Parts are taken in order and never exceed the floor. No parts: the whole floor in its use.
+ */
+export function floorAreasByUse(f: Pick<Floor, 'use' | 'area' | 'useAreas'>): Partial<Record<UseId, number>> {
+  if (!f.useAreas?.length) return { [f.use]: f.area }
+  const out: Partial<Record<UseId, number>> = {}
+  let left = Math.max(0, f.area)
+  for (const p of f.useAreas) {
+    const a = Math.min(left, Number.isFinite(p.area) ? Math.max(0, p.area) : 0)
+    left -= a
+    if (p.use !== 'none' && a > 0) out[p.use] = (out[p.use] ?? 0) + a
+  }
+  out[f.use] = (out[f.use] ?? 0) + left
+  return out
+}
+
+/** Area of a floor left to its own use once its parts in other uses are taken out (gap G14); the whole floor without parts. */
+export function ownUseArea(f: Pick<Floor, 'area' | 'useAreas'>): number {
+  if (!f.useAreas?.length) return f.area
+  return Math.max(0, f.area - f.useAreas.reduce((s, p) => s + (Number.isFinite(p.area) ? Math.max(0, p.area) : 0), 0))
+}
+
 export function gfaByUse(towers: Tower[]): Record<UseId, number> {
   const out = { retail: 0, office: 0, hotel: 0, residential: 0, civic: 0, amenity: 0, mechanical: 0 } as Record<UseId, number>
-  for (const t of towers) for (const f of towerFloors(t)) out[f.use] += f.area
+  for (const t of towers) for (const f of towerFloors(t)) for (const [u, a] of Object.entries(floorAreasByUse(f)) as [UseId, number][]) out[u] += a
   return out
 }
 
