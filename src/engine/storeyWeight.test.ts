@@ -26,7 +26,7 @@ describe('G6: storey weight by use (R5 §3)', () => {
     expect(w.value).not.toMatch(/434%/)
     expect(w.value).toMatch(/by weight/)
     expect(w.note).toMatch(/By floor area alone: 434% between L24 and L25/) // 576 m² core under a 2,500 m² plate
-    expect(w.note).toMatch(/Open garden storey L25 \(1,924 m² planted deck\)/)
+    expect(w.note).toMatch(/Planted deck: L25 \(1,924 m², open garden storey\), each carried by its own floor/)
     const lv = r.weights.levels
     const g = lv.find((l) => l.level === GARDEN)!, below = lv.find((l) => l.level === GARDEN - 1)!, above = lv.find((l) => l.level === GARDEN + 1)!
     expect(g.garden).toBe(true)
@@ -57,6 +57,26 @@ describe('G6: storey weight by use (R5 §3)', () => {
     // The floor on grade is the base; the roof is a level of its own, exempt when lighter than the floor below.
     expect(lv.some((l) => l.level === 1)).toBe(false)
     expect(lv[lv.length - 1].roof).toBe(true)
+  })
+
+  it('plants the open deck of a public-amenity floor (A10a/A11a: the garden at 100 m beside an enclosed wind wall)', () => {
+    // The Z-shaped enclosed part of the garden storeys (1,707 m²) over a 2,500 m² office plate, both storeys tagged amenity.
+    const wall: [number, number][] = [[-8, -23], [5, -23], [5, -10], [29, -10], [29, 14], [42, 14], [42, 27], [-8, 27]]
+    const a11 = importedTower(stack([
+      { n: 4, f2f: 4.8, ring: rect(64, 60, 24, 0), podium: true },
+      { n: 20, f2f: 4, ring: shaft, use: 'office' },
+      { n: 2, f2f: 4, ring: wall, use: 'amenity' },
+      { n: 20, f2f: 4, ring: shaft, use: 'office' },
+    ]), { podiumTop: 19.2 })
+    const lv = storeyWeights(a11).levels
+    const g1 = lv.find((l) => l.level === 25)!, g2 = lv.find((l) => l.level === 26)!
+    expect(g1.garden).toBe(false) // not an open garden storey: more than half the plate is enclosed
+    expect(g1.deckKind).toBe('planted')
+    expect(g1.deck).toBeCloseTo(793, 6)
+    expect(g2.deck).toBe(0) // the garden is double height: one deck, at 100 m
+    const w = structureCheck(a11, windProcedure(a11)).rules.find((x) => x.id === 'weight')!
+    expect(w.note).toMatch(/Planted deck: L25 \(793 m², public amenity floor\)/)
+    expect(storeyWeights(a11, { ...DEFAULT_WEIGHT_PRESETS, planted: 'none' }).levels.find((l) => l.level === 25)!.deckKind).toBe('hard')
   })
 
   it('a uniform tower reads as before: uniform', () => {

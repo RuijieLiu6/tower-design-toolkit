@@ -60,12 +60,12 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   const step = worstWeightStep(weights.levels)
   const stepped = !!step && step.ratio >= 1.005
   const byArea = worst.ratio > 1 ? `${Math.round(worst.ratio * 100)}% between L${worst.level - 1} and L${worst.level}` : 'uniform'
-  const gardenLevels = weights.levels.filter((l) => l.garden)
+  const plantedDecks = weights.levels.filter((l) => !l.roof && l.deckKind === 'planted')
   const kg = (q: number) => q.toFixed(1)
   add('weight', 'Weight irregularity (Type 2)', stepped ? `${Math.round(step.ratio * 100)}% by weight between ${levelName(step.lower)} and ${levelName(step.upper)}` : 'uniform by weight',
     'storey weight ≤ 150% of the adjacent storey (a roof lighter than the floor below is exempt)', stepped && step.ratio > 1.5 ? 'warn' : 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 2; W per 4.1.8.2' },
     `By floor area alone: ${byArea}. Weight of each floor = plate × (slab + superimposed dead load by use + 0.5 kPa partitions) + the open deck at that floor over the storey below (hard ${HARD_DECK} kPa, or planted: ${wpr.soilMm} mm of soil, ${kg(soilKpa(wpr.soilMm))} kPa, + ${PLANTED_BUILDUP} kPa build-up; 25% of snow, ${SNOW_W} kPa) + facade ${wpr.facadeKpa} kPa + core walls ${wpr.coreWall} m thick; the floor on grade is the base. Slabs, SDL, decks, facade and core walls are team presets (research R5 §3.3).`
-    + (gardenLevels.length ? ` Open garden storey${gardenLevels.length > 1 ? 's' : ''} ${gardenLevels.map((l) => `L${l.level} (${Math.round(l.deck).toLocaleString('en-CA')} m² ${l.deckKind} deck)`).join(', ')}: the garden's deck is carried by that storey.` : '')
+    + (plantedDecks.length ? ` Planted deck${plantedDecks.length > 1 ? 's' : ''}: ${plantedDecks.map((l) => `L${l.level} (${Math.round(l.deck).toLocaleString('en-CA')} m², ${l.garden ? 'open garden storey' : 'public amenity floor'})`).join(', ')}, each carried by its own floor.` : '')
     + ' The podium-to-tower step usually triggers it: an irregular structure needs Vd ≥ 1.0 V.')
 
   // Off-centre gravity load and accidental torsion (gap G5, research R5 §2): weight centre of each tower level vs the core.

@@ -7,8 +7,9 @@
 // Each storey carries its own floor: its plate, plus the open deck at its floor level that lies over the storey below
 // (a setback terrace, the podium roof, or the garden of an open garden storey), and half the walls of the storeys below
 // and above it. The floor on grade is the base and carries no seismic weight; the roof over the top storey is a level of
-// its own. An open garden storey of an imported tower (a plate at most half the storeys below and above it, as the core
-// alone where the garden is open under a slab) carries its deck as a planted deck.
+// its own. Decks are planted (soil by depth) at an open garden storey of an imported tower (a plate at most half the
+// storeys below and above it, as the core alone where the garden is open under a slab) and at a public-amenity floor
+// (the use the harness and the Program step give a sky garden or commons); every other deck is hard (pavers).
 import { blockSpans, coreSide, rectCorners, spanAt, towerFloors } from './massing'
 import type { Floor, Tower, UseId } from './types'
 
@@ -18,7 +19,7 @@ type P = [number, number]
 export interface WeightPresets {
   /** Soil depth on planted decks (mm, saturated weight). */
   soilMm: number
-  /** Which open decks are planted: an open garden storey's deck (default), every open deck and the roof, or none. */
+  /** Which open decks are planted: those of open garden storeys and public-amenity floors (default), every deck and the roof, or none. */
   planted: 'gardens' | 'all' | 'none'
   /** Facade weight per m² of wall (kPa). */
   facadeKpa: number
@@ -179,7 +180,7 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
     const hLow = Math.max(0, (f.z0 - zPrev) / 2), hUp = Math.max(0, (zNext - f.z0) / 2)
     const below = i > 0 ? plates[i - 1] : null
     const deck = below ? Math.max(0, below.area - pl.area) : 0
-    const planted = deck > 0 && p.planted !== 'none' && (p.planted === 'all' || garden[i])
+    const planted = deck > 0 && p.planted !== 'none' && (p.planted === 'all' || garden[i] || f.use === 'amenity')
     const deckC: P = below && deck > 0 ? [(below.area * below.c[0] - pl.area * pl.c[0]) / deck, (below.area * below.c[1] - pl.area * pl.c[1]) / deck] : pl.c
     push([
       { w: pl.area * plateQ(f.use), c: pl.c },
