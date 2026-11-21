@@ -14,6 +14,7 @@ export type AnalysisKind =
   | { kind: 'cones' } // the parts of the towers above the view-cone limits
   | { kind: 'uses' } // the towers' floors coloured by use (program, floor area, value)
   | { kind: 'section' } // the program checks: a live building section, rooms coloured by use (components/ProgramSection.tsx)
+  | { kind: 'facade' } // the towers with their façade as built (components/FacadeSkin.tsx): the Façade tool's expanded window
   | { kind: 'sw' } // a Sun & Wind Studio tool (components/sw/SwAnalysis.tsx: ground map, faces, façade zones or floor plan)
 
 const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
@@ -23,6 +24,8 @@ const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
   'built.wind-study': { kind: 'layer', layer: 'wind', plan: true, about: 'Indicative pedestrian wind risk zones (screening, not CFD).' },
   'built.energy-carbon': { kind: 'layer', layer: 'surface-sun', plan: false, about: 'Modelled annual sun on roofs and facades, kWh/m²·yr.' },
   'built.viewcones': { kind: 'cones', plan: false, about: 'Parts of the towers above the protected view-cone limits.' },
+  // the Façade tool (20 Nov, Sinnie: the expanded window shows "this version with the facade modelled in")
+  'built.facade': { kind: 'facade', plan: false, about: 'The towers as built outside: each zone\u2019s glass, spandrels, mullions and shading devices (illustrative materials).' },
   // the program checks (17 Nov, Sinnie: "the expandable window should be a perfect section view … like the one in the sun wind studio")
   'built.fsr': { kind: 'section', plan: false, about: 'A section through the tower, every storey coloured by use; pick floors to change their use.' },
   'built.economics': { kind: 'section', plan: false, about: 'A section through the tower, every storey coloured by use; pick floors to change their use.' },
@@ -32,7 +35,7 @@ const VIEWS: Record<string, AnalysisKind & { plan: boolean; about: string }> = {
   'built.sw-rain-water': { kind: 'sw', plan: true, about: 'Ground the towers keep dry: share of the year\'s rain each spot is sheltered from.' },
   'built.sw-sun-faces': { kind: 'sw', plan: false, about: 'Annual sun on every face of the towers.' },
   'built.sw-rain-faces': { kind: 'sw', plan: false, about: 'Wind-driven rain on every face of the towers.' },
-  'built.sw-glazing': { kind: 'sw', plan: false, about: 'The façade zones on the tower: glass band by strategy.' },
+  'built.sw-glazing': { kind: 'facade', plan: false, about: 'The towers as built outside: each zone\u2019s glass, spandrels, mullions and shading devices (illustrative materials).' },
   'built.sw-pv': { kind: 'sw', plan: false, about: 'The façade zones on the tower, PV spandrels among them.' },
   'built.sw-energy': { kind: 'sw', plan: false, about: 'The façade zones that set the envelope of the energy model.' },
   'built.sw-form': { kind: 'sw', plan: false, about: 'The tower\'s form and its façade zones.' },

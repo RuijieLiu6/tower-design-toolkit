@@ -35,6 +35,8 @@ import { useCityData, useRemoval } from './CityContext'
 import { ConeOverlays } from './ConeVolumes'
 import { clock, SolarScale, SurfaceSunScale, TowerUseKey, WindKey } from './DisplayMode'
 import EnergyOverlay from './EnergyOverlay'
+import FacadeSkin from './FacadeSkin'
+import { FACE_NAME, STRATS, zonesOf } from '../engine/sw/plate'
 import { Box, Map as MapIcon, X } from './icons'
 import Label from './Label'
 import SolarOverlay from './SolarOverlay'
@@ -163,6 +165,14 @@ function ShadowFan({ prisms, base }: { prisms: Prism[]; base: number }) {
 }
 
 /** The towers floor by floor, each floor slab in its use's colour. */
+/** The Façade view's key: each face's strategy, from the first tower's zones (later zones win where they overlap). */
+function FacadeKey({ towers }: { towers: Tower[] }) {
+  const t = towers[0]
+  if (!t) return null
+  const zones = zonesOf(t)
+  return <div data-testid="facade-key"><div className="mb-1 font-semibold text-ink">Façade zones</div>{zones.map((z, i) => <div key={i} className="text-muted">{z.face === 'all' ? 'All faces' : FACE_NAME[z.face]} · {STRATS[z.strat].name}{z.to < 999 ? ` · L${z.from}–${z.to}` : ''}</div>)}</div>
+}
+
 function UseStack({ towers, base }: { towers: Tower[]; base: number }) {
   const slabs = useMemo(() => {
     const out: { g: THREE.ExtrudeGeometry; color: string }[] = []
@@ -312,9 +322,9 @@ export default function AnalysisViewport() {
   })() : null
 
   const layer: AnalysisLayerId | null = def.kind === 'layer' ? def.layer : null
-  const needsOn = def.kind !== 'uses' && def.kind !== 'section' && !on
+  const needsOn = def.kind !== 'uses' && def.kind !== 'section' && def.kind !== 'facade' && !on
   const section = def.kind === 'section'
-  const swView = isSw(node) ? SW_VIEW[node] : undefined
+  const swView = def.kind === 'sw' && isSw(node) ? SW_VIEW[node] : undefined
   // The interior studies are a floor plan (2D drawing), not a 3D scene.
   const swPlan = swView === 'plan'
   return (
@@ -354,6 +364,7 @@ export default function AnalysisViewport() {
               {ring && <SiteLine ring={ring} z={base + 0.15} />}
               {nearby && <NearbyBuildings centre={centre} reach={Math.max(300, extent * 2.5)} />}
               {def.kind === 'uses' ? <UseStack towers={towers} base={base} /> : <Prisms prisms={prisms} base={base} opacity={def.kind === 'cones' ? 0.55 : 1} />}
+              {def.kind === 'facade' && towers.map((t) => <FacadeSkin key={t.id} t={t} baseZ={base} north={north} />)}
               {def.kind === 'shadows' && on && <ShadowFan prisms={prisms} base={base} />}
               {layer === 'solar' && <><SolarOverlay /><SolarEnvelopeOverlay /></>}
               {layer === 'wind' && <WindScreenOverlay base={base} />}
@@ -397,7 +408,8 @@ export default function AnalysisViewport() {
           {layer === 'surface-sun' && <SurfaceSunScale />}
           {def.kind === 'cones' && <p className="text-ink">{project === 'city' ? 'Highlighted: the parts of each tower above a protected view-cone limit. The tower is drawn see-through.' : 'View cones apply in Real Vancouver only.'}</p>}
           {def.kind === 'uses' && <TowerUseKey />}
-          {isSw(node) && <SwKey id={node} towers={towers} />}
+          {def.kind === 'facade' && <FacadeKey towers={towers} />}
+          {def.kind === 'sw' && isSw(node) && <SwKey id={node} towers={towers} />}
           <label className="flex items-center gap-1.5 text-ink"><input type="checkbox" checked={nearby} onChange={(e) => setNearby(e.target.checked)} data-testid="analysis-nearby" className="accent-accent" />Nearby buildings</label>
           <p className="text-muted">Change the design in the main view; this view follows.</p>
         </div>}
