@@ -27,11 +27,17 @@ describe('structure screening (P10-M01, M03, M05)', () => {
     expect(rule(run(vtc()), 'continuity')!.state).toBe('pass')
     expect(rule(run(vtc({ imported: { storeys: [], f2f: 4, podiumTop: 0, podiumF2F: 4.5, top: 285 } as unknown as Tower['imported'] })), 'continuity')!.state).toBe('unknown')
   })
-  it('flags the podium-to-tower step as a weight irregularity (floor area as the proxy)', () => {
+  it('flags the podium-to-tower step as a weight irregularity, by weight, with the floor-area ratio kept in the note', () => {
     const w = rule(run(vtc()), 'weight')!
-    expect(w.state).toBe('warn') // 100 × 64 m podium over a 46 × 46 m plate: about 302%
-    expect(w.value).toMatch(/302%/)
-    expect(rule(run(city()), 'weight')!.state).toBe('pass') // no podium: uniform
+    expect(w.state).toBe('warn')
+    expect(w.value).toMatch(/% by weight between L\d+ and L\d+$/)
+    expect(w.note).toMatch(/By floor area alone: 302% between L4 and L5/) // 100 × 64 m podium over a 46 × 46 m plate
+    // The first tower floor carries the podium roof as an open deck, so the step is read between it and the next floor.
+    expect(w.value).toMatch(/between L5 and L6/)
+    const c = rule(run(city()), 'weight')!
+    expect(c.state).toBe('pass') // no podium: uniform, as before
+    expect(c.value).toBe('uniform by weight')
+    expect(c.note).toMatch(/By floor area alone: uniform/)
   })
   it('keeps only valid tower levels as outriggers, and puts the outrigger system on the shortlist', () => {
     const levels = towerFloors(vtc()).filter((f) => !f.podium).map((f) => f.level)

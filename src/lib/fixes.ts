@@ -43,7 +43,7 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Structure: system & seismic (NBC 4.1.8); each restates its rule's threshold or note.
   [/^seismic-category$/, 'Every tower here is Seismic Category SC4: choose a lateral system listed without an SC4 height cap (Details lists them) with the structural engineer.'],
   [/^dynamic$/, 'A dynamic analysis is required: the structural engineer runs it (base shear at least 0.8 V if regular, 1.0 V if irregular).'],
-  [/^weight$/, 'One storey weighs over 150% of the next (usually the podium-to-tower step): step the podium in, or carry it as an irregularity in the dynamic analysis.'],
+  [/^weight$/, 'One floor weighs over 150% of the next (usually the podium roof under the first tower floor, or a planted garden storey): step the podium in, lighten the deck (shallower soil or a hard deck), or carry it as an irregularity in the dynamic analysis.'],
   [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],
   [/^continuity$/, 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.'],
   // Egress & stairs

@@ -3,6 +3,7 @@
 // readings the research corrected are "unverified" here.
 import { towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
+import { DEFAULT_WEIGHT_PRESETS, HARD_DECK, levelName, PLANTED_BUILDUP, SNOW_W, soilKpa, storeyWeights, worstWeightStep, type WeightPresets, type WeightResult } from './storeyWeight'
 import { systemShortlist, type SystemFit, type WindProcedure } from './windStructure'
 
 const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.8 (2nd printing, 2025)', url: 'https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en' }
@@ -19,9 +20,11 @@ export interface StructureResult {
   outriggers: number[]
   rules: RuleResult[]
   systems: SystemFit[]
+  /** Seismic weight of every floor and the roof, with weight centres (research R5 §3). */
+  weights: WeightResult
 }
 
-export function structureCheck(t: Tower, wp: WindProcedure): StructureResult {
+export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS): StructureResult {
   const rules: RuleResult[] = []
   const add = (id: string, label: string, value: string, threshold: string, state: RuleState, flag: Flag, source: Source, note?: string) =>
     rules.push({ id, label, value, threshold, state, flag, source, note })
@@ -43,7 +46,7 @@ export function structureCheck(t: Tower, wp: WindProcedure): StructureResult {
     'required where Ta ≥ 1 s and IE·S(1.0) > 0.25: no wall that ends, steps or is transferred (Types 4 and 5)', imported ? 'unknown' : 'pass', 'verified', { ...NBC, page: '4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
     'Keep it that way in design: open podium spaces wrap around the core; a wall transfer is not permitted, with no nonlinear-analysis route.')
 
-  // Weight irregularity (Type 2) with floor area as the weight proxy (team assumption); the roof is exempt.
+  // Weight irregularity (Type 2) by storey weight (gap G6, research R5 §3); the floor-area ratio stays in the note.
   const floors = towerFloors(t)
   let worst = { ratio: 1, level: 0 }
   for (let i = 1; i < floors.length; i++) {
@@ -51,9 +54,17 @@ export function structureCheck(t: Tower, wp: WindProcedure): StructureResult {
     const r = Math.max(a, b) / Math.max(1e-9, Math.min(a, b))
     if (r > worst.ratio) worst = { ratio: r, level: floors[i].level }
   }
-  add('weight', 'Weight irregularity (Type 2)', worst.ratio > 1 ? `${Math.round(worst.ratio * 100)}% between L${worst.level - 1} and L${worst.level}` : 'uniform',
-    'storey weight ≤ 150% of the adjacent storey', worst.ratio > 1.5 ? 'warn' : 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 2' },
-    'Floor area stands in for weight (team assumption). The podium-to-tower step usually triggers it: an irregular structure needs Vd ≥ 1.0 V.')
+  const weights = storeyWeights(t, wpr)
+  const step = worstWeightStep(weights.levels)
+  const stepped = !!step && step.ratio >= 1.005
+  const byArea = worst.ratio > 1 ? `${Math.round(worst.ratio * 100)}% between L${worst.level - 1} and L${worst.level}` : 'uniform'
+  const gardenLevels = weights.levels.filter((l) => l.garden)
+  const kg = (q: number) => q.toFixed(1)
+  add('weight', 'Weight irregularity (Type 2)', stepped ? `${Math.round(step.ratio * 100)}% by weight between ${levelName(step.lower)} and ${levelName(step.upper)}` : 'uniform by weight',
+    'storey weight ≤ 150% of the adjacent storey (a roof lighter than the floor below is exempt)', stepped && step.ratio > 1.5 ? 'warn' : 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 2; W per 4.1.8.2' },
+    `By floor area alone: ${byArea}. Weight of each floor = plate × (slab + superimposed dead load by use + 0.5 kPa partitions) + the open deck at that floor over the storey below (hard ${HARD_DECK} kPa, or planted: ${wpr.soilMm} mm of soil, ${kg(soilKpa(wpr.soilMm))} kPa, + ${PLANTED_BUILDUP} kPa build-up; 25% of snow, ${SNOW_W} kPa) + facade ${wpr.facadeKpa} kPa + core walls ${wpr.coreWall} m thick; the floor on grade is the base. Slabs, SDL, decks, facade and core walls are team presets (research R5 §3.3).`
+    + (gardenLevels.length ? ` Open garden storey${gardenLevels.length > 1 ? 's' : ''} ${gardenLevels.map((l) => `L${l.level} (${Math.round(l.deck).toLocaleString('en-CA')} m² ${l.deckKind} deck)`).join(', ')}: the garden's deck is carried by that storey.` : '')
+    + ' The podium-to-tower step usually triggers it: an irregular structure needs Vd ≥ 1.0 V.')
 
   add('geometric', 'Vertical geometric irregularity (Type 3)', 'core constant over the height', 'SFRS dimension ≤ 130% of the adjacent storey', 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 3' },
     'The SFRS here is the core, which keeps its size; a wider podium only counts if its walls join the SFRS.')
@@ -70,7 +81,7 @@ export function structureCheck(t: Tower, wp: WindProcedure): StructureResult {
   }
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
-  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems }
+  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights }
 }
 
 export const SEISMIC_FALSE_ASSUMPTIONS = [{
