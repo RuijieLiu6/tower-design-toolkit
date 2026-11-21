@@ -3,7 +3,7 @@
 // Early sizing, not certification: waiting and destination times need simulation (roadmap).
 // Research: 04 Tool Plan/research/modules-completion/P11/revise-r2_P11.json (single pass since 22 Oct; see flags there).
 import { DEFAULT_EGRESS_PRESETS, skyRoomLoads, stairAreaByLevel, type EgressPresets } from './egress'
-import { coreSideAt, coreStepAt, coreStepsOf, netToGross, netToGrossAt, towerFloors } from './massing'
+import { coreAreaAt, coreStepAt, coreStepsOf, netToGross, netToGrossAt, towerFloors } from './massing'
 import { floorCounts } from './interior'
 import { coreLayout } from './plan'
 import type { CoreStep, Floor, RuleResult, RuleState, Tower } from './types'
@@ -247,7 +247,7 @@ export function planRises(t: Tower, p: LiftPresets): Group[] {
 /** Peak 5-minute visitor arrivals at a public sky room: posted capacity × visits per hour ÷ 12 × peak factor (team assumption). */
 export function skyRoomVisitors5(t: Tower, room: Floor): number {
   if (!t.skyRoom) return 0
-  const net = Math.max(0, room.area - (coreStepAt(t, room.level) ? coreSideAt(t, room.level) ** 2 : t.coreShare * t.width * t.depth))
+  const net = Math.max(0, room.area - coreAreaAt(t, room.level))
   const perHour = skyRoomLoads(t, net).visitors * (60 / Math.max(10, t.skyRoom.visitMinutes))
   return (perHour / 12) * VISITOR_PEAK
 }

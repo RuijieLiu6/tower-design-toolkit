@@ -221,6 +221,15 @@ export function coreSideAt(t: Tower, level: number): number {
 }
 
 /**
+ * Core area on one floor level (m²): its step's square where the core steps with the tiers, else the core share of
+ * the typical plate, as before. Deducted from that floor's own area (an imported tower: its own storey plate).
+ */
+export function coreAreaAt(t: Tower, level: number): number {
+  const s = coreStepAt(t, level)
+  return s ? s.side * s.side : t.coreShare * t.width * t.depth
+}
+
+/**
  * Net-to-gross on one floor if only the core is deducted. Without core steps: the tower's share (`netToGross`), as
  * before. With them, every floor deducts its own core from its own plate (the floor's area), so a stepped-in core
  * gives the upper tiers back their floor.

@@ -407,3 +407,28 @@ describe('the edge stair of a twisted tower as a straight shaft (G31)', () => {
     expect(e.separation).toBeCloseTo(Math.hypot(e.spots[1].x - e.spots[0].x, e.spots[1].y - e.spots[0].y), 9)
   })
 })
+
+describe('sky room floor with a core that steps in (G45)', () => {
+  // A 54 m plate with a 24 m core (576 m²) that steps to 15 m (225 m²) from level 35, below the room at level 40.
+  const base: Tower = { ...withRoom(), width: 54, depth: 54, coreShare: 576 / (54 * 54) }
+  const stepped: Tower = { ...base, coreSteps: [{ fromLevel: 35, side: 15 }] }
+  const check = (t: Tower) => skyRoomCheck(t, liftCheck(t), egressCheck(t, DEFAULT_EGRESS_PRESETS, li))
+  it('deducts the core at the room level, so the public area and share read larger', () => {
+    const a = check(base), b = check(stepped)
+    expect(b.room!.area).toBeCloseTo(a.room!.area, 6)
+    expect(a.visitorArea).toBeCloseTo((a.room!.area - 576) * 0.6, 6)
+    expect(b.visitorArea).toBeCloseTo((b.room!.area - 225) * 0.6, 6)
+    expect(b.visitorArea - a.visitorArea).toBeCloseTo((576 - 225) * 0.6, 6)
+    expect(b.shareAbovePodium).toBeGreaterThan(a.shareAbovePodium)
+    expect(b.capacity).toBeGreaterThan(a.capacity)
+    const share = (r: ReturnType<typeof check>) => r.rules.find((x) => x.id === 'skyroom-share-t1')!.value
+    expect(share(b)).toBe(`${b.shareAbovePodium.toFixed(1)}% of tower floor area`)
+  })
+  it('leaves a tower without core steps, or with a step above the room, as before', () => {
+    const a = check(base)
+    expect(a.visitorArea).toBeCloseTo(Math.max(0, a.room!.area - base.coreShare * base.width * base.depth) * 0.6, 6)
+    const above = check({ ...base, coreSteps: [{ fromLevel: 45, side: 15 }] })
+    expect(above.visitorArea).toBeCloseTo(a.visitorArea, 6)
+    expect(above.shareAbovePodium).toBeCloseTo(a.shareAbovePodium, 6)
+  })
+})

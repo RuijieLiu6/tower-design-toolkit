@@ -2,7 +2,7 @@
 // P11-M02 public access and security separation, P11-M07 barrier-free access). Early check, not a policy ruling.
 import { DEFAULT_EGRESS_PRESETS, postedLimitForRoom, skyRoomLoads, type EgressPresets, type EgressResult } from './egress'
 import { DEFAULT_LIFT_PRESETS, autoCoreShare, skyRoomVisitors5, type LiftPresets, type LiftResult, type Rise } from './lifts'
-import { towerFloors } from './massing'
+import { coreAreaAt, towerFloors } from './massing'
 import type { Floor, RuleResult, RuleState, Tower } from './types'
 
 /** The wind on the deck at the sky room's level, worded by Wind on terraces and roofs (lib/swRun.ts, research R5 §1). */
@@ -75,7 +75,8 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
     }
   }
   const r = t.skyRoom
-  const net = Math.max(0, room.area - t.coreShare * t.width * t.depth)
+  // The room's own floor less the core at its level: a core that steps in below the room leaves it more floor (G45).
+  const net = Math.max(0, room.area - coreAreaAt(t, room.level))
   const visitorArea = net * r.visitorShare
   const loads = skyRoomLoads(t, net)
   const capacity = loads.visitors
