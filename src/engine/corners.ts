@@ -109,8 +109,8 @@ export function readCorners(ring: P[]): PlanReading {
   return { kind: same ? corners[0].kind : 'mixed', B, D, bB: B > 0 ? corners.reduce((s, k) => s + k.b, 0) / 4 / B : 0, steps: Math.max(...corners.map((k) => k.steps)), corners }
 }
 
-/** One floor's outer outline: an imported storey's largest loop (else the stored hull), or the block at mid-height. */
-function outline(t: Tower, f: Floor): P[] {
+/** One floor's outer outline in the tower frame: an imported storey's largest loop (else the stored hull), or the block at mid-height. */
+export function floorOutline(t: Tower, f: Floor): P[] {
   if (t.imported) {
     const s = t.imported.storeys?.find((x) => x.level === f.level)
     const loops = (s?.loops ?? []).filter((x) => x.length >= 3) as P[][]
@@ -131,7 +131,7 @@ export function towerCorners(t: Tower): TowerCorners {
   const tally = new Map<string, { h: number; bB: number; steps: number; credit: number }>()
   let total = 0
   for (const f of floors) {
-    const ring = outline(t, f)
+    const ring = floorOutline(t, f)
     const key = ring.map((p) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(';')
     let read = memo.get(key)
     if (!read) { read = readCorners(ring); memo.set(key, read) }

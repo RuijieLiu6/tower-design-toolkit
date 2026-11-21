@@ -1,7 +1,7 @@
 // Natural frequency and across-wind response (gap G8, research R5 §4.2–4.3). An empirical first-mode frequency with its
 // scatter, the NBC Commentary I across-wind acceleration chain (equation 7) at both ends of that scatter, the corner
-// credit from wind-tunnel tests where R5 sources it, and the vortex-shedding check V = f1·B/St. Screening only: the
-// engineer's model frequency and the wind tunnel test replace every number here.
+// and twist credits from wind-tunnel tests where R5 and R3 source them (G19), and the vortex-shedding check
+// V = f1·B/St. Screening only: the engineer's model frequency and the wind tunnel test replace every number here.
 import type { CornerKind } from './corners'
 
 /** Air density (kg/m³) and Vancouver City Hall reference velocity pressures (kPa), NBC 2020 Table C-2 (verified page, R5 §4.3). */
@@ -59,6 +59,40 @@ export function cornerReduction(kind: CornerKind | 'mixed' | 'none', bB: number)
   if (kind === 'recessed') return { R: at(0.69, 0.58), basis: 'recessed corners, Ke et al. 2022 (via research R3)' }
   if (kind === 'chamfered') return { R: bB <= 0.05 ? lerp(0, 1, 0.05, 0.8) : 0.8, basis: 'chamfered corners, 0.8 a team default; Kwok et al. 1988 report up to 40%, b/B not given' }
   return null
+}
+
+/** Smallest twist the screen credits (deg, team: below it the credit is under 1%). */
+export const TWIST_MIN = 5
+
+/**
+ * Twist credit on across-wind response (gap G19), as a range of R from the two tests the research read in full, each
+ * linear from 1.0 at no twist to its tested points and held beyond 180° (no extrapolation; the interpolation is a team
+ * choice, as for the corners):
+ * - Tanaka et al. 2013 (R5 §4.3 table 8.7, via R3 §1): the 180° helical model took 70% of the square's design wind
+ *   load (400 m × 50 m models of equal volume).
+ * - Shanghai Tower (Gensler, via R3 §1): 120° with about 55% scaling gave "up to 24%" less wind load than a tapered
+ *   box; 180° would have cut 9% more (read as 33% in all, our reading). Its base is a tapered box, not a square.
+ * Design-load reductions applied to accelerations are an inference. Null under TWIST_MIN.
+ */
+export function twistReduction(deg: number): { lo: number; hi: number; basis: string } | null {
+  const a = Math.min(180, Math.abs(deg))
+  if (a < TWIST_MIN) return null
+  const tanaka = 1 - (0.3 * a) / 180
+  const shanghai = a <= 120 ? 1 - (0.24 * a) / 120 : 0.76 - (0.09 * (a - 120)) / 60
+  return {
+    lo: Math.min(tanaka, shanghai), hi: Math.max(tanaka, shanghai),
+    basis: `Tanaka et al. 2013, the 180° helical model at 70% of the square’s design wind load, and Shanghai Tower, 120° up to 24% under a tapered box and about 9% more at 180° (both via research R3; linear from no twist, held beyond 180°)`,
+  }
+}
+
+/**
+ * Extra top displacement at constant wind load when an outrigger tower twists, as its perimeter columns move to the
+ * faces parallel to the wind (Moon 2013, a 60-storey outrigger tower: 43.5 → 48.8 cm, +12% at 90°; 59.2 cm, +36% at
+ * 180°; via R3 §3, read in full). Linear between, held beyond 180° (team). A share (0.36 = +36%).
+ */
+export function twistSway(deg: number): number {
+  const a = Math.min(180, Math.abs(deg))
+  return a <= 90 ? (0.12 * a) / 90 : 0.12 + (0.24 * (a - 90)) / 90
 }
 
 /** Critical vortex-shedding speed V = f·B/St (Commentary I equation 6). */

@@ -2,15 +2,17 @@
 // P03-M02 pedestrian wind-study triggers). Classification only: no loads, drifts or comfort maps. Packet P10 had two
 // critique rounds and no final gate, so items the research corrected stay "unverified" here; P03 passed three rounds.
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
-import { ACCEL_LIMIT, acrossWindAccel, ceRough, cornerReduction, DEFAULT_DAMPING, f1Empirical, Q10, Q50, speedOf, ST_HIGH, ST_LOW, vortexSpeed } from './acrossWind'
+import { ACCEL_LIMIT, acrossWindAccel, ceRough, cornerReduction, DEFAULT_DAMPING, f1Empirical, Q10, Q50, speedOf, ST_HIGH, ST_LOW, TWIST_MIN, twistReduction, twistSway, vortexSpeed } from './acrossWind'
 import { towerCorners } from './corners'
 import { towerFloors } from './massing'
 import { storeyWeights } from './storeyWeight'
+import { towerTwist } from './twist'
 
 const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.7 (2nd printing, 2025)', url: 'https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en' }
 const COMMENTARY: Source = { label: 'NBC 2020 Structural Commentaries, Commentary I (wind)', url: 'https://nrc-publications.canada.ca/eng/view/object/?id=b9fddc27-86f2-496b-9aa4-b66c45164ba6' }
 const TABLE_4189: Source = { label: 'NBC 2020 Table 4.1.8.9, Seismic Category SC4 column (as read in research P10)', url: NBC.url }
 const TEAM: Source = { label: 'Team assumption (research P10 r1, editable)' }
+const R3: Source = { label: 'Research R3 §1 and §3 (read in full): Tanaka et al. 2013 (IJHRB 2(3)); Zeljic, Shanghai Tower Façade Design Process (Gensler); Moon 2013 (EASEC-13)' }
 const EMPIRICAL_F1: Source = { label: 'EN 1991-1-4:2005+A1 Annex F, f1 = 46/h; ISO 4866:1990/Amd 1:1994 Annex D (163 buildings, ±50%), as read in research R5 §4.2', page: 'EN 1991-1-4 F.2; ISO 4866 Annex D' }
 
 /** Presets the designer can change (team assumptions). */
@@ -87,6 +89,7 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS): 
   // engineer's frequency in the tunnel trigger below, which keeps its team default.
   const emp = f1Empirical(H)
   const empirical = f1 === null && H >= 50
+  const twist = towerTwist(t)
   if (empirical) {
     add('f1', 'Lowest natural frequency f1', `≈ ${emp.central.toFixed(3)} Hz, empirical (46/H; ${emp.lower.toFixed(3)}–${emp.upper.toFixed(3)} Hz at ±50%)`,
       'at or below 0.25 Hz: tunnel required; 0.25–1 Hz: dynamic (the code asks for the model frequency)', emp.upper <= 0.25 ? 'fail' : emp.lower < 1 ? 'warn' : 'pass', 'verified', EMPIRICAL_F1,
@@ -114,16 +117,25 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS): 
     const corners = towerCorners(t)
     const red = cornerReduction(corners.kind, corners.bB)
     const R = red ? 1 - corners.credit * (1 - red.R) : 1
+    // Twist credit (gap G19): a range of R from two tests, scaled by the share of the height the twist spans (team, as
+    // the corner credit is scaled by its height share).
+    const tw = twistReduction(twist.total)
+    const span = (x: number) => 1 - twist.share * (1 - x)
+    const [Tlo, Thi] = tw ? [span(tw.lo), span(tw.hi)] : [1, 1]
+    const gs = acc.map((a) => a.g)
     const homes = towerFloors(t).some((f) => !f.podium && f.z0 >= (2 * H) / 3 && (f.use === 'residential' || f.use === 'hotel'))
     const limit = homes ? ACCEL_LIMIT.residential : ACCEL_LIMIT.office
     const pg = (x: number) => (x * 100).toFixed(1)
     const at = (k: number) => `${pg(acc[k].g)}% g at ${k ? 'the lower ' : 'f1 '}${fs[k].toFixed(3)} Hz`
-    add('across-wind-accel', 'Across-wind acceleration at the top (1-in-10-year wind)', acc.map((_, k) => at(k)).join('; ') + (R < 0.999 ? `; with the corner credit ${acc.map((a) => pg(a.g * R)).join('–')}% g` : ''),
+    add('across-wind-accel', 'Across-wind acceleration at the top (1-in-10-year wind)', acc.map((_, k) => at(k)).join('; ') + (R < 0.999 ? `; with the corner credit ${acc.map((a) => pg(a.g * R)).join('–')}% g` : '')
+        + (tw ? `; with the twist credit ${pg(Math.min(...gs) * Tlo)}–${pg(Math.max(...gs) * Thi)}% g` : ''),
       `≤ ${pg(limit)}% g (${homes ? 'homes or hotel rooms in the top third' : 'offices'}); the limits are 1.5% g residential and 2.5% g office`, acc[0].g > limit ? 'fail' : Math.max(...acc.map((a) => a.g)) > limit ? 'warn' : 'pass', 'team_assumption',
       { ...COMMENTARY, page: 'paras. 109–111, 113, 115, equation (7); research R5 §4.3' },
       `NBC Commentary I equation (7), which reproduces the Commentary’s worked example (0.45 m/s²): q10 = ${Q10} kPa (Vancouver, Table C-2), V_H = ${acc[0].VH.toFixed(1)} m/s at ${H.toFixed(0)} m (rough terrain), w × d = ${w.toFixed(1)} × ${d.toFixed(1)} m, building density ${density.toFixed(0)} kg/m³ (from the storey weights), ${dampingText}, peak factor ${acc[0].gp.toFixed(2)} (Davenport, recalled).`
       + (f1 === null ? ' f1 = 46/H is empirical (±50%), so the verdict is shown at both ends: the state is Pass only when both meet the limit.' : '')
       + (red && corners.credit > 0 ? ` Corner credit R = ${R.toFixed(2)} (${red.basis}; ${corners.text}): base-moment reductions from tests applied to accelerations, an inference, shown as a range and never as a pass.` : ' No corner credit (sharp, indeterminate or under b/B 0.05).')
+      + (tw ? ` Twist credit R = ${Tlo.toFixed(2)}–${Thi.toFixed(2)} for a twist of ${twist.text}, read from the storey outlines (${tw.basis}${twist.share < 0.995 ? `; scaled by the ${Math.round(twist.share * 100)}% of the height that twists, a team choice: the tests twisted the full height` : ''}): design-load reductions applied to accelerations, an inference, shown as a range and never as a pass. Twist cuts drag (along-wind) by about 6% at most (Tang et al., via research R3); its gain is across-wind.${red && corners.credit > 0 ? ' The corner and twist credits were tested apart and are not combined here.' : ''}`
+        : twist.deg > 0 && twist.deg < TWIST_MIN ? ` No twist credit (the plan turns ${twist.deg.toFixed(1)}°, under the ${TWIST_MIN}° the screen credits).` : '')
       + ' The formula is for prismatic shapes and the Commentary reports much scatter around it; tapered, stepped or porous towers sit outside its data.')
     const VH10 = speedOf(Q10) * Math.sqrt(ceRough(H)), VH50 = speedOf(Q50) * Math.sqrt(ceRough(H))
     const vLo = vortexSpeed(fs[fs.length - 1], w, ST_HIGH), vHi = vortexSpeed(fs[0], w, ST_LOW)
@@ -132,6 +144,17 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS): 
       `V = f1·B/St with B = ${w.toFixed(1)} m (the narrowest effective width), f1 ${f1 === null ? 'from its empirical lower bound to its central value' : 'from the model'}, St from ${ST_HIGH} (about 1/7 for non-circular sections, Commentary) to ${ST_LOW} (EN 1991-1-4 reads about 0.12 for a sharp square).`
       + (vLo < VH50 ? ' Lock-in is possible within design winds at the low end of the range.' : '')
       + (corners.kind === 'recessed' ? ' Recessions of 7.5–10% raise St, so the critical speed falls (Wang et al., via research R3).' : ''))
+  }
+  // Twist (gap G19): the reading behind the credit above, and what it costs the frame.
+  if (twist.deg >= TWIST_MIN) {
+    const sway = twistSway(twist.deg)
+    const fDrop = 1 - 1 / Math.sqrt(1 + sway)
+    const outriggers = (t.outriggerFloors ?? []).length
+    add('twist', 'Twist (read from the storey outlines)', `${twist.text}; about +${Math.round(sway * 100)}% top sway at constant wind load where outriggers or a perimeter frame carry the wind`,
+      'a continuous twist earns the tested across-wind credit (see the acceleration line); it costs perimeter stiffness', sway >= 0.1 ? 'warn' : 'pass', 'team_assumption', { ...R3, page: 'R3 §1 Twist, §3 Taper and twist; R5 §4.1 step 2' },
+      `Each tower storey's outline is framed in its minimum-area rectangle and the turn of that frame is summed storey by storey (R5 §4.1 step 2); a turn over 15° in one storey, or with a change of plate area over 25%, counts as a change of plan, not a twist (team). Stiffness: in a 60-storey outrigger tower the top displacement rose from 43.5 cm to 48.8 cm (+12%) at 90° and 59.2 cm (+36%) at 180°, as the mega-columns move to the faces parallel to the wind (Moon 2013, via research R3; linear between, team); the wind load was held constant there, so the aerodynamic gain is not netted off, and diagrids lose stiffness more slowly. A straight core inside a twisting plate keeps its own stiffness: the loss is the perimeter's.`
+      + ` For the same mass, +${Math.round(sway * 100)}% sway is about ${Math.round(fDrop * 100)}% off the first frequency (f ∝ √stiffness, an inference), inside the ±50% band the acceleration line already screens.`
+      + (outriggers ? ` Outriggers are placed here (${outriggers} floor${outriggers > 1 ? 's' : ''}): their mega-columns are the part the twist moves.` : ''))
   }
   const slender = aspect > 10 ? 'fail' : aspect > 7 ? 'warn' : 'pass'
   add('super-slender', 'Super-slender band', `${aspect.toFixed(2)} : 1`, 'up to 7; above 10 expect tuned mass dampers, shaping or windbreak floors', slender, 'team_assumption', TEAM,
