@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { structureCheck } from './structure'
 import { DEFAULT_WEIGHT_PRESETS, GAMMA_C, HARD_DECK, PLANTED_BUILDUP, PLANTED_SLAB, SNOW_W, soilKpa, storeyWeights, USE_LOADS, worstWeightStep } from './storeyWeight'
 import { importedTower, rect, stack } from './testStoreys'
-import type { RuleResult, UseId } from './types'
+import type { RuleResult, Tower, UseId } from './types'
 import { windProcedure } from './windStructure'
 
 // A8-like: a 90 × 60 m podium, a 50 × 50 m tower set 17 m east and 2 m north, and an open garden storey at mid-height
@@ -126,5 +126,59 @@ describe('G21: storey-weight presets from the evidence input', () => {
     expect(g(600) - g(450)).toBeCloseTo(1924 * soilKpa(150), 6)
     // No planted decks at all: the garden deck is hard.
     expect(share(weight(evidenceGroups({ ...base, weightPresets: { planted: 'none' } })))).toBeLessThan(share(soil))
+  })
+})
+
+// G32 (vtc-entry C21a, structural review R3-10): soil was set for the whole tower and planted only on amenity floors, so an
+// occupied loggia on an amenity floor read planted and the planted roof over it, on a residential storey, read hard.
+describe('G32: soil per deck from the deck-use input', () => {
+  // A 40 m square of homes; L21–L22 an amenity loggia 9 m deep on the south; L23 carried out over it (its roof); from L24
+  // the inset plate again, so the loggia's roof is an open deck at L24, a residential storey.
+  const inset = rect(40, 31, 0, 4.5)
+  const C21 = (deckUses?: Tower['deckUses']): Tower => ({ ...importedTower(stack([
+    { n: 20, f2f: 4, ring: rect(40, 40) },
+    { n: 2, f2f: 4, ring: inset, use: 'amenity' },
+    { n: 1, f2f: 4, ring: rect(40, 40) },
+    { n: 16, f2f: 4, ring: inset },
+  ])), ...(deckUses ? { deckUses } : {}) })
+  const lv = (t: Tower, level: number) => storeyWeights(t).levels.find((l) => l.level === level)!
+  const hardRes = 0.2 * GAMMA_C + HARD_DECK + SNOW_W, hardAm = 0.25 * GAMMA_C + HARD_DECK + SNOW_W
+  const plantedAt = (mm: number) => PLANTED_SLAB * GAMMA_C + soilKpa(mm) + PLANTED_BUILDUP + SNOW_W
+  const USES: Tower['deckUses'] = [{ level: 21, use: 'occupied' }, { level: 24, use: 'planted', soilMm: 600 }]
+
+  it('by the storey’s use (before): the loggia floor reads planted, the roof over it hard', () => {
+    expect(lv(C21(), 21)).toMatchObject({ deck: 360, deckKind: 'planted' })
+    expect(lv(C21(), 24)).toMatchObject({ deck: 360, deckKind: 'hard' })
+    expect(lv(C21(), 21).deckUse).toBeUndefined()
+  })
+  it('a planted roof on a residential storey adds its soil; an occupied loggia on an amenity storey adds only paving', () => {
+    const before24 = lv(C21(), 24), after24 = lv(C21(USES), 24)
+    expect(after24.deckKind).toBe('planted')
+    expect(after24.deckUse).toEqual({ soilMm: 600 })
+    expect(after24.W - before24.W).toBeCloseTo(360 * (plantedAt(600) - hardRes), 6)
+    const before21 = lv(C21(), 21), after21 = lv(C21(USES), 21)
+    expect(after21.deckKind).toBe('hard')
+    expect(before21.W - after21.W).toBeCloseTo(360 * (plantedAt(600) - hardAm), 6)
+    // the same as no planting at all on that floor: paving only
+    expect(after21.W).toBeCloseTo(storeyWeights(C21(), { ...DEFAULT_WEIGHT_PRESETS, planted: 'none' }).levels.find((l) => l.level === 21)!.W, 6)
+  })
+  it('each deck carries its own soil depth; absent, the presets’ depth', () => {
+    const at = (soilMm?: number) => lv(C21([{ level: 24, use: 'planted', ...(soilMm != null ? { soilMm } : {}) }]), 24)
+    expect(at(600).W - at(300).W).toBeCloseTo(360 * soilKpa(300), 6)
+    expect(at().W).toBeCloseTo(at(DEFAULT_WEIGHT_PRESETS.soilMm).W, 6)
+    expect(storeyWeights(C21([{ level: 24, use: 'planted' }]), { ...DEFAULT_WEIGHT_PRESETS, soilMm: 450 }).levels.find((l) => l.level === 24)!.W).toBeCloseTo(at(450).W, 6)
+  })
+  it('a facing picks the deck: the planted weight sits on the south deck', () => {
+    const s = lv(C21([{ level: 24, facing: 'S', use: 'planted', soilMm: 600 }]), 24), n = lv(C21([{ level: 24, facing: 'N', use: 'planted', soilMm: 600 }]), 24)
+    expect(s.deckKind).toBe('planted')
+    expect(s.W).toBeCloseTo(lv(C21(USES), 24).W, 6)
+    expect(s.cy).toBeLessThan(lv(C21(), 24).cy) // the heavier deck pulls the weight centre south
+    expect(n.deckKind).toBe('hard') // no deck faces north at L24
+    expect(n.W).toBeCloseTo(lv(C21(), 24).W, 6)
+  })
+  it('the weight line names the decks the input set', () => {
+    const w = structureCheck(C21(USES), windProcedure(C21(USES))).rules.find((x) => x.id === 'weight')!
+    expect(w.note).toMatch(/Planted deck: L24 \(360 m², deck-use input, 600 mm of soil\)/)
+    expect(w.note).toMatch(/Deck uses \(the deck-use input\) set the decks at L21, L24/)
   })
 })

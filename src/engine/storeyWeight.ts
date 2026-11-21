@@ -10,10 +10,14 @@
 // its own. Decks are planted (soil by depth) at an open garden storey of an imported tower (a plate at most half the
 // storeys below and above it, as the core alone where the garden is open under a slab) and at a public-amenity floor
 // (the use the harness and the Program step give a sky garden or commons); every other deck is hard (pavers).
+// Deck uses (gap G32, `Tower.deckUses`): where the designer says what a deck is for, that wins over the storey's use: a
+// planted deck carries its own soil (else the presets' depth), an occupied deck or one no one uses is hard. A level whose
+// entries name facings is split into its decks (engine/sw/decks.ts `towerDecks`), each weighed at its own centre.
 // A core that steps with the tiers (gap G18, `Tower.coreSteps`): each storey's walls are those of its own core, and the
 // off-centre lines measure each storey's weight centre from its own core.
 import { blockSpans, coreSide, coreSideAt, coreStepsOf, rectCorners, spanAt, towerFloors } from './massing'
-import type { Floor, Tower, UseId } from './types'
+import { deckUseOf, towerDecks } from './sw/decks'
+import type { DeckUse, Floor, Tower, UseId } from './types'
 
 type P = [number, number]
 
@@ -68,6 +72,8 @@ export interface StoreyWeight {
   area: number
   deck: number
   deckKind: 'none' | 'hard' | 'planted'
+  /** The deck's kind came from the deck-use input (`Tower.deckUses`), with the soil on its planted part (mm; null: none planted); absent: from the storey's use and the presets. */
+  deckUse?: { soilMm: number | null }
   /** An open garden storey (imported tower): its deck is planted unless the presets say none. */
   garden: boolean
   podium: boolean
@@ -226,8 +232,30 @@ export function coreBoxes(t: Tower, floors: Floor[] = towerFloors(t)): (StoreyCo
   return out
 }
 
-/** Seismic weight of every suspended floor and the roof (R5 equation 6.1), with weight centres in the tower frame. */
-export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESETS): WeightResult {
+/** One deck's share of a floor under the deck-use input: area (m²), centre (tower frame) and its entry, null for none matching. */
+interface DeckPart { area: number; c: P; use: DeckUse | null }
+/** The decks at each level whose deck-use entries name a facing, from the storey outlines, in the tower frame. */
+function deckPartsOf(t: Tower, north: number): Map<number, DeckPart[]> {
+  const out = new Map<number, DeckPart[]>()
+  const faced = new Set((t.deckUses ?? []).filter((u) => u?.facing != null && u.facing.trim() !== '').map((u) => u.level))
+  if (!faced.size) return out
+  const a = (t.rotation * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a)
+  for (const d of towerDecks(t, north)) {
+    if (!faced.has(d.level)) continue
+    let A = 0, cx = 0, cy = 0
+    for (const r of d.rings) for (let i = 0; i < r.length; i++) { const [x0, y0] = r[i], [x1, y1] = r[(i + 1) % r.length], k = x0 * y1 - x1 * y0; A += k; cx += (x0 + x1) * k; cy += (y0 + y1) * k }
+    const X = Math.abs(A) > 1e-9 ? cx / (3 * A) : d.pts[0]?.[0] ?? t.x, Y = Math.abs(A) > 1e-9 ? cy / (3 * A) : d.pts[0]?.[1] ?? t.y
+    const dx = X - t.x, dy = Y - t.y
+    out.set(d.level, [...(out.get(d.level) ?? []), { area: d.area, c: [dx * c + dy * s, -dx * s + dy * c], use: deckUseOf(t, d) }])
+  }
+  return out
+}
+
+/**
+ * Seismic weight of every suspended floor and the roof (R5 equation 6.1), with weight centres in the tower frame.
+ * `north` (true north clockwise from the project frame's +y) matters only to deck uses that name a facing.
+ */
+export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESETS, north = 0): WeightResult {
   const floors = towerFloors(t)
   const plates = floors.map((f) => floorPlate(t, f))
   const core = coreCentre(t, floors, plates)
@@ -239,6 +267,11 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
   const coreKpm = (k: number) => 4 * cores[k].side * p.coreWall * GAMMA_C
   const coreC = (k: number): P => [cores[k].x, cores[k].y]
   const plantedQ = PLANTED_SLAB * GAMMA_C + soilKpa(p.soilMm) + PLANTED_BUILDUP + SNOW_W
+  const plantedAt = (mm: number | undefined) => PLANTED_SLAB * GAMMA_C + soilKpa(mm ?? p.soilMm) + PLANTED_BUILDUP + SNOW_W
+  // deck uses by level (gap G32): the entries with no facing apply to the whole deck at their level
+  const uses = (t.deckUses ?? []).filter((u) => u && Number.isFinite(u.level))
+  const whole = (level: number) => uses.find((u) => u.level === level && (u.facing == null || u.facing.trim() === '')) ?? null
+  const parts = uses.length ? deckPartsOf(t, north) : new Map<number, DeckPart[]>()
   const hardQ = (u: UseId) => USE_LOADS[u].slab * GAMMA_C + HARD_DECK + SNOW_W
   const plateQ = (u: UseId) => USE_LOADS[u].slab * GAMMA_C + USE_LOADS[u].sdl + USE_LOADS[u].part
   const perimOf = (i: number) => (garden[i] ? 0 : plates[i].perim)
@@ -256,26 +289,41 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
     const hLow = Math.max(0, (f.z0 - zPrev) / 2), hUp = Math.max(0, (zNext - f.z0) / 2)
     const below = i > 0 ? plates[i - 1] : null
     const deck = below ? Math.max(0, below.area - pl.area) : 0
-    const planted = deck > 0 && p.planted !== 'none' && (p.planted === 'all' || garden[i] || f.use === 'amenity')
+    const preset = deck > 0 && p.planted !== 'none' && (p.planted === 'all' || garden[i] || f.use === 'amenity')
     const deckC: P = below && deck > 0 ? [(below.area * below.c[0] - pl.area * pl.c[0]) / deck, (below.area * below.c[1] - pl.area * pl.c[1]) / deck] : pl.c
+    // the deck's parts: by the deck-use input where it speaks to this level, else by the storey's use and the presets
+    const q = (u: DeckUse | null) => (u ? (u.use === 'planted' ? plantedAt(u.soilMm) : hardQ(f.use)) : preset ? plantedQ : hardQ(f.use))
+    const all = whole(f.level), split = deck > 0 ? parts.get(f.level) ?? [] : []
+    const dps: { w: number; c: P; planted: boolean; from: DeckUse | null }[] = []
+    if (deck > 0) {
+      if (split.length) {
+        let rest = deck, rx = deck * deckC[0], ry = deck * deckC[1]
+        for (const d of split) { const u = d.use ?? all; dps.push({ w: d.area * q(u), c: d.c, planted: u ? u.use === 'planted' : preset, from: u }); rest -= d.area; rx -= d.area * d.c[0]; ry -= d.area * d.c[1] }
+        if (rest > 1) dps.push({ w: rest * q(all), c: [rx / rest, ry / rest], planted: all ? all.use === 'planted' : preset, from: all })
+      } else dps.push({ w: deck * q(all), c: deckC, planted: all ? all.use === 'planted' : preset, from: all })
+    }
+    const planted = dps.some((x) => x.planted)
+    const given = dps.filter((x) => x.from)
+    const soil = given.filter((x) => x.from!.use === 'planted').map((x) => x.from!.soilMm ?? p.soilMm)
     push([
       { w: pl.area * plateQ(f.use), c: pl.c },
-      { w: deck * (planted ? plantedQ : hardQ(f.use)), c: deckC },
+      ...dps.map((x) => ({ w: x.w, c: x.c })),
       { w: below ? perimOf(i - 1) * hLow * p.facadeKpa : 0, c: below?.pc ?? pl.c },
       { w: perimOf(i) * hUp * p.facadeKpa, c: pl.pc },
       { w: i > 0 ? coreKpm(i - 1) * hLow : 0, c: i > 0 ? coreC(i - 1) : coreC(i) },
       { w: coreKpm(i) * hUp, c: coreC(i) },
-    ], { level: f.level, roof: false, z: f.z0, area: pl.area, deck, deckKind: deck > 0 ? (planted ? 'planted' : 'hard') : 'none', garden: garden[i], podium: f.podium, transitional: transitional[i], onPodium: !f.podium && !transitional[i] && i > 0 && (floors[i - 1].podium || transitional[i - 1]), use: f.use,
+    ], { level: f.level, roof: false, z: f.z0, area: pl.area, deck, deckKind: deck > 0 ? (planted ? 'planted' : 'hard') : 'none', ...(given.length ? { deckUse: { soilMm: soil.length ? Math.max(...soil) : null } } : {}), garden: garden[i], podium: f.podium, transitional: transitional[i], onPodium: !f.podium && !transitional[i] && i > 0 && (floors[i - 1].podium || transitional[i - 1]), use: f.use,
       dx: below && deck > 0 ? Math.max(pl.ext[0], below.ext[0]) : pl.ext[0], dy: below && deck > 0 ? Math.max(pl.ext[1], below.ext[1]) : pl.ext[1] }, i)
   }
   if (n) {
     const f = floors[n - 1], pl = plates[n - 1], h = Math.max(0, (f.z1 - f.z0) / 2)
-    const planted = p.planted === 'all'
+    const u = whole(f.level + 1) ?? uses.find((x) => x.level === f.level + 1) ?? null
+    const planted = u ? u.use === 'planted' : p.planted === 'all'
     push([
-      { w: pl.area * (planted ? plantedQ : hardQ(f.use)), c: pl.c },
+      { w: pl.area * (u ? (planted ? plantedAt(u.soilMm) : hardQ(f.use)) : planted ? plantedQ : hardQ(f.use)), c: pl.c },
       { w: perimOf(n - 1) * h * p.facadeKpa, c: pl.pc },
       { w: coreKpm(n - 1) * h, c: coreC(n - 1) },
-    ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', garden: false, podium: f.podium, transitional: transitional[n - 1], onPodium: false, use: f.use, dx: pl.ext[0], dy: pl.ext[1] }, n - 1)
+    ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', ...(u ? { deckUse: { soilMm: planted ? u.soilMm ?? p.soilMm : null } } : {}), garden: false, podium: f.podium, transitional: transitional[n - 1], onPodium: false, use: f.use, dx: pl.ext[0], dy: pl.ext[1] }, n - 1)
   }
   const total = levels.reduce((s, l) => s + l.W, 0)
   const volume = floors.reduce((s, f) => s + f.area * Math.max(0, f.z1 - f.z0), 0)

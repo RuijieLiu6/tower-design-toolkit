@@ -69,7 +69,8 @@ export interface EvidenceInput {
    * Structure: storey-weight presets (gap G21; engine/storeyWeight.ts WeightPresets: soil depth on planted decks in mm,
    * which decks are planted, facade kPa, core wall thickness). Fields left out keep DEFAULT_WEIGHT_PRESETS (600 mm of
    * soil on the decks of open garden storeys and public-amenity floors). The structure node has no settings of its own,
-   * so this lives in the evidence input only.
+   * so this lives in the evidence input only. Per-deck use and soil (gaps G25, G32) live on the tower instead,
+   * `Tower.deckUses`, so Wind on terraces and roofs reads the same entries.
    */
   weightPresets?: Partial<WeightPresets> | null
   /** Engagement records, board text and the AI-use log; with it, the claims guard and the AI-use log give lines. */
@@ -102,7 +103,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],
     'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0).faces }),
     'built.wind-procedure': wind.map((w) => w.rules),
-    'built.structure': towers.map((t, k) => structureCheck(t, wind[k], weightPresets).rules),
+    'built.structure': towers.map((t, k) => structureCheck(t, wind[k], weightPresets, north).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
     'built.mobility': mobilityCheck(towers, DEFAULT_MOBILITY, { project: i.project, transitLink: i.transitLink, homeM2: i.liftPresets.homeM2, hotelM2PerKey: i.liftPresets.hotelM2PerKey }).rules,
     'built.facade': facadeCheck(towers, DEFAULT_FACADE, north).rules,

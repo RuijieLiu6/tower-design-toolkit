@@ -4,7 +4,7 @@ import climateJson from '../../data/climate/yvr-cwec2020.json'
 import { withBlocks } from '../massing'
 import type { ImportedStorey, Tower } from '../types'
 import { DEFAULT_EXPOSURE, deckHours } from './deckWind'
-import { towerDecks } from './decks'
+import { deckFacing, deckUseOf, towerDecks } from './decks'
 import { coverDepth, coverFactor, screenFactor, terraceWind, type TerraceOptions } from './terraceWind'
 import { computeSw } from '../../lib/swRun'
 import { SW_DEFAULTS } from '../../lib/swStudy'
@@ -212,5 +212,42 @@ describe('G24: every deck under a slab is a loggia, sheltered by its depth again
     // the same 6 m depth shelters more under 4 m of headroom than under 8 m
     expect(sameLow.cover!.factor).toBeGreaterThan(deepHigh.cover!.factor)
     expect(sameLow.read.v).toBeLessThan(deepHigh.read.v)
+  })
+})
+
+// G25 (vtc-entry C21a): planted roofs closed to people read as failing terraces; a deck-use input says what each deck is for.
+describe('G25: deck use (occupied, planted, none)', () => {
+  const inp = (t: Tower): SwInputs => ({ project: 'city', towers: [t], north: 0, site: null, context: [], ctxBlocks: [], C })
+  const line = async (t: Tower, id = 'sw-terrace-t-L44') => (await computeSw('built.sw-wind-height', inp(t), SW_DEFAULTS)).rules.find((r) => r.id === id)
+  it('the same deck reads Fail as occupied and not Fail as planted', async () => {
+    const occupied = (await line(setback()))!
+    expect(occupied.state).toBe('fail')
+    const asked = (await line(setback({ deckUses: [{ level: 44, use: 'occupied' }] })))!
+    expect(asked.state).toBe('fail') // the default, said out loud
+    const planted = (await line(setback({ deckUses: [{ level: 44, use: 'planted' }] })))!
+    expect(planted.state).not.toBe('fail')
+    expect(['unknown', 'warn']).toContain(planted.state)
+    expect(planted.label).toBe('Planted terrace at +171 m (L44)')
+    expect(planted.value).toBe(`maintenance access: ${occupied.value}`) // the same wind class, reported
+    expect(planted.threshold).toMatch(/no comfort target/)
+    expect(planted.note).toMatch(/Deck use: planted/)
+  })
+  it('a deck no one uses is left out; the headline reads only the decks people use', async () => {
+    const out = await computeSw('built.sw-wind-height', inp(setback({ deckUses: [{ level: 44, use: 'none' }] })), SW_DEFAULTS)
+    expect(out.rules.some((r) => r.id === 'sw-terrace-t-L44')).toBe(false)
+    const roof = out.rules.find((r) => r.id.startsWith('sw-terrace-t-L') && r.label.startsWith('Roof'))!
+    expect(roof).toBeTruthy() // the roof stays
+    const both = await computeSw('built.sw-wind-height', inp(setback({ deckUses: [{ level: 44, use: 'planted' }, { level: Number(roof.id.replace('sw-terrace-t-L', '')), use: 'planted' }] })), SW_DEFAULTS)
+    expect(both.rules.some((r) => r.id === 'sw-wind-deck')).toBe(false) // no deck people use: no comfort headline
+    expect(both.rules.filter((r) => r.id.startsWith('sw-terrace-t-L')).every((r) => r.state !== 'fail')).toBe(true)
+  })
+  it('a facing picks one deck at a level: the terrace faces north', async () => {
+    const d = towerDecks(setback(), 0).find((x) => x.level === 44)!
+    expect(deckFacing(d)).toBe('N')
+    expect(deckUseOf({ deckUses: [{ level: 44, facing: 'N', use: 'planted' }] }, d)?.use).toBe('planted')
+    expect(deckUseOf({ deckUses: [{ level: 44, facing: '10', use: 'planted' }] }, d)?.use).toBe('planted') // degrees, within 22.5°
+    expect(deckUseOf({ deckUses: [{ level: 44, facing: 'S', use: 'planted' }] }, d)).toBeNull()
+    expect(deckUseOf({ deckUses: [{ level: 43, use: 'planted' }] }, d)).toBeNull()
+    expect((await line(setback({ deckUses: [{ level: 44, facing: 'S', use: 'planted' }] })))!.state).toBe('fail')
   })
 })

@@ -6,6 +6,7 @@ import { CONTINUITY_RULE, windProcedure, type Fit } from '../engine/windStructur
 import { storeyCore, type CoreCentre } from '../engine/storeyWeight'
 import { coreSide, coreStepsOf, towerFloors } from '../engine/massing'
 import type { CoreStep, Tower } from '../engine/types'
+import { VTC_NORTH_DEG } from '../context'
 import { useStore, useTowers } from '../store'
 import { FalseAssumptions } from './WindStructurePanel'
 import { FlagChip, Section } from './ui'
@@ -14,7 +15,8 @@ import { Evidence, FlagDot, MethodFold, RuleRows, Stat, Stats } from './ResultVi
 export function useStructures() {
   const towers = useTowers()
   const presets = useStore((s) => s.windPresets)
-  return useMemo(() => towers.map((t) => structureCheck(t, windProcedure(t, presets))), [towers, presets])
+  const north = useStore((s) => (s.project === 'vtc' ? VTC_NORTH_DEG : 0))
+  return useMemo(() => towers.map((t) => structureCheck(t, windProcedure(t, presets), undefined, north)), [towers, presets, north])
 }
 
 const FIT: Record<Fit, { label: string; cls: string }> = {

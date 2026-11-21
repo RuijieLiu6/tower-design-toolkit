@@ -26,7 +26,8 @@ export interface StructureResult {
   gravity: GravityReading
 }
 
-export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS): StructureResult {
+/** `north` (true north clockwise from the project frame's +y) places deck uses that name a facing (`Tower.deckUses`). */
+export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS, north = 0): StructureResult {
   const rules: RuleResult[] = []
   const add = (id: string, label: string, value: string, threshold: string, state: RuleState, flag: Flag, source: Source, note?: string) =>
     rules.push({ id, label, value, threshold, state, flag, source, note })
@@ -48,7 +49,7 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   // down to the foundation; walls that end at a step are continuous from their own top down (4.1.8.10(4)).
   const floors = towerFloors(t)
   const steps = coreStepsOf(t)
-  const weights = storeyWeights(t, wpr)
+  const weights = storeyWeights(t, wpr, north)
   const runs: { from: number; side: number; x: number; y: number }[] = []
   if (steps.length) {
     const at = storeyCore(t, weights.core)
@@ -76,12 +77,14 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   const step = worstWeightStep(weights.levels)
   const stepped = !!step && step.ratio >= 1.005
   const byArea = worst.ratio > 1 ? `${Math.round(worst.ratio * 100)}% between L${worst.level - 1} and L${worst.level}` : 'uniform'
-  const plantedDecks = weights.levels.filter((l) => !l.roof && l.deckKind === 'planted')
+  const plantedDecks = weights.levels.filter((l) => (!l.roof || l.deckUse) && l.deckKind === 'planted')
+  const given = weights.levels.filter((l) => l.deckUse)
   const kg = (q: number) => q.toFixed(1)
   add('weight', 'Weight irregularity (Type 2)', stepped ? `${Math.round(step.ratio * 100)}% by weight between ${levelName(step.lower)} and ${levelName(step.upper)}` : 'uniform by weight',
     'storey weight ≤ 150% of the adjacent storey (a roof lighter than the floor below is exempt)', stepped && step.ratio > 1.5 ? 'warn' : 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 2; W per 4.1.8.2' },
     `By floor area alone: ${byArea}. Weight of each floor = plate × (slab + superimposed dead load by use + 0.5 kPa partitions) + the open deck at that floor over the storey below (hard ${HARD_DECK} kPa, or planted: ${wpr.soilMm} mm of soil, ${kg(soilKpa(wpr.soilMm))} kPa, + ${PLANTED_BUILDUP} kPa build-up; 25% of snow, ${SNOW_W} kPa) + facade ${wpr.facadeKpa} kPa + core walls ${wpr.coreWall} m thick; the floor on grade is the base. Slabs, SDL, decks, facade and core walls are team presets (research R5 §3.3).`
-    + (plantedDecks.length ? ` Planted deck${plantedDecks.length > 1 ? 's' : ''}: ${plantedDecks.map((l) => `L${l.level} (${Math.round(l.deck).toLocaleString('en-CA')} m², ${l.garden ? 'open garden storey' : 'public amenity floor'})`).join(', ')}, each carried by its own floor.` : '')
+    + (plantedDecks.length ? ` Planted deck${plantedDecks.length > 1 ? 's' : ''}: ${plantedDecks.map((l) => `${levelName(l)} (${Math.round(l.deck).toLocaleString('en-CA')} m², ${l.deckUse ? `deck-use input, ${l.deckUse.soilMm ?? wpr.soilMm} mm of soil` : l.garden ? 'open garden storey' : 'public amenity floor'})`).join(', ')}, each carried by its own floor.` : '')
+    + (given.length ? ` Deck uses (the deck-use input) set the decks at ${given.map(levelName).join(', ')}: planted with their own soil, occupied or unused ones hard, whatever the storey's use (gap G32).` : '')
     + ' The podium-to-tower step usually triggers it: an irregular structure needs Vd ≥ 1.0 V.')
 
   // Off-centre gravity load and accidental torsion (gap G5, research R5 §2): weight centre of each tower level vs the core.

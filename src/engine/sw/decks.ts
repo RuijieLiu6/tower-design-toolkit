@@ -16,7 +16,7 @@
 import { pc, type MultiPoly, type Poly } from '../../vendor/polygon-clipping'
 import { blockSpans } from '../blocks'
 import { towerFloors, towerMasses } from '../massing'
-import type { Tower } from '../types'
+import type { DeckUse, Tower } from '../types'
 
 type Pt = [number, number]
 export type DeckType = 'roof' | 'setback' | 'openStorey' | 'loggia'
@@ -200,4 +200,35 @@ export function towerDecks(t: Tower, northDeg: number): Deck[] {
     }
   }
   return out
+}
+
+const C8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+/**
+ * The way a deck faces (true azimuth, degrees): the length-weighted outward normal of its open edges; where they cancel
+ * (open on opposite sides), away from the walls rising from it; null where both cancel (a roof open all round, a ring
+ * around a core).
+ */
+export function deckFacingAz(d: Deck): number | null {
+  const sum = (es: DeckEdge[], sign: number) => {
+    let x = 0, y = 0, L = 0
+    for (const e of es) { const a = (e.az * Math.PI) / 180; x += sign * e.L * Math.sin(a); y += sign * e.L * Math.cos(a); L += e.L }
+    return L > 0 && Math.hypot(x, y) > 0.1 * L ? ((((Math.atan2(x, y) * 180) / Math.PI) % 360) + 360) % 360 : null
+  }
+  return sum(d.edges.filter((e) => e.open), 1) ?? sum(d.edges.filter((e) => !e.open), -1)
+}
+/** The deck's facing as one of eight compass words, or null (see deckFacingAz). */
+export function deckFacing(d: Deck): string | null {
+  const az = deckFacingAz(d)
+  return az == null ? null : C8[Math.round(az / 45) % 8]
+}
+/**
+ * What a deck is for (`Tower.deckUses`, gaps G25 and G32): an entry at the deck's level whose facing matches it (a compass
+ * word, or degrees within 22.5°), else one at that level with no facing; null when none applies (the deck is occupied).
+ */
+export function deckUseOf(t: Pick<Tower, 'deckUses'>, d: Deck): DeckUse | null {
+  const at = (t.deckUses ?? []).filter((u) => u && u.level === d.level)
+  if (!at.length) return null
+  const az = deckFacingAz(d), word = az == null ? null : C8[Math.round(az / 45) % 8]
+  const faces = (f: string) => { const n = Number(f); return Number.isFinite(n) && f.trim() !== '' ? az != null && angDiff(n, az) <= 22.5 : word != null && f.trim().toUpperCase() === word }
+  return at.find((u) => u.facing != null && u.facing.trim() !== '' && faces(u.facing)) ?? at.find((u) => u.facing == null || u.facing.trim() === '') ?? null
 }

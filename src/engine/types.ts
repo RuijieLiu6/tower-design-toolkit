@@ -74,6 +74,14 @@ export interface Tower {
    * the core share sets. Absent or empty: one core for the whole height, as before. engine/massing.ts `coreSideAt`.
    */
   coreSteps?: CoreStep[]
+  /**
+   * What each deck is for (gaps G25, G32): `occupied` (a terrace people use, the default for a deck not listed),
+   * `planted` (closed to people but for maintenance) or `none` (a plain roof no one goes on), with an optional soil depth
+   * on a planted deck. Read by Wind on terraces and roofs (lib/swRun.ts, matched by engine/sw/decks.ts `deckUseOf`) and
+   * by the storey-weight check (engine/storeyWeight.ts `storeyWeights`). Absent or empty: every deck occupied, and the
+   * storey weights plant the decks of open garden storeys and amenity floors as the weight presets say, as before.
+   */
+  deckUses?: DeckUse[]
   /** Schematic: levels with outrigger or belt-truss floors (structure screening; the floor keeps its use). */
   outriggerFloors?: number[]
   /** Schematic: one sky lobby opened to the public as a sky room (null = none). */
@@ -118,6 +126,21 @@ export interface Tower {
   autoAligned?: boolean
   /** The tower form shaping the shaft (engine/towerForms.ts, after dtmass): its type, parameters and the base it starts from. */
   form?: { type: import('./towerForms').FormType; p: Record<string, number>; base: import('./towerForms').FormBase }
+}
+
+/** What a deck is for (`Tower.deckUses`, gaps G25 and G32). */
+export type DeckUseKind = 'occupied' | 'planted' | 'none'
+export interface DeckUse {
+  /** The deck's level: the storey whose floor it is (a roof over the top storey: one above the top storey). */
+  level: number
+  /**
+   * Which deck at that level, when there are several: the way it faces (N, NE, E, SE, S, SW, W, NW, true north; or
+   * degrees clockwise from true north), the length-weighted outward normal of its open edges. Absent: every deck at the level.
+   */
+  facing?: string
+  use: DeckUseKind
+  /** Soil depth on a planted deck (mm, saturated); absent: the weight presets' soil depth. Ignored on other uses. */
+  soilMm?: number
 }
 
 /** One step of a core that steps with the tiers (`Tower.coreSteps`): from this floor level up, a square core of this side. */
