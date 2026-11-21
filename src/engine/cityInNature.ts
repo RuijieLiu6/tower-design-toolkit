@@ -118,6 +118,51 @@ export function soilRetained(decks: SoilDeck[]): { m3: number; low: number; high
   return { m3: v * SOIL_RETAIN.value, low: v * SOIL_RETAIN.low, high: v * SOIL_RETAIN.high }
 }
 
+// --- Canopy and cover read from the model (gap G12, City in Nature reviews R3-13, R4-9) --------------------------------
+/** An obstacle the ground wind study holds (engine/sw/wind.ts PorousObstacle); only `kind: 'tree'` counts, with its crown. */
+export interface ModelTree { kind: string; /** Crown centre, project frame (m). */ at?: readonly number[]; /** Crown diameter (m), taken as the mature crown. */ crown?: number }
+export interface CanopyReading {
+  /** Crown area with overlapping crowns counted once (m²). */
+  m2: number
+  /** Every crown's π r² added up, overlaps counted twice (m²). */
+  summed: number
+  /** Trees with a crown. */
+  trees: number
+  /** Trees with no crown diameter, left out. */
+  noCrown: number
+}
+/**
+ * Canopy at maturity from the model's trees: each crown π r² (r half the crown diameter, the crown as modelled taken as the
+ * mature crown). SIMPLIFICATION, labelled in the line: overlaps are counted once by sampling each crown on a grid of at most
+ * 0.25 m and dropping the samples an earlier crown already covers (the kept share × the exact π r²); a tree without a
+ * position is added whole. Every tree counts, whether or not it stands inside the site line. Null when the model holds no tree.
+ */
+export function modelCanopy(obstacles: readonly ModelTree[] | null | undefined, step = 0.25): CanopyReading | null {
+  const trees = (obstacles ?? []).filter((o) => o?.kind === 'tree')
+  if (!trees.length) return null
+  const ok = trees.filter((t) => t.crown != null && Number.isFinite(t.crown) && t.crown > 0)
+  const area = (d: number) => Math.PI * (d / 2) ** 2
+  const placed = ok.filter((t) => Array.isArray(t.at) && Number.isFinite(t.at[0]) && Number.isFinite(t.at[1]))
+  const summed = ok.reduce((s, t) => s + area(t.crown!), 0)
+  let m2 = ok.filter((t) => !placed.includes(t)).reduce((s, t) => s + area(t.crown!), 0)
+  placed.forEach((t, i) => {
+    const r = t.crown! / 2, cx = t.at![0], cy = t.at![1]
+    const near = placed.slice(0, i).filter((o) => Math.hypot(o.at![0] - cx, o.at![1] - cy) < r + o.crown! / 2)
+    if (!near.length) { m2 += area(t.crown!); return }
+    const h = Math.min(step, r / 20)
+    let kept = 0, all = 0
+    for (let x = cx - r + h / 2; x < cx + r; x += h) for (let y = cy - r + h / 2; y < cy + r; y += h) {
+      if ((x - cx) ** 2 + (y - cy) ** 2 > r * r) continue
+      all++
+      if (!near.some((o) => (x - o.at![0]) ** 2 + (y - o.at![1]) ** 2 <= (o.crown! / 2) ** 2)) kept++
+    }
+    m2 += all ? (area(t.crown!) * kept) / all : 0
+  })
+  return { m2, summed, trees: ok.length, noCrown: trees.length - ok.length }
+}
+/** Typed and modelled differ when the gap is more than this share of the modelled value (the line then says Check). */
+export const MODEL_TOLERANCE = 0.1
+
 /** Layer 0 context for the rows that compute from the design: towers (storeys) and the facade node's faces. */
 /** Top of the 4th storey across the towers (Vancouver's bird zone; podium storeys count), or null with no towers. */
 export function fourthStoreyTop(floorsPerTower: { z1: number }[][]): number | null {
@@ -134,6 +179,10 @@ export interface NatureContext {
   qeFromCones?: boolean | null
   /** Planted decks the deck-use input declares, with their soil (plantedSoil): their soil storage joins the retention line, shown apart from the typed volume (gap G41). */
   plantedSoil?: SoilDeck[] | null
+  /** The ground wind study's trees and porous screens (engine/sw/wind.ts PorousObstacle): its trees' crowns give the modelled canopy (gap G12). */
+  groundPorous?: readonly ModelTree[] | null
+  /** Planting at grade, typed (m²): joins the planted decks in the modelled vegetated cover (gap G12). */
+  groundPlantedM2?: number | null
 }
 
 
@@ -182,25 +231,47 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
   const rows: NatureRow[] = []
   const share = (m2: number | null) => (m2 === null || !siteArea ? null : (m2 / siteArea) * 100)
 
+  // Typed beside modelled (gap G12): the typed value judges as before; absent, the modelled one does and says so; both
+  // present and more than MODEL_TOLERANCE apart (of the modelled value), the line says Check with the difference.
+  const m2s = (v: number) => `${Math.round(v).toLocaleString('en-CA')} m²`
+  const reading = (typed: number | null, modelled: number | null) => {
+    if (modelled === null) return null
+    const gap = typed === null ? 0 : typed - modelled
+    const differs = typed !== null && Math.abs(gap) > MODEL_TOLERANCE * modelled
+    const diff = differs ? `; typed is ${m2s(Math.abs(gap))} ${gap > 0 ? 'above' : 'below'} the model (${gap > 0 ? '+' : '−'}${Math.round((Math.abs(gap) / modelled) * 100)}%), Check` : ''
+    return { used: typed ?? modelled, differs, tail: `modelled ${m2s(modelled)} (${typed === null ? 'typed not entered: the modelled value is used' : `typed ${m2s(typed)}`})${diff}` }
+  }
+  const lead = (v: number | null) => (v === null ? 'needs a site area' : pct(v))
+
   const [canopyLo] = CANOPY[input.siteType]
-  const canopy = share(input.canopyM2)
+  const crowns = modelCanopy(ctx.groundPorous)
+  const canopyRead = reading(input.canopyM2, crowns && crowns.trees > 0 ? crowns.m2 : null)
+  const canopy = share(canopyRead ? canopyRead.used : input.canopyM2)
+  const crownNote = !canopyRead || !crowns ? '' : ` Modelled canopy: the ${crowns.trees} trees of the ground wind study, each crown as modelled taken as the mature crown, π r²; simplification: overlapping crowns counted once by sampling on a 0.25 m grid${crowns.summed - crowns.m2 > 0.5 ? ` (added up whole they give ${m2s(crowns.summed)})` : ''}, and trees outside the site line count too.${crowns.noCrown ? ` ${crowns.noCrown} tree${crowns.noCrown > 1 ? 's' : ''} without a crown diameter left out.` : ''}`
   rows.push({
     id: 'canopy', name: 'Tree canopy at maturity, share of site', half: 'space', direction: '4.2',
-    value: canopy === null ? (siteArea ? 'not entered' : 'needs a site area') : pct(canopy), entered: input.canopyM2 === null ? null : true,
-    threshold: `≥ ${canopyLo}% (R019 Type ${input.siteType} band ${CANOPY[input.siteType].join('–')}%)`, state: judge(canopy === null ? null : canopy >= canopyLo, 'rezoning_target'),
+    value: canopyRead ? `${lead(canopy)}: ${canopyRead.tail}` : canopy === null ? (siteArea ? 'not entered' : 'needs a site area') : pct(canopy),
+    entered: input.canopyM2 !== null ? true : canopyRead ? false : null,
+    threshold: `≥ ${canopyLo}% (R019 Type ${input.siteType} band ${CANOPY[input.siteType].join('–')}%)`, state: canopyRead?.differs ? 'warn' : judge(canopy === null ? null : canopy >= canopyLo, 'rezoning_target'),
     force: 'rezoning_target', flag: 'verified', source: { ...S.r019, page: 'canopy bands by site type' },
-    note: `Site type ${input.siteType} is a team assumption: R019 Type C is a single parcel over an excavated parkade; several towers under separate permits suggest Type B. A City planner decides.${input.siteType === 'A' ? ' R019 also states a 22% minimum for Type A; show both.' : ''}`,
+    note: `Site type ${input.siteType} is a team assumption: R019 Type C is a single parcel over an excavated parkade; several towers under separate permits suggest Type B. A City planner decides.${input.siteType === 'A' ? ' R019 also states a 22% minimum for Type A; show both.' : ''}${crownNote}`,
   })
 
   const coverLine = COVER[input.siteType]
-  const cover = share(input.vegetatedM2)
+  const plantedDecks = ctx.plantedSoil ?? []
+  const deckPlanted = plantedDecks.reduce((s, d) => s + d.area, 0)
+  const groundPlanted = ctx.groundPlantedM2 != null && Number.isFinite(ctx.groundPlantedM2) && ctx.groundPlantedM2 > 0 ? ctx.groundPlantedM2 : 0
+  const coverRead = reading(input.vegetatedM2, deckPlanted + groundPlanted > 0 ? deckPlanted + groundPlanted : null)
+  const cover = share(coverRead ? coverRead.used : input.vegetatedM2)
+  const coverNote = !coverRead ? '' : ` Modelled cover: ${plantedDecks.length ? `the planted decks of the deck-use input, ${plantedDecks.map((d) => `${d.tower} L${d.level} ${m2s(d.area)}`).join(', ')} (whole deck area taken as planted)` : 'no planted deck declared'}${groundPlanted ? ` + ${m2s(groundPlanted)} of planting at grade, typed` : ''}.`
   rows.push({
     id: 'cover', name: 'Vegetative cover at maturity, share of site', half: 'space', direction: '4.2',
-    value: cover === null ? (siteArea ? 'not entered' : 'needs a site area') : pct(cover), entered: input.vegetatedM2 === null ? null : true,
+    value: coverRead ? `${lead(cover)}: ${coverRead.tail}` : cover === null ? (siteArea ? 'not entered' : 'needs a site area') : pct(cover),
+    entered: input.vegetatedM2 !== null ? true : coverRead ? false : null,
     threshold: coverLine ? `reference ${coverLine}% (R019 Type ${input.siteType})` : 'no R019 reference line for Type C',
-    state: coverLine && cover !== null ? judge(cover >= coverLine, 'team_assumption') : 'unknown',
+    state: coverRead?.differs ? 'warn' : coverLine && cover !== null ? judge(cover >= coverLine, 'team_assumption') : 'unknown',
     force: 'team_assumption', flag: coverLine ? 'team_assumption' : 'unresolved', source: { ...S.r019, page: 'cover A 30%, B 40%' },
-    note: 'Using R019 cover figures as a pass line is the team’s reading.',
+    note: `Using R019 cover figures as a pass line is the team’s reading.${coverNote}`,
   })
 
   rows.push({

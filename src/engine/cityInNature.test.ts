@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_NATURE, SOIL_RETAIN, cityInNature, detentionVolume, fourthStoreyTop, glazingBelow, isBinding, plantedSoil, soilRetained, type NatureInput } from './cityInNature'
+import { DEFAULT_NATURE, SOIL_RETAIN, cityInNature, detentionVolume, fourthStoreyTop, glazingBelow, isBinding, modelCanopy, plantedSoil, soilRetained, type NatureInput } from './cityInNature'
 import { importedTower, rect, stack } from './testStoreys'
 import type { Tower } from './types'
 import { SITE } from './vtcRules'
@@ -152,5 +152,77 @@ describe('G41: rain held in the soil of declared planted decks', () => {
     expect(plantedSoil([tower([{ level: 44, use: 'occupied' }])])).toEqual([])
     // a planted deck without a depth takes the weight presets' soil (600 mm)
     expect(plantedSoil([tower([{ level: 44, use: 'planted' }])])[0]).toMatchObject({ soilMm: 600, given: false })
+  })
+})
+
+// G12 (vtc-entry TOOL_DEFICITS, reviews R3-13 and R4-9): canopy and vegetated cover were typed numbers while the model
+// holds trees (the ground wind study's porous trees) and planted decks. Each line now shows the modelled reading beside
+// the typed one.
+describe('G12: canopy and cover read from the model beside the typed values', () => {
+  // 20 trees of 8 m crown on a 10 m grid: no crown overlaps another
+  const grove = Array.from({ length: 20 }, (_, i) => ({ kind: 'tree', at: [(i % 5) * 10, Math.floor(i / 5) * 10], crown: 8, base: 2, top: 12 }))
+  const canopyRow = (canopyM2: number | null, groundPorous?: { kind: string; at?: number[]; crown?: number }[]) =>
+    row(cityInNature({ ...DEFAULT_NATURE, canopyM2 }, SITE.area, null, { groundPorous }), 'canopy')
+
+  it('reads 20 trees of 8 m crown as 20 × π × 4² m² of canopy and uses it when nothing is typed', () => {
+    const c = modelCanopy(grove)!
+    expect(c.m2).toBeCloseTo(20 * Math.PI * 16, 6)
+    expect(c.trees).toBe(20)
+    const r = canopyRow(null, grove)
+    expect(r.value).toBe(`${Math.round(((20 * Math.PI * 16) / SITE.area) * 1000) / 10}%: modelled 1,005 m² (typed not entered: the modelled value is used)`)
+    expect(r.entered).toBe(false)
+    expect(r.state).toBe('warn') // 8.8% under the Type C 10%: a target, Check at worst
+    expect(r.note).toMatch(/simplification: overlapping crowns counted once/)
+  })
+
+  it('counts overlapping crowns once and says what the plain sum would be', () => {
+    const two = [{ kind: 'tree', at: [0, 0], crown: 8 }, { kind: 'tree', at: [0, 0], crown: 8 }, { kind: 'screen' }]
+    const c = modelCanopy(two)!
+    expect(c.summed).toBeCloseTo(2 * Math.PI * 16, 6)
+    expect(c.m2).toBeCloseTo(Math.PI * 16, 6)
+    const half = modelCanopy([{ kind: 'tree', at: [0, 0], crown: 8 }, { kind: 'tree', at: [4, 0], crown: 8 }])!
+    // two r = 4 circles 4 m apart: lens 2r² acos(d/2r) − (d/2)√(4r² − d²) = 19.65 m²
+    expect(half.m2).toBeCloseTo(2 * Math.PI * 16 - (32 * Math.acos(0.5) - 2 * Math.sqrt(48)), 0)
+    expect(canopyRow(null, two).note).toMatch(/added up whole they give 101 m²/)
+  })
+
+  it('a typed canopy far above the modelled one turns the line to Check with the difference', () => {
+    const typedOnly = canopyRow(3000)
+    expect(typedOnly.state).toBe('pass') // 26% on the typed figure alone
+    const r = canopyRow(3000, grove)
+    expect(r.state).toBe('warn')
+    expect(r.value).toBe('26.2%: modelled 1,005 m² (typed 3,000 m²); typed is 1,995 m² above the model (+198%), Check')
+    expect(r.entered).toBe(true)
+    // within 10% of the model the typed figure judges as before, with the modelled one beside it
+    const close = canopyRow(1050, grove)
+    expect(close.value).toBe(`${Math.round((1050 / SITE.area) * 1000) / 10}%: modelled 1,005 m² (typed 1,050 m²)`)
+    expect(close.value).not.toMatch(/Check/)
+  })
+
+  it('no trees and no typed value leave both lines as they were', () => {
+    const before = run()
+    for (const ctx of [{}, { groundPorous: [] }, { groundPorous: [{ kind: 'screen' }] }, { plantedSoil: [] }]) {
+      const r = cityInNature(DEFAULT_NATURE, SITE.area, null, ctx)
+      expect(row(r, 'canopy')).toEqual(row(before, 'canopy'))
+      expect(row(r, 'cover')).toEqual(row(before, 'cover'))
+    }
+    expect(row(before, 'canopy').value).toBe('not entered')
+    expect(row(before, 'cover').value).toBe('not entered')
+    // a typed value with no trees in the model reads as before
+    expect(canopyRow(3000, []).value).toBe(canopyRow(3000).value)
+  })
+
+  it('vegetated cover reads the planted decks plus typed ground planting', () => {
+    const tower = (deckUses?: Tower['deckUses']): Tower => ({ ...importedTower(stack([{ n: 3, f2f: 4.5, ring: rect(60, 60), podium: true }, { n: 40, f2f: 3.2, ring: rect(40, 40) }]), { podiumTop: 13.5, coreSide: 16 }), ...(deckUses ? { deckUses } : {}) })
+    const decks = plantedSoil([tower([{ level: 44, use: 'planted', soilMm: 450 }])])
+    const cover = (vegetatedM2: number | null, groundPlantedM2?: number) => row(cityInNature({ ...DEFAULT_NATURE, vegetatedM2 }, SITE.area, null, { plantedSoil: decks, groundPlantedM2 }), 'cover')
+    const modelOnly = cover(null, 400) // 1,600 m² roof + 400 m² at grade
+    expect(modelOnly.value).toBe(`${Math.round((2000 / SITE.area) * 1000) / 10}%: modelled 2,000 m² (typed not entered: the modelled value is used)`)
+    expect(modelOnly.entered).toBe(false)
+    expect(modelOnly.note).toMatch(/L44 1,600 m².*400 m² of planting at grade, typed/)
+    expect(cover(2100, 400).state).toBe('unknown') // within 10%: Type C has no reference line, as before
+    const far = cover(5000)
+    expect(far.value).toMatch(/modelled 1,600 m² \(typed 5,000 m²\); typed is 3,400 m² above the model \(\+213%\), Check$/)
+    expect(far.state).toBe('warn')
   })
 })
