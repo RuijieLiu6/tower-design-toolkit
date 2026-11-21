@@ -181,3 +181,50 @@ describe('G18: lifts and the core-fit line, step by step', () => {
     expect(coreSide(C())).toBeCloseTo(24, 6)
   })
 })
+
+// G30 (vtc-entry TOOL_DEFICITS, structural review R3-10): the sway line measured each storey from its own core, so the
+// jog between stepped cores was left out (tower C: about 2,450 MN·m with the jog against the toolkit's 922).
+describe('G30: the sustained-sway line with the jog between stepped cores', () => {
+  it('reads more sway and base overturning with the jog when the core steps follow the tiers off-centre', () => {
+    const t = C(C_STEPS), r = run(t), g = r.gravity
+    expect(g.jog.moved).toBe(true)
+    expect(g.jog.sections.map((s) => s.from)).toEqual([0, 43, 51])
+    expect(g.jog.sections[1]).toMatchObject({ x: 27.75, y: 2.25, side: 19.5 })
+    expect(Math.hypot(g.jog.sections[1].dx, g.jog.sections[1].dy)).toBeCloseTo(Math.hypot(2.25, 2.25), 9)
+    // The base overturning about the ground core is |ΣW·(c − c_ground)| over the tower storeys.
+    const w = storeyWeights(t), tower = w.levels.filter((l) => !l.podium && !l.transitional && !l.onPodium)
+    const mx = tower.reduce((s, l) => s + l.W * (l.cx - 30), 0), my = tower.reduce((s, l) => s + l.W * (l.cy - 0), 0)
+    expect(g.jog.QG).toBeCloseTo(Math.hypot(mx, my), 3)
+    expect(g.jog.QG).toBeGreaterThan(g.QG)
+    expect(g.jog.sway.lt).toBeGreaterThan(g.sway.lt)
+    expect(g.jog.sway.lt).toBeCloseTo(g.jog.sway.el * 3.35, 9)
+    // The line reads the sway with the jog and keeps the storey-by-storey value beside it.
+    const net = srule(t, 'gravity-net')
+    const mm = (v: number) => Math.round(v * 1000)
+    expect(net.value).toBe(`E = ${g.net.e.toFixed(2)} m (e/D ${g.net.ratio.toFixed(3)}); top sway ≈ ${mm(g.jog.sway.el)} mm elastic, ≈ ${mm(g.jog.sway.lt)} mm long term with the core jog (${mm(g.sway.el)} / ${mm(g.sway.lt)} mm storey by storey)`)
+    expect(net.note).toMatch(/With the core jog: each core section carries the tower storeys above it about its own centre/)
+    expect(net.note).toMatch(/sections grade 24\.0 m at \(30\.0, 0\.0\); L43 19\.5 m at \(27\.8, 2\.3\), 3\.2 m off the one below/)
+    expect(srule(t, 'continuity').note).toMatch(/the sway line adds that jog/)
+  })
+
+  it('a tower whose core steps off-centre reads more sway than the same tower with a concentric core', () => {
+    // A plain stack centred on its 24 m core; above L50 a 16 m core either stays concentric or sits 4 m east (inside the core below).
+    const concentric = run(plain([{ fromLevel: 51, side: 16 }])).gravity, off = run(plain([{ fromLevel: 51, side: 16, centre: [4, 0] }])).gravity
+    expect(concentric.jog.moved).toBe(false)
+    expect(off.jog.moved).toBe(true)
+    expect(off.jog.sway.lt).toBeGreaterThan(concentric.jog.sway.lt)
+    expect(off.jog.QG).toBeGreaterThan(concentric.jog.QG)
+    // The section on grade carries the upper core's offset (the jog); the upper section has no core above it.
+    expect(off.jog.sections[0].Mjog).toBeGreaterThan(0)
+    expect(off.jog.sections[1].Mjog).toBe(0)
+  })
+
+  it('without core steps the jog reading is the storey-by-storey one', () => {
+    const g = run(C()).gravity
+    expect(g.jog.moved).toBe(false)
+    expect(g.jog.sections).toHaveLength(1)
+    expect(g.jog.sway.el).toBeCloseTo(g.sway.el, 12)
+    expect(g.jog.QG).toBeCloseTo(g.QG, 6)
+    expect(srule(C(), 'gravity-net').value).not.toMatch(/core jog/)
+  })
+})

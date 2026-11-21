@@ -104,6 +104,8 @@ export interface WeightResult {
   /** Building density ΣW / (g ΣA·h) (kg/m³), for the across-wind screen. */
   density: number
   core: CoreCentre
+  /** The core of the storey on grade, under the first suspended floor (absent: `core`). */
+  ground?: StoreyCore
   presets: WeightPresets
 }
 
@@ -327,7 +329,7 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
   }
   const total = levels.reduce((s, l) => s + l.W, 0)
   const volume = floors.reduce((s, f) => s + f.area * Math.max(0, f.z1 - f.z0), 0)
-  return { levels, total, density: volume > 0 ? (total * 1000) / (G * volume) : 0, core, presets: p }
+  return { levels, total, density: volume > 0 ? (total * 1000) / (G * volume) : 0, core, ...(n ? { ground: cores[0] } : {}), presets: p }
 }
 
 /** Type 2 by weight: the worst ratio between adjacent levels; a roof lighter than the floor below is exempt (Table 4.1.8.6). */
@@ -361,8 +363,34 @@ export interface GravityReading {
   net: { ex: number; ey: number; e: number; ratio: number }
   /** Gravity-induced overturning about the core centre, |ΣW·e| (kN·m). */
   QG: number
-  /** Sustained top sway of a cantilever core with EI from f1 = 46/H (m): elastic and long term with creep. */
+  /** Sustained top sway of a cantilever core with EI from f1 = 46/H (m): elastic and long term with creep. Each level's
+   *  moment about its own storey's core (storey by storey): with core steps, the jog between their centres is left out. */
   sway: { el: number; lt: number; EI: number }
+  /**
+   * With the jog between stepped cores (gap G30): at every height the core carries the weights above it about its own
+   * section's centre, so an upper core set off the one below adds W·(offset) to every section beneath it. `sections`
+   * bottom-up (the storey on grade first), `QG` the base overturning about the ground core (kN·m), `sway` the top sway
+   * from those section moments; `moved` when some section's centre sits 5 cm or more off the one below. Without core
+   * steps it equals the storey-by-storey reading.
+   */
+  jog: { sections: JogSection[]; QG: number; sway: { el: number; lt: number }; moved: boolean }
+}
+
+/** One run of storeys sharing a core (gap G30), with the moment at its base about its own centre. */
+export interface JogSection {
+  /** Level of the first floor on this core (the storey on grade: its level is 0 here), its height (m) and the core. */
+  from: number
+  z0: number
+  x: number
+  y: number
+  side: number
+  /** Offset of this section's centre from the section below (m, tower frame); 0 for the lowest. */
+  dx: number
+  dy: number
+  /** Moment of the tower levels above the section's base about its own centre, |ΣW·(c − c_s)| (kN·m), and the part of
+   *  it from the upper cores' offsets, |ΣW·(c_own − c_s)| (kN·m). */
+  M: number
+  Mjog: number
 }
 
 /**
@@ -390,5 +418,39 @@ export function gravityEccentricity(w: WeightResult, H: number): GravityReading 
   const EI = mBar * H ** 4 * ((2 * Math.PI * f1) / 3.516) ** 2
   const top = (k: 'ex' | 'ey') => (EI > 0 ? levels.reduce((s, l) => { const z = Math.min(l.z, H); return s + l.W * 1000 * l[k] * z * (H - z / 2) }, 0) / EI : 0)
   const el = Math.hypot(top('ex'), top('ey'))
-  return { levels, worst, largest, net: { ex: Ex, ey: Ey, e: Math.hypot(Ex, Ey), ratio }, QG: Math.hypot(Mx, My), sway: { el, lt: el * (1 + CREEP_PHI), EI } }
+  const jog = coreJog(w, H, EI)
+  return { levels, worst, largest, net: { ex: Ex, ey: Ey, e: Math.hypot(Ex, Ey), ratio }, QG: Math.hypot(Mx, My), sway: { el, lt: el * (1 + CREEP_PHI), EI }, jog }
+}
+
+/**
+ * The sustained sway with the jog between stepped cores (gap G30, structural review R3-10): the core is a cantilever whose
+ * centre steps, so the moment at height h about that height's own core centre c(h) is M(h) = Σ W·(c_l − c(h)) over the
+ * tower levels above h, and the top moves by ∫ M(h)·(H − h) dh / EI (unit-load method; with one core all the way up this
+ * is the storey-by-storey sum W·e·z·(H − z/2) / EI). Same levels, EI and creep as the storey-by-storey reading.
+ */
+function coreJog(w: WeightResult, H: number, EI: number): GravityReading['jog'] {
+  const tower = w.levels.filter((l) => !l.podium && !l.transitional && !l.onPodium)
+  const own = (l: StoreyWeight): StoreyCore => ({ x: l.coreX ?? w.core.x, y: l.coreY ?? w.core.y, side: l.coreSide ?? w.core.side })
+  // sections bottom-up: the storey on grade, then the core of the storey above each suspended floor
+  const g0 = w.ground ?? { x: w.core.x, y: w.core.y, side: w.core.side }
+  const raw: { from: number; z0: number; c: StoreyCore }[] = [{ from: 0, z0: 0, c: g0 }]
+  for (const l of w.levels) { if (l.roof) continue; const c = own(l), last = raw[raw.length - 1]; if (!sameCore(last.c, c)) raw.push({ from: l.level, z0: l.z, c }) }
+  const z1 = (k: number) => (k + 1 < raw.length ? raw[k + 1].z0 : Infinity)
+  // ∫ (H − h) dh over [a, b]
+  const I = (a: number, b: number) => (b > a ? (b - a) * H - (b * b - a * a) / 2 : 0)
+  let tx = 0, ty = 0
+  for (const l of tower) {
+    const z = Math.min(l.z, H)
+    let ix = l.cx * I(0, z), iy = l.cy * I(0, z)
+    for (let k = 0; k < raw.length; k++) { const a = raw[k].z0, b = Math.min(z1(k), z); if (b <= a) break; const q = I(a, b); ix -= raw[k].c.x * q; iy -= raw[k].c.y * q }
+    tx += l.W * 1000 * ix; ty += l.W * 1000 * iy
+  }
+  const el = EI > 0 ? Math.hypot(tx, ty) / EI : 0
+  const sections: JogSection[] = raw.map((r, k) => {
+    const above = tower.filter((l) => l.z > r.z0 + 0.01)
+    let mx = 0, my = 0, jx = 0, jy = 0
+    for (const l of above) { const c = own(l); mx += l.W * (l.cx - r.c.x); my += l.W * (l.cy - r.c.y); jx += l.W * (c.x - r.c.x); jy += l.W * (c.y - r.c.y) }
+    return { from: r.from, z0: r.z0, x: r.c.x, y: r.c.y, side: r.c.side, dx: k ? r.c.x - raw[k - 1].c.x : 0, dy: k ? r.c.y - raw[k - 1].c.y : 0, M: Math.hypot(mx, my), Mjog: Math.hypot(jx, jy) }
+  })
+  return { sections, QG: sections[0]?.M ?? 0, sway: { el, lt: el * (1 + CREEP_PHI) }, moved: sections.some((s) => Math.hypot(s.dx, s.dy) >= 0.05) }
 }
