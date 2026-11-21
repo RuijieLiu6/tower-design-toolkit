@@ -2,7 +2,7 @@
 // round 2. Geometry only: energy (TEUI, TEDI, GHGI) belongs to the energy node. Reference WWR, VLT and SHGC lines are
 // US or legacy VBBL values shown without a pass badge, as the research requires.
 
-import { towerFootprint, towerMasses } from './massing'
+import { readsStoreys, towerFootprint, towerMasses } from './massing'
 import type { RuleResult, RuleState, Tower } from './types'
 
 export type FacadeSystem = 'curtain-wall' | 'window-wall' | 'punched' | 'double-skin'
@@ -62,8 +62,9 @@ export function faces(towers: Tower[], input: FacadeInput, northDeg: number): Fa
   const out: Face[] = []
   for (const t of towers) {
     const parts: { part: Face['part']; poly: [number, number][]; z0: number; z1: number }[] = []
-    // Every stacked block (shifted and twisted blocks face their own way); an imported mass: its hull, full height.
-    if (t.imported) parts.push({ part: 'tower', poly: towerFootprint(t), z0: 0, z1: t.height })
+    // Every stacked block (shifted and twisted blocks face their own way), or every run of equal storeys of an imported
+    // tower (T10); a drawn mass or a bare hull: its hull, full height.
+    if (t.imported && !readsStoreys(t)) parts.push({ part: 'tower', poly: towerFootprint(t), z0: 0, z1: t.height })
     else for (const m of towerMasses(t)) parts.push({ part: m.podium ? 'podium' : 'tower', poly: m.ring, z0: m.z0, z1: m.z1 })
     for (const p of parts) {
       const ring = p.poly

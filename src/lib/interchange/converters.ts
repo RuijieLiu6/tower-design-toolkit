@@ -9,7 +9,7 @@
 //   toPresent        drawings, boards and Present captures: outlines and the provenance caption
 //   toCustomize      the Customize canvas: the model as a node output (lines with flags and sources)
 //   toExportScene    export back to .3dm, OBJ and glTF with roles and provenance as user strings
-import { floorRing, towerFloors, towerFootprint, towerMasses, PODIUM_F2F } from '../../engine/massing'
+import { floorRing, massOutline, towerFloors, towerFootprint, towerMasses, PODIUM_F2F } from '../../engine/massing'
 import { ringArea } from '../../engine/importGeom'
 import type { Occluders, Prism } from '../../engine/shadow'
 import { towerOccluders } from '../../engine/solarRules'
@@ -72,7 +72,7 @@ export interface ViewConeInput { towerId: string; name: string; footprint: Pt[];
 export function toViewConeInputs(model: InterchangeModel, towers: Tower[], groundElevation: number): ViewConeInput[] {
   const city = model.project === 'city'
   return modelTowers(model, towers).map((t) => ({
-    towerId: t.id, name: t.name, footprint: towerFootprint(t), topZ: (city ? groundElevation : 0) + t.height,
+    towerId: t.id, name: t.name, footprint: massOutline(t), topZ: (city ? groundElevation : 0) + t.height,
     heightSource: `Highest point of the uploaded volumes above the entrance floor (${model.frame.datum.label.toLowerCase()})${city ? `, plus the tower base ${groundElevation.toFixed(2)} m CGVD28` : ''}`,
   }))
 }
@@ -231,7 +231,7 @@ export function toPresent(model: InterchangeModel, towers: Tower[]): PresentInpu
     overlays: {
       site: elementsBy(model, 'site').flatMap((e) => (e.geometry.kind === 'polygon' ? e.geometry.rings : [])),
       context: ctx.flatMap((e) => (e.geometry.kind === 'prism' ? [{ rings: e.geometry.rings, height: round2(e.geometry.z1 - e.geometry.z0) }] : [])),
-      towers: ts.map((t) => ({ id: t.id, footprint: towerFootprint(t) })),
+      towers: ts.map((t) => ({ id: t.id, footprint: massOutline(t) })),
     },
   }
 }

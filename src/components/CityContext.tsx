@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { LOOKS, type Look } from '../data/stages'
-import { rectCorners, towerFootprint } from '../engine/massing'
+import { massOutline, rectCorners, towerFootprint } from '../engine/massing'
 import { CONES, CONE_PARAMS } from '../engine/viewCones'
 import { indexFootprints, type FootprintIndex } from '../engine/viewFrom'
 import { useResults } from '../hooks/useResults'
@@ -838,7 +838,8 @@ function TowerFootings({ at, look }: { at: (x: number, y: number) => number; loo
   const geom = useMemo(() => {
     const pos: number[] = []
     for (const t of towers) {
-      const outlines = [towerFootprint(t)]
+      // An imported mass: the outline of the whole mass (its typical storey alone could leave a wider base unpacked).
+      const outlines = t.imported ? [massOutline(t)] : [towerFootprint(t)]
       if (!t.imported && t.podiumHeight > 0) outlines.push(towerFootprint(t, true))
       for (const o of outlines) {
         const area = o.reduce((a, p, i) => a + p[0] * o[(i + 1) % o.length][1] - o[(i + 1) % o.length][0] * p[1], 0)

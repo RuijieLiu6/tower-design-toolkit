@@ -9,7 +9,7 @@
 // placement (a model point on a project point, plus a turn), so Rhino's next change keeps the building where it was put.
 import { create } from 'zustand'
 import { ringMetrics } from '../../engine/site'
-import { towerFootprint } from '../../engine/massing'
+import { massOutline } from '../../engine/massing'
 import type { Tower } from '../../engine/types'
 import { useStore } from '../../store'
 import type { InterchangeModel } from '../interchange/model'
@@ -90,7 +90,7 @@ function inside(p: Pt, ring: Pt[]): boolean {
 /** Whether the model's footprint at grade sits on the site: inside, past the edge by up to `past` m, or off it. */
 export interface SiteFit { state: 'pass' | 'warn' | 'fail'; past: number; text: string }
 export function siteFit(towers: Tower[], ring: Pt[]): SiteFit {
-  const pts = towers.flatMap((t) => towerFootprint(t, true) as Pt[])
+  const pts = towers.flatMap((t) => massOutline(t) as Pt[])
   if (!pts.length) return { state: 'warn', past: 0, text: 'No footprint to check' }
   const out = pts.filter((p) => !inside(p, ring))
   if (!out.length) return { state: 'pass', past: 0, text: 'The building stands inside the site' }

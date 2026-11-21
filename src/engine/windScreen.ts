@@ -3,7 +3,7 @@
 // corners and gaps between towers, each Low / Medium / High with a reason and its source, and indicative zones on the
 // ground. It predicts no speeds and no comfort class (research P03-M03 limits; P03-M04 needs wind-tunnel or CFD factors).
 import roseData from '../data/windRoseYVR.json'
-import { towerFootprint } from './massing'
+import { readsStoreys, towerFootprint } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 import { ANALOG_LABEL, windStudyTriggers } from './windStructure'
 
@@ -140,7 +140,8 @@ export function windScreen(towers: Tower[], o: { northDeg: number; context: Cont
 
   for (const t of towers) {
     const ring = towerFootprint(t) as P[]
-    const pod = t.podiumHeight > 0 && !t.imported ? (towerFootprint(t, true) as P[]) : null
+    // An imported tower read storey by storey has its own podium outline (T10); a drawn mass or a bare hull has none.
+    const pod = t.podiumHeight > 0 && (!t.imported || readsStoreys(t)) ? (towerFootprint(t, true) as P[]) : null
     const c = centroid(ring)
     const others: ContextBox[] = towers.filter((x) => x.id !== t.id).map((x) => ({ footprint: towerFootprint(x) as P[], height: x.height }))
     const radius = Math.max(400, 2 * t.height) // ContextSpec radius, research P03-M02 (2H is a team term)

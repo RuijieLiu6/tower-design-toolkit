@@ -7,7 +7,7 @@
 import type { VtcContext } from '../context'
 import type { Footprint, FootprintHeights } from '../lib/cityLayers'
 import { earClip } from '../lib/coneVolume'
-import { towerFootprint, towerMasses } from './massing'
+import { readsStoreys, towerFootprint, towerMasses } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 import { BANDS, WIND_GRID, type FutureBox, type ObstacleMesh, type WindStrategy, type WindStudyResult, type WindTower } from './windComfort'
 
@@ -129,8 +129,9 @@ export const windNorthOf = (p: WindPresets, projectNorthDeg: number) => (p.north
 
 /** Her strategies from the tower's podium (team mapping: the podium's smaller overhang beyond the tower) and the presets; null when none applies. */
 export function strategyOf(t: Tower, p: WindPresets): WindStrategy | null {
-  // An imported mass carries its own podium in its hull: no second, uniform podium reach on top of it.
-  const ext = !t.imported && t.podiumHeight > 0 ? Math.max(0, Math.min((t.podiumWidth - t.width) / 2, (t.podiumDepth - t.depth) / 2)) : 0
+  // A drawn mass or a bare hull carries its own podium in its outline: no second, uniform podium reach on top of it. An
+  // imported tower read storey by storey (T10) gives her the tower outline, so its podium comes in as the reach.
+  const ext = (!t.imported || readsStoreys(t)) && t.podiumHeight > 0 ? Math.max(0, Math.min((t.podiumWidth - t.width) / 2, (t.podiumDepth - t.depth) / 2)) : 0
   const s: WindStrategy = { podiumH: ext > 0 ? t.podiumHeight : 0, podiumExt: ext, canopy: p.canopy, corners: p.corners, shelter: p.shelter }
   return s.podiumH > 0 || s.canopy > 0 || s.corners !== 'sharp' || s.shelter > 0 ? s : null
 }

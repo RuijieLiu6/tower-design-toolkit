@@ -4,14 +4,31 @@
 // gate); every intensity used to *estimate* the design is a team assumption or unverified, and says so.
 import { solarPosition } from './solar'
 import { sunVector } from './sun'
-import { towerFloors, towerFootprint, towerMasses } from './massing'
+import { readsStoreys, towerFloors, towerFootprint, towerMasses } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower, UseId } from './types'
 
-/** A tower as plan prisms: each stacked block; an imported mass as its hull below and above the podium (as before). */
+/**
+ * A tower as plan prisms: each stacked block, or each run of equal storeys of an imported tower (T10: the podium roof and
+ * setback roofs read as roofs); a drawn mass or a bare hull: its hull below and above the podium (as before).
+ */
 function partsOf(t: Tower): { ring: [number, number][]; z0: number; z1: number; podium: boolean }[] {
-  if (!t.imported) return towerMasses(t)
+  if (!t.imported || readsStoreys(t)) return towerMasses(t)
   const fp = towerFootprint(t), ph = t.podiumHeight > 0 ? t.podiumHeight : 0
   return ph > 0 ? [{ ring: fp, z0: 0, z1: ph, podium: true }, { ring: fp, z0: ph, z1: t.height, podium: false }] : [{ ring: fp, z0: 0, z1: t.height, podium: false }]
+}
+
+/** Most prisms of one imported tower the PV screen samples (every surface is ray-cast against every prism). */
+const PV_MAX_PARTS = 12
+/**
+ * The prisms the PV screen samples: `partsOf`, except an imported tower with more runs than PV_MAX_PARTS (a free form whose
+ * every storey differs) reads as its podium outline below the podium top and its typical storey above, so a curved
+ * form sliced into 80 distinct storeys stays quick (team simplification; its wall area still comes from every run).
+ */
+function pvParts(t: Tower): ReturnType<typeof partsOf> {
+  const parts = partsOf(t)
+  if (!t.imported || parts.length <= PV_MAX_PARTS) return parts
+  const fp = towerFootprint(t), ph = t.podiumHeight > 0 ? t.podiumHeight : 0
+  return ph > 0 ? [{ ring: towerFootprint(t, true), z0: 0, z1: ph, podium: true }, { ring: fp, z0: ph, z1: t.height, podium: false }] : [{ ring: fp, z0: 0, z1: t.height, podium: false }]
 }
 
 /** Area shared by two convex plan polygons (Sutherland–Hodgman clip of a by b; either winding). */
@@ -313,7 +330,7 @@ export function pvPotential(towers: Tower[], input: EnergyInput, ctx: { northDeg
   const roofN: [number, number, number] = [sx * Math.sin((tiltRoof * Math.PI) / 180), sy * Math.sin((tiltRoof * Math.PI) / 180), Math.cos((tiltRoof * Math.PI) / 180)]
   const ref = poaAt([[0, 0, 1e5]], roofN, tiltRoof, sun, []).poa
   // Each stacked block shades from the ground to its top (a cantilevered block shades a little too much: conservative).
-  const own: Obstacle[] = towers.flatMap((t) => partsOf(t).map((m) => ({ footprint: m.ring, height: m.z1 })))
+  const own: Obstacle[] = towers.flatMap((t) => pvParts(t).map((m) => ({ footprint: m.ring, height: m.z1 })))
   const surfaces: PvSurface[] = []
   const add = (s: Omit<PvSurface, 'yieldKwhKwp' | 'kwh' | 'kwp'>, kwpPerM2: number, on: boolean) => {
     const kwp = on ? s.area * s.usable * kwpPerM2 : 0
@@ -323,7 +340,7 @@ export function pvPotential(towers: Tower[], input: EnergyInput, ctx: { northDeg
   for (const t of towers) {
     // Own boxes can stay in the list: points sit above their own roof or outside a convex face, so they never self-hit.
     const others = prepObstacles([...ctx.obstacles, ...own])
-    const parts = partsOf(t)
+    const parts = pvParts(t)
     const roofs: Omit<PvSurface, 'yieldKwhKwp' | 'kwh' | 'kwp'>[] = [], podiums: typeof roofs = [], setbacks: typeof roofs = []
     const podiumCount = parts.filter((q) => q.podium).length
     parts.forEach((m, k) => {

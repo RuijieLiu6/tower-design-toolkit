@@ -12,7 +12,7 @@ import { towerPatch } from '../../engine/imported'
 import { withAutoCore, type LiftPresets } from '../../engine/lifts'
 import type { EgressPresets } from '../../engine/egress'
 import { fmtLen, guessUnit, guessUpAxis, looksLikeUtm10, topology, UNIT_LABEL, UNIT_SCALE, type HealthItem, type Topology, type Unit } from '../../engine/meshHealth'
-import { PODIUM_F2F, towerFootprint } from '../../engine/massing'
+import { PODIUM_F2F, massOutline } from '../../engine/massing'
 import type { Band, Flag, ImportedMass, Tower, UseId } from '../../engine/types'
 import { buildMass, DATUM_LABEL, earthPoint, healthFor, NORTH_LABEL, stageB, stageC, type DatumMode, type ImportOptions, type Placed, type ProjectFrame } from '../import/pipeline'
 import type { RawImport } from '../import/types'
@@ -318,7 +318,7 @@ export function buildModel(i: BuildInput): BuildResult {
     const typed = Math.round(Number(docS['tdt.basement_levels']) || 0)
     const below = elements.filter((e) => e.role === 'basement' && e.geometry.kind === 'prism')
     built.forEach((b) => {
-      const fp = towerFootprint(b.tower, true)
+      const fp = massOutline(b.tower)
       const mine = below.filter((e) => e.geometry.kind === 'prism' && e.geometry.rings.some((r) => r.some((p) => inRing(p, fp)) || fp.some((p) => inRing(p, r))))
       const depth = Math.max(0, ...mine.map((e) => (e.geometry.kind === 'prism' ? -e.geometry.z0 : 0)))
       const levels = Math.min(8, mine.length ? Math.max(1, Math.round(depth / f2fB)) : typed > 0 ? typed : 0)

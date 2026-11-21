@@ -4,10 +4,10 @@
 // confirms with the dialog's Use button. Coordinates: project frame (EPSG:26910 minus the Real Vancouver origin).
 import { Crosshair, MapPinned } from '../icons'
 import { useEffect, useMemo, useState } from 'react'
-import { towerFootprint } from '../../engine/massing'
+import { massOutline } from '../../engine/massing'
 import type { Tower } from '../../engine/types'
 import { toUtm10 } from '../../engine/relaxAviation'
-import { footprintsUnder, REMOVAL_CAVEAT, REMOVAL_FLAG } from '../../lib/cityRemoval'
+import { designOutlines, footprintsUnder, REMOVAL_CAVEAT, REMOVAL_FLAG } from '../../lib/cityRemoval'
 import { earthPoint, type AnchorOptions, type ImportOptions, type ProjectFrame } from '../../lib/import/pipeline'
 import type { LoadedImport } from '../../lib/import/load'
 import type { BuildResult } from '../../lib/interchange/build'
@@ -98,7 +98,7 @@ export function AlignBlock({ raw, opts, up, frame, built, picking, setPicking }:
 export function AlignPreview({ built, onPick, picking, keep, setKeep, demolish }: { built: BuildResult | null; onPick: (p: Pt) => void; picking: boolean; keep: boolean; setKeep: (v: boolean) => void; demolish: { count: number; indices: number[] } }) {
   const { data, error } = useCityData()
   const towers: Tower[] = useMemo(() => built?.towers.map((t) => t.tower) ?? [], [built])
-  const outlines = useMemo(() => towers.map((t) => towerFootprint(t)), [towers])
+  const outlines = useMemo(() => towers.map((t) => massOutline(t)), [towers])
   const site = useMemo(() => built?.model.elements.flatMap((e) => (e.role === 'site' && e.geometry.kind === 'polygon' ? e.geometry.rings : [])) ?? [], [built])
   const ctx = useMemo(() => built?.model.elements.flatMap((e) => (e.role === 'context' && e.geometry.kind === 'prism' ? e.geometry.rings : [])) ?? [], [built])
   const all = [...outlines.flat(), ...site.flat()]
@@ -147,7 +147,7 @@ export function useDemolition(built: BuildResult | null): { count: number; indic
   const { data } = useCityData()
   return useMemo(() => {
     if (!data || !built?.towers.length) return { count: 0, indices: [] }
-    const idx = [...new Set(footprintsUnder(data.footprints, built.towers.map((t) => towerFootprint(t.tower))).flat())].sort((a, b) => a - b)
+    const idx = [...new Set(footprintsUnder(data.footprints, built.towers.flatMap((t) => designOutlines(t.tower))).flat())].sort((a, b) => a - b)
     return { count: idx.length, indices: idx }
   }, [data, built])
 }

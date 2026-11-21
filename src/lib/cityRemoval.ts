@@ -91,7 +91,7 @@ export function footprintsUnder(footprints: readonly FootprintLike[], designs: P
   })
 }
 
-/** Plan outlines of each design tower (local frame): every stacked block (an imported mass: its hull). */
+/** Plan outlines of each design tower (local frame): every stacked block (an imported tower: every run of equal storeys). */
 export function designOutlines(t: Tower): Pt[][] {
   return towerMasses(t).map((m) => m.ring)
 }
