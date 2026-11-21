@@ -51,6 +51,12 @@ export interface Deck {
   /** Sample points (project frame) and their grid spacing (m). */
   pts: Pt[]
   step: number
+  /**
+   * Per sample point, the headroom to the first plate above it (m), null where no plate lies over it (open to the sky).
+   * Where it exceeds the deck's `cover`, the storeys above are open over the point with no slab between, and the deck
+   * shares their air (gap G38, engine/sw/terraceWind.ts). Absent on a deck made by hand: every point reads `cover`.
+   */
+  ptCover?: (number | null)[]
 }
 
 /** One storey's plate in the project frame (a parametric tower: one per block interval, `top` its last floor's level). */
@@ -186,16 +192,16 @@ export function towerDecks(t: Tower, northDeg: number): Deck[] {
       }
       const { pts, step } = samplePoints(rings, A)
       // a slab above: a higher plate over more than half the sample points
-      const covers: number[] = []
-      for (const p of pts) for (let j = i + 1; j < slabs.length; j++) if (inMulti(p, slabs[j].poly)) { covers.push(slabs[j].z0 - S.z1); break }
-      const cover = covers.length > pts.length / 2 ? covers.sort((a, b) => a - b)[Math.floor(covers.length / 2)] : null
+      const ptCover: (number | null)[] = pts.map((p) => { for (let j = i + 1; j < slabs.length; j++) if (inMulti(p, slabs[j].poly)) return slabs[j].z0 - S.z1; return null })
+      const covers = ptCover.filter((c): c is number => c != null)
+      const cover = covers.length > pts.length / 2 ? [...covers].sort((a, b) => a - b)[Math.floor(covers.length / 2)] : null
       const openAz = edges.filter((e) => e.open && e.L >= 1).map((e) => e.az).sort((a, b) => a - b)
       let gap = openAz.length ? 360 - openAz[openAz.length - 1] + openAz[0] : 360
       for (let q = 1; q < openAz.length; q++) gap = Math.max(gap, openAz[q] - openAz[q - 1])
       const opposite = openAz.some((x) => openAz.some((y) => angDiff(x, y) >= 135))
       const type: DeckType = cover != null ? (opposite ? 'openStorey' : 'loggia') : edges.some((e) => !e.open && (e.dH ?? 0) > 0.5) ? 'setback' : 'roof'
       const level = U ? U.level : (S.top ?? S.level) + 1
-      out.push({ id: `${t.id}-L${level}${k ? `-${k + 1}` : ''}`, towerId: t.id, tower: t.name, level, z: S.z1, type, allRound: openAz.length > 0 && gap <= 120, area: A, rings, edges, cover, pts, step })
+      out.push({ id: `${t.id}-L${level}${k ? `-${k + 1}` : ''}`, towerId: t.id, tower: t.name, level, z: S.z1, type, allRound: openAz.length > 0 && gap <= 120, area: A, rings, edges, cover, pts, step, ptCover })
       k++
     }
   }

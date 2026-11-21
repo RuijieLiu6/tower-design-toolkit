@@ -229,14 +229,15 @@ const RUNS: Partial<Record<SwId, Run>> = {
     const worst = used.reduce((a, r) => (r.cls > a.cls || (r.cls === a.cls && r.u > a.u) ? r : a), used[0] ?? { u: 0, z: 0, tower: '', band: 0, cls: 0, season: 'winter' as DeckSeason, uOld: 0, label: '' })
     const worstWind = winds.find((w) => useOf(w) !== 'planted' && w.deck.z === worst.z && w.read.v === worst.u && w.deck.tower === worst.tower)
     const deckState = stateOf(crit, worst.cls)
-    // The public sky room's terrace: the deck at the room's level, or none (engine/skyRoom.ts places the line).
+    // The public sky room's terrace: the deck at the room's level, or none (engine/skyRoom.ts places the line). With
+    // several decks there (gap G38), the one the deck-use input marks occupied, else the largest deck people use.
     const skyTerraces: Record<string, SkyTerraceLine> = {}
     for (const t of inp.towers) {
       if (!t.skyRoom) continue
       const lv = t.skyRoom.level, room = towerFloors(t).find((f) => f.level === lv)
-      const w = winds.find((x) => useOf(x) !== 'planted' && x.deck.towerId === t.id && (x.deck.level === lv || (!!room && Math.abs(x.deck.z - room.z0) < 0.5)))
+      const { w, why } = skyRoomDeck(winds.filter((x) => useOf(x) !== 'planted' && x.deck.towerId === t.id && (x.deck.level === lv || (!!room && Math.abs(x.deck.z - room.z0) < 0.5))), (x) => uses.get(x.deck)?.use === 'occupied')
       skyTerraces[t.id] = w
-        ? { value: `${crit.classes[w.read.cls]} in ${w.read.worst} (${w.read.v.toFixed(1)} m/s ${crit.stat})`, threshold: `${crit.classes[crit.target]} for a public terrace (${crit.name})`, state: stateOf(crit, w.read.cls), note: `${deckLabel(w.deck, false, useOf(w))}: ${deckNote(w, crit)}`, source: DECK_SRC(crit).label }
+        ? { value: `${crit.classes[w.read.cls]} in ${w.read.worst} (${w.read.v.toFixed(1)} m/s ${crit.stat})`, threshold: `${crit.classes[crit.target]} for a public terrace (${crit.name})`, state: stateOf(crit, w.read.cls), note: `${deckLabel(w.deck, false, useOf(w))}${why ? ` (${why})` : ''}: ${deckNote(w, crit)}`, source: DECK_SRC(crit).label }
         : { value: `No outdoor terrace at the room level (L${lv})`, threshold: 'Comfort criteria for a terrace at height', state: 'pass', note: 'The storey outlines show no roof, setback terrace or open storey at the sky room level, so the room has no outdoor deck to check (Wind on terraces and roofs).', source: DECK_SRC(crit).label }
     }
     const H = Math.max(0, ...inp.towers.map((t) => t.height))
@@ -405,6 +406,17 @@ const deckLabel = (d: Deck, multi: boolean, use: DeckUse['use'] = 'occupied') =>
 /** A planted deck's maintenance-access line (gap G25): Check when the wind there is uncomfortable or past the indicative
  *  safety limits, else Unknown (no comfort target); never a comfort Fail. */
 const plantedState = (w: DeckWind, c: CriteriaSet): RuleState => (w.read.cls >= c.classes.length - 1 || !!w.safety?.london || !!w.safety?.toronto ? 'warn' : 'unknown')
+/**
+ * The sky room's deck among those at its level (gap G38; the line read the first deck found): one the deck-use input marks
+ * occupied, else the largest deck people use; with several, the largest of them. `why` says how it was chosen when there
+ * was a choice.
+ */
+export function skyRoomDeck(at: DeckWind[], flagged: (w: DeckWind) => boolean): { w: DeckWind | null; why: string } {
+  const marked = at.filter(flagged), pool = marked.length ? marked : at
+  const w = pool.reduce<DeckWind | null>((a, x) => (!a || x.deck.area > a.deck.area ? x : a), null)
+  const why = at.length < 2 ? '' : marked.length ? `marked occupied in the deck uses, of ${at.length} decks at the room level` : `the largest of ${at.length} decks at the room level`
+  return { w, why }
+}
 const C8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
 const compass8 = (az: number) => C8[Math.round((((az % 360) + 360) % 360) / 45) % 8]
 const screenWord = (sc: Screen) => `${sc.h.toFixed(1)} m at ${Math.round(sc.porosity * 100)}% open`
@@ -422,8 +434,12 @@ function deckNote(w: DeckWind, c: CriteriaSet): string {
   const needOf = (n: Screen | 'none' | null, cls: number) => (n === 'none' ? `${c.classes[cls]} without one` : n ? `${c.classes[cls]} with ${screenWord(n)}` : `no screen up to 2.5 m reaches ${c.classes[cls]}`)
   const need = `Smallest screen on every open edge: ${needOf(w.need.sitting, c.target)}; ${needOf(w.need.standing, c.check)}.`
   const other = `${o.name}: ${o.classes[w.other.read.cls]} in ${w.other.read.worst}.`
-  const safe = w.safety ? `Safety (indicative, one typical year): ${fmt(w.safety.londonHours)} h at 15 m/s or more (London: dangerous over 1.9 h${w.safety.london ? ', exceeded' : ''}); gusts over 25 m/s in ${(w.safety.torontoShare * 100).toFixed(2)}% of hours (Toronto: unsafe over 0.1%${w.safety.toronto ? ', exceeded' : ''}).` : ''
-  return [shape, seasons, gov, scr, need, other, safe, 'Screening values: within one class of the target, test in a wind tunnel or CFD.'].filter(Boolean).join(' ')
+  const sf = w.safety
+  const where = !sf ? '' : sf.atWorst ? 'at the comfort-worst point' : `at a point ${sf.edge ? `${sf.edge.dist.toFixed(1)} m in from the ${compass8(sf.edge.az)}-facing edge` : `at (${sf.at[0].toFixed(1)}, ${sf.at[1].toFixed(1)})`} (${fmt(sf.worstHours)} h at the comfort-worst point)`
+  const safe = sf ? `Safety (indicative, one typical year; the largest over the deck's ${d.pts.length} sample points): ${fmt(sf.londonHours)} h at 15 m/s or more ${where} (London: dangerous over 1.9 h${sf.london ? ', exceeded' : ''}); gusts over 25 m/s in ${(sf.torontoShare * 100).toFixed(2)}% of hours at the worst point for gusts (Toronto: unsafe over 0.1%${sf.toronto ? ', exceeded' : ''}).` : ''
+  const sa = w.sharedAir
+  const air = sa ? `Shared air (team step, G38): ${sa.points} of ${d.pts.length} points lie under an opening of the storeys above with no slab between${sa.sky ? ` (${sa.sky} open to the sky)` : ''}; each reads the more exposed of the deck's cover and its own headroom${sa.governs ? ', and that sets the worst point' : ''}.` : ''
+  return [shape, air, seasons, gov, scr, need, other, safe, 'Screening values: within one class of the target, test in a wind tunnel or CFD.'].filter(Boolean).join(' ')
 }
 
 // ------------------------------------------------------------------ shared helpers

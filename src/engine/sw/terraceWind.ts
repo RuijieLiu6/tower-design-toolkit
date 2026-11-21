@@ -22,13 +22,22 @@
 // At D ≥ h (f = 1) the slab-above K values hold; at D ≤ h/4 (f = 0) the cover is an overhang and the deck reads as open
 // to the sky; between, K = K_open + f (K_slab − K_open) per point and wind direction, the two end points being the table's
 // own values (wind under a canopy reaches about as far in as the opening is high: team reading, unverified).
+// Shared air (gap G38, team step; wind review R3-16): each storey's deck is read from its own outline, so an opening of
+// the storeys above directly over a covered deck (a garden storey whose upper storeys open at a corner) left the deck
+// below blind to it. A point of a covered deck whose own slab is missing (no plate of the storeys above lies over it
+// within the deck's headroom, so the air at the point runs up through the storeys above with no slab between) is read
+// twice: with the deck's cover factor, and with the cover factor of its own headroom up to the first plate over it
+// (none: open to the sky, factor 0). It takes the more exposed of the two (the larger K x GEM factor), per wind direction.
+// The deck keeps its type and its other points; the note counts the points that share the air above.
 // Screen factor (R5 §1.4, team values after Hörteborn et al. 2023): none under 1.2 m; full within 3 h of the screen, back
 // to 1 at 10 h; by porosity β: ≤ 0.10 → 0.5 (1.1 when the wind meets it over 60° off square), ≤ 0.40 → 0.4, ≤ 0.60 → 0.6,
 // else 0.85. Neighbour factor (team): 0.7 when a building taller than the deck lies upwind within the hour's sector
 // (± 22.5°) and within 10 of its own widths across the wind. Turbulence (R5 §1.5): TI 0.2 on open decks, 0.35 in wakes,
 // sheltered and solid-screen zones; the gust-equivalent mean GEM = max(U, U (1 + 3 TI) / 1.85) is what both criteria read.
 // Limits (R5 §1.7): K values are screening multipliers; any deck within one class of its target needs a wind tunnel or
-// CFD study; the safety reading uses one typical year (Toronto asks for 30), so it is indicative only.
+// CFD study; the safety reading uses one typical year (Toronto asks for 30), so it is indicative only. Safety is the
+// largest over all the deck's sample points (gap G38: it was read at the comfort-worst point only, so a screen that
+// eased comfort there could hide a worse safety point elsewhere), with the point that gives it.
 import { BINS, binDir, CRITERIA, DECK_SEASONS, classOf, hoursAbove, profileRatio, readSeasons, type Criteria, type CriteriaSet, type DeckHours, type DeckOptions, type DeckRead, type DeckSeason } from './deckWind'
 import { angDiff, segDist, trueAz, type Deck, type DeckEdge } from './decks'
 
@@ -63,11 +72,22 @@ export interface DeckWind {
   share: number[]
   /** At the worst point in the worst season: the wind direction with most hours over the target, the edge it crosses
    *  and the K case. */
-  governing: { dir: number; edgeAz: number | null; kCase: KCase; k: number }
+  governing: { dir: number; edgeAz: number | null; kCase: KCase; k: number; shared: boolean }
   /** Comfort hours a year over the target class limit at the worst point. */
   hoursOver: number
-  /** Indicative safety at the worst point (every hour of one typical year); null for one wind case. */
-  safety: { londonHours: number; london: boolean; torontoShare: number; toronto: boolean } | null
+  /**
+   * Indicative safety (every hour of one typical year), the largest over all the deck's sample points (gap G38): London
+   * hours at 15 m/s or more and the Toronto gust share, each its own maximum; `at` is the point with the most London
+   * hours (ties: the larger gust share, then the comfort-worst point), with its nearest open edge, whether it reads as
+   * the comfort-worst point does, and the London hours at the comfort-worst point. Null for one wind case.
+   */
+  safety: {
+    londonHours: number; london: boolean; torontoShare: number; toronto: boolean
+    at: Pt; atWorst: boolean; edge: { az: number; dist: number } | null; worstHours: number
+  } | null
+  /** Points under an opening of the storeys above with no slab between (gap G38, team step): how many, how many of them
+   *  open to the sky, and whether the worst point's governing reading came from the air above; null when none. */
+  sharedAir: { points: number; sky: number; governs: boolean } | null
   /** The screen in place: from the wind settings on every open edge, or the façade's wind-screen zones on some. */
   screen: (Screen & { from: 'setting' | 'facade'; edges: number }) | null
   /** A deck with a slab above: its depth under the slab, the headroom and the cover factor (1 = the slab-above K values,
@@ -98,6 +118,8 @@ export function screenFactor(sc: Screen | null | undefined, x: number, gamma: nu
   return { S: full + ((1 - full) * (x - 3 * sc.h)) / (7 * sc.h), solid: false }
 }
 const gem = (ti: number) => Math.max(1, (1 + 3 * ti) / 1.85)
+/** How much more headroom than the deck's own (m) a point needs before it counts as under an opening above (G38). */
+export const SHARED_AIR_TOL = 0.05
 
 /** Cover ratio (depth over headroom) below which a slab is an overhang (f = 0), and from which it shelters fully (f = 1). Team step. */
 export const COVER_OPEN = 0.25, COVER_FULL = 1
@@ -126,12 +148,20 @@ export function terraceWind(decks: Deck[], H: DeckHours, o: TerraceOptions): Dec
 function deckWind(d: Deck, H: DeckHours, o: TerraceOptions, crit: CriteriaSet, otherKey: Criteria): DeckWind {
   const { edges, pts, z } = d, P = pts.length, covered = d.cover != null
   const depth = covered ? coverDepth(d) : 0, f = covered ? coverFactor(depth, d.cover!) : 0
+  // G38: the cover factor of each point's own headroom where the storeys above open over it with no slab between (-1: none)
+  const fp = new Float32Array(P).fill(-1)
+  let nShared = 0, nSky = 0
+  if (covered && d.ptCover) for (let p = 0; p < P; p++) {
+    const h = d.ptCover[p]
+    if (h != null && h <= d.cover! + SHARED_AIR_TOL) continue
+    fp[p] = h == null ? 0 : coverFactor(depth, h); nShared++; if (h == null) nSky++
+  }
   const prof = new Float32Array(BINS), nb = new Float32Array(BINS).fill(1)
   const gam = edges.map((e) => { const g = new Float32Array(BINS); for (let b = 0; b < BINS; b++) g[b] = angDiff(binDir(b), e.az); return g })
   const cx = pts.reduce((s, p) => s + p[0], 0) / P, cy = pts.reduce((s, p) => s + p[1], 0) / P
   const tall = (o.neighbours ?? []).filter((n) => n.z1 > z && n.ring.length >= 3).map((n) => ({ ring: n.ring, c: [n.ring.reduce((s, q) => s + q[0], 0) / n.ring.length, n.ring.reduce((s, q) => s + q[1], 0) / n.ring.length] as Pt }))
   // per point and direction: K, wake turbulence, the edge the wind crosses, the distance to it and the case
-  const K = new Float32Array(P * BINS), TI = new Uint8Array(P * BINS), up = new Int16Array(P * BINS), xs = new Float32Array(P * BINS), kc = new Uint8Array(P * BINS)
+  const K = new Float32Array(P * BINS), TI = new Uint8Array(P * BINS), up = new Int16Array(P * BINS), xs = new Float32Array(P * BINS), kc = new Uint8Array(P * BINS), sh = new Uint8Array(P * BINS)
   for (let b = 0; b < BINS; b++) {
     const th = binDir(b), fa = ((th + o.north) * Math.PI) / 180, w: Pt = [Math.sin(fa), Math.cos(fa)], wd: Pt = [-w[0], -w[1]]
     prof[b] = profileRatio(z, th, o.exposure, o.profile)
@@ -169,10 +199,15 @@ function deckWind(d: Deck, H: DeckHours, o: TerraceOptions, crit: CriteriaSet, o
         for (const cr of corners) if (cr && Math.hypot(q[0] - cr.c[0], q[1] - cr.c[1]) <= cr.r && k < 1.3) { k = 1.3; c = 'corner' }
         return { k, c, ti: 0 }
       }
-      let r: { k: number; c: KCase; ti: number }
-      if (!covered || f <= 0) r = sky()
-      else if (f >= 1) r = slab()
-      else { const a = sky(), s2 = slab(); r = { k: a.k + f * (s2.k - a.k), c: s2.c, ti: s2.ti } }
+      const kAt = (fv: number): { k: number; c: KCase; ti: number } => {
+        if (!covered || fv <= 0) return sky()
+        if (fv >= 1) return slab()
+        const a = sky(), s2 = slab()
+        return { k: a.k + fv * (s2.k - a.k), c: s2.c, ti: s2.ti }
+      }
+      let r = kAt(f)
+      // G38: under an opening of the storeys above, the more exposed of the deck's cover and the point's own headroom
+      if (fp[p] >= 0) { const r2 = kAt(fp[p]); if (r2.k * gem(r2.ti ? 0.35 : 0.2) > r.k * gem(r.ti ? 0.35 : 0.2) + 1e-9) { r = r2; sh[at] = 1 } }
       K[at] = r.k; TI[at] = r.ti; up[at] = eu; kc[at] = K_CASES.indexOf(r.c)
       xs[at] = E ? segDist(q, E.a, E.b) : 0
     }
@@ -206,7 +241,7 @@ function deckWind(d: Deck, H: DeckHours, o: TerraceOptions, crit: CriteriaSet, o
   const read = reads[wi], ws: DeckSeason = read.worst
   const share = new Array(crit.classes.length).fill(0)
   for (const r of reads) share[r.seasons[ws].cls] += 1 / P
-  const fW = Fc.subarray(wi * BINS, (wi + 1) * BINS), gW = Fg.subarray(wi * BINS, (wi + 1) * BINS)
+  const fW = Fc.subarray(wi * BINS, (wi + 1) * BINS)
   const lim = crit.limits[crit.target]
   let gb = 0, gh = -1
   for (let b = 0; b < BINS; b++) { const a = H.comfort[ws].byBin[b]; if (!a.length || !(fW[b] > 0)) continue; let c = 0; for (let i = a.length - 1; i >= 0 && a[i] * fW[b] > lim; i--) c++; if (c > gh) { gh = c; gb = b } }
@@ -217,13 +252,35 @@ function deckWind(d: Deck, H: DeckHours, o: TerraceOptions, crit: CriteriaSet, o
     deck: d, read,
     other: { criteria: otherKey, read: readSeasons(H, fW, CRITERIA[otherKey]) },
     share,
-    governing: { dir: binDir(gb), edgeAz: up[ga] >= 0 ? edges[up[ga]].az : null, kCase: K_CASES[kc[ga]], k: K[ga] },
+    governing: { dir: binDir(gb), edgeAz: up[ga] >= 0 ? edges[up[ga]].az : null, kCase: K_CASES[kc[ga]], k: K[ga], shared: sh[ga] === 1 },
     hoursOver: hoursAbove(H.comfort.year, fW, lim),
-    safety: H.source === 'one' ? null : (() => { const lh = hoursAbove(H.all, fW, 15), ts = hoursAbove(H.all, gW, 25) / H.all.n; return { londonHours: lh, london: lh / H.all.n > 0.00022, torontoShare: ts, toronto: ts > 0.001 } })(),
+    safety: H.source === 'one' ? null : safetyOver(H, Fc, Fg, P, wi, pts, edges),
+    sharedAir: nShared ? { points: nShared, sky: nSky, governs: sh[ga] === 1 } : null,
     screen: o.screen ? { ...o.screen, from: 'setting', edges: screened } : firstFacade ? { ...firstFacade, from: 'facade', edges: screened } : null,
     cover: covered ? { depth, headroom: d.cover!, factor: f } : null,
     need: screenNeed(H, crit, P, read.cls, (sc) => mults(() => sc).Fc),
   }
+}
+
+/** Indicative safety over every sample point (gap G38): the largest London hours and Toronto gust share, and where. */
+function safetyOver(H: DeckHours, Fc: Float32Array, Fg: Float32Array, P: number, wi: number, pts: Pt[], edges: DeckEdge[]): NonNullable<DeckWind['safety']> {
+  const memo = new Map<string, [number, number]>()
+  let si = wi, sl = -1, ss = -1, tMax = 0, worstHours = 0
+  for (let p = 0; p < P; p++) {
+    const fc = Fc.subarray(p * BINS, (p + 1) * BINS), fg = Fg.subarray(p * BINS, (p + 1) * BINS)
+    const key = Array.from(fc, (v) => Math.round(v * 1000)).join(',') + '|' + Array.from(fg, (v) => Math.round(v * 1000)).join(',')
+    let v = memo.get(key)
+    if (!v) { v = [hoursAbove(H.all, fc, 15), hoursAbove(H.all, fg, 25) / H.all.n]; memo.set(key, v) }
+    const [lh, ts] = v
+    if (p === wi) worstHours = lh
+    tMax = Math.max(tMax, ts)
+    // on a tie the comfort-worst point keeps the place, so a deck that reads alike everywhere names it
+    if (lh > sl || (lh === sl && ts > ss) || (lh === sl && ts === ss && p === wi)) { sl = lh; ss = ts; si = p }
+  }
+  const q = pts[si]
+  let edge: { az: number; dist: number } | null = null
+  for (const e of edges) if (e.open) { const dd = segDist(q, e.a, e.b); if (!edge || dd < edge.dist) edge = { az: e.az, dist: dd } }
+  return { londonHours: sl, london: sl / H.all.n > 0.00022, torontoShare: tMax, toronto: tMax > 0.001, at: q, atWorst: si === wi || sl === worstHours, edge, worstHours }
 }
 
 /** The smallest screen in R5's set that brings every point to the target class, and to the next one, in every season. */

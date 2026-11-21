@@ -251,3 +251,83 @@ describe('G25: deck use (occupied, planted, none)', () => {
     expect((await line(setback({ deckUses: [{ level: 44, facing: 'S', use: 'planted' }] })))!.state).toBe('fail')
   })
 })
+
+// G38 (vtc-entry wind review R3-16): safety was read at the comfort-worst point only; each storey's deck was read on its
+// own, so an opening of the storeys above over a covered deck was invisible to it; and the sky-room line took the first
+// deck it found at the room level.
+describe('G38: deck air and safety', () => {
+  const inp = (t: Tower): SwInputs => ({ project: 'city', towers: [t], north: 0, site: null, context: [], ctxBlocks: [], C })
+  it('safety is the largest over all of a deck\'s points, and says which point', () => {
+    const H = deckHours(C)
+    const roof = towerDecks(setback(), 0).filter((d) => d.type === 'roof')
+    const w = terraceWind(roof, H, opts())[0]
+    const s = w.safety!
+    // on the plain roof the comfort-worst point is not the safety-worst one: the deck's maximum is higher
+    expect(s.atWorst).toBe(false)
+    expect(s.londonHours).toBeGreaterThan(s.worstHours)
+    expect(roof[0].pts.some((p) => p[0] === s.at[0] && p[1] === s.at[1])).toBe(true)
+    expect(s.edge).not.toBeNull()
+    // the point named reads those hours on its own, and no point reads more
+    const one = (p: [number, number]) => terraceWind([{ ...roof[0], pts: [p], ptCover: undefined }], H, opts())[0].safety!
+    expect(one(s.at).londonHours).toBe(s.londonHours)
+    for (let i = 0; i < roof[0].pts.length; i += 7) expect(one(roof[0].pts[i]).londonHours).toBeLessThanOrEqual(s.londonHours)
+  })
+  it('the deck note names the safety point and the hours at the comfort-worst point', async () => {
+    const out = await computeSw('built.sw-wind-height', inp(setback()), SW_DEFAULTS)
+    const roof = out.rules.find((r) => r.id.startsWith('sw-terrace-t-L') && r.label.startsWith('Roof'))!
+    expect(roof.note).toMatch(/Safety \(indicative, one typical year; the largest over the deck's \d+ sample points\): [\d,]+ h at 15 m\/s or more at a point [\d.]+ m in from the (N|NE|E|SE|S|SW|W|NW)-facing edge \([\d,]+ h at the comfort-worst point\)/)
+  })
+
+  /** `roofed(12, 4, true)` with the roof storey open over the deck's east end (x 13 to 25): no slab between it and the sky. */
+  const holed = (): Tower => {
+    const t = roofed(12, 4, true)
+    const L: Pt2[] = [[-25, -25], [13, -25], [13, -13], [25, -13], [25, 25], [-25, 25]]
+    const storeys = (t.imported!.storeys as ImportedStorey[]).map((s) => (s.z0 >= 64 && s.z0 < 68 ? { ...s, loops: [L] } : s))
+    return { ...t, imported: { storeys } as unknown as Tower['imported'] }
+  }
+  it('a covered deck under an opening of the storeys above reads the air above at those points (the more exposed)', () => {
+    const south = deckHours(C, { dir: 180, speed: 3 }) // onto the open south edge
+    const plainD = towerDecks(roofed(12, 4, true), 0).filter((d) => d.z === 60), holedD = towerDecks(holed(), 0).filter((d) => d.z === 60)
+    expect(holedD[0].cover).toBeCloseTo(4, 6) // still a loggia under its slab
+    expect(holedD[0].type).toBe('loggia')
+    const open = holedD[0].pts.filter((_, i) => holedD[0].ptCover![i] == null)
+    expect(open.length).toBeGreaterThan(0)
+    expect(open.every((p) => p[0] > 13)).toBe(true)
+    const plain = terraceWind(plainD, south, opts())[0], w = terraceWind(holedD, south, opts())[0]
+    expect(plain.sharedAir).toBeNull()
+    expect(plain.governing.k).toBeCloseTo(0.6, 6) // the loggia K, as before
+    expect(w.sharedAir).toEqual({ points: open.length, sky: open.length, governs: true })
+    expect(w.governing.shared).toBe(true)
+    expect(w.governing.k).toBeGreaterThanOrEqual(1.2) // the open-edge (or downwash) K of a deck open to the sky
+    expect(w.read.v).toBeGreaterThan(plain.read.v * 1.5)
+    // a slab just above the opening again (one storey of void, 8 m headroom over a 12 m deep deck) still shelters fully
+    const capped = holed()
+    const st = (capped.imported!.storeys as ImportedStorey[]).map((s) => (s.z0 >= 68 && s.z0 < 72 ? { ...s, loops: [box(-25, -25, 25, 25)] } : s))
+    const c = terraceWind(towerDecks({ ...capped, imported: { storeys: st } as unknown as Tower['imported'] }, 0).filter((d) => d.z === 60), south, opts())[0]
+    expect(c.sharedAir!.sky).toBe(0)
+    expect(c.governing.shared).toBe(false)
+    expect(c.read.v).toBeCloseTo(plain.read.v, 6)
+  })
+  it('the deck note counts the points that share the air above', async () => {
+    const line = (await computeSw('built.sw-wind-height', inp(holed()), SW_DEFAULTS)).rules.find((r) => r.id === 'sw-terrace-t-L16')!
+    expect(line.note).toMatch(/Shared air \(team step, G38\): \d+ of \d+ points lie under an opening of the storeys above with no slab between \(\d+ open to the sky\)/)
+  })
+
+  /** 50 m square to +171 m, then a 30 m deep block 4 m north of centre: a 300 m² terrace north and a 700 m² one south at L44. */
+  const twoTerraces = (patch: Partial<Tower> = {}) => withBlocks(base({ skyLobbies: [44], skyRoom: { ...DEFAULT_SKY_ROOM, level: 44 }, ...patch }), [
+    { id: 'a', height: 171, width: 50, depth: 50, dx: 0, dy: 0, rotation: 0 },
+    { id: 'b', height: 79, width: 50, depth: 30, dx: 0, dy: 4, rotation: 0 },
+  ])
+  const skyLine = async (t: Tower) => (await computeSw('built.sw-wind-height', inp(t), SW_DEFAULTS)).data as { skyTerraces: Record<string, SkyTerraceLine> }
+  it('the sky-room line reads the deck marked occupied, else the largest deck people use', async () => {
+    const decks = towerDecks(twoTerraces(), 0).filter((d) => d.level === 44)
+    expect(decks.map((d) => [deckFacing(d), Math.round(d.area)]).sort()).toEqual([['N', 300], ['S', 700]])
+    const largest = (await skyLine(twoTerraces())).skyTerraces.t
+    expect(largest.note).toMatch(/^Terrace at \+171 m \(L44\) \(the largest of 2 decks at the room level\): 700 m²/)
+    const marked = (await skyLine(twoTerraces({ deckUses: [{ level: 44, facing: 'N', use: 'occupied' }] }))).skyTerraces.t
+    expect(marked.note).toMatch(/^Terrace at \+171 m \(L44\) \(marked occupied in the deck uses, of 2 decks at the room level\): 300 m²/)
+    // a planted deck is never the sky room's terrace: the other one is read
+    const planted = (await skyLine(twoTerraces({ deckUses: [{ level: 44, facing: 'S', use: 'planted' }] }))).skyTerraces.t
+    expect(planted.note).toMatch(/^Terrace at \+171 m \(L44\): 300 m²/)
+  })
+})
