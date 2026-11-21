@@ -41,7 +41,7 @@ export interface ProjectFile {
   presets: { lifts: Record<string, number | boolean | string>; egress: Record<string, number | boolean | string> }
   publicRealm?: Record<string, unknown>
   cityInNature?: Record<string, unknown>
-  windPresets?: { tunnelDefaultHeight?: number; f1?: number | null }
+  windPresets?: { tunnelDefaultHeight?: number; f1?: number | null; damping?: number }
   /** Code & life safety presets (team assumptions, research P11-M03). */
   systemsPresets?: Record<string, number | boolean>
   nodes: { enabled: string[]; known?: string[] }

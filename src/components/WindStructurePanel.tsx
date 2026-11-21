@@ -2,6 +2,7 @@
 // Classification and shortlists only; the wind engineer and the tunnel test set the final procedure.
 import { useMemo } from 'react'
 import { ANALOG_LABEL, NO_ENGINE_NOTE, WIND_FALSE_ASSUMPTIONS, windProcedure, windStudyTriggers } from '../engine/windStructure'
+import { DEFAULT_DAMPING } from '../engine/acrossWind'
 import type { Source } from '../engine/types'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section } from './ui'
@@ -48,11 +49,19 @@ export function WindProcedurePanel() {
               </span>
             </span>
           </label>
+          <label className="flex items-center justify-between gap-2 text-muted" title="Across-wind acceleration screen: the Commentary sample uses 0.015; concrete 0.02, steel 0.01 (NBC Commentary I para 57)">Damping ratio (across-wind screen)
+            <span className="flex items-center gap-1"><FlagChip flag="team_assumption" />
+              <span className="flex items-center rounded border border-line bg-panel">
+                <input type="number" step={0.001} min={0.005} max={0.05} value={presets.damping ?? DEFAULT_DAMPING} aria-label="Damping ratio"
+                  onChange={(e) => setPresets({ damping: Math.min(0.05, Math.max(0.005, Number(e.target.value) || DEFAULT_DAMPING)) })} className="w-16 bg-transparent px-1.5 py-0.5 text-right tabular-nums text-ink outline-none" />
+              </span>
+            </span>
+          </label>
         </div>
       </Section>
       <FalseAssumptions />
       <Section title="Read with care" folded>
-        <p className="text-meta text-slate-700">Classification only: no loads, drifts or accelerations. Research packet P10 had two critique rounds and no final gate, so code readings it corrected are shown as unverified. CFD cannot give specified wind loads (4.1.7.1(6)); the tunnel test does.</p>
+        <p className="text-meta text-slate-700">Classification and screens only: no loads or drifts. The natural frequency, across-wind acceleration and vortex lines use the empirical f1 = 46/H (±50%) until the engineer’s model frequency is entered, and a damping ratio that is a team assumption. Research packet P10 had two critique rounds and no final gate, so code readings it corrected are shown as unverified. CFD cannot give specified wind loads (4.1.7.1(6)); the tunnel test does.</p>
       </Section>
     </>
   )

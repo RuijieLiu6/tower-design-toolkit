@@ -162,6 +162,11 @@
           ],
           "exclusiveMinimum": 0,
           "maximum": 10
+        },
+        "damping": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.2
         }
       }
     },

@@ -121,7 +121,12 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^height-60$/, 'Over 60 m the code sends the tower to the Dynamic or Wind Tunnel Procedure: brief the structural and wind engineers early.'],
   [/^aspect$/, (st) => (st === 'fail' ? 'Over 6 : 1 with occupants the code asks for a wind tunnel test: widen the effective width (plate or base), or plan the test.' : 'Between 4 and 6 : 1 the tower is dynamically sensitive: the Dynamic Procedure applies.')],
   [/^across-wind$/, 'Across-wind motion governs at this proportion: the wind engineer checks accelerations; corner softening, tapering or setbacks are the usual shape moves.'],
-  [/^f1$/, (st) => (st === 'fail' ? 'Ask the structural engineer for the model frequency (enter it under Details); without it, towers of 180 m or more go to the tunnel (team default).' : 'Enter the engineer’s model frequency under Details: the code’s seismic period is not a wind frequency.')],
+  [/^f1$/, (st, v) => (/empirical/.test(v)
+    ? (st === 'fail' ? 'Even the upper empirical estimate (46/H) is under 0.25 Hz: plan the wind tunnel test, and enter the engineer’s model frequency under Details when there is one.' : 'Enter the engineer’s model frequency under Details: 46/H carries ±50% scatter, and the code’s seismic period is not a wind frequency.')
+    : st === 'fail' ? 'Ask the structural engineer for the model frequency (enter it under Details); without it, towers of 180 m or more go to the tunnel (team default).' : 'Enter the engineer’s model frequency under Details: the code’s seismic period is not a wind frequency.')],
+  [/^across-wind-accel$/, (st) => (st === 'fail' ? 'Across-wind motion over the comfort limit: plan supplementary damping (a tuned mass damper), soften or twist the corners, taper the top, or widen the plate; the wind tunnel test settles it.'
+    : 'Over the limit at the low end of the frequency range: get the engineer’s model frequency (enter it under Details) and keep damping, softer corners or a taper in reserve.')],
+  [/^vortex$/, 'Vortex lock-in is possible within design winds: the wind tunnel test checks it; a wider plate, a stiffer structure (higher f1), or corner and section changes along the height move the critical speed.'],
   [/^super-slender$/, 'Very slender: expect tuned mass dampers, shaping or windbreak floors (precedent, no sourced threshold); a wider base lowers it.'],
   [/^trigger-/, 'Plan a wind study at the level this analog city asks for; Vancouver has no numeric trigger, and a wind engineer sets the scope.'],
   // Pedestrian wind comfort (Sun & Wind Studio port, 16 Nov): her strategies, each as the move to make; the informational lines say what they report.

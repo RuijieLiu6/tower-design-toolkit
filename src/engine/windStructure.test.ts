@@ -22,7 +22,9 @@ describe('wind procedure from slenderness (P10-M02)', () => {
     const r = windProcedure(box(150, 40))
     expect(r.aspect).toBeCloseTo(3.75, 2)
     expect(rule(r, 'aspect').state).toBe('pass')
-    expect(rule(r, 'f1').state).toBe('unknown') // under the 180 m default, no model frequency
+    // No model frequency: the empirical 46/H with its ±50% band (0.204–0.460 Hz) reads "dynamic", and the 180 m tunnel default does not apply.
+    expect(rule(r, 'f1').state).toBe('warn')
+    expect(rule(r, 'f1').value).toBe('≈ 0.307 Hz, empirical (46/H; 0.204–0.460 Hz at ±50%)')
     expect(r.procedure).toBe('dynamic')
   })
   it('uses the engineer’s model frequency when there is one, and the team default otherwise', () => {
