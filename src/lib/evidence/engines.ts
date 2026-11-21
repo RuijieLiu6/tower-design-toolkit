@@ -22,6 +22,7 @@ import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageC
 import { silhouetteReading, skyContext, type SkyContext } from '../../engine/silhouette'
 import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
+import { DEFAULT_WEIGHT_PRESETS, type WeightPresets } from '../../engine/storeyWeight'
 import type { Tower } from '../../engine/types'
 import { SITE, vtcRules, type FsrTier } from '../../engine/vtcRules'
 import { windProcedure, windStudyRules, type WindPresets } from '../../engine/windStructure'
@@ -64,6 +65,13 @@ export interface EvidenceInput {
    * towers (always checked), e.g. the city's buildings, and what they are in words.
    */
   silhouetteContext?: SkyContext | null
+  /**
+   * Structure: storey-weight presets (gap G21; engine/storeyWeight.ts WeightPresets: soil depth on planted decks in mm,
+   * which decks are planted, facade kPa, core wall thickness). Fields left out keep DEFAULT_WEIGHT_PRESETS (600 mm of
+   * soil on the decks of open garden storeys and public-amenity floors). The structure node has no settings of its own,
+   * so this lives in the evidence input only.
+   */
+  weightPresets?: Partial<WeightPresets> | null
   /** Engagement records, board text and the AI-use log; with it, the claims guard and the AI-use log give lines. */
   culture?: CultureInput | null
 }
@@ -82,6 +90,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
   const egress = towers.map((t) => egressCheck(t, i.egressPresets, i.liftPresets))
   const wind = towers.map((t) => windProcedure(t, i.windPresets))
   const north = i.project === 'vtc' ? VTC_NORTH_DEG : 0
+  const weightPresets: WeightPresets = { ...DEFAULT_WEIGHT_PRESETS, ...Object.fromEntries(Object.entries(i.weightPresets ?? {}).filter(([, v]) => v !== undefined && v !== null)) }
   return {
     'built.vtc-rules': vtc ? vtcRules(towers, { fsrTier: i.fsrTier, transitLink: i.transitLink }) : [],
     'built.core-lifts': lifts.map((l) => l.rules),
@@ -93,7 +102,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],
     'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0).faces }),
     'built.wind-procedure': wind.map((w) => w.rules),
-    'built.structure': towers.map((t, k) => structureCheck(t, wind[k]).rules),
+    'built.structure': towers.map((t, k) => structureCheck(t, wind[k], weightPresets).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
     'built.mobility': mobilityCheck(towers, DEFAULT_MOBILITY, { project: i.project, transitLink: i.transitLink, homeM2: i.liftPresets.homeM2, hotelM2PerKey: i.liftPresets.hotelM2PerKey }).rules,
     'built.facade': facadeCheck(towers, DEFAULT_FACADE, north).rules,

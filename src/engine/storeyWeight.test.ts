@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { structureCheck } from './structure'
 import { DEFAULT_WEIGHT_PRESETS, GAMMA_C, HARD_DECK, PLANTED_BUILDUP, PLANTED_SLAB, SNOW_W, soilKpa, storeyWeights, USE_LOADS, worstWeightStep } from './storeyWeight'
 import { importedTower, rect, stack } from './testStoreys'
-import type { UseId } from './types'
+import type { RuleResult, UseId } from './types'
 import { windProcedure } from './windStructure'
 
 // A8-like: a 90 × 60 m podium, a 50 × 50 m tower set 17 m east and 2 m north, and an open garden storey at mid-height
@@ -100,5 +100,31 @@ describe('G6: storey weight by use (R5 §3)', () => {
     const d = storeyWeights(A8).density
     expect(d).toBeGreaterThan(150)
     expect(d).toBeLessThan(400)
+  })
+})
+
+// G21 (vtc-entry A19a structural review): the storey-weight presets come from an input, so a design can say 450 mm of soil.
+describe('G21: storey-weight presets from the evidence input', () => {
+  it('450 mm of soil lowers the garden storey’s weight step; fields left out keep the defaults', async () => {
+    const { evidenceGroups } = await import('../lib/evidence/engines')
+    const { useStore } = await import('../store')
+    const s = useStore.getState()
+    const base = { project: 'vtc' as const, towers: [A8], fsrTier: 2 as const, transitLink: false, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets }
+    const weight = (g: Record<string, unknown>) => (g['built.structure'] as RuleResult[][])[0].find((x) => x.id === 'weight')!
+    const share = (r: RuleResult) => Number(/^(\d+)% by weight between L\d+ and L\d+$/.exec(r.value)![1])
+    const dflt = weight(evidenceGroups(base)), soil = weight(evidenceGroups({ ...base, weightPresets: { soilMm: 450 } }))
+    expect(share(soil)).toBeLessThan(share(dflt))
+    expect(dflt.note).toMatch(/planted: 600 mm of soil/)
+    expect(soil.note).toMatch(/planted: 450 mm of soil, 7\.2 kPa/)
+    // The same as the engine run with those presets; an empty or absent input is the default.
+    const engine = structureCheck(A8, windProcedure(A8, s.windPresets), { ...DEFAULT_WEIGHT_PRESETS, soilMm: 450 }).rules.find((x) => x.id === 'weight')!
+    expect(soil.value).toBe(engine.value)
+    expect(weight(evidenceGroups({ ...base, weightPresets: {} })).value).toBe(dflt.value)
+    expect(weight(evidenceGroups({ ...base, weightPresets: null })).value).toBe(dflt.value)
+    // The garden storey alone is lighter, by the 150 mm of soil on its 1,924 m² deck.
+    const g = (soilMm: number) => storeyWeights(A8, { ...DEFAULT_WEIGHT_PRESETS, soilMm }).levels.find((l) => l.level === GARDEN)!.W
+    expect(g(600) - g(450)).toBeCloseTo(1924 * soilKpa(150), 6)
+    // No planted decks at all: the garden deck is hard.
+    expect(share(weight(evidenceGroups({ ...base, weightPresets: { planted: 'none' } })))).toBeLessThan(share(soil))
   })
 })
