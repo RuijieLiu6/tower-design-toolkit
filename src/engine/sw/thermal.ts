@@ -14,6 +14,7 @@ import { FACE_AZ, FACE_NAME, ORI, band, cardinalOf, faceOffset, inCore, solidAt,
 import { floorExposure } from './form'
 import { zoneSolarT } from './glazing'
 import type { VentSettings } from './vent'
+import type { UseId } from '../types'
 
 /** Systems of the Studio's thermal layers (THERM_SYS). */
 export type ThermSys = 'none' | 'win' | 'heat' | 'heatwin' | 'full'
@@ -24,6 +25,35 @@ export const THERM_SYS: Record<ThermSys, { name: string; blurb: string }> = {
   heatwin: { name: 'Heating and windows', blurb: 'Heating to the set point, and operable windows open to cool when it is warm.' },
   full: { name: 'Heating and cooling', blurb: 'Heating and mechanical cooling to the Energy set points, windows shut.' },
 }
+/**
+ * The system the Energy use line counts on a floor of this use (gap G37): energy.ts heats and cools every zone to its set
+ * points unless its program is open (amenity and plant floors), which it leaves unconditioned.
+ */
+export function energyLineSys(use: UseId): ThermSys {
+  return OPS[PROG_OF[use] ?? 'office']?.open ? 'none' : 'full'
+}
+/** The indoor-temperature setting that follows the Energy use line storey by storey (gap G37). */
+export const FOLLOW_ENERGY = { name: 'As the Energy use line', blurb: 'Each storey as the Energy use line counts it: heating and cooling on conditioned floors, none on amenity and plant floors, which it leaves unconditioned.' }
+/** A storey's system under a setting: the chosen one, or the Energy use line's for its use. */
+export const sysFor = (setting: ThermSys | 'energy', use: UseId): ThermSys => (setting === 'energy' ? energyLineSys(use) : setting)
+
+/**
+ * The storeys the indoor-temperature line reads (gap G37): the study storey and the top storey of each run of one use
+ * (each use band's top, where the sun and the roof reach it most), plant and amenity runs left out (the Energy use line
+ * leaves them unconditioned). At most `max` band tops, the longest runs first. Indices into `floors`, bottom-up.
+ */
+export function tempStoreys(floors: Pick<SwFloor, 'level' | 'use'>[], study: number, max = 6): number[] {
+  const runs: { top: number; n: number }[] = []
+  for (let i = 0; i < floors.length; i++) {
+    const u = floors[i].use
+    if (i + 1 < floors.length && floors[i + 1].use === u) continue
+    let j = i; while (j > 0 && floors[j - 1].use === u) j--
+    if (u !== 'mechanical' && u !== 'amenity') runs.push({ top: i, n: i - j + 1 })
+  }
+  const tops = runs.sort((a, b) => b.n - a.n || b.top - a.top).slice(0, max).map((r) => r.top)
+  return [...new Set([...(study >= 0 && study < floors.length ? [study] : []), ...tops])].sort((a, b) => a - b)
+}
+
 /** Comfort bins on the operative temperature: under 18, 18–20, 20–26, 26–28, over 28 °C. */
 export const T_BINS = [18, 20, 26, 28]
 

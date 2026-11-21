@@ -4,7 +4,9 @@ import { formStudy, RATE_L, WARP_OVERLAP, WARP_STEP_MAX } from '../engine/sw/for
 import { glazingStudy, towerWWR, type GlazingZone } from '../engine/sw/glazing'
 import { zonesOf } from '../engine/sw/plate'
 import { photovoltaics } from '../engine/sw/pv'
-import { thermalFloor, THERM_SYS, type ThermSys } from '../engine/sw/thermal'
+import { energyLineSys, FOLLOW_ENERGY, sysFor, tempStoreys, thermalFloor, THERM_SYS, type ThermalZone, type ThermSys } from '../engine/sw/thermal'
+import { ENERGY_DEFAULTS } from '../engine/sw/energy'
+import type { SwFloor } from '../engine/sw/plate'
 import { airFlow, periodWind, ventHours, ventTower } from '../engine/sw/vent'
 import { FULL_YEAR } from '../engine/sw/climate'
 import { addRuns, allFloors, key, LOSS_COL, planFloor, rule, T_COL, T_NAME, useSwOut } from './swRun'
@@ -121,29 +123,59 @@ addRuns({
     if (!pf) return { data: {}, rules: [] }
     const floors = allFloors(inp).find((x) => x.t.id === pf.t.id)!.floors
     const k = (doyOfHour(s.month, s.day) - 1) * 24 + Math.max(0, Math.min(23, s.hour - 1))
-    const T = thermalFloor(pf.f, floors, zonesOf(pf.t), inp.C!, { sys: s.system, hour: k })
-    const hot = T.zones.reduce((a, z) => (z.overShare > a.overShare ? z : a), T.zones[0])
+    // One system per floor (gap G37): by default each storey's system is the one the Energy use line counts for its use.
+    const setting = s.system as ThermSys | 'energy'
+    const sys = sysFor(setting, pf.f.use)
+    const T = thermalFloor(pf.f, floors, zonesOf(pf.t), inp.C!, { sys, hour: k })
+    const hotOf = (X: { zones: ThermalZone[] }) => X.zones.reduce((a, z) => (z.overShare > a.overShare ? z : a), X.zones[0])
+    // The hottest storey (gap G37): the study storey and the top storey of each use band, each on its own system.
+    const study = floors.findIndex((f) => f.level === pf.f.level)
+    const read = tempStoreys(floors, study).map((i) => {
+      const f = floors[i], sy = sysFor(setting, f.use)
+      const X = i === study ? T : thermalFloor(f, floors, zonesOf(pf.t), inp.C!, { sys: sy })
+      const z = hotOf(X)
+      return { f, sys: sy, zone: z, level: f.level, use: f.use, over26: z?.over26 ?? 0, overShare: z?.overShare ?? 0 }
+    }).filter((r) => r.zone)
+    const worst = read.reduce<(typeof read)[number] | null>((a, r) => (!a || r.overShare > a.overShare || (r.overShare === a.overShare && r.over26 > a.over26) ? r : a), null)
+    const hot = worst?.zone ?? hotOf(T), hotF: SwFloor = worst?.f ?? pf.f
     // The same floor with each option (study.js thermalSectionHTML sysRows): comfort bins by area, heating and cooling.
     const sysRows = (Object.keys(THERM_SYS) as ThermSys[]).map((sy) => {
-      const X = sy === s.system ? T : thermalFloor(pf.f, floors, zonesOf(pf.t), inp.C!, { sys: sy })
+      const X = sy === sys ? T : thermalFloor(pf.f, floors, zonesOf(pf.t), inp.C!, { sys: sy })
       const A = X.zones.reduce((a, z) => a + z.area, 0) || 1
       return { sys: sy, label: THERM_SYS[sy].name, parts: [0, 1, 2, 3, 4].map((i) => X.zones.reduce((a, z) => a + (z.occN ? z.bins[i] / z.occN : 0) * z.area, 0) / A), heat: X.zones.reduce((a, z) => a + z.heat, 0) / A, cool: X.zones.reduce((a, z) => a + z.cool, 0) / A }
     })
-    const now = sysRows.find((r) => r.sys === s.system)!
+    const now = sysRows.find((r) => r.sys === sys)!
     const L = T.loss, lt = L.total || 1
+    const sysNote = tempSystemNote(setting, read)
+    const readNote = `Hottest of ${read.length} storey${read.length === 1 ? '' : 's'} read (the study storey, level ${pf.f.level}, and the top storey of each use band; plant and amenity bands left out): ${read.map((r) => `L${r.level} ${r.use} ${fmt(r.over26)} h (${r.zone.name.toLowerCase()}, ${THERM_SYS[r.sys].name.toLowerCase()})`).join(', ')}.`
     return {
-      data: { T, pf, k, sysRows },
+      data: { T, pf, k, sysRows, read: read.map((r) => ({ level: r.level, use: r.use, sys: r.sys, zone: r.zone.name, over26: r.over26, overShare: r.overShare })), hottest: hotF.level, system: sys },
       keys: [
-        key('sw-temp-over', 'Over 26 °C', `${hot.name.toLowerCase()} zone`, fmt(hot.over26), hot.overShare <= 0.05 ? 'pass' : hot.overShare <= 0.1 ? 'warn' : 'fail', `Occupied hours over 26 °C in the warmest zone of level ${pf.f.level}; under 5% of occupied hours is the aim.`, { unit: 'h', bar: { max: 0.2, v: Math.min(0.2, hot.overShare), zone: [0, 0.05], ticks: [[0.05, '5%']] } }),
-        key('sw-temp-comfort', 'Comfortable', '20–26 °C', pc(now.parts[2]), now.parts[2] >= 0.8 ? 'pass' : now.parts[2] >= 0.6 ? 'warn' : 'fail', `Occupied hours of level ${pf.f.level} by operative temperature, weighted by zone area, with ${THERM_SYS[s.system].name.toLowerCase()}.`, { stack: { parts: now.parts, colors: T_COL, names: T_NAME } }),
+        key('sw-temp-over', 'Over 26 °C', `L${hotF.level} ${hot.name.toLowerCase()} zone`, fmt(hot.over26), hot.overShare <= 0.05 ? 'pass' : hot.overShare <= 0.1 ? 'warn' : 'fail', `Occupied hours over 26 °C in the warmest zone of level ${hotF.level}, the hottest of ${read.length} storeys read; under 5% of occupied hours is the aim. ${sysNote}`, { unit: 'h', bar: { max: 0.2, v: Math.min(0.2, hot.overShare), zone: [0, 0.05], ticks: [[0.05, '5%']] } }),
+        key('sw-temp-comfort', 'Comfortable', '20–26 °C', pc(now.parts[2]), now.parts[2] >= 0.8 ? 'pass' : now.parts[2] >= 0.6 ? 'warn' : 'fail', `Occupied hours of level ${pf.f.level} by operative temperature, weighted by zone area, with ${THERM_SYS[sys].name.toLowerCase()}${setting === 'energy' ? ' (as the Energy use line)' : ''}.`, { stack: { parts: now.parts, colors: T_COL, names: T_NAME } }),
         key('sw-temp-loss', 'Heat loss', 'by path', T.loss.perM2.toFixed(0), 'unknown', 'Glass, walls, roofs and soffits, ventilation, leaks: summed over the hours the inside is warmer than the outside.', { unit: 'kWh/m²', stack: { parts: [L.glass / lt, L.wall / lt, L.roof / lt, L.vent / lt, L.infil / lt], colors: [LOSS_COL.glass, LOSS_COL.wall, LOSS_COL.roof, LOSS_COL.vent, LOSS_COL.infil], names: ['glass', 'walls', 'roofs', 'ventilation', 'leaks'] } }),
       ],
       rules: [
-        rule('sw-temp-over', `Overheating, level ${pf.f.level} (${hot.name})`, `${fmt(hot.over26)} h over 26 °C`, 'under 5% of occupied hours', hot.overShare <= 0.05 ? 'pass' : hot.overShare <= 0.1 ? 'warn' : 'fail', undefined, { label: 'ISO 13790 5R1C per zone; ASHRAE 55' }),
+        rule('sw-temp-over', `Overheating, level ${hotF.level} (${hot.name})`, `${fmt(hot.over26)} h over 26 °C, hottest of ${read.length} storey${read.length === 1 ? '' : 's'} read`, 'under 5% of occupied hours', hot.overShare <= 0.05 ? 'pass' : hot.overShare <= 0.1 ? 'warn' : 'fail', `${readNote} ${sysNote}`, { label: 'ISO 13790 5R1C per zone; ASHRAE 55' }),
         rule('sw-temp-loss', 'Heat loss of the floor', `${T.loss.perM2.toFixed(0)} kWh/m²`, 'reading', 'unknown', `Glass ${pc(T.loss.glass / T.loss.total)}, walls ${pc(T.loss.wall / T.loss.total)}, ventilation and leaks ${pc((T.loss.vent + T.loss.infil) / T.loss.total)}.`),
       ],
     }
   },
 })
+
+/** The indoor-temperature line's system against the Energy use line's, storey by storey (gap G37). */
+function tempSystemNote(setting: ThermSys | 'energy', read: { level: number; use: SwFloor['use']; sys: ThermSys }[]): string {
+  type R = (typeof read)[number]
+  const by = (xs: R[], f: (r: R) => ThermSys) => {
+    const g = new Map<ThermSys, number[]>()
+    for (const r of xs) g.set(f(r), [...(g.get(f(r)) ?? []), r.level])
+    return [...g.entries()].map(([sy, ls]) => `${THERM_SYS[sy].name.toLowerCase()} on ${ls.map((l) => `L${l}`).join(', ')}`).join('; ')
+  }
+  if (setting === 'energy') return `System: as the Energy use line counts it, storey by storey (${by(read, (r) => r.sys)}), to its set points of ${ENERGY_DEFAULTS.setH} / ${ENERGY_DEFAULTS.setC} °C.`
+  const off = read.filter((r) => energyLineSys(r.use) !== r.sys)
+  return `System: ${THERM_SYS[setting].name.toLowerCase()}, chosen in the settings.` + (off.length
+    ? ` The Energy use line counts ${by(off, (r) => energyLineSys(r.use))}: the two lines assume different systems for those storeys (choose "${FOLLOW_ENERGY.name}" to match).`
+    : ' The Energy use line counts the same system on these storeys.')
+}
 
 function doyOfHour(m: number, d: number) { const days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; let n = 0; for (let i = 0; i < m; i++) n += days[i]; return n + d }

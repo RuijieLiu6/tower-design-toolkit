@@ -7,7 +7,8 @@ import type { Season } from '../engine/sw/wind'
 import { DEFAULT_EXPOSURE, type Criteria, type DeckProfile, type Exposure } from '../engine/sw/deckWind'
 
 export type VentMode = 'cross' | 'single' | 'stack'
-export type ThermalSystem = 'none' | 'win' | 'heat' | 'heatwin' | 'full'
+/** What conditions the floors in the indoor-temperature line: 'energy' follows the Energy use line storey by storey (gap G37). */
+export type ThermalSystem = 'energy' | 'none' | 'win' | 'heat' | 'heatwin' | 'full'
 
 export interface SwStudySettings {
   /** Shadow study: one day (date + hours) or a season of clear and cloudy days. */
@@ -49,7 +50,8 @@ export interface SwStudySettings {
   vent: { mode: VentMode; band: 'fixed' | 'adaptive'; tmin: number; tmax: number; umax: number; open: number; dT: number }
   /** Photovoltaics (SW.pv): share of roof covered, module efficiency, performance ratio. */
   pv: { roof: number; eff: number; pr: number }
-  /** Indoor temperature: what conditions the floor. */
+  /** Indoor temperature: what conditions the floor; 'energy' (default since 21 Nov, gap G37): as the Energy use line, so
+   *  the two lines agree (heating and cooling on conditioned floors, none on amenity and plant). */
   system: ThermalSystem
   /** Rain: run-off efficiency of the roof catchment. */
   rainEff: number
@@ -72,7 +74,7 @@ export const SW_DEFAULTS: SwStudySettings = {
   month: 5, day: 21, hour: 13, level: null,
   vent: { mode: 'cross', band: 'fixed', tmin: 12, tmax: 24, umax: 8, open: 0.1, dT: 3 },
   pv: { roof: 0.5, eff: 0.2, pr: 0.8 },
-  system: 'heatwin',
+  system: 'energy',
   rainEff: 0.8, rainDir: null, rainSpeed: null, rainDrop: 'steady', rainDur: 60, rainI: 80, rainCase: null,
 }
 

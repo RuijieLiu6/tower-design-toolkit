@@ -6,7 +6,8 @@ import { create } from 'zustand'
 import { towerOccluders } from '../engine/solarRules'
 import { aseTower, daylightTower, type DaylightTower, type AseTower } from '../engine/sw/daylight'
 import { hourBase, hourLight, type HourLight } from '../engine/sw/hourLight'
-import { energyModel, ENERGY_DEFAULTS, type EnergyFloor, type EnergyResult } from '../engine/sw/energy'
+import { energyModel, ENERGY_DEFAULTS, type EnergyFloor, type EnergyResult, type EnergySettings } from '../engine/sw/energy'
+import { energyLineSys, THERM_SYS } from '../engine/sw/thermal'
 import { FACE_AZ, ORI, swFloors, toNorth, zonesOf, zoneFor, zoneFacesOf, band, STRATS, type Face, type SwFloor, type ZoneFace } from '../engine/sw/plate'
 import { designStorm, facadeRain, groundShelter, hourlyRain, keepFor, rainAngle, rainBySector, roofCollect, wdrBins, type FaceRain, type GroundShelter, type RainBySector, type RainTower, type RoofWater } from '../engine/sw/rain'
 import { facadeIrradiance, sunGround, SUN_DATES, type SunGround } from '../engine/sw/sun'
@@ -19,7 +20,7 @@ import { deckUseOf, towerDecks, type Deck, type DeckEdge, type DeckType } from '
 import { K_WORD, terraceWind, type DeckWind, type Screen } from '../engine/sw/terraceWind'
 import { towerFloors } from '../engine/massing'
 import type { SkyTerraceLine } from '../engine/skyRoom'
-import type { DeckUse, RuleResult, RuleState, Tower } from '../engine/types'
+import type { DeckUse, RuleResult, RuleState, Tower, UseId } from '../engine/types'
 import type { KeySpec } from '../components/ResultViz'
 import { faceSunHours, peopleOf, prismsToNorth, roofYear, shadowRange, stormOnFaces, windProfile } from '../engine/sw/detail'
 import type { SwInputs } from './swInputs'
@@ -380,12 +381,18 @@ const RUNS: Partial<Record<SwId, Run>> = {
         eKey('sw-ghgi', 'Carbon', 'GHGI', r.ghgi, r.tgt.ghgi, 'kg/m²', 2, 'Greenhouse gas intensity against the Vancouver target (gas 0.18, BC electricity 0.011 kg/kWh).'),
       ],
       rules: [
-        rule('sw-teui', 'Energy use (TEUI)', `${Math.round(r.teui)} kWh/m²`, `target ${Math.round(r.tgt.teui)}`, st(r.teui, r.tgt.teui), undefined, src),
+        rule('sw-teui', 'Energy use (TEUI)', `${Math.round(r.teui)} kWh/m²`, `target ${Math.round(r.tgt.teui)}`, st(r.teui, r.tgt.teui), energySystemNote(floors.map((f) => f.use), settings), src),
         rule('sw-tedi', 'Heating demand (TEDI)', `${r.tedi.toFixed(1)} kWh/m²`, `target ${Math.round(r.tgt.tedi)}`, st(r.tedi, r.tgt.tedi), undefined, src),
         rule('sw-ghgi', 'Carbon (GHGI)', `${r.ghgi.toFixed(2)} kg/m²`, `target ${r.tgt.ghgi.toFixed(1)}`, st(r.ghgi, r.tgt.ghgi), undefined, src),
       ],
     }
   },
+}
+
+/** The system the Energy use line counts (gap G37): heating and cooling on conditioned floors, none on open ones. */
+function energySystemNote(uses: UseId[], E: EnergySettings): string {
+  const open = [...new Set(uses.filter((u) => energyLineSys(u) === 'none'))]
+  return `System: ${THERM_SYS.full.name.toLowerCase()} to ${E.setH} / ${E.setC} °C on every conditioned floor${open.length ? `; ${open.join(' and ')} floors unconditioned (${THERM_SYS.none.name.toLowerCase()})` : ''}. The Indoor temperature line follows it unless another system is chosen there, and then says so.`
 }
 
 // ------------------------------------------------------------------ the deck wind wording (research R5 §1)

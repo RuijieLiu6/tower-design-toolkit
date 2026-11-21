@@ -2,7 +2,7 @@
 // study settings (the Studio's left panel). Registered as design tools that never show in a step's row; each check
 // opens with its own through lib/workflow/phaseTools.ts NODE_CONTROLS.
 import { Blinds, CalendarClock, Fan, Leaf, SunDim, Thermometer, SolarPanel, Droplets } from '../icons'
-import { THERM_SYS, type ThermSys } from '../../engine/sw/thermal'
+import { FOLLOW_ENERGY, THERM_SYS, type ThermSys } from '../../engine/sw/thermal'
 import { useSwStudy, type VentMode } from '../../lib/swStudy'
 import type { DesignTool } from '../tools/registry'
 import FacadeZonesTool from './FacadeZonesTool'
@@ -77,7 +77,7 @@ function TempSet() {
   const s = useSwStudy()
   return (
     <div className="grid gap-2 px-3 pb-3">
-      <label className={label}>System<select className={input} value={s.system} onChange={(e) => s.set({ system: e.target.value as ThermSys })}>{(Object.keys(THERM_SYS) as ThermSys[]).map((k) => <option key={k} value={k}>{THERM_SYS[k].name}</option>)}</select></label>
+      <label className={label}>System<select className={input} value={s.system} onChange={(e) => s.set({ system: e.target.value as ThermSys | 'energy' })}><option value="energy" title={FOLLOW_ENERGY.blurb}>{FOLLOW_ENERGY.name}</option>{(Object.keys(THERM_SYS) as ThermSys[]).map((k) => <option key={k} value={k}>{THERM_SYS[k].name}</option>)}</select></label>
       <HourSet />
     </div>
   )
