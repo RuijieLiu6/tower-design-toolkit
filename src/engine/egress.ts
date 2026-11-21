@@ -2,7 +2,7 @@
 // stair core area, exits per floor, exit separation, travel distance and flight rise.
 // Values are VBBL 2019 Part 3 (consolidated 1 Jul 2024), equal to VBBL 2007; VBBL 2025 and BCBC 2024 are unread,
 // so every rule carries an edition note. Early check, not a code review: a code consultant decides.
-import { coreSide, readsStoreys, towerFloors } from './massing'
+import { coreAreaAt, coreSide, readsStoreys, towerFloors } from './massing'
 import { coreCentre, storeyCore } from './storeyWeight'
 import { towerTwist } from './twist'
 import type { Floor, RuleResult, StairCorner, StairPlacement, Tower } from './types'
@@ -55,9 +55,12 @@ export interface StoreyLoad {
   stairMm: number
 }
 
-/** Net area of a floor: its plate less the core (team assumption; the code measures the floor area served). */
+/**
+ * Net area of a floor: its plate less the core at its own level (team assumption; the code measures the floor area
+ * served). A core that steps in (`Tower.coreSteps`) leaves the upper storeys more floor, as on the sky room lines (G46).
+ */
 function netOf(f: Floor, t: Tower): number {
-  return Math.max(0, f.area - t.coreShare * t.width * t.depth)
+  return Math.max(0, f.area - coreAreaAt(t, f.level))
 }
 
 /**

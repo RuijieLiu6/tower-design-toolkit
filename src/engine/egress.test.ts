@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { CORNER_SIGN, DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, STAIR_MIN_MM, cornerToward, egressCheck, podiumExitSpots, postedLimitForRoom, stairEnclosure, stairSpots, storeyLoads, straightStairs } from './egress'
 import { DEFAULT_LIFT_PRESETS, liftCheck, planRises } from './lifts'
 import { skyRoomCheck, stablePostedLimit } from './skyRoom'
+import { towerFloors } from './massing'
 import { importedTower, rect, ringArea, stack, type P } from './testStoreys'
 import type { SkyRoom, Tower } from './types'
 
@@ -430,5 +431,47 @@ describe('sky room floor with a core that steps in (G45)', () => {
     const above = check({ ...base, coreSteps: [{ fromLevel: 45, side: 15 }] })
     expect(above.visitorArea).toBeCloseTo(a.visitorArea, 6)
     expect(above.shareAbovePodium).toBeCloseTo(a.shareAbovePodium, 6)
+  })
+})
+
+describe('exit stairs on storeys above a core that steps in (G46)', () => {
+  // The G45 tower: a 54 m plate with a 24 m core (576 m²) that steps to 15 m (225 m²) from level 35, below the room at 40.
+  const base: Tower = { ...withRoom({ postedLimit: 50 }), width: 54, depth: 54, coreShare: 576 / (54 * 54) }
+  const stepped: Tower = { ...base, coreSteps: [{ fromLevel: 35, side: 15 }] }
+  const loads = (t: Tower) => storeyLoads(t, DEFAULT_EGRESS_PRESETS, li)
+  it('deducts each storey\'s own core, so the upper storeys carry the larger net area and its load', () => {
+    const a = loads(base), b = loads(stepped)
+    const tower = b.filter((s) => !s.podium && s.z > 0.5)
+    expect(tower.some((s) => s.level < 35) && tower.some((s) => s.level >= 35)).toBe(true)
+    for (const s of b) {
+      const before = a.find((x) => x.level === s.level)!
+      expect(s.net - before.net).toBeCloseTo(s.level >= 35 ? 576 - 225 : 0, 6)
+      if (s.level < 35) expect(s.load).toBeCloseTo(before.load, 6)
+      if (s.level >= 35 && s.use === 'office' && !s.skyLobby) expect(s.load).toBeCloseTo(s.net / LOAD_FACTOR.office, 6)
+    }
+    expect(tower.filter((s) => s.level >= 35 && s.net > 0).every((s) => s.load > a.find((x) => x.level === s.level)!.load)).toBe(true)
+  })
+  it('reads the sky room storey on the same area as the posted-limit line', () => {
+    const e = egressCheck(stepped, DEFAULT_EGRESS_PRESETS, li)
+    const sky = skyRoomCheck(stepped, liftCheck(stepped), e)
+    const storey = e.storeys.find((s) => s.publicRoom)!
+    expect(storey.net).toBeCloseTo(sky.room!.area - 225, 6)
+    expect(storey.net * 0.6).toBeCloseTo(sky.visitorArea, 6)
+    const table = (storey.net * 0.6) / LOAD_FACTOR.dining
+    const remainder = (storey.net * 0.4) / LOAD_FACTOR.publicCorridor
+    expect(storey.load).toBeCloseTo(50 + remainder, 6)
+    const line = (id: string) => sky.rules.find((r) => r.id === `${id}-t1`)!.value
+    expect(line('skyroom-posted')).toBe(`50 visitors posted (the table load would be ${Math.round(table).toLocaleString()})`)
+    expect(line('skyroom-exits')).toBe(`${Math.round(storey.load).toLocaleString()} people → ${Math.round(storey.needMm).toLocaleString()} mm per stair`)
+    const p = postedLimitForRoom(stepped, DEFAULT_EGRESS_PRESETS, li)!
+    const others = e.storeys.filter((s) => !s.podium && s.z > 0.5 && !s.publicRoom)
+    expect(p.widthMm).toBeCloseTo(Math.max(STAIR_MIN_MM, ...others.map((s) => s.needMm)), 6)
+    expect(p.limit).toBe(Math.max(0, Math.floor((p.widthMm * 2) / 8 - remainder)))
+  })
+  it('leaves a tower without core steps as before: every storey less the core share', () => {
+    for (const t of [base, vtc]) {
+      const st = loads(t), floors = towerFloors(t)
+      for (const s of st) expect(s.net).toBeCloseTo(Math.max(0, floors.find((f) => f.level === s.level)!.area - t.coreShare * t.width * t.depth), 6)
+    }
   })
 })
