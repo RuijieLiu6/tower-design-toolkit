@@ -73,6 +73,7 @@ const ALIASES: Record<string, string[]> = {
   'built.structure': ['structure', 'structural', 'seismic', 'earthquake', 'lateral system', 'outrigger', 'outriggers'],
   'built.wind-study': ['wind study', 'pedestrian wind study'],
   'built.wind-screen': ['wind', 'pedestrian wind', 'wind screen', 'downwash', 'windy'],
+  'built.silhouette': ['skyline', 'silhouette', 'skyline silhouette', 'distinctive', 'distinctiveness', 'legible form', 'city scale'],
   'built.sw-wind-comfort': ['wind comfort', 'lawson', 'pedestrian wind comfort', 'sitting standing', 'sitting and standing', 'sun & wind', 'sun and wind', 'sun & wind studio', 'sun and wind studio'],
   'built.sw-daylight': ['sda', 'ase', 'spatial daylight autonomy', 'annual sunlight exposure', 'daylight autonomy', 'leed daylight', 'daylight factor', 'udi', 'climate-based daylight'],
   'built.sw-natvent': ['natural ventilation', 'ventilation', 'operable windows', 'openable area', 'windows open', 'cross ventilation', 'stack ventilation', 'adaptive comfort', 'ashrae 62.1', 'mixed mode'],

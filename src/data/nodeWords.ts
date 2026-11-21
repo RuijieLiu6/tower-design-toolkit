@@ -11,7 +11,7 @@ export const NODE_WORDS: Record<string, string> = {
   'built.pr-streetwall': 'Public realm', 'built.pr-frontage': 'Frontage', 'built.pr-ground': 'Open space',
   'built.city-in-nature': 'Green claims', 'built.solar-access': 'Sun hours', 'built.wind-procedure': 'Slenderness',
   'built.structure': 'Structure', 'built.wind-study': 'Wind study', 'built.wind-screen': 'Wind screen', 'built.trips': 'Trips',
-  'built.energy-carbon': 'Energy',
+  'built.energy-carbon': 'Energy', 'built.silhouette': 'Skyline',
   // design nodes (lib/workflow/designNodes.ts)
   'design.site': 'Site', 'design.massing': 'Massing', 'design.program': 'Program', 'design.plates': 'Core & plates', 'design.frame': 'Frame',
   'built.sw-shadow': 'Shadow', 'built.sw-sun-faces': 'Facade sun', 'built.sw-pv': 'PV', 'built.sw-wind-comfort': 'Ped. wind', 'built.sw-wind-height': 'Terrace wind', 'built.sw-rain-faces': 'Driving rain', 'built.sw-rain-water': 'Rain', 'built.sw-form': 'Form', 'built.sw-glazing': 'Façade', 'built.sw-daylight': 'sDA', 'built.sw-light-hour': 'Light now', 'built.sw-natvent': 'Ventilation', 'built.sw-airflow': 'Air flow', 'built.sw-energy': 'Energy', 'built.sw-indoor-temp': 'Indoor temp',

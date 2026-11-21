@@ -272,4 +272,5 @@ export const NODE_GROUPS: Record<string, string[]> = {
   'built.daylight-sw': ['daylightSW'],
   'built.ventilation-sw': ['ventilationSW'],
   'built.energy-sw': ['energySW'],
+  'built.silhouette': ['silhouette'],
 }

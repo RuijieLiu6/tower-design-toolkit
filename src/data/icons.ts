@@ -15,7 +15,7 @@ import {
   Aperture, BelowGrade, Building as BuildingIcon, Camera, ChartColumn, ClipboardList, Cloud, Columns3, CorePlan, Cuboid, FileCheck2, FileImage,
   FileJson, FileUp, Footprints, GitCommitHorizontal, GraduationCap, Grid2x2, Hammer, HardHat, ImagePlus, LandPlot, Layers2, LayoutGrid,
   LayoutPanelTop, MapPinned, SquareDashed, ScrollText, CircleCheckBig, Ban, GitCompareArrows, Network, Package, Axis3d, MessageSquare, MessagesSquare, Image as ImageIcon, PencilLine, PenTool, Recycle, Rows3,
-  PlayCircle, Droplets, Waves, Thermometer, Gauge, Spline, CalendarClock, SolarPanel, CloudRain, WindPerson, AirVent, Blinds, DaylightGrid, WindowSky, FormBox, Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
+  PlayCircle, Droplets, Waves, Thermometer, Gauge, Spline, CalendarClock, SolarPanel, CloudRain, WindPerson, AirVent, Blinds, DaylightGrid, WindowSky, FormBox, Skyline, Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
 } from '../components/icons'
 import type { Category } from './registry'
 import type { Flag, UseId } from '../engine/types'
@@ -135,6 +135,7 @@ export const NODE_ICONS: Record<string, LucideIcon> = {
   'built.structure': Activity,
   'built.wind-study': FlagIcon,
   'built.wind-screen': Wind,
+  'built.silhouette': Skyline,
   // Sun & Wind Studio port (16 Nov): a sail in the wind, taken out of the community pool (no free filled glyph reads "pedestrian wind comfort").
   // Sun & Wind Studio port, engine 2 (17 Nov): a sun at full strength, beside the plate-depth screen's light bulb.
   // Engine 3 (17 Nov): an open window with air passing through it.

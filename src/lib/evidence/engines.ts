@@ -15,6 +15,7 @@ import { liftCheck, type LiftPresets } from '../../engine/lifts'
 import { towerFloors } from '../../engine/massing'
 import { DEFAULT_MOBILITY, mobilityCheck } from '../../engine/mobility'
 import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
+import { silhouetteReading } from '../../engine/silhouette'
 import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
 import type { Tower } from '../../engine/types'
@@ -41,6 +42,8 @@ export interface EvidenceInput {
   cityStreets?: CityStreetsCtx | null
   /** The sky room terrace wind by tower id, from Wind on terraces and roofs (its data.skyTerraces), when it has run. */
   skyTerraces?: Record<string, SkyTerraceLine> | null
+  /** Skyline silhouette: the viewing distance (m); default 2 km (engine/silhouette.ts). */
+  silhouetteDistance?: number
 }
 
 /** Both projects' results side by side, so the hub lists every node's sources whichever project is open. */
@@ -56,6 +59,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
   const lifts = towers.map((t) => liftCheck(t, i.liftPresets, i.egressPresets))
   const egress = towers.map((t) => egressCheck(t, i.egressPresets, i.liftPresets))
   const wind = towers.map((t) => windProcedure(t, i.windPresets))
+  const north = i.project === 'vtc' ? VTC_NORTH_DEG : 0
   return {
     'built.vtc-rules': vtc ? vtcRules(towers, { fsrTier: i.fsrTier, transitLink: i.transitLink }) : [],
     'built.core-lifts': lifts.map((l) => l.rules),
@@ -70,7 +74,8 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.structure': towers.map((t, k) => structureCheck(t, wind[k]).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
     'built.mobility': mobilityCheck(towers, DEFAULT_MOBILITY, { project: i.project, transitLink: i.transitLink, homeM2: i.liftPresets.homeM2, hotelM2PerKey: i.liftPresets.hotelM2PerKey }).rules,
-    'built.facade': facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0).rules,
+    'built.facade': facadeCheck(towers, DEFAULT_FACADE, north).rules,
+    'built.silhouette': towers.map((t) => silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance }).rules),
     'built.economics': DEFAULT_ECON,
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),

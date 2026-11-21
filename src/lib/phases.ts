@@ -28,7 +28,7 @@ export const PHASES: Phase[] = [
   {
     id: 'form', name: 'Form', step: 'volume', about: 'Place and shape the tower; read sun, shadow and wind as it changes.',
     tools: ['towers', 'height-suggestion', 'generate', 'massing', 'basement'],
-    nodes: ['built.sun', 'built.solar-access', 'built.wind-screen', 'built.wind-study', 'built.city-in-nature', 'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form'],
+    nodes: ['built.sun', 'built.solar-access', 'built.wind-screen', 'built.wind-study', 'built.city-in-nature', 'built.sw-shadow', 'built.sw-sun-faces', 'built.sw-wind-comfort', 'built.sw-wind-height', 'built.sw-rain-faces', 'built.sw-rain-water', 'built.sw-form', 'built.silhouette'],
   },
   {
     id: 'program', name: 'Program', step: 'program', about: 'Stack the uses, test floor area and value, shape the ground and public space.',

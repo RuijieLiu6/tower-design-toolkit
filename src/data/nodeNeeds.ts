@@ -35,6 +35,7 @@ export const NODE_NEEDS: Record<string, NodeNeeds> = {
   'built.structure': { reads: ['the tower height, floor areas and core'], asks: ['outrigger floors, if any'] },
   'built.wind-study': { reads: ['each tower’s height'], asks: [] },
   'built.wind-screen': { reads: ['the towers and the context buildings upwind', 'the wind record at the airport'], asks: [] },
+  'built.silhouette': { reads: ['each tower’s blocks or storey outlines above the podium', 'true north'], asks: ['the viewing distance (2 km unless changed)'] },
   'built.wind-comfort': { reads: ['the selected tower and its podium', 'the context buildings and future towers', 'the Vancouver wind rose'], asks: [] },
   'built.daylight-sw': { reads: ['the selected tower’s occupied floor plates, core and floor heights', 'the facade node’s glazing when it is on', 'the context buildings and future towers', 'the Vancouver typical-year sky'], asks: [] },
   'built.ventilation-sw': { reads: ['the selected tower’s occupied floor plates, core and floor heights', 'the facade node’s glazing when it is on', 'the Vancouver typical-year temperature, wind and rain'], asks: ['which faces have operable windows'] },

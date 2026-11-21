@@ -203,6 +203,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^rain-(detention|first-stage)$/, 'Answer the rainwater pathway under Details: the volume shown is what an engineered pathway must store.'],
   [/^bird-zone$/, 'Enter the treated share of glass in the bird zone (Facade node) and the mature tree height, if trees are planned.'],
   [/^eds-criteria$/, 'Answer the three criteria in writing under Details: the Lions views, the open space and canopy strategy, the UNDRIP strategy.'],
+  // Skyline silhouette (a design reading: never a fail)
+  [/^sil-legible$/, 'Give the outline one move the city can read, on most sides: a step of the size the rule names on two or more faces, a block that slides, a taper or a twist (Massing blocks, or Tower form in the Typology tab, Form step).'],
   // City in Nature
   [/^views$/, 'Bring the tower out of the protected views: View-cone height check says by how much to lower it, or move it (Place on map).'],
   [/^qe-view$/, 'Entering the Queen Elizabeth Park view is a pathway, not a failure: answer the Exceptional Downtown Site criteria below and make a skyline case, or lower the tower under the 3.2 cones.'],

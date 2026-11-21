@@ -167,6 +167,9 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
   // Pedestrian wind screen: wind brought down the face to the street, and the risk zone it makes there.
   'built.wind-screen': (c) => <>{plate(c)}<ellipse cx={iso(5, 13, 1)[0]} cy={iso(5, 13, 1)[1]} rx={8} ry={4} fill={A(c, 0)} opacity={0.85} />{tower(c, 13, 6, 4, 5, 5)}
     <path d="M6 7 h7 q3 0 3 3 v18 q0 3-3 3 h-2" fill="none" stroke={A(c, 2)} strokeWidth={1.7} strokeLinecap="round" /><path d="M13 28.5 l-3 2.6 3 2.4" fill="none" stroke={A(c, 2)} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" /></>,
+  // Skyline silhouette: a tower whose upper part steps in, read along a sight line from far away.
+  'built.silhouette': (c) => <>{plate(c)}{box(c, 4.5, 4.5, 0.9, 7, 7, 8.5)}{box(c, 6, 6, 9.4, 4, 4, 6, 'a')}
+    {line([6, 9], iso(6, 10, 9.4), A(c, 2), 1.1, '1.5 1.8')}<circle cx={6} cy={9} r={2.2} fill={A(c, 2)} /><circle cx={6} cy={9} r={0.9} fill="#fff" /></>,
   // Pedestrian wind comfort (Sun & Wind Studio port): wind lines running over a plaza beside the tower.
   'built.wind-comfort': (c) => <>{plate(c)}{flat(A(c, 0), 0.95, [1, 6], [10, 6], [10, 15], [1, 15])}{tower(c, 11, 10.5, 1.5, 4, 4)}
     {[0, 1, 2].map((i) => <path key={i} d={`M4 ${21 + i * 4} q5 -3 10 0 t10 0`} fill="none" stroke={A(c, 2)} strokeWidth={1.5} strokeLinecap="round" />)}

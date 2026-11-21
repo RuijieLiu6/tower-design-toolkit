@@ -53,7 +53,8 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.competition', type: 'designer', name: 'Enter the Vancouver Tall Challenge',
         goal: "The competition block and its rules, with the public realm (40% of the jury's marks) first.",
         project: 'vtc', step: 'site',
-        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.sky-room'],
+        // 21 Nov (R10 juries: "not distinctive enough", no reading of the skyline): the silhouette reading joins the Form checks.
+        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.silhouette', 'built.sky-room'],
         says: ['competition entry and boards', 'Vancouver Tall Challenge brief and rules', 'student competition deadline'],
       },
       {
@@ -67,7 +68,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.form', type: 'designer', name: 'Sketch a tower and see how it does',
         goal: 'Shape a tower freely and read sun, wind, daylight, value and carbon as you go.',
         project: 'vtc', step: 'volume',
-        nodes: ['built.sun', 'built.wind-screen', 'built.daylight-depth', 'built.fsr', 'built.economics', 'built.energy-carbon'],
+        nodes: ['built.sun', 'built.wind-screen', 'built.silhouette', 'built.daylight-depth', 'built.fsr', 'built.economics', 'built.energy-carbon'],
         says: ['play with the form and massing', 'quick massing study', 'try shapes and see the results'],
       },
       {

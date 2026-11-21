@@ -315,6 +315,8 @@ export const Blinds = make('Blinds', p('M3.5 3.5H20.5M5 3.5V20.5H19V3.5M5 7.5H19
 export const DaylightGrid = make('DaylightGrid', '<circle cx="12" cy="4.5" r="2"/>' + p('M3.5 9.5H20.5V20.5H3.5ZM3.5 15H20.5M9 9.5V20.5M15 9.5V20.5'))
 export const WindowSky = make('WindowSky', p('M4 3.5H14V13.5H4ZM9 3.5V13.5M4 8.5H14M14 13.5L20.5 20M17 20.5H20.5V17'))
 export const FormBox = make('FormBox', p('M12 3L20 7.5V16.5L12 21L4 16.5V7.5ZM4 7.5L12 12L20 7.5M12 12V21M8 5.3L16 9.8'))
+/** Skyline silhouette (21 Nov): a stepped tower among lower neighbours on the horizon line. */
+export const Skyline = make('Skyline', p('M2.5 20.5H21.5M4 20.5V14.5H8M8 20.5V9.5H10.5V4.5H13.5V9.5H16V20.5M16 16H20V20.5'))
 export const Thermometer = make('Thermometer', p('M14 14V5.5C14 4.4 13.1 3.5 12 3.5C10.9 3.5 10 4.4 10 5.5V14C8.8 14.7 8 16 8 17.5C8 19.7 9.8 21.5 12 21.5C14.2 21.5 16 19.7 16 17.5C16 16 15.2 14.7 14 14Z'))
 export const TramFront = make('TramFront', p('M6 6H18V17H6ZM6 11.5H18M8.5 14.25H9.5M14.5 14.25H15.5M8 17L6.5 20.5M16 17L17.5 20.5M9 3H15M12 3V6'))
 export const TreePine = make('TreePine', p('M12 3L7 10H10L5.5 16H18.5L14 10H17ZM12 16V21'))
