@@ -19,7 +19,7 @@ import { towerFloors } from '../../engine/massing'
 import { DEFAULT_MOBILITY, mobilityCheck } from '../../engine/mobility'
 import { provenanceLines, type ProvEntry } from '../../engine/provenance'
 import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
-import { silhouetteReading, skyContext, type SkyContext } from '../../engine/silhouette'
+import { silhouetteReading, skyContext, type SkyContext, type SkyScreens } from '../../engine/silhouette'
 import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
 import { DEFAULT_WEIGHT_PRESETS, type WeightPresets } from '../../engine/storeyWeight'
@@ -65,6 +65,13 @@ export interface EvidenceInput {
    * towers (always checked), e.g. the city's buildings, and what they are in words.
    */
   silhouetteContext?: SkyContext | null
+  /** Skyline silhouette, sky through glass (gap G33): transmittance of the marked glass (0–1); absent: glass blocks. Counts in the judgement. */
+  silhouetteGlassT?: number | null
+  /**
+   * Skyline silhouette, sky through screens (gap G33): screens across the open storeys, height (m) and transmittance
+   * (0–1, e.g. the wind settings' deck screen and its open share); reported apart, judged only with `set`.
+   */
+  silhouetteScreens?: SkyScreens | null
   /**
    * Structure: storey-weight presets (gap G21; engine/storeyWeight.ts WeightPresets: soil depth on planted decks in mm,
    * which decks are planted, facade kPa, core wall thickness). Fields left out keep DEFAULT_WEIGHT_PRESETS (600 mm of
@@ -107,7 +114,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
     'built.mobility': mobilityCheck(towers, DEFAULT_MOBILITY, { project: i.project, transitLink: i.transitLink, homeM2: i.liftPresets.homeM2, hotelM2PerKey: i.liftPresets.hotelM2PerKey }).rules,
     'built.facade': facadeCheck(towers, DEFAULT_FACADE, north).rules,
-    'built.silhouette': towers.map((t) => silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context: skyContext(towers, t, i.silhouetteContext) }).rules),
+    'built.silhouette': towers.map((t) => silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context: skyContext(towers, t, i.silhouetteContext), glassT: i.silhouetteGlassT, screens: i.silhouetteScreens }).rules),
     'built.economics': DEFAULT_ECON,
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),

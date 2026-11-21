@@ -6,13 +6,17 @@ import { useMemo } from 'react'
 import { create } from 'zustand'
 import { VTC_NORTH_DEG } from '../context'
 import { ACUITY_ARCMIN, DEFAULT_VIEW_M, LEGIBLE_ARCMIN, LEGIBLE_NOTE, LEGIBLE_VIEWS, metresAt, silhouetteReading, SKY_ARCMIN2, SKY_NOTE, SKY_VIEWS, skyContext, type AxisReading, type SilhouetteReading } from '../engine/silhouette'
+import { useSwStudy } from '../lib/swStudy'
 import { useStore, useTowers } from '../store'
 import { MethodFold, RuleRows, STATE_COL, Stat, Stats } from './ResultViz'
 import SheetFrame from './SheetFrame'
 import { Section } from './ui'
 
-/** The viewing distance the reading uses (m), shared by this panel and the trace digest. */
-export const useSilhouetteView = create<{ distance: number }>(() => ({ distance: DEFAULT_VIEW_M }))
+/**
+ * The viewing distance the reading uses (m), shared by this panel and the trace digest, and the glass transmittance the
+ * sky reading uses (0–1; null: glass blocks; gap G33).
+ */
+export const useSilhouetteView = create<{ distance: number; glassT: number | null }>(() => ({ distance: DEFAULT_VIEW_M, glassT: null }))
 const DISTANCES = [500, 1000, 2000, 5000]
 const km = (d: number) => (d >= 1000 ? `${d / 1000} km` : `${d} m`)
 
@@ -20,7 +24,13 @@ export function useSilhouettes(): SilhouetteReading[] {
   const towers = useTowers()
   const north = useStore((s) => (s.project === 'vtc' ? VTC_NORTH_DEG : 0))
   const distance = useSilhouetteView((s) => s.distance)
-  return useMemo(() => towers.map((t) => silhouetteReading(t, { northDeg: north, distance, context: skyContext(towers, t) })), [towers, north, distance])
+  const glassT = useSilhouetteView((s) => s.glassT)
+  // the wind settings' deck screen (gap G33): its open share is the sky seen through it, reported apart and not judged
+  const screenH = useSwStudy((s) => s.deckScreenH), screenOpen = useSwStudy((s) => s.deckScreenPorosity)
+  return useMemo(() => {
+    const screens = screenH != null && screenH > 0 ? { h: screenH, t: screenOpen, from: "the wind settings' deck screen" } : null
+    return towers.map((t) => silhouetteReading(t, { northDeg: north, distance, context: skyContext(towers, t), glassT, screens }))
+  }, [towers, north, distance, glassT, screenH, screenOpen])
 }
 
 /** One view pair's outline, centred on its base, to the shared scale `k` (px per m). */
@@ -72,7 +82,21 @@ function DistancePick() {
         <button key={d} type="button" role="radio" aria-checked={distance === d} onClick={() => useSilhouetteView.setState({ distance: d })}
           className={`rounded-full px-2.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-accent ${distance === d ? 'bg-selected font-semibold text-accent-hover' : 'bg-subtle text-muted hover:text-ink'}`}>{km(d)}</button>
       ))}
+      <GlassPick />
     </div>
+  )
+}
+
+/** Gap G33: the share of the sky seen through marked glass (blank: the glass blocks); set here, it counts in the sky judgement. */
+function GlassPick() {
+  const glassT = useSilhouetteView((s) => s.glassT)
+  return (
+    <label className="ml-auto flex items-center gap-1 text-muted" title="Share of the sky seen through the glass the model marks, along a line of sight. Blank: the glass blocks. Set here, the sky through glass counts in the judgement; the wind settings' deck screens are reported apart.">
+      Glass lets through
+      <input type="number" min={0} max={100} step={5} value={glassT == null ? '' : Math.round(glassT * 100)} aria-label="Glass transmittance for the sky reading (%)"
+        onChange={(e) => { const v = e.target.value.trim(); useSilhouetteView.setState({ glassT: v === '' ? null : Math.min(1, Math.max(0, Number(v) / 100 || 0)) }) }}
+        className="w-14 rounded border border-line bg-panel px-1.5 py-0.5 text-right text-meta" />%
+    </label>
   )
 }
 

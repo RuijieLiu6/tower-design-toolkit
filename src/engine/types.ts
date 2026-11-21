@@ -207,6 +207,11 @@ export interface ImportedStorey {
    * through. The sky-through reading (engine/silhouette.ts) counts it as blocked and reports it apart (gap G23).
    */
   glazed?: [number, number][][]
+  /**
+   * Transmittance (0–1) of each glazed part, in the order of `glazed`: the share of the sky seen through it along a line of
+   * sight (gap G33). Absent or null: the sky reading's glass setting, else the glass blocks.
+   */
+  glazedT?: (number | null)[]
   /** Id of the model element (Layer 0 interchange) that set this storey's use; absent when it follows the program bands. */
   src?: string
 }

@@ -263,3 +263,66 @@ describe('sky through the tower (G23)', () => {
     expect(line(d, 'sil-sky')).toMatchObject({ state: 'unknown', flag: 'unresolved' })
   })
 })
+
+// G33 (vtc-entry A25c/A25d): screens counted as clear and glass as blocked, so 3 m screens at 25–40% open changed the
+// garden wind but not the sky reading. Transmittances now report the sky seen through them, apart from the clear sky.
+describe('sky through screens and glass (G33)', () => {
+  const shaft = rect(50, 50), core = rect(24, 24)
+  const wall: P[] = [[-25, -25], [-12, -25], [-12, -12], [12, -12], [12, 12], [25, 12], [25, 25], [-25, 25]]
+  const room = rect(13, 13, 18.5, -18.5)
+  const k2 = (10800 / (Math.PI * DEFAULT_VIEW_M)) ** 2
+  const view = (r: SilhouetteReading, v: string) => r.sky.views.find((x) => x.view === v)!
+  // three open storeys (4 m each, +80–92 m) round a 24 m core in a 50 m shaft
+  const gap = (loops: P[][], glazed?: P[][], glazedT?: (number | null)[]) => importedTower(stack([{ n: 20, f2f: 4, ring: shaft }, { n: 3, f2f: 4, ring: core }, { n: 20, f2f: 4, ring: shaft }])
+    .map((s) => (s.level >= 21 && s.level <= 23 ? { ...s, loops, area: loops.reduce((a, r) => a + ringArea(r), 0), ...(glazed ? { glazed } : {}), ...(glazedT ? { glazedT } : {}) } : s)), { coreSide: 24 })
+
+  it('a 25%-open screen across the opening reports about 25% of its sky as seen through the screen, apart from the clear sky', () => {
+    const open = silhouetteReading(gap([core]))
+    const r = silhouetteReading(gap([core]), { screens: { h: 4, t: 0.25, from: "the wind settings' deck screen" } })
+    const n = view(r, 'N')
+    expect(n.area).toBe(0) // no clear sky: the screen spans every open storey
+    expect(n.seen!.screen.area).toBeCloseTo(view(open, 'N').area, 6) // the opening behind the screen: 26 × 12 m
+    expect(n.seen!.screen.sky / n.seen!.screen.area).toBeCloseTo(0.25, 6)
+    // the judgement stays on clear sky: no transmittance set by the user
+    expect(r.sky.counted).toBe(false)
+    expect(r.sky.legibleViews).toBe(0)
+    expect(r.sky.state).toBe('warn')
+    expect(r.rules.find((x) => x.id === 'sil-sky')!.value).toMatch(/every line through them meets a plate, a screen or the core/)
+    expect(r.rules.find((x) => x.id === 'sil-sky-seen')!.value).toMatch(/^Screens 4\.0 m high at 25% through \(the wind settings' deck screen\): 25% of the sky behind them seen through, 326 of 1,304 arcmin² from NE$/)
+    expect(r.rules.find((x) => x.id === 'sil-sky-views')!.value).toMatch(/^N 0 \(0%\), 230 of 922 seen through screens or glass/)
+    // without screens or glass transmittance there is no such line, and the reading is as before
+    expect(open.rules.find((x) => x.id === 'sil-sky-seen')).toBeUndefined()
+    expect(view(open, 'N').seen).toBeNull()
+  })
+
+  it('a screen part way up leaves the clear sky above it; set by the user, the screened sky counts at its transmittance', () => {
+    const low = silhouetteReading(gap([core]), { screens: { h: 1.5, t: 0.25 } })
+    expect(view(low, 'N').area).toBeCloseTo(26 * (12 - 3 * 1.5), 6) // clear above the screens of each storey
+    expect(view(low, 'N').seen!.screen.area).toBeCloseTo(26 * 3 * 1.5, 6)
+    // each storey's clear strip is cut off from the next by that storey's screen: three openings a side, not one
+    expect(view(low, 'N').openings).toHaveLength(6)
+    const set = silhouetteReading(gap([core]), { screens: { h: 4, t: 0.25, set: true } })
+    expect(set.sky.counted).toBe(true)
+    const o = view(set, 'N').openings
+    expect(o).toHaveLength(2)
+    expect(o[0].area).toBeCloseTo(13 * 12 * 0.25, 6) // 39 m², about 115 arcmin² from 2 km
+    expect(o[0].arcmin2).toBeCloseTo(39 * k2, 6)
+    expect(set.sky.state).toBe('pass')
+    expect(set.rules.find((x) => x.id === 'sil-sky')!.value).toMatch(/counts the sky through screens at the transmittance set$/)
+  })
+
+  it('glass with a transmittance, per glazed part or for all, shows its sky as a share and counts it', () => {
+    const blocked = silhouetteReading(gap([wall, room], [room]))
+    const half = silhouetteReading(gap([wall, room], [room]), { glassT: 0.5 })
+    const ne = view(half, 'NE')
+    expect(ne.area).toBe(0) // still no clear sky
+    expect(ne.glass).toBeCloseTo(view(blocked, 'NE').glass, 6)
+    expect(ne.seen!.glass.sky / ne.seen!.glass.area).toBeCloseTo(0.5, 6)
+    expect(half.sky.counted).toBe(true)
+    expect(ne.openings[0].area).toBeCloseTo(26 * Math.SQRT1_2 * 12 * 0.5, 6)
+    // per glazed part: the model's transmittance wins over the reading's
+    const part = silhouetteReading(gap([wall, room], [room], [0.2]), { glassT: 0.5 })
+    expect(view(part, 'NE').seen!.glass.sky / view(part, 'NE').seen!.glass.area).toBeCloseTo(0.2, 6)
+    expect(blocked.sky.counted).toBe(false)
+  })
+})

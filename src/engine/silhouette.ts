@@ -33,6 +33,15 @@
 // the app and the evidence; city buildings only when given). Passing lines that touch form one opening; its angular
 // area from the viewing distance is read against Shang & Bishop's 100 min² (the outline reading's source, here as the
 // area it is; team step).
+//
+// Sky through screens and glass (gap G33, A25c/A25d): screens counted as clear and glass as blocked, so a screened or
+// glazed opening got no credit for what it lets through. Optional transmittances (0–1, the share of the sky seen through
+// along a line of sight): one for the marked glass (per glazed part, ImportedStorey.glazedT, else the reading's glassT),
+// and screens across each open storey from its floor up to a height (in the app the wind settings' deck screen, its open
+// share as the transmittance; team step, one screen per line of sight: a line through screens on both sides of the deck
+// sees about t², which the user can enter instead). The sky seen through them is reported apart from the clear sky, as a
+// share of the opening behind them. The judgement stays on clear sky unless the user sets a transmittance for the sky
+// reading (glass, or screens marked as set); it then counts each opening's sky at its transmittance.
 import { floorRing, readsStoreys, towerFloors, towerMasses } from './massing'
 import { storeyCore } from './storeyWeight'
 import type { RuleResult, RuleState, Source, Tower } from './types'
@@ -69,6 +78,15 @@ export const SKY_VIEWS = 2
 export interface ContextPrism { ring: [number, number][]; z0: number; z1: number; name?: string }
 /** The masses to check behind the tower and, in words, what they are (e.g. "the design's other towers"). */
 export interface SkyContext { prisms: ContextPrism[]; what: string }
+/** Screens across the open storeys (gap G33): from each open storey's floor up `h` m, letting `t` (0–1) of the sky through along a line of sight. */
+export interface SkyScreens {
+  h: number
+  t: number
+  /** The user set `t` for the sky reading: the judgement then counts the sky seen through the screens. */
+  set?: boolean
+  /** Where the screens came from, in words (e.g. "the wind settings' deck screen"). */
+  from?: string
+}
 
 export interface SilhouetteOptions {
   /** Viewing distance (m); default 2 km. */
@@ -77,6 +95,13 @@ export interface SilhouetteOptions {
   northDeg?: number
   /** Masses to check behind the tower for the sky-through reading; absent: "not checked". */
   context?: SkyContext | null
+  /**
+   * Transmittance (0–1) of the marked glass for the sky reading, for every glazed part without its own
+   * (ImportedStorey.glazedT); absent: glass blocks. A transmittance set here counts in the judgement (gap G33).
+   */
+  glassT?: number | null
+  /** Screens across the open storeys (gap G33); absent: not modelled (their sky reads as clear). */
+  screens?: SkyScreens | null
 }
 
 /** A run of open storeys, framed by the storeys just below and above it. */
@@ -96,6 +121,11 @@ export interface SkyView {
   behind: { area: number; names: string[] } | null
   /** Seen only through marked glass, counted as blocked (m²). */
   glass: number
+  /**
+   * Sky behind screens or transmitting glass, clear of what stands behind (gap G33): per kind, the opening behind them
+   * (m²) and the sky seen through it (m², the opening at its transmittance); null when neither is given.
+   */
+  seen: { screen: { area: number; sky: number }; glass: { area: number; sky: number } } | null
   /** Openings of sky clear of what stands behind, largest first. */
   openings: SkyOpening[]
   legible: boolean
@@ -108,6 +138,12 @@ export interface SkyThrough {
   legibleViews: number
   /** What was checked behind the tower; null: not checked. */
   context: string | null
+  /** The screens read (gap G33), or null. */
+  screens: SkyScreens | null
+  /** Some marked glass has a transmittance (gap G33). */
+  glassLit: boolean
+  /** The judgement counts the sky seen through screens and glass at its transmittance (a transmittance set by the user). */
+  counted: boolean
   state: RuleState
 }
 
@@ -247,7 +283,7 @@ export function widestTurn(slices: Slice[]): SilhouetteReading['turn'] {
 // --- Sky through the tower (gap G23) ----------------------------------------------------------------------------------
 
 /** One storey for the sky-through reading: its plate rings and marked glass (project frame). */
-interface SkyStorey { level: number; z0: number; z1: number; area: number; podium: boolean; rings: P[][]; glazed: P[][] }
+interface SkyStorey { level: number; z0: number; z1: number; area: number; podium: boolean; rings: P[][]; glazed: P[][]; glazedT: (number | null)[] }
 type Iv = [number, number]
 
 /** Angular area (arcmin²) of `m2` square metres seen face-on from `d` metres (small angles). */
@@ -267,10 +303,12 @@ function skyStoreys(t: Tower): SkyStorey[] | null {
     const ok = (r: P[]) => r.length >= 3
     return [...t.imported.storeys].sort((a, b) => a.z0 - b.z0).map((s) => ({
       level: s.level, z0: s.z0, z1: s.z1, area: s.area, podium: s.podium,
-      rings: ((s.loops ?? []) as P[][]).filter(ok).map((r) => place(t, r)), glazed: ((s.glazed ?? []) as P[][]).filter(ok).map((r) => place(t, r)),
+      rings: ((s.loops ?? []) as P[][]).filter(ok).map((r) => place(t, r)),
+      glazed: ((s.glazed ?? []) as P[][]).filter(ok).map((r) => place(t, r)),
+      glazedT: ((s.glazed ?? []) as P[][]).flatMap((r, j) => (ok(r) ? [s.glazedT?.[j] ?? null] : [])),
     }))
   }
-  return towerFloors(t).map((f) => ({ level: f.level, z0: f.z0, z1: f.z1, area: f.area, podium: f.podium, rings: [floorRing(t, f)], glazed: [] }))
+  return towerFloors(t).map((f) => ({ level: f.level, z0: f.z0, z1: f.z1, area: f.area, podium: f.podium, rings: [floorRing(t, f)], glazed: [], glazedT: [] }))
 }
 
 /** Runs [a, b] of storeys whose plates are each at most OPEN_PLATE_SHARE of the storeys just below (a − 1) and above (b + 1); none wholly inside the podium. */
@@ -335,19 +373,21 @@ function behindExtent(ring: P[], u: P, v: P, far: number): Iv | null {
   return s.length ? [Math.min(...s), Math.max(...s)] : null
 }
 
-/** Passing lines of one band's storeys (rows bottom-up) grouped where they touch from one storey to the next. */
-function openingsOf(rows: { z0: number; z1: number; sky: Iv[] }[], d: number): SkyOpening[] {
-  const nodes = rows.flatMap((r, row) => r.sky.map((iv) => ({ row, iv })))
+/** One row of passing lines: its height span and the lines that pass, each with the share of sky it lets through (1: clear). */
+type SkyRow = { z0: number; z1: number; seg: { iv: Iv; w: number }[] }
+/** Passing lines of one band's rows (bottom-up) grouped where they touch, within a row or from one row to the next; area at each line's share of sky. */
+function openingsOf(rows: SkyRow[], d: number): SkyOpening[] {
+  const nodes = rows.flatMap((r, row) => r.seg.filter((x) => x.w > 0 && x.iv[1] - x.iv[0] > 1e-9).map((x) => ({ row, iv: x.iv, w: x.w })))
   const up = nodes.map((_, i) => i)
   const find = (i: number): number => (up[i] === i ? i : (up[i] = find(up[i])))
   for (let i = 0; i < nodes.length; i++) for (let j = 0; j < nodes.length; j++) {
-    const a = nodes[i], b = nodes[j]
-    if (b.row === a.row + 1 && Math.min(a.iv[1], b.iv[1]) - Math.max(a.iv[0], b.iv[0]) > 1e-6) up[find(i)] = find(j)
+    const a = nodes[i], b = nodes[j], o = Math.min(a.iv[1], b.iv[1]) - Math.max(a.iv[0], b.iv[0])
+    if ((b.row === a.row + 1 && o > 1e-6) || (i !== j && b.row === a.row && o > -1e-9)) up[find(i)] = find(j)
   }
   const groups = new Map<number, typeof nodes>()
   nodes.forEach((n, i) => { const g = find(i); groups.set(g, [...(groups.get(g) ?? []), n]) })
   return [...groups.values()].map((g) => {
-    const area = g.reduce((s, n) => s + (n.iv[1] - n.iv[0]) * (rows[n.row].z1 - rows[n.row].z0), 0)
+    const area = g.reduce((s, n) => s + (n.iv[1] - n.iv[0]) * (rows[n.row].z1 - rows[n.row].z0) * n.w, 0)
     return { z0: Math.min(...g.map((n) => rows[n.row].z0)), z1: Math.max(...g.map((n) => rows[n.row].z1)), width: Math.max(...g.map((n) => n.iv[1])) - Math.min(...g.map((n) => n.iv[0])), area, arcmin2: arcmin2(area, d) }
   })
 }
@@ -367,8 +407,16 @@ export function skyThrough(t: Tower, o: SilhouetteOptions = {}): SkyThrough {
   const north = o.northDeg ?? 0
   const ctx = o.context ?? null
   const st = skyStoreys(t)
-  const empty = (k: number): SkyView => ({ view: VIEWS[k], bearing: k * 45, cast: 0, share: 0, area: 0, arcmin2: 0, behind: ctx ? { area: 0, names: [] } : null, glass: 0, openings: [], legible: false })
-  if (!st) return { read: false, bands: [], views: VIEWS.map((_, k) => empty(k)), legibleViews: 0, context: ctx?.what ?? null, state: 'unknown' }
+  // screens and glass transmittances (gap G33), each 0–1
+  const t01 = (x: number | null | undefined) => (x == null || !Number.isFinite(x) ? null : Math.min(1, Math.max(0, x)))
+  const scr: SkyScreens | null = o.screens && o.screens.h > 0 && t01(o.screens.t) != null ? { ...o.screens, t: t01(o.screens.t)! } : null
+  const glassT = t01(o.glassT)
+  const glassLit = !!st && st.some((s) => s.glazed.some((_, j) => (t01(s.glazedT[j]) ?? glassT ?? 0) > 0))
+  const counted = (!!scr?.set && scr.t > 0) || glassLit
+  const seen0 = (): SkyView['seen'] => (scr || glassLit ? { screen: { area: 0, sky: 0 }, glass: { area: 0, sky: 0 } } : null)
+  const empty = (k: number): SkyView => ({ view: VIEWS[k], bearing: k * 45, cast: 0, share: 0, area: 0, arcmin2: 0, behind: ctx ? { area: 0, names: [] } : null, glass: 0, seen: seen0(), openings: [], legible: false })
+  const tail = { screens: scr, glassLit, counted }
+  if (!st) return { read: false, bands: [], views: VIEWS.map((_, k) => empty(k)), legibleViews: 0, context: ctx?.what ?? null, ...tail, state: 'unknown' }
   const runs = openBands(st)
   const bands: SkyBand[] = runs.map(([a, b]) => ({ z0: st[a].z0, z1: st[b].z1, levels: [st[a].level, st[b].level], share: Math.max(...st.slice(a, b + 1).map((s) => s.area)) / Math.min(st[a - 1].area, st[b + 1].area) }))
   const coreAt = runs.length ? storeyCore(t) : null
@@ -378,11 +426,12 @@ export function skyThrough(t: Tower, o: SilhouetteOptions = {}): SkyThrough {
     // u across the line of sight (as the outline reading), v along it, from the viewer toward the tower.
     const u: P = [Math.cos(m), -Math.sin(m)], v: P = [-Math.sin(m), -Math.cos(m)]
     let cast = 0, area = 0, glass = 0, behindArea = 0
+    const seen = seen0()
     const names = new Set<string>(), openings: SkyOpening[] = []
     for (const [a, b] of runs) {
       const framed = meet(extents(st[a - 1].rings, u), extents(st[b + 1].rings, u))
       const far = Math.max(...st.slice(a - 1, b + 2).flatMap((s) => s.rings.flat().map((p) => dot(p, v))))
-      const rows: { z0: number; z1: number; sky: Iv[] }[] = []
+      const rows: SkyRow[] = []
       for (let i = a; i <= b; i++) {
         const s = st[i], h = s.z1 - s.z0, mid = (s.z0 + s.z1) / 2
         const c = coreAt(s.level), r = c.side / 2
@@ -396,20 +445,40 @@ export function skyThrough(t: Tower, o: SilhouetteOptions = {}): SkyThrough {
           if (iv && meet(through, [iv]).length) names.add(p.name ?? 'a neighbour')
           return iv ? [iv] : []
         })) : []
+        // screens across the lower hs of the storey (gap G33); the clear sky is the part above them
+        const hs = scr ? Math.min(h, scr.h) : 0
+        const glassOnly = cut(meet(framed, glazed), opaque)
         cast += span(framed) * h
-        area += span(through) * h
-        glass += span(cut(meet(framed, glazed), opaque)) * h
-        behindArea += span(meet(through, behind)) * h
-        rows.push({ z0: s.z0, z1: s.z1, sky: cut(through, behind) })
+        area += span(through) * (h - hs)
+        glass += span(glassOnly) * h
+        behindArea += span(meet(through, behind)) * (h - hs)
+        const sky = cut(through, behind)
+        // glass with a transmittance: each glazed part's lines, the lowest transmittance where parts overlap
+        const lit: { iv: Iv[]; t: number }[] = []
+        if (glassLit) {
+          let taken: Iv[] = []
+          const parts = s.glazed.map((g, j) => ({ iv: extents([g], u), t: t01(s.glazedT[j]) ?? glassT ?? 0 })).sort((x, y) => x.t - y.t)
+          for (const p of parts) { const piece = cut(meet(glassOnly, p.iv), taken); taken = merge([...taken, ...piece]); if (p.t > 0) lit.push({ iv: cut(piece, behind), t: p.t }) }
+        }
+        const ts = scr?.t ?? 0
+        if (seen) {
+          seen.screen.area += span(sky) * hs; seen.screen.sky += span(sky) * hs * ts
+          for (const g of lit) { seen.glass.area += span(g.iv) * h; seen.glass.sky += span(g.iv) * g.t * (h - hs + hs * ts) }
+        }
+        // rows for the openings: clear lines at 1; behind screens or glass only when the user set the transmittance
+        const ms = scr?.set ? ts : 0
+        const litSeg = (m: number) => lit.flatMap((g) => g.iv.map((iv) => ({ iv, w: g.t * m })))
+        if (hs > 0) rows.push({ z0: s.z0, z1: s.z0 + hs, seg: [...sky.map((iv) => ({ iv, w: ms })), ...litSeg(ms)] })
+        if (hs < h) rows.push({ z0: s.z0 + hs, z1: s.z1, seg: [...sky.map((iv) => ({ iv, w: 1 })), ...litSeg(1)] })
       }
       openings.push(...openingsOf(rows, d))
     }
     openings.sort((x, y) => y.area - x.area)
-    return { view: VIEWS[k], bearing: k * 45, cast, share: cast > 0 ? area / cast : 0, area, arcmin2: arcmin2(area, d), behind: ctx ? { area: behindArea, names: [...names] } : null, glass, openings,
+    return { view: VIEWS[k], bearing: k * 45, cast, share: cast > 0 ? area / cast : 0, area, arcmin2: arcmin2(area, d), behind: ctx ? { area: behindArea, names: [...names] } : null, glass, seen, openings,
       legible: !!openings[0] && openings[0].arcmin2 >= SKY_ARCMIN2 - 1e-9 }
   })
   const legibleViews = views.filter((x) => x.legible).length
-  return { read: true, bands, views, legibleViews, context: ctx?.what ?? null, state: legibleViews >= SKY_VIEWS ? 'pass' : 'warn' }
+  return { read: true, bands, views, legibleViews, context: ctx?.what ?? null, ...tail, state: legibleViews >= SKY_VIEWS ? 'pass' : 'warn' }
 }
 
 const one = (v: number) => v.toFixed(1)
@@ -502,7 +571,7 @@ export function silhouetteRules(r: Omit<SilhouetteReading, 'rules'>): RuleResult
   return [legible, byAxis, distances, counts, taper, turn, ...skyRules(r)]
 }
 
-export const SKY_NOTE = `Team method: a run of storeys whose plates are at most ${Math.round(OPEN_PLATE_SHARE * 100)}% of the storeys just below and above it is an open band; horizontal lines of sight cross each of its storeys straight on from 8 compass views, over the width where the tower stands both below and above the band, and a line is sky when it meets no plate, no glass and not the core (the core placed by hand or read from the model). An opening is the passing lines that touch; it reads when its angular area reaches Shang & Bishop's ${SKY_ARCMIN2} min² recognition threshold (13% contrast, as read in Garnero & Fabrizio), a team step from the outline reading's source. Glass counts as blocked (frit, transmittance and reflections are not modelled); trees, screens, haze and the towers in front are not modelled; what stands behind is checked only against the masses given to the reading (the design's other towers), never the city's buildings unless given. A design reading, never a fail.`
+export const SKY_NOTE = `Team method: a run of storeys whose plates are at most ${Math.round(OPEN_PLATE_SHARE * 100)}% of the storeys just below and above it is an open band; horizontal lines of sight cross each of its storeys straight on from 8 compass views, over the width where the tower stands both below and above the band, and a line is sky when it meets no plate, no glass and not the core (the core placed by hand or read from the model). An opening is the passing lines that touch; it reads when its angular area reaches Shang & Bishop's ${SKY_ARCMIN2} min² recognition threshold (13% contrast, as read in Garnero & Fabrizio), a team step from the outline reading's source. Glass counts as blocked and screens as clear unless a transmittance is given (gap G33: then the sky seen through them is reported apart, as a share of the opening behind them, and counts in the judgement only when the user sets it; reflections and frit patterns are not modelled); trees, haze and the towers in front are not modelled; what stands behind is checked only against the masses given to the reading (the design's other towers), never the city's buildings unless given. A design reading, never a fail.`
 
 /** The sky-through reading as result lines: one judged, one reported. */
 function skyRules(r: Omit<SilhouetteReading, 'rules'>): RuleResult[] {
@@ -527,7 +596,7 @@ function skyRules(r: Omit<SilhouetteReading, 'rules'>): RuleResult[] {
     const hidden = s.views.filter((v) => v.area > 0)
     value = hidden.length
       ? `0 of 8 views: the lines through the open storeys at ${bandsAt} pass the tower but meet ${[...new Set(hidden.flatMap((v) => v.behind?.names ?? []))].join(', ') || 'a neighbour'} behind it`
-      : `0 of 8 views: the open storeys at ${bandsAt} show no sky; every line through them meets a plate${glass ? ', glass' : ''} or the core${glass ? ` (${a2(arcmin2(glass.glass, d))} arcmin² behind glass from ${s.views.filter((v) => Math.abs(v.glass - glass.glass) < 1e-6).map((v) => v.view).join(', ')}, counted as blocked)` : ''}`
+      : `0 of 8 views: the open storeys at ${bandsAt} show no sky; every line through them meets a plate${glass ? ', glass' : ''}${s.views.some((v) => (v.seen?.screen.area ?? 0) > 0) ? ', a screen' : ''} or the core${glass ? ` (${a2(arcmin2(glass.glass, d))} arcmin² behind glass from ${s.views.filter((v) => Math.abs(v.glass - glass.glass) < 1e-6).map((v) => v.view).join(', ')}, counted as blocked)` : ''}`
   } else {
     const best = s.views.filter((v) => v.openings[0] && v.openings[0].arcmin2 >= top * 0.995)
     const o = best[0].openings[0]
@@ -535,15 +604,42 @@ function skyRules(r: Omit<SilhouetteReading, 'rules'>): RuleResult[] {
     const behind = !s.context ? 'not checked' : hits.length ? `${hits.map((v) => `${v.behind!.names.join(', ')} from ${v.view}`).join('; ')} (${s.context} checked)` : `sky (${s.context} checked)`
     value = `${s.legibleViews} of 8 views; largest opening ${a2(o.arcmin2)} arcmin² (${one(o.width)} × ${one(o.z1 - o.z0)} m at ${zs(o.z0, o.z1)}) seen from ${best.map((v) => v.view).join(', ')}, ${km(d)}${o.arcmin2 < SKY_ARCMIN2 ? ` (under ${SKY_ARCMIN2})` : ''}; behind: ${behind}`
   }
+  if (s.counted && s.bands.length) value += `; counts the sky through ${[s.screens?.set && s.screens.t > 0 ? 'screens' : '', s.glassLit ? 'glass' : ''].filter(Boolean).join(' and ')} at the transmittance set`
+  const seenLine: RuleResult[] = s.screens || s.glassLit ? [seenRule(s, d, a2, pct)] : []
   return [
     { ...judged, value, state: s.state, flag: 'team_assumption' },
+    ...seenLine,
     {
       ...byView,
       value: !s.bands.length ? 'no open storey to look through'
-        : s.views.map((v) => `${v.view} ${a2(v.arcmin2)} (${pct(v.share)})${v.behind && v.behind.area > 0 ? `, ${pct(v.behind.area / v.area)} with ${v.behind.names.join(', ')} behind` : ''}${v.glass > 0 ? `, ${a2(arcmin2(v.glass, d))} behind glass` : ''}`).join(' · '),
+        : s.views.map((v) => `${v.view} ${a2(v.arcmin2)} (${pct(v.share)})${v.behind && v.behind.area > 0 ? `, ${pct(v.behind.area / v.area)} with ${v.behind.names.join(', ')} behind` : ''}${v.glass > 0 ? `, ${a2(arcmin2(v.glass, d))} behind glass` : ''}${seenOf(v) ? `, ${a2(arcmin2(seenOf(v)!.sky, d))} of ${a2(arcmin2(seenOf(v)!.area, d))} seen through screens or glass` : ''}`).join(' · '),
       note: s.bands.length ? `Open bands: ${s.bands.map((b) => `L${b.levels[0]}${b.levels[1] !== b.levels[0] ? `–L${b.levels[1]}` : ''} (${zs(b.z0, b.z1)}, plates ${pct(b.share)} of the storeys framing them)`).join('; ')}. A view and its opposite share the lines through the tower; only what stands behind differs.` : undefined,
     },
   ]
+}
+
+/** A view's sky behind screens and transmitting glass together (m²), or null when there is none. */
+const seenOf = (v: SkyView) => (v.seen && v.seen.screen.area + v.seen.glass.area > 1e-9 ? { area: v.seen.screen.area + v.seen.glass.area, sky: v.seen.screen.sky + v.seen.glass.sky } : null)
+
+/** The sky seen through screens and glass (gap G33), reported apart from the clear sky as a share of the opening behind them. */
+function seenRule(s: SkyThrough, d: number, a2: (v: number) => string, pct: (v: number) => string): RuleResult {
+  const kinds: string[] = []
+  const best = (k: 'screen' | 'glass') => s.views.reduce<SkyView | null>((m, v) => (v.seen && v.seen[k].area > (m?.seen?.[k].area ?? 0) + 1e-9 ? v : m), null)
+  for (const k of ['screen', 'glass'] as const) {
+    const v = best(k)
+    const what = k === 'screen' ? `Screens ${one(s.screens?.h ?? 0)} m high at ${pct(s.screens?.t ?? 0)} through${s.screens?.from ? ` (${s.screens.from})` : ''}` : 'Glass with a transmittance'
+    if (k === 'screen' && !s.screens) continue
+    if (k === 'glass' && !s.glassLit) continue
+    if (!v) { kinds.push(`${what}: no opening behind them`); continue }
+    const x = v.seen![k]
+    kinds.push(`${what}: ${pct(x.sky / x.area)} of the sky behind them seen through, ${a2(arcmin2(x.sky, d))} of ${a2(arcmin2(x.area, d))} arcmin² from ${v.view}`)
+  }
+  return {
+    id: 'sil-sky-seen', label: 'Sky through screens and glass', value: kinds.join(' · '),
+    threshold: s.counted ? 'counted in the judgement above at the transmittance set' : 'reported apart from the clear sky; the judgement counts it only when a transmittance is set for the sky reading',
+    state: 'unknown', flag: 'team_assumption', source: METHOD,
+    note: 'Transmittance: the share of the sky seen through along a line of sight. Screens stand from each open storey’s floor up to their height; one screen per line of sight (a line through screens on both sides of the deck sees about the square: enter that instead). Glass: per glazed part where the model gives one, else the reading’s glass setting.',
+  }
 }
 
 /** The distances (of 500 m, 2 km, 5 km) from which a change of `size` metres is legible, in words. */
