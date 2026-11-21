@@ -17,6 +17,9 @@ interface EconState {
   contingency: number
   civicReduced: boolean
   accTreatment: AccTreatment
+  /** The concept's own items (gap G29): trees on the decks and public lift cars, declared (null lifts: from the sky room). */
+  conceptTrees: number
+  conceptPublicLifts: number | null
   overrides: Partial<Record<OverrideKey, number>>
   set: (patch: Partial<Omit<EconState, 'set' | 'setRow' | 'reset'>>) => void
   setRow: (k: OverrideKey, v: number | null) => void
@@ -35,6 +38,8 @@ export const useEconStore = create<EconState>((set) => ({
   contingency: 0,
   civicReduced: false,
   accTreatment: 'payable',
+  conceptTrees: 0,
+  conceptPublicLifts: null,
   overrides: {},
   ...load(),
   set: (patch) => set(patch),
@@ -47,7 +52,7 @@ export const useEconStore = create<EconState>((set) => ({
 }))
 
 useEconStore.subscribe((s) => {
-  try { localStorage.setItem(KEY, JSON.stringify({ permitYear: s.permitYear, landPrice: s.landPrice, includeRegional: s.includeRegional, costBasis: s.costBasis, residentialBase: s.residentialBase, contingency: s.contingency, civicReduced: s.civicReduced, accTreatment: s.accTreatment, overrides: s.overrides })) } catch { /* private mode */ }
+  try { localStorage.setItem(KEY, JSON.stringify({ permitYear: s.permitYear, landPrice: s.landPrice, includeRegional: s.includeRegional, costBasis: s.costBasis, residentialBase: s.residentialBase, contingency: s.contingency, civicReduced: s.civicReduced, accTreatment: s.accTreatment, conceptTrees: s.conceptTrees, conceptPublicLifts: s.conceptPublicLifts, overrides: s.overrides })) } catch { /* private mode */ }
 })
 
 const edited = (r: Row, v: number): Row => ({ ...r, value: v, flag: 'team_assumption', note: `Edited from ${r.value} (${r.source})`, source: 'Edited by the team' })

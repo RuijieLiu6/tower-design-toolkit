@@ -5,6 +5,7 @@
 // an appraisal or a compliance check.
 
 import { chargeSchedule, COST_LEDGER, costRange, heightPremium, NO_CHARGES, CHARGE_LEDGER, SF as SQFT, type AccTreatment, type ChargeLine, type ChargeParts, type CRow, type Premium } from './costCharges'
+import { conceptCosts, type ConceptCost, type ConceptInputs } from './conceptCost'
 import { floorCounts } from './interior'
 import { netToGrossAt, towerFloors } from './massing'
 import type { Flag, Tower, UseId } from './types'
@@ -133,6 +134,8 @@ export interface EconInputs {
   civicReduced?: boolean
   /** ACC on a rezoning with a negotiated CAC (P08-M04): payable by default. */
   accTreatment?: AccTreatment
+  /** The concept's own items (gap G29): a declared damper, public lifts and trees; the open storeys are read from the model. */
+  concept?: ConceptInputs
 }
 
 export interface Construction {
@@ -179,6 +182,12 @@ export interface EconResult {
   byUse: Record<UseId, { gfa: number; value: number; cost: number }>
   construction: Construction
   charges: { lines: ChargeLine[]; total: number; complete: boolean; deferral: { atPermit: number; deferred: number; fee: number } | null; perM2: number }
+  /**
+   * The residual with the concept's own costs (gap G29): open-storey decks, soffits, exposed core walls and screens, a
+   * declared damper, public lifts and trees, at team-assumption unit costs (to confirm), added to the hard cost with
+   * their contingency, soft cost, finance, profit and CAC. The fields above stay the reading without them.
+   */
+  concept: ConceptCost & { cost: number; profit: number; rlvBefore: number; cac: number; rlvAfter: number; verdict: Verdict }
 }
 
 const ZERO = (): Record<UseId, { gfa: number; value: number; cost: number }> => ({ retail: { gfa: 0, value: 0, cost: 0 }, office: { gfa: 0, value: 0, cost: 0 }, hotel: { gfa: 0, value: 0, cost: 0 }, residential: { gfa: 0, value: 0, cost: 0 }, civic: { gfa: 0, value: 0, cost: 0 }, amenity: { gfa: 0, value: 0, cost: 0 }, mechanical: { gfa: 0, value: 0, cost: 0 } })
@@ -271,24 +280,31 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
     }
   }
   cityCharges += sums.reduced
-  const soft = hard * p.softShare.value
-  const finance = p.financeRate.value * p.buildYears.value * p.drawFactor.value * (hard + contingency + soft)
-  const cost = hard + contingency + soft + cityCharges + regionalCharges + finance
-  const profit = cost * p.profitOnCost.value
-  const rlvBefore = value - cost - profit
   const landCurrent = inp.siteArea ? p.currentZoningFsr.value * p.landRate.value * inp.siteArea : null
   const land = inp.landPrice ?? (landCurrent != null ? landCurrent * (1 + p.purchasePremium.value) : null)
   const employmentOnly = byUse.residential.gfa < 1
   const accTotal = sums.commercial.acc + sums.residential.acc
-  let cac = employmentOnly ? 0 : Math.max(0, p.cacShare.value * (rlvBefore - (landCurrent ?? land ?? 0)))
-  if (accTreatment === 'netted') cac = Math.max(0, cac - accTotal)
-  const rlvAfter = rlvBefore - cac
-  let verdict: Verdict
-  if (gfa < 1 || value <= 0) verdict = 'incomplete'
-  else if (land == null) verdict = rlvAfter > 0 ? 'land-needed' : 'fails'
-  else if (rlvAfter >= land) verdict = 'works'
-  else if (rlvAfter >= 0.9 * land) verdict = 'marginal'
-  else verdict = 'fails'
+  // From the hard cost and contingency to the residual and its verdict: once as read, once with the concept's own costs.
+  const close = (hard: number, contingency: number) => {
+    const soft = hard * p.softShare.value
+    const finance = p.financeRate.value * p.buildYears.value * p.drawFactor.value * (hard + contingency + soft)
+    const cost = hard + contingency + soft + cityCharges + regionalCharges + finance
+    const profit = cost * p.profitOnCost.value
+    const rlvBefore = value - cost - profit
+    let cac = employmentOnly ? 0 : Math.max(0, p.cacShare.value * (rlvBefore - (landCurrent ?? land ?? 0)))
+    if (accTreatment === 'netted') cac = Math.max(0, cac - accTotal)
+    const rlvAfter = rlvBefore - cac
+    let verdict: Verdict
+    if (gfa < 1 || value <= 0) verdict = 'incomplete'
+    else if (land == null) verdict = rlvAfter > 0 ? 'land-needed' : 'fails'
+    else if (rlvAfter >= land) verdict = 'works'
+    else if (rlvAfter >= 0.9 * land) verdict = 'marginal'
+    else verdict = 'fails'
+    return { soft, finance, cost, profit, rlvBefore, cac, rlvAfter, verdict }
+  }
+  const { soft, finance, cost, profit, rlvBefore, cac, rlvAfter, verdict } = close(hard, contingency)
+  const cc = conceptCosts(towers, inp.concept)
+  const withConcept = close(hard + cc.total, contingency + cc.total * c)
   const schedule = chargeSchedule({
     sums, rates, areas: { commercial: comArea, residential: resArea, homes }, permitYear: inp.permitYear, includeRegional: inp.includeRegional, accTreatment,
     sources: { acc: `${p.accCommercial.source}; ${p.accResidential2.source}`, dcl: p.dcl.source, udcl: p.udclCommercial.source, metro: p.metroNonRes.source, translink: p.translinkOffice.source },
@@ -301,6 +317,7 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
       range: costRange(hard + contingency, c, anyAbove, L), tdcPerSf: gfa ? cost / (gfa * SQFT) : 0,
     },
     charges: { ...schedule, perM2: gfa ? (cityCharges + regionalCharges) / gfa : 0 },
+    concept: { ...cc, cost: withConcept.cost, profit: withConcept.profit, rlvBefore: withConcept.rlvBefore, cac: withConcept.cac, rlvAfter: withConcept.rlvAfter, verdict: withConcept.verdict },
   }
 }
 

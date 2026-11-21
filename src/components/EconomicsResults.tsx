@@ -57,6 +57,7 @@ export default function EconomicsResults() {
 
       <CostSection r={r} />
       <ChargesSection r={r} />
+      <ConceptSection r={r} />
 
       <Section title="Inputs">
         <div className="grid gap-2 text-xs">
@@ -94,6 +95,8 @@ function Waterfall({ r }: { r: ReturnType<typeof useEconomics>['result'] }) {
     ['Left for land before CAC', r.rlvBefore, r.rlvBefore >= 0 ? '#1f5f8b' : '#d0453a'],
     ...(r.cac ? [['Negotiated CAC (share of the lift)', -r.cac, '#6cc0b8'] as [string, number, string]] : []),
     ['Left for land after CAC', r.rlvAfter, r.rlvAfter >= 0 ? '#1f5f8b' : '#d0453a'],
+    // gap G29: the concept's own items (open storeys, damper, public lifts, trees) at team-assumption unit costs, to confirm
+    ...(r.concept.lines.length ? [["Concept's own items (team assumption, to confirm)", -r.concept.total, '#8f6f5a'] as [string, number, string], ["Left for land with the concept's own costs", r.concept.rlvAfter, r.concept.rlvAfter >= 0 ? '#1f5f8b' : '#d0453a'] as [string, number, string]] : []),
   ]
   const max = Math.max(1, ...rows.map(([, v]) => Math.abs(v)))
   return (
@@ -280,6 +283,28 @@ function CostSection({ r }: { r: EconResult }) {
 
 const STATUS_CLASS: Record<ChargeLine['status'], string> = {
   'in force': 'bg-emerald-100 text-emerald-900', approved: 'bg-sky-100 text-sky-900', blank: 'bg-amber-100 text-amber-900', none: 'bg-slate-100 text-slate-700', 'false assumption': 'bg-[#fde7f3] text-[#a3106c]',
+}
+
+/** Gap G29: the concept's own items (open storeys, a declared damper, public lifts, trees) at team-assumption unit costs. */
+function ConceptSection({ r }: { r: EconResult }) {
+  const { conceptTrees, conceptPublicLifts, set } = useEconStore()
+  const c = r.concept
+  const num = (v: string) => (v.trim() === '' ? null : Math.max(0, Math.round(Number(v)) || 0))
+  return (
+    <Section title="The concept's own costs (team assumptions, to confirm)">
+      <div className="grid gap-2 text-xs">
+        <label className="flex items-center justify-between gap-2"><span className="text-muted">Trees on the decks (declared)</span>
+          <input type="number" min={0} value={conceptTrees} onChange={(e) => set({ conceptTrees: num(e.target.value) ?? 0 })} className="w-20 rounded border border-line bg-panel px-1.5 py-0.5 text-right text-meta" aria-label="Trees on the decks" /></label>
+        <label className="flex items-center justify-between gap-2"><span className="text-muted">Public lift cars (blank: the sky room's dedicated lifts)</span>
+          <input type="number" min={0} value={conceptPublicLifts ?? ''} onChange={(e) => set({ conceptPublicLifts: num(e.target.value) })} className="w-20 rounded border border-line bg-panel px-1.5 py-0.5 text-right text-meta" aria-label="Public lift cars" /></label>
+      </div>
+      {c.lines.length ? <>
+        <div className="mt-2"><HBars label="The concept's own items" fmt={money} labelWidth="7.5rem" color="#8f6f5a"
+          rows={c.lines.map((l) => ({ label: l.label, v: l.cost, text: money(l.cost), tip: `${l.tower}: ${Math.round(l.qty).toLocaleString('en-CA')} ${l.unit} × ${money(l.rate.value)} (${money(l.rate.low)}–${money(l.rate.high)})${l.note ? ` · ${l.note}` : ''} · ${l.rate.source}` }))} /></div>
+        <p className="mt-2 text-meta text-muted">{money(c.total)} of hard cost (range {money(c.low)}–{money(c.high)}). Left for land: {money(c.rlvAfter)} with them, {money(r.rlvAfter)} without. Every unit cost is a team assumption with no source: replace it with a quantity surveyor's rate.</p>
+      </> : <p className="mt-2 text-meta text-muted">No open storey, declared damper, public lifts or trees: the residual above is unchanged.</p>}
+    </Section>
+  )
 }
 
 /** P08-M04: the dated charges schedule, with a status per line and the lines no rate covers yet. */

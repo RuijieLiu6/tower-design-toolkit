@@ -23,6 +23,17 @@ export interface ExtraInputs {
 const item = (r: RuleResult): Item => ({ id: r.id, label: r.label, value: r.value, threshold: r.threshold, state: r.state, flag: r.flag, source: r.source, note: r.note })
 const worst = (items: Item[]): RuleState => (items.some((i) => i.state === 'fail') ? 'fail' : items.some((i) => i.state === 'warn') ? 'warn' : items.every((i) => i.state === 'pass') ? 'pass' : 'unknown')
 
+/** The residual with the concept's own costs (gap G29): every unit cost a team assumption, to confirm. */
+function conceptItem(e: EconResult): Item {
+  const c = e.concept
+  const state: RuleState = c.verdict === 'works' ? 'pass' : c.verdict === 'marginal' ? 'warn' : c.verdict === 'fails' ? 'fail' : 'unknown'
+  return {
+    id: 'econ-rlv-concept', label: "Land residual with the concept's own costs", value: `${money(c.rlvAfter)} (${money(e.rlvAfter)} without)`, threshold: e.land != null ? `≥ land price ${money(e.land)}` : 'land price needed', state, flag: 'team_assumption',
+    source: { label: 'Team assumption, to confirm: unit costs with no source (replace with a quantity surveyor’s elemental rates, e.g. Altus 2026 lines)' },
+    note: `The concept's own items add ${money(c.total)} of hard cost (range ${money(c.low)}–${money(c.high)}), with contingency, soft cost, finance, profit and CAC on top: ${c.lines.map((l) => `${l.label}${l.note ? ` (${l.note})` : ''}, ${Math.round(l.qty).toLocaleString('en-CA')} ${l.unit} × ${money(l.rate.value)} = ${money(l.cost)}`).join('; ')}. An open storey is not money saved: its deck, soffit, exposed core and screens are priced here.`,
+  }
+}
+
 export function extraOutput(id: string, x: ExtraInputs): NodeOutput | null {
   switch (id) {
     case 'built.economics': {
@@ -30,7 +41,11 @@ export function extraOutput(id: string, x: ExtraInputs): NodeOutput | null {
       const state: RuleState = e.verdict === 'works' ? 'pass' : e.verdict === 'marginal' ? 'warn' : e.verdict === 'fails' ? 'fail' : 'unknown'
       return {
         state, headline: `${VERDICT_LABEL[e.verdict]} · ${money(e.rlvAfter)} left for land`,
-        items: [{ id: 'econ-rlv', label: 'Land residual after CAC', value: money(e.rlvAfter), threshold: e.land != null ? `≥ land price ${money(e.land)}` : 'land price needed', state, flag: 'unverified', source: { label: 'Program Value Visualizer method and Vancouver 2026 pack (research P08)' } }],
+        items: [
+          { id: 'econ-rlv', label: 'Land residual after CAC', value: money(e.rlvAfter), threshold: e.land != null ? `≥ land price ${money(e.land)}` : 'land price needed', state, flag: 'unverified', source: { label: 'Program Value Visualizer method and Vancouver 2026 pack (research P08)' },
+            ...(e.concept.lines.length ? { note: `Without the concept's own costs; with them (open storeys, damper, public lifts, trees, team assumptions to confirm): ${money(e.concept.rlvAfter)}.` } : {}) },
+          ...(e.concept.lines.length ? [conceptItem(e)] : []),
+        ],
       }
     }
     case 'built.mobility': {
