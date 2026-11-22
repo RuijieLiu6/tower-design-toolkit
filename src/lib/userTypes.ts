@@ -167,7 +167,8 @@ export const USER_TYPES: UserType[] = [
         id: 'planner.growth', type: 'planner', name: 'Density, transit and servicing',
         goal: 'Floor area and value, homes and keys per floor, trips and the station entrance, parking and loading.',
         project: 'city', step: 'program',
-        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior', 'built.f2f-use'],
+        // 21 Nov (P1 #2): the HBP 2.1(g) community benefit, with the sky room.
+        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior', 'built.f2f-use', 'built.sky-room'],
         says: ['density and FSR', 'transit and trips', 'parking and loading', 'community benefits'],
       },
     ],

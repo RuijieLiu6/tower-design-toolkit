@@ -5,10 +5,10 @@ import { useTowerPosition } from '../lib/towerPosition'
 import { ArrowDown, ArrowUp, Building2, Crosshair, Expand, Layers, Move, Plus, Ruler, Scissors, Sparkles, Square, Trash2 } from './icons'
 import { PROGRAM_ICONS } from '../data/icons'
 import { DEFAULT_EGRESS_PRESETS, PLACEMENT_LABEL, type EgressPresets } from '../engine/egress'
-import { stablePostedLimit } from '../engine/skyRoom'
+import { BENEFIT_LABEL, HERITAGE_LABEL, stablePostedLimit } from '../engine/skyRoom'
 import { DEFAULT_LIFT_PRESETS, suggestSkyLobby, type LiftPresets } from '../engine/lifts'
 import { coreSide, towerFloors } from '../engine/massing'
-import { USES, type SkyRoom, type StairPlacement, type UseId } from '../engine/types'
+import { USES, type CommunityBenefit, type SkyRoom, type StairPlacement, type UseId } from '../engine/types'
 import { TIER_LABEL, type FsrTier } from '../engine/vtcRules'
 import { useResults } from '../hooks/useResults'
 import { DEFAULT_SKY_ROOM, useStore, useTowers } from '../store'
@@ -131,7 +131,7 @@ function SkyRoomFields({ room, onChange, suggested }: { room: SkyRoom; onChange:
             : <span className="text-meta text-muted">The rest of this floor alone needs wider stairs than the other floors: give the room a larger share of the floor.</span>
         )}
       </div>
-      <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">The 1997 Higher Buildings Policy asks for a public deck or amenity where possible; sizes, hours and visitor numbers are team presets.</span></div>
+      <div className="flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">The 2026 Higher Buildings Policy counts a public room as a 2.1(g) community benefit (declare it below); sizes, hours and visitor numbers are team presets.</span></div>
     </div>
   )
 }
@@ -386,6 +386,21 @@ export function CoreTool() {
             ))}
           </div>
           {t.skyRoom && <SkyRoomFields room={t.skyRoom} onChange={(patch) => up({ skyRoom: { ...t.skyRoom!, ...patch } })} suggested={stablePostedLimit(t, liftPresets, egressPresets)} />}
+          {/* P1 #2 (21 Nov): Higher Buildings Policy 2026 declarations, read by the sky room check's 2.1(g) and 2.1(f) lines. */}
+          <div className="mt-1.5 grid grid-cols-2 gap-2">
+            <label className="grid gap-0.5 text-meta text-muted" title="Higher Buildings Policy 2.1(g), pp.3–4 (2026)">Community benefit (HBP 2.1(g))
+              <select value={t.communityBenefit ?? ''} onChange={(e) => up({ communityBenefit: (e.target.value || null) as CommunityBenefit | null })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs text-ink">
+                <option value="">Not declared</option>
+                {(Object.keys(BENEFIT_LABEL) as CommunityBenefit[]).map((k) => <option key={k} value={k}>{BENEFIT_LABEL[k]}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-0.5 text-meta text-muted" title="Higher Buildings Policy 2.1(f), p.3 (2026)">Class A heritage (HBP 2.1(f))
+              <select value={t.heritageA ?? ''} onChange={(e) => up({ heritageA: (e.target.value || null) as 'none' | 'retained' | 'demolished' | null })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs text-ink">
+                <option value="">Not declared</option>
+                {(Object.keys(HERITAGE_LABEL) as ('none' | 'retained' | 'demolished')[]).map((k) => <option key={k} value={k}>{HERITAGE_LABEL[k]}</option>)}
+              </select>
+            </label>
+          </div>
           {sky.length > 0 && <div className="mt-1 flex items-center gap-1"><FlagChip flag="team_assumption" /><span className="text-meta text-muted">The sky lobby floor counts as public amenity; people above it change lifts once.{!t.skyRoom ? ' Switch one to Public to open it as a sky room.' : ''}</span></div>}
         </div>
         <div className="grid grid-cols-2 gap-2 rounded-md bg-black/[0.03] p-2 text-meta">

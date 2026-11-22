@@ -72,6 +72,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^skyroom-security/, 'Separate the visitor route from the tenants\' lifts and floors.'],
   [/^skyroom-(share|amenity)/, 'Open more of the sky room to the public, or add a second public level.'],
   [/^skyroom-none/, 'Open a sky lobby to the public (Schematic › Sky lobbies).'],
+  // P1 #2 (21 Nov): HBP 2026 declarations.
+  [/^skyroom-benefit/, 'Declare the community benefit the tower offers (Schematic › Sky lobbies › Community benefit, HBP 2.1(g)).'],
+  [/^skyroom-heritage/, (st) => (st === 'fail' ? 'Keep the Class A heritage building: HBP 2.1(f) allows no demolition. Retain it and build around or over it.' : 'Declare whether a Class A heritage building stands on the site (Schematic › Sky lobbies › Class A heritage, HBP 2.1(f)).')],
   [/^skyroom-access/, 'Make the room free to enter and open daily hours.'],
   // Public realm (draft Central Downtown Design Guidelines)
   // Node audit (7 Nov): "pr-share" is the tower's width against the frontage, not active frontage share; it had the

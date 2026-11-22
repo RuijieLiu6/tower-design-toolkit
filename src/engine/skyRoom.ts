@@ -3,7 +3,7 @@
 import { DEFAULT_EGRESS_PRESETS, postedLimitForRoom, skyRoomLoads, type EgressPresets, type EgressResult } from './egress'
 import { DEFAULT_LIFT_PRESETS, autoCoreShare, publicStopFloors, skyRoomVisitors5, type LiftPresets, type LiftResult, type PublicStopFloor, type Rise } from './lifts'
 import { coreAreaAt, towerFloors } from './massing'
-import type { Floor, RuleResult, RuleState, Tower } from './types'
+import type { CommunityBenefit, Floor, RuleResult, RuleState, Tower } from './types'
 
 /** The wind on the deck at the sky room's level, worded by Wind on terraces and roofs (lib/swRun.ts, research R5 §1). */
 export interface SkyTerraceLine { value: string; threshold: string; state: RuleState; note: string; source: string }
@@ -29,7 +29,20 @@ export interface SkyRoomResult {
 }
 
 const fmt = (v: number) => Math.round(v).toLocaleString()
-const POLICY = { label: 'General Policy for Higher Buildings (May 1997), reproduced in the Policy Report on 687 Howe Street (19 Jul 2002)', url: 'https://council.vancouver.ca/020814/pe1.htm' }
+// P1 #2 (21 Nov): the 1997 platform text ("a public deck … where possible") is superseded. The 2026 Higher Buildings
+// Policy has no deck clause; a public room is one of its 2.1(g) community benefits (pp.3–4, book notes hbp-dobson-report.md).
+const HBP_2026 = { label: 'City of Vancouver, Higher Buildings Policy (rev. 31 Mar 2026), 2.1(f) and 2.1(g)', page: 'pp.3–4', url: 'https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf' }
+/** Public engagement on Vancouver towers: a visible, publicly accessible give-back ranks above private amenity. */
+const DOBSON = { label: 'Dobson, vertical studio (engagement themes, rank 3: a visible, publicly accessible give-back; book notes dobson-vertical-studio.md)', page: 'p.91' }
+/** The 2.1(g) benefits in words. */
+export const BENEFIT_LABEL: Record<CommunityBenefit, string> = {
+  cultural: 'significant cultural facility',
+  social: 'significant social facility',
+  heritage: 'heritage retention',
+  housing: 'low-cost housing',
+  transfer: 'recipient site for a density transfer',
+}
+export const HERITAGE_LABEL: Record<'none' | 'retained' | 'demolished', string> = { none: 'no Class A heritage building on the site', retained: 'a Class A heritage building on the site, retained', demolished: 'a Class A heritage building demolished' }
 const STOPES = { label: 'Stopes, Designing a Vertical Transportation Strategy in the Largest and Tallest Building in the City of London (22 Bishopsgate)', url: 'https://liftescalatorlibrary.org/paper_indexing/papers/00000193.pdf' }
 const VBBL_ACCESS = { label: 'Vancouver Building By-law 2019, Section 3.8 Accessibility (VBBL 2025 unread)', url: 'https://free.bcpublications.ca/civix/document/id/public/vbbl2019/369101801' }
 
@@ -58,6 +71,52 @@ export function stablePostedLimit(t: Tower, liftP: LiftPresets = DEFAULT_LIFT_PR
   return cur
 }
 
+/**
+ * Higher Buildings Policy 2.1(g) community benefit and 2.1(f) Class A heritage, as the team declares them (P1 #2): the
+ * benefit line names the declared type and what delivers it in the model (the public room, its further public stops,
+ * civic floors); pass when declared, open otherwise. Heritage: pass when declared none or retained, fail when declared
+ * demolished, open otherwise. Declarations only: whether the City accepts a benefit is a rezoning negotiation.
+ */
+export function benefitLines(t: Tower, room: Floor | null, stops: PublicStopFloor[]): RuleResult[] {
+  const civic = towerFloors(t).filter((f) => f.use === 'civic').map((f) => f.level)
+  const runs = (lv: number[]) => {
+    const out: string[] = []
+    for (let i = 0; i < lv.length; i++) { let j = i; while (j + 1 < lv.length && lv[j + 1] === lv[j] + 1) j++; out.push(j > i ? `L${lv[i]}–L${lv[j]}` : `L${lv[i]}`); i = j }
+    return out.join(', ')
+  }
+  const parts = [
+    room ? `public room L${room.level}` : '',
+    stops.length ? `public stops ${stops.map((x) => `L${x.floor.level}`).join(', ')}` : '',
+    civic.length ? `civic floor${civic.length > 1 ? 's' : ''} ${runs(civic)}` : '',
+  ].filter(Boolean)
+  const b = t.communityBenefit ?? null
+  const h = t.heritageA ?? null
+  return [
+    {
+      id: `skyroom-benefit-${t.id}`,
+      label: 'Community benefit (HBP 2.1(g))',
+      value: b ? `2.1(g): community benefit — ${BENEFIT_LABEL[b]}${parts.length ? `, ${parts.join(' + ')}` : ''}` : `Not declared${parts.length ? `; in the model: ${parts.join(' + ')}` : ''}`,
+      threshold: 'one of: a recipient site for a density transfer, heritage retention, a significant cultural or social facility, or low-cost housing (2.1(g))',
+      state: b ? 'pass' : 'unknown',
+      flag: 'verified',
+      source: HBP_2026,
+      note: b
+        ? `Declared by the team (communityBenefit). ${(b === 'cultural' || b === 'social') && !parts.length ? 'Nothing in the model delivers it yet: open a sky lobby to the public, add public stops or civic floors. ' : ''}Whether the City accepts it, and how it is secured, is settled at rezoning; the policy sets no size.`
+        : 'Declare the benefit the tower offers (communityBenefit, Schematic › Sky lobbies). A public room, public stops and civic floors on the public route are candidates for a cultural or social facility.',
+    },
+    {
+      id: `skyroom-heritage-${t.id}`,
+      label: 'Class A heritage (HBP 2.1(f))',
+      value: h ? HERITAGE_LABEL[h] : 'Not declared',
+      threshold: 'no demolition of a Class A heritage building (2.1(f))',
+      state: h === 'demolished' ? 'fail' : h ? 'pass' : 'unknown',
+      flag: 'verified',
+      source: HBP_2026,
+      note: 'A declaration (heritageA): the Toolkit has no heritage register layer. On the competition block, a hypothetical site, declare none unless the brief places a heritage building on it; on Real Vancouver, check the Vancouver Heritage Register for the lots.',
+    },
+  ]
+}
+
 export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e: EgressPresets = DEFAULT_EGRESS_PRESETS, liftP: LiftPresets = DEFAULT_LIFT_PRESETS, terrace?: SkyTerraceLine | null): SkyRoomResult {
   const floors = towerFloors(t)
   const room = t.skyRoom ? floors.find((f) => f.skyLobby && f.level === t.skyRoom!.level) ?? null : null
@@ -68,12 +127,12 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
         id: `skyroom-none-${t.id}`,
         label: 'Public amenity at height',
         value: t.skyLobbies?.length ? 'Sky lobby is tenant-only' : 'No sky lobby or public room',
-        threshold: 'A public observation deck or other public amenity, where possible',
+        threshold: 'a visible, publicly accessible give-back rather than private amenity (public engagement)',
         state: 'warn',
-        flag: 'verified',
-        source: POLICY,
-        note: 'The 1997 Higher Buildings Policy asks for it where possible; it sets no size. Make a sky lobby public in Design, Schematic.',
-      }],
+        flag: 'unverified',
+        source: DOBSON,
+        note: 'The 2026 Higher Buildings Policy asks for no deck; it asks for a community benefit under 2.1(g) (see that line). People asked in engagement ranked a visible public give-back high. Make a sky lobby public in Design, Schematic.',
+      }, ...benefitLines(t, null, [])],
     }
   }
   const r = t.skyRoom
@@ -100,12 +159,13 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
       id: `skyroom-amenity-${t.id}`,
       label: 'Public amenity at height',
       value: `Public sky room at level ${room.level}, +${Math.round(room.z0)} m, about ${fmt(visitorArea)} m² open to visitors${stops.length ? `; its public lifts also stop at ${stopsWord}` : ''}`,
-      threshold: 'A public observation deck or other public amenity, where possible',
+      threshold: 'a visible, publicly accessible give-back rather than private amenity (public engagement)',
       state: 'pass',
-      flag: 'verified',
-      source: POLICY,
-      note: 'The policy sets no size. City staff found a hotel lobby plus roof garden an inadequate public amenity (2002); the Bay Parkade rezoning (2026) secured free resident access to its observation deck (news report, research P01).',
+      flag: 'unverified',
+      source: DOBSON,
+      note: 'Its policy basis is now the 2.1(g) community benefit line (HBP 2026); no text sets a size. City staff found a hotel lobby plus roof garden an inadequate public amenity (2002, under the 1997 policy); the Bay Parkade rezoning (2026) secured free resident access to its observation deck (news report, research P01).',
     },
+    ...benefitLines(t, room, stops),
     {
       id: `skyroom-share-${t.id}`,
       label: 'Public floor area above the podium',
@@ -113,7 +173,7 @@ export function skyRoomCheck(t: Tower, lift: LiftResult, egress: EgressResult, e
       threshold: '≥ 5% good, < 1% weak (team preset)',
       state: shareAbovePodium >= 5 ? 'pass' : shareAbovePodium >= 1 ? 'warn' : 'fail',
       flag: 'team_assumption',
-      source: { label: 'Team preset in research P06-M07; the 1997 policy and the VTC brief give no number' },
+      source: { label: 'Team preset in research P06-M07; the Higher Buildings Policy (2026) and the VTC brief give no number' },
       note: stops.length
         ? 'Counts the sky room and the further public levels its public lifts stop at (publicStops): each storey less the core at its level, times its visitor share. Outdoor terraces are not counted.'
         : 'One floor of a 60-plus-storey tower is about 1.5%: a second public level, an outdoor terrace or a larger visitor share raises it.',

@@ -122,6 +122,16 @@ export interface Tower {
    * opposite faces. Read only by the smoke-path separation line (engine/egress.ts smokePath).
    */
   stairDoorFaces?: CoreFace[]
+  /**
+   * Program: the community benefit the team declares under Higher Buildings Policy 2.1(g) (P1 #2; pp.3–4 of the 2026
+   * text). Absent: not declared, and the benefit line stays open.
+   */
+  communityBenefit?: CommunityBenefit | null
+  /**
+   * Site: the Class 'A' heritage declaration under HBP 2.1(f) (P1 #2): 'none' (no Class A building on the site),
+   * 'retained' (one stands on the site and is kept) or 'demolished'. Absent: not declared.
+   */
+  heritageA?: 'none' | 'retained' | 'demolished' | null
   /** Schematic: exits of the podium itself (stairs at its edge, doors at grade), on top of the tower's core stairs. Absent: none. */
   podiumExits?: PodiumExits
   /** Imported massing (research P14-M02/M04): floors come from slicing the model instead of the parametric box. */
@@ -283,6 +293,8 @@ export type StairPlacement = 'core' | 'mixed' | 'perimeter'
 export type StairCorner = 'ne' | 'nw' | 'se' | 'sw'
 /** A face of the core in the tower's own frame (n = +y, e = +x), for the stair doors (P1 #11). */
 export type CoreFace = 'n' | 'e' | 's' | 'w'
+/** The community benefits Higher Buildings Policy 2.1(g) names (2026 text, p.4; P1 #2). */
+export type CommunityBenefit = 'cultural' | 'social' | 'heritage' | 'housing' | 'transfer'
 /**
  * Podium exits for travel distance (engine/egress.ts): positions, or a count spread evenly round the podium edge
  * (team assumption on where they sit). `at` wins over `count`; none (or count 0) = only the tower's core stairs.
