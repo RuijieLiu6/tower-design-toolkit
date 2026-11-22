@@ -2,7 +2,7 @@
 // layouts by use (unit mix for homes, keys for hotels, lease depth for offices) and an activity programme for public
 // floors. When a tower has `interior` set, the lift check, egress and economics read the counts from here instead of
 // their area proxies; without it they keep the proxies (flagged as such). Every preset is a team assumption.
-import { coreSide, coreSideAt, coreStepsOf, blockSpans, ownUseArea, spanAt, towerFloors } from './massing'
+import { coreSide, coreSideAt, coreStepsOf, blockSpans, netToGrossAt, ownUseArea, spanAt, towerFloors } from './massing'
 import type { Floor, Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export type UnitType = 'studio' | 'one' | 'two' | 'three'
@@ -236,6 +236,15 @@ export function floorCounts(t: Tower, f: Floor): { homes?: number; bedrooms?: nu
   if (l.kind === 'hotel') return { keys: l.keys }
   if (l.kind === 'public' && !l.room) return { publicEgress: l.egress, publicDesign: l.design }
   return null
+}
+
+/**
+ * Homes in a tower as the lift check counts them (engine/lifts.ts): the interior layout's homes on each residential
+ * storey above the podium (sky lobbies left out), else the storey's net area ÷ the home size (lift presets' `homeM2`).
+ */
+export function towerHomes(t: Tower, floors: Floor[], homeM2: number): number {
+  return floors.filter((f) => !f.podium && !f.skyLobby && f.use === 'residential')
+    .reduce((s, f) => s + (floorCounts(t, f)?.homes ?? (f.area * netToGrossAt(t, f)) / Math.max(1, homeM2)), 0)
 }
 
 // ---------------------------------------------------------------- results

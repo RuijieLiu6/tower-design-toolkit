@@ -94,6 +94,12 @@ export interface Tower {
    * storey weights plant the decks of open garden storeys and amenity floors as the weight presets say, as before.
    */
   deckUses?: DeckUse[]
+  /**
+   * Planters the design declares on the facade or along deck edges (node built.green-ratio; the continuous planter of
+   * Ecocity in the Sky pp.90, 159), each on every storey from `level` to `to`. Counted in the vegetated area (width ×
+   * length per storey) and as planted levels up the tower (node built.sky-villages). Absent or empty: none.
+   */
+  planters?: Planter[]
   /** Schematic: levels with outrigger or belt-truss floors (structure screening; the floor keeps its use). */
   outriggerFloors?: number[]
   /**
@@ -183,6 +189,20 @@ export interface DeckUse {
   use: DeckUseKind
   /** Soil depth on a planted deck (mm, saturated); absent: the weight presets' soil depth. Ignored on other uses. */
   soilMm?: number
+}
+
+/** A declared planter (`Tower.planters`): a strip of planting of this width and length (m) on each storey from `level` to `to`. */
+export interface Planter {
+  /** First storey level that has the planter. */
+  level: number
+  /** Last storey level (inclusive); absent: `level` only. */
+  to?: number
+  /** Length along the facade or deck edge (m) on each storey. */
+  length: number
+  /** Planting width (m). */
+  width: number
+  /** What it is, in a few words (a ring planter, a balcony box). */
+  label?: string
 }
 
 /** One step of a core that steps with the tiers (`Tower.coreSteps`): from this floor level up, a square core of this side. */

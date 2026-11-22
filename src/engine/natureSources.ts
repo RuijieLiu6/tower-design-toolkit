@@ -5,7 +5,9 @@
 // cityInNature.ts because the greenwall area reads the Sun & Wind floor plates (sw/plate.ts), and the store imports
 // cityInNature.ts for its defaults.
 import { DEFAULT_WEIGHT_PRESETS } from './storeyWeight'
-import { cityInNature, fourthStoreyTop, plantedSoil, qeFromCones, type ConeResult, type GreenWalls, type NatureContext, type NatureInput, type NatureResult } from './cityInNature'
+import { cityInNature, fourthStoreyTop, plantedSoil, qeFromCones, type ConeResult, type GreenWalls, type NatureContext, type NatureInput, type NatureResult, type Planters } from './cityInNature'
+import { towerHomes } from './interior'
+import { DEFAULT_LIFT_PRESETS } from './lifts'
 import { towerFloors } from './massing'
 import { swFloors, zoneFaceName, zoneFor, type FacadeZone } from './sw/plate'
 import type { Tower } from './types'
@@ -27,6 +29,9 @@ export interface NatureSources {
   cones?: ConeResult[] | null
   /** Soil depth (mm) for planted decks without their own: the storey-weight presets' (default 600 mm). */
   soilMm?: number
+  /** Persons per home and home size (m²) for the residents (the lift presets'; default DEFAULT_LIFT_PRESETS). */
+  personsPerHome?: number
+  homeM2?: number
 }
 
 /**
@@ -52,6 +57,26 @@ export function greenwallArea(towers: Tower[], north: number): GreenWalls | null
   }
   const list = [...parts.values()].filter((p) => p.m2 > 0)
   return list.length ? { m2: list.reduce((s, p) => s + p.m2, 0), parts: list } : null
+}
+
+/**
+ * Declared planters (`Tower.planters`, node built.green-ratio; Ecocity in the Sky pp.90, 159): width × length on each
+ * storey from `level` to `to` that the tower has. A planter with no length, width or storey there is left out. Null when
+ * none counts.
+ */
+export function planterArea(towers: Tower[]): Planters | null {
+  const parts: Planters['parts'] = []
+  for (const t of towers) {
+    if (!t.planters?.length) continue
+    const levels = towerFloors(t).map((f) => f.level)
+    for (const p of t.planters) {
+      if (!p || !(p.length > 0) || !(p.width > 0) || !Number.isFinite(p.level)) continue
+      const to = p.to != null && Number.isFinite(p.to) ? Math.max(p.level, p.to) : p.level
+      const storeys = levels.filter((l) => l >= p.level && l <= to).length
+      if (storeys) parts.push({ tower: t.name, ...(p.label ? { label: p.label } : {}), from: p.level, to, storeys, m2: p.length * p.width * storeys })
+    }
+  }
+  return parts.length ? { m2: parts.reduce((s, p) => s + p.m2, 0), parts } : null
 }
 
 /**
@@ -85,6 +110,9 @@ export function natureArgs(input: NatureInput, s: NatureSources): { coneOverall:
       greenwalls: greenwallArea(s.towers, s.north),
       gfa: s.towers.length ? floors.flat().reduce((a, f) => a + f.area, 0) : null,
       greenSpecialist: greenSpecialist(s.towers),
+      planters: planterArea(s.towers),
+      footprint: s.towers.length ? floors.reduce((a, f) => a + (f[0]?.area ?? 0), 0) : null,
+      residents: s.towers.length ? { homes: s.towers.reduce((a, t, k) => a + towerHomes(t, floors[k], s.homeM2 ?? DEFAULT_LIFT_PRESETS.homeM2), 0), perHome: s.personsPerHome ?? DEFAULT_LIFT_PRESETS.personsPerHome } : null,
     },
   }
 }

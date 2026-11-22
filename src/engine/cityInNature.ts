@@ -208,11 +208,20 @@ export interface NatureContext {
    * is twisted or free-form), shown as a Needs specialist marker on the vegetated-area lines. Absent: inside it.
    */
   greenSpecialist?: string
+  /** Declared planters (`Tower.planters`; engine/natureSources.ts planterArea): width × length on each storey. */
+  planters?: Planters | null
+  /** Ground footprint of the towers (m²): each tower's lowest storey, for planted area above grade ÷ footprint. */
+  footprint?: number | null
+  /** Homes in the towers and persons per home (the lift presets'), for planted area per resident. */
+  residents?: { homes: number; perHome: number } | null
 }
 
 /** One greenwall zone's planted wall: face length × band height (the storey) × (1 − WWR), summed over its storeys. */
 export interface GreenWallPart { tower: string; face: string; from: number; to: number; m2: number }
 export interface GreenWalls { m2: number; parts: GreenWallPart[] }
+/** One declared planter: width × length on each of its storeys, summed. */
+export interface PlanterPart { tower: string; label?: string; from: number; to: number; storeys: number; m2: number }
+export interface Planters { m2: number; parts: PlanterPart[] }
 
 // --- One input set for the panel and the evidence hub (node built.nature-inputs, 21 Nov) --------------------------------
 // The City in Nature panel and the evidence hub used to build their inputs apart: the panel lacked the model trees, the
@@ -309,10 +318,12 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
   const groundPlanted = ctx.groundPlantedM2 != null && Number.isFinite(ctx.groundPlantedM2) && ctx.groundPlantedM2 > 0 ? ctx.groundPlantedM2 : 0
   // Planted walls (greenwall facade zones, node built.green-ratio) join the modelled cover beside decks and grade.
   const wallPlanted = ctx.greenwalls?.m2 ?? 0
-  const modelledVeg = deckPlanted + groundPlanted + wallPlanted
+  // Declared planters (Tower.planters, node built.green-ratio): width × length on each storey.
+  const planterPlanted = ctx.planters?.m2 ?? 0
+  const modelledVeg = deckPlanted + groundPlanted + wallPlanted + planterPlanted
   const coverRead = reading(input.vegetatedM2, modelledVeg > 0 ? modelledVeg : null)
   const cover = share(coverRead ? coverRead.used : input.vegetatedM2)
-  const coverNote = !coverRead ? '' : ` Modelled cover: ${plantedDecks.length ? `the planted decks of the deck-use input, ${plantedDecks.map((d) => `${d.tower} L${d.level} ${m2s(d.area)}`).join(', ')} (whole deck area taken as planted)` : 'no planted deck declared'}${groundPlanted ? ` + ${m2s(groundPlanted)} of planting at grade, typed` : ''}${wallPlanted ? ` + ${m2s(wallPlanted)} of planted wall (greenwall facade zones: face length × storey height × (1 − WWR)); counting wall area in a share of site is the team’s reading, R019 may mean plan area only (unverified)` : ''}.`
+  const coverNote = !coverRead ? '' : ` Modelled cover: ${plantedDecks.length ? `the planted decks of the deck-use input, ${plantedDecks.map((d) => `${d.tower} L${d.level} ${m2s(d.area)}`).join(', ')} (whole deck area taken as planted)` : 'no planted deck declared'}${groundPlanted ? ` + ${m2s(groundPlanted)} of planting at grade, typed` : ''}${wallPlanted ? ` + ${m2s(wallPlanted)} of planted wall (greenwall facade zones: face length × storey height × (1 − WWR)); counting wall area in a share of site is the team’s reading, R019 may mean plan area only (unverified)` : ''}${planterPlanted ? ` + ${m2s(planterPlanted)} of declared planters (width × length on each storey)` : ''}.`
   rows.push({
     id: 'cover', name: 'Vegetative cover at maturity, share of site', half: 'space', direction: '4.2',
     value: coverRead ? `${lead(cover)}: ${coverRead.tail}` : cover === null ? (siteArea ? 'not entered' : 'needs a site area') : pct(cover),
@@ -323,22 +334,24 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
     note: `Using R019 cover figures as a pass line is the team’s reading.${coverNote}`,
   })
 
-  // Vegetated area against site and floor area (node built.green-ratio, NODE_LIST #5): decks, walls and grade added up,
-  // with the split. No threshold: Ecocity in the Sky (the book that would set one) is not read yet; Placemaking's tropical
-  // precedents (Al-Kodmany pp.151–161) are shown as analogues only. Always unknown and flagged unresolved.
+  // Vegetated area against site and floor area (node built.green-ratio, NODE_LIST #5): decks, walls, grade and declared
+  // planters added up, with the split. No threshold: Ecocity in the Sky (read 21 Nov) gives no green plot ratio, so any
+  // target is a team or precedent value; Placemaking's tropical precedents (Al-Kodmany pp.151–161) stay analogues only.
+  // Always unknown, flagged team assumption.
   const vegTotal = modelledVeg
-  const split = vegTotal > 0 ? `decks ${Math.round((deckPlanted / vegTotal) * 100)}%, walls ${Math.round((wallPlanted / vegTotal) * 100)}%, grade ${Math.round((groundPlanted / vegTotal) * 100)}%` : ''
+  const split = vegTotal > 0 ? `decks ${Math.round((deckPlanted / vegTotal) * 100)}%, walls ${Math.round((wallPlanted / vegTotal) * 100)}%, grade ${Math.round((groundPlanted / vegTotal) * 100)}%${planterPlanted ? `, planters ${Math.round((planterPlanted / vegTotal) * 100)}%` : ''}` : ''
   const ratio = (v: number) => (v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toFixed(2))
   const wallsNote = ctx.greenwalls?.parts.length ? ` Planted walls: ${ctx.greenwalls.parts.map((w) => `${w.tower} ${w.face} L${w.from}–${w.to >= 999 ? 'top' : w.to} ${m2s(w.m2)}`).join(', ')}.` : ''
-  const vegHow = `Vegetated area = planted decks (deck-use input, whole deck) ${m2s(deckPlanted)} + planted walls (greenwall facade zones: face length × storey height × (1 − WWR)) ${m2s(wallPlanted)} + planting at grade (typed) ${m2s(groundPlanted)}.${wallsNote} The typed vegetated area is not used here.`
-  const vegEmpty = 'no vegetated area modelled: declare planted decks, greenwall facade zones or planting at grade'
-  const ECO_PENDING = 'no threshold: awaits Ecocity in the Sky (not read); Placemaking pp.151–161 tropical precedents as analogues only (more than 2× site, p.156; green plot ratio 1,100%, p.161)'
+  const plantersNote = ctx.planters?.parts.length ? ` Planters: ${ctx.planters.parts.map((p) => `${p.tower}${p.label ? ` ${p.label}` : ''} L${p.from}${p.to !== p.from ? `–${p.to}` : ''} ${m2s(p.m2)}`).join(', ')}.` : ''
+  const vegHow = `Vegetated area = planted decks (deck-use input, whole deck) ${m2s(deckPlanted)} + planted walls (greenwall facade zones: face length × storey height × (1 − WWR)) ${m2s(wallPlanted)} + planting at grade (typed) ${m2s(groundPlanted)}${planterPlanted ? ` + declared planters (width × length on each storey) ${m2s(planterPlanted)}` : ''}.${wallsNote}${plantersNote} The typed vegetated area is not used here.`
+  const vegEmpty = 'no vegetated area modelled: declare planted decks, greenwall facade zones, planters or planting at grade'
+  const NO_RATIO = 'no threshold: Ecocity in the Sky gives no green plot ratio, so a target is a team or precedent value; Placemaking pp.151–161 tropical precedents as analogues only (more than 2× site, p.156; green plot ratio 1,100%, p.161)'
   const PM = { label: 'Al-Kodmany, Placemaking with Tall Buildings (Routledge 2026), Ch.7, analogues only', page: 'pp.151–161' }
   rows.push({
     id: 'green-site', name: 'Vegetated area ÷ site (decks, walls, grade)', half: 'space', direction: '4.2',
     value: vegTotal <= 0 ? vegEmpty : !siteArea ? `${m2s(vegTotal)} (${split}); needs a site area` : `${ratio(vegTotal / siteArea)} × site, ${m2s(vegTotal)} (${split})`,
-    entered: vegTotal > 0 ? false : null, threshold: ECO_PENDING, state: 'unknown',
-    force: 'team_assumption', flag: 'unresolved', source: PM,
+    entered: vegTotal > 0 ? false : null, threshold: NO_RATIO, state: 'unknown',
+    force: 'team_assumption', flag: 'team_assumption', source: PM,
     ...(ctx.greenSpecialist && wallPlanted > 0 ? { specialist: ctx.greenSpecialist } : {}),
     note: `${vegHow} A reading, not a rule: no Vancouver rule sets this ratio, and the precedents are tropical towers.`,
   })
@@ -346,10 +359,49 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
   rows.push({
     id: 'green-gfa', name: 'Vegetated area ÷ GFA (decks, walls, grade)', half: 'space', direction: '4.2',
     value: vegTotal <= 0 ? vegEmpty : !gfa ? `${m2s(vegTotal)} (${split}); needs the storeys from the design` : `${ratio(vegTotal / gfa)} × GFA, ${m2s(vegTotal)} of ${m2s(gfa)} (${split})`,
-    entered: vegTotal > 0 ? false : null, threshold: ECO_PENDING, state: 'unknown',
-    force: 'team_assumption', flag: 'unresolved', source: PM,
+    entered: vegTotal > 0 ? false : null, threshold: NO_RATIO, state: 'unknown',
+    force: 'team_assumption', flag: 'team_assumption', source: PM,
     ...(ctx.greenSpecialist && wallPlanted > 0 ? { specialist: ctx.greenSpecialist } : {}),
     note: `${vegHow} GFA is the modelled floor area of every storey (as the energy node counts it).`,
+  })
+
+  // Book node #5 upgrade (Ecocity in the Sky note §6, 21 Nov): the green line raised with the building line (Park
+  // pp.84–85) read as planted area above grade ÷ the ground footprint; vegetated area per resident beside the book's
+  // city-scale figures (context only, never a pass line); and the declared planters (pp.90, 159). No book target.
+  const ECO: Source = { label: 'Park, Designing the Ecocity-in-the-Sky: The Seoul Workshop (Images Publishing)' }
+  const above = deckPlanted + wallPlanted + planterPlanted
+  const fp = ctx.footprint != null && ctx.footprint > 0 ? ctx.footprint : null
+  const aboveSplit = above > 0 ? ` (decks ${m2s(deckPlanted)}, walls ${m2s(wallPlanted)}${planterPlanted ? `, planters ${m2s(planterPlanted)}` : ''})` : ''
+  rows.push({
+    id: 'green-above', name: 'Planted area above grade ÷ footprint', half: 'space', direction: '4.2',
+    value: !fp ? (above > 0 ? `${m2s(above)} above grade; needs the storeys from the design` : 'needs the storeys from the design')
+      : above <= 0 ? `0% of the footprint (${m2s(fp)}): no planted deck, greenwall zone or planter declared above grade`
+      : `${pct((above / fp) * 100)} of the footprint: ${m2s(above)} above grade on ${m2s(fp)}${aboveSplit}`,
+    entered: fp ? false : null,
+    threshold: 'no threshold: the book asks the green line to rise with the building line (pp.84–85) but gives no figure; a target is the team’s',
+    state: 'unknown', force: 'team_assumption', flag: 'team_assumption', source: { ...ECO, page: 'pp.84–85' },
+    ...(ctx.greenSpecialist && wallPlanted > 0 ? { specialist: ctx.greenSpecialist } : {}),
+    note: `Planted area above grade = planted decks (deck-use input, whole deck) + planted walls (greenwall zones) + declared planters; planting at grade is left out. Footprint = each tower’s lowest storey. Over 100% means more planting up the tower than the ground it covers.${plantersNote}`,
+  })
+  const res = ctx.residents && ctx.residents.homes > 0 ? ctx.residents : null
+  const people = res ? res.homes * res.perHome : 0
+  const n0 = (v: number) => Math.round(v).toLocaleString('en-CA')
+  rows.push({
+    id: 'green-resident', name: 'Vegetated area per resident', half: 'space', direction: '4.4',
+    value: !res ? 'no homes in the design' : `${(vegTotal / people).toFixed(1)} m² per resident: ${m2s(vegTotal)} for about ${n0(people)} residents (${n0(res.homes)} homes × ${res.perHome})${input.vegetatedM2 != null && input.vegetatedM2 > 0 ? `; typed vegetated area ${m2s(input.vegetatedM2)}: ${(input.vegetatedM2 / people).toFixed(1)} m² per resident` : ''}`,
+    entered: res ? false : null,
+    threshold: 'context only, never a pass line: Vancouver neighbourhood green 23.46 m² per person (p.146); Seoul legal minimum 6.0 and ideal 16.0 (p.100); city-scale figures with no source or year',
+    state: 'unknown', force: 'comparator_other_jurisdiction', flag: 'unverified', source: { ...ECO, page: 'pp.100, 146' },
+    note: 'The modelled vegetated area (decks, walls, grade, planters) over the residents: homes as the lift check counts them (the interior layout, else floor area ÷ home size) × persons per home (lift presets). The book’s figures are city and neighbourhood green per person, a different scale from one tower’s planting: shown for context, read once (unverified).',
+  })
+  const pl = ctx.planters?.parts ?? []
+  rows.push({
+    id: 'green-planters', name: 'Declared planters', half: 'space', direction: '4.2',
+    value: pl.length ? `${pl.length} planter${pl.length > 1 ? 's' : ''}, ${m2s(ctx.planters!.m2)} counted (width × length on each storey)` : 'none declared',
+    entered: pl.length ? true : null,
+    threshold: 'counted in the vegetated area; the book’s device is a continuous planter ringing the tower to its top floor (pp.90, 159), with no figure',
+    state: pl.length ? 'pass' : 'unknown', force: 'team_assumption', flag: 'team_assumption', source: { ...ECO, page: 'pp.90, 159' },
+    note: `Planters are declared on the tower (planters: level, to, length, width), from a design file or the harness; no drawing tool places them yet.${plantersNote}`,
   })
 
   rows.push({

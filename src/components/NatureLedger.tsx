@@ -28,8 +28,9 @@ export function useNature(cones: ConeResult[] | null) {
   const facade = useFacade()
   const site = useProjectSiteArea()
   const facadeTreated = useFacadeStore((s) => s.treated)
-  return useMemo(() => cityInNatureFrom(input, site.area, { project, towers, north: trueNorthDeg(project), facade, facadeFromSettings: true, facadeTreated, cones: project === 'city' ? cones : null, soilMm: DEFAULT_WEIGHT_PRESETS.soilMm }),
-    [input, project, cones, towers, facade, site.area, facadeTreated])
+  const lp = useStore((s) => s.liftPresets)
+  return useMemo(() => cityInNatureFrom(input, site.area, { project, towers, north: trueNorthDeg(project), facade, facadeFromSettings: true, facadeTreated, cones: project === 'city' ? cones : null, soilMm: DEFAULT_WEIGHT_PRESETS.soilMm, personsPerHome: lp.personsPerHome, homeM2: lp.homeM2 }),
+    [input, project, cones, towers, facade, site.area, facadeTreated, lp])
 }
 
 /** Solid = binding, dotted = target / guideline / aspiration, dashed = comparator or team assumption. */
@@ -118,6 +119,9 @@ export default function NatureLedger({ cones }: { cones: ConeResult[] | null }) 
           <Row r={row('cover')}><NumberInput label="Vegetated area" value={input.vegetatedM2} unit="m²" onChange={(v) => set({ vegetatedM2: v })} /><NumberInput label="Planting at grade" value={input.groundPlantedM2 ?? null} unit="m²" onChange={(v) => set({ groundPlantedM2: v })} /></Row>
           <Row r={row('green-site')} />
           <Row r={row('green-gfa')} />
+          <Row r={row('green-above')} />
+          <Row r={row('green-resident')} />
+          <Row r={row('green-planters')} />
           <Row r={row('habitat')}><YesNo label="Planned?" value={input.habitatAssessment} onChange={(v) => set({ habitatAssessment: v })} /></Row>
           <Row r={row('rain-pathway')}><YesNo label="Planned?" value={input.engineeredRainwater} onChange={(v) => set({ engineeredRainwater: v })} /></Row>
           <Row r={row('retention')}><NumberInput label="Retained per day" value={input.retainedM3} unit="m³" onChange={(v) => set({ retainedM3: v })} /></Row>

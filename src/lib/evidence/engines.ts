@@ -136,7 +136,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageCheck(towers, i.cityStreets ?? null).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],
     // One input set with the panel (node built.nature-inputs): the same sources, through the same function.
-    'built.city-in-nature': cityInNatureFrom(natureInput, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, { project: i.project, towers, north, facade, facadeFromSettings: !!i.facade, facadeTreated: i.facade?.treated ?? null, cones: i.project === 'city' ? i.cones ?? undefined : null, soilMm: weightPresets.soilMm }),
+    'built.city-in-nature': cityInNatureFrom(natureInput, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, { project: i.project, towers, north, facade, facadeFromSettings: !!i.facade, facadeTreated: i.facade?.treated ?? null, cones: i.project === 'city' ? i.cones ?? undefined : null, soilMm: weightPresets.soilMm, personsPerHome: i.liftPresets.personsPerHome, homeM2: i.liftPresets.homeM2 }),
     'built.wind-procedure': wind.map((w) => w.rules),
     'built.structure': towers.map((t, k) => structureCheck(t, wind[k], weightPresets, north).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
