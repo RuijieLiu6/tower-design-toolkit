@@ -245,14 +245,17 @@ export function cancelDrag() {
   if (useTowerEdit.getState().drag) useTowerEdit.setState({ drag: null })
 }
 
-/** A move, written at once as one undo step (no Confirm since 6 Nov). A placing click ends placing unless kept on. */
-function propose(p: Proposal, name: string) {
+/**
+ * A move, written at once as one undo step (no Confirm since 6 Nov). A placing click ends placing unless kept on.
+ * `join`: the move folds into the step just begun (a tower added by the same click), so one Undo takes both away.
+ */
+function propose(p: Proposal, name: string, join = false) {
   const s = useTowerEdit.getState()
   useTowerEdit.setState({ proposal: null, applied: { id: p.id, via: p.via, hit: p.hit, align: p.align ?? null } })
   const t = towerOf(p.id)
   if (p.via === 'place' && app().placing && !s.keepPlacing) app().set({ placing: false })
   if (!t || samePose(p.pose, poseOf(t))) return
-  breakStep()
+  if (!join) breakStep()
   app().updateTower(p.id, p.pose)
   breakStep()
   say(`${name} moved to ${where(p.pose)}. Ctrl+Z undoes it`)
@@ -332,7 +335,7 @@ function alignedPlacement(t: Tower, click: Pt, o: SnapOptions): { pose: Pose; hi
  * "Place on map" click: the tower lined up with the lot under the click (lib/lotAlign.ts) becomes the proposal;
  * another click moves it. Shift places it freely, unaligned.
  */
-export function proposePlace(id: string, x: number, y: number): boolean {
+export function proposePlace(id: string, x: number, y: number, join = false): boolean {
   if (locked()) { say(LOCKED); return false }
   const t = towerOf(id)
   if (!t) return false
@@ -355,8 +358,30 @@ export function proposePlace(id: string, x: number, y: number): boolean {
     })
   }
   pickTower(id)
-  propose({ id, start: cur?.id === id ? cur.start : poseOf(t), pose: r.pose, via: 'place', hit: r.hit, align: r.align }, t.name)
+  propose({ id, start: cur?.id === id ? cur.start : poseOf(t), pose: r.pose, via: 'place', hit: r.hit, align: r.align }, t.name, join)
   return true
+}
+
+/**
+ * A placing click on the ground (the design rail's Place a tower, the Form step's start, Move · P): the selected tower
+ * moves there, lined up with what is under it. With no tower yet, the project's starting tower is put down at the click,
+ * in one Undo step (T4, 21 Nov: the click used to need a selected tower, so on a new or cleared project the rail's
+ * Place a tower showed its hint and placed nothing). A stale selection falls back to the first tower.
+ */
+export function placeClick(x: number, y: number): boolean {
+  if (locked()) { say(LOCKED); return false }
+  const s = app(), list = s.towers[s.project]
+  const id = list.some((t) => t.id === s.selectedTower) ? s.selectedTower : list[0]?.id
+  if (id) return proposePlace(id, x, y)
+  breakStep()
+  s.addTower()
+  const added = app().selectedTower
+  if (!towerOf(added)) return false
+  const placed = proposePlace(added, x, y, true)
+  breakStep()
+  const t = towerOf(added)
+  if (placed && t) say(`${t.name} placed at ${where(poseOf(t))}. Ctrl+Z undoes it`)
+  return placed
 }
 
 /**

@@ -7,7 +7,7 @@ import { redo, resetHistory, startHistory, undo } from './project/history'
 import { setCityParcels } from './siteGeometry'
 import {
   beginDrag, cancelDrag, clearPick, confirmProposal, dragTo, endDrag, moveSnapped, normalizeDeg, nudge,
-  pickTower, proposePlace, setMetresPerPx, setPose, setShiftHeld, snapMove, snapRotate, snapTo, toggleMode, turnDeg,
+  pickTower, placeClick, proposePlace, setLotsForTest, setMetresPerPx, setPose, setShiftHeld, snapMove, snapRotate, snapTo, toggleMode, turnDeg,
   turnSnapped, useTowerEdit, type Pose, type SnapOptions,
 } from './towerEdit'
 
@@ -202,6 +202,62 @@ describe('moves apply at once, one undo step each (no Confirm since 6 Nov)', () 
     setShiftHeld(true)
     proposePlace('t1', 12.37, -3.61)
     expect(pose()).toEqual({ x: 12.37, y: -3.61, rotation: 0 })
+  })
+
+  it('Place a tower on an empty project: the click puts the starting tower down there, lined up, as one undo step (T4)', () => {
+    useStore.setState({ towers: { vtc: [], city: [] }, selectedTower: '' })
+    resetHistory()
+    useStore.getState().set({ placing: true })
+    expect(placeClick(12.4, -3.6)).toBe(true)
+    const list = useStore.getState().towers.vtc
+    expect(list).toHaveLength(1)
+    expect(useStore.getState().selectedTower).toBe(list[0].id)
+    expect(pose()).toEqual({ x: 12.4, y: -3.6, rotation: 0 })
+    expect(useTowerEdit.getState().applied).toMatchObject({ id: 't1', align: { how: 'site', fits: true } })
+    expect(useStore.getState().placing).toBe(false) // the click ends placing (the rail goes back to Select)
+    expect(useStore.getState().announce).toMatch(/^Tower 1 placed at x 12\.4 m, y -3\.6 m/)
+    // A second placing click moves that tower: still exactly one.
+    useStore.getState().set({ placing: true })
+    t += 2000
+    placeClick(-10, 5)
+    expect(useStore.getState().towers.vtc).toHaveLength(1)
+    expect(pose().x).toBe(-10)
+    undo()
+    expect(pose()).toEqual({ x: 12.4, y: -3.6, rotation: 0 })
+    undo() // the add and the first placement are one step
+    expect(useStore.getState().towers.vtc).toHaveLength(0)
+    expect(undo()).toBe(false)
+  })
+
+  it('Place a tower moves the selected tower; a stale selection falls back to the first; Present refuses', () => {
+    useStore.getState().set({ placing: true })
+    placeClick(12.4, -3.6)
+    expect(useStore.getState().towers.vtc).toHaveLength(1)
+    expect(pose()).toEqual({ x: 12.4, y: -3.6, rotation: 0 })
+    useStore.setState({ selectedTower: 'gone', placing: true })
+    t += 2000
+    expect(placeClick(-10, 5)).toBe(true)
+    expect(useStore.getState().towers.vtc).toHaveLength(1)
+    expect(pose().x).toBe(-10)
+    useStore.getState().setPhase('present')
+    expect(placeClick(0, 0)).toBe(false)
+    expect(pose().x).toBe(-10)
+  })
+
+  it('Place a tower on an empty Real Vancouver project with a study site: the tower lines up with the site', () => {
+    const ring: [number, number][] = [[100, 100], [180, 100], [180, 160], [100, 160]]
+    useStore.setState({ project: 'city', towers: { vtc: [], city: [] }, selectedTower: '', citySite: { ring, source: 'drawn', note: '', label: 'Test site', replaced: [], keepReplaced: false, parcelsAdd: [], parcelsSkip: [] } as unknown as ReturnType<typeof useStore.getState>['citySite'] })
+    resetHistory()
+    setLotsForTest({ rings: [], label: () => '' }) // no parcel fetch in tests
+    useStore.getState().set({ placing: true })
+    expect(placeClick(140, 130)).toBe(true)
+    setLotsForTest(null)
+    const list = useStore.getState().towers.city
+    expect(list).toHaveLength(1)
+    expect(Math.hypot(list[0].x - 140, list[0].y - 130)).toBeLessThan(1e-6)
+    expect(useTowerEdit.getState().applied?.align).toMatchObject({ how: 'site' })
+    undo()
+    expect(useStore.getState().towers.city).toHaveLength(0)
   })
 
   it('typed values are written at once, one step each', () => {

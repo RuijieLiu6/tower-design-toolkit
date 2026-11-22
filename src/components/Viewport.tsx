@@ -49,7 +49,7 @@ import MassingEdit3D from './MassingEdit3D'
 import TowerPosition3D from './TowerPosition3D'
 import Help from './Help'
 import MassingEditReadout from './MassingEditReadout'
-import { proposePlace, useTowerEdit } from '../lib/towerEdit'
+import { placeClick, useTowerEdit } from '../lib/towerEdit'
 import CameraClamp from './CameraClamp'
 import { BvhWarmup, eventsWithoutWheel, installFastRaycast } from '../lib/fastRaycast'
 import { RenderPacer, canvasFrameloop } from '../lib/renderPacer'
@@ -687,8 +687,9 @@ export default function Viewport() {
   const present = phase === 'present'
   const boardView = useStore((s) => s.boardView)
   const north = project === 'vtc' ? VTC_NORTH_DEG : 0
-  // A click while placing proposes the spot (ghost + checks); the toolbar's Confirm moves the tower (Vista v10.1).
-  const onPick = (x: number, y: number) => { if (placing && selected && !present) proposePlace(selected, x, y) }
+  // A click while placing moves the selected tower there at once (one undo step); with no tower yet it puts the starting
+  // tower down there (lib/towerEdit.ts placeClick; T4, 21 Nov).
+  const onPick = (x: number, y: number) => { if (placing && !present) placeClick(x, y) }
   const sel = towers.find((t) => t.id === selected) ?? towers[0]
   const baseZ = project === 'city' ? groundElevation : 0
   const focus = (sel ? toThree(sel.x, sel.y, baseZ + sel.height / 2) : new THREE.Vector3(0, 60, 0)).toArray() as [number, number, number]
