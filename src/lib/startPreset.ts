@@ -10,6 +10,7 @@ import { useRole } from './role'
 import { useStore } from '../store'
 import { analysisOnly } from './workflow/designNodes'
 import { canonicalNode } from '../data/registry'
+import { SPLIT_IDS } from './nodeSplits'
 
 export interface Runnable {
   id?: string | null
@@ -23,7 +24,7 @@ export interface Runnable {
 
 /** The workflow running in the guided app (its name and nodes), for the process rail's Next. */
 export const WORKFLOW_KEY = 'ts.workflowRun'
-export function runningWorkflow(): { name: string; nodes: string[]; id?: string | null; type?: UserTypeId | null; at?: string } | null {
+export function runningWorkflow(): { name: string; nodes: string[]; id?: string | null; type?: UserTypeId | null; at?: string; splits?: string[] } | null {
   try { const v = JSON.parse(localStorage.getItem(WORKFLOW_KEY) ?? 'null'); return v && Array.isArray(v.nodes) ? v : null } catch { return null }
 }
 
@@ -35,7 +36,7 @@ function remember(p: Runnable) {
     try { localStorage.setItem('ts.role', p.type) } catch { /* this visit only */ }
   }
   // With its preset, role and time, so the cover can tell whether it is newer than its own saved board (lib/coverWorkflow.ts).
-  try { localStorage.setItem(WORKFLOW_KEY, JSON.stringify({ name: p.name, nodes: p.nodes, id: p.id ?? null, type: p.type ?? null, at: new Date().toISOString() })) } catch { /* this visit only */ }
+  try { localStorage.setItem(WORKFLOW_KEY, JSON.stringify({ name: p.name, nodes: p.nodes, id: p.id ?? null, type: p.type ?? null, at: new Date().toISOString(), splits: SPLIT_IDS })) } catch { /* this visit only */ }
 }
 
 export async function startPreset(p: Runnable): Promise<void> {

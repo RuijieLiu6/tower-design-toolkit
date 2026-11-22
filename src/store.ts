@@ -14,6 +14,7 @@ import type { AiMeta } from './engine/renderPrompt'
 import type { InterchangeModel } from './lib/interchange/model'
 import type { StudySite } from './engine/site'
 import { setSiteBoundary } from './lib/siteGeometry'
+import { splitKeys } from './lib/nodeSplits'
 
 /** Defaults for a newly opened public sky room (all team assumptions, research P06-M07 and P11-M02). */
 export const DEFAULT_SKY_ROOM: Omit<SkyRoom, 'level'> = { access: 'shared', free: true, hoursOpen: 12, visitorShare: 0.6, loadBasis: 'dining', visitMinutes: 60, postedLimit: null }
@@ -247,7 +248,8 @@ export const useStore = create<State>((set, get) => ({
   selectTower: (selectedTower) => set({ selectedTower }),
   // A merged tool's parts switch with it (data/registry.ts MERGES); a part switched by itself (the 3D view's sun) stays alone.
   toggleNode: (id) => set((s) => { const v = !s.enabled[id]; return { enabled: { ...s.enabled, [id]: v, ...Object.fromEntries(partsOf(id).map((p) => [p, v])) } } }),
-  setEnabled: (ids) => set({ enabled: Object.fromEntries(withParts(ids).map((id) => [id, true])) }),
+  // A node split out of another (lib/nodeSplits.ts) keeps an explicit off, so a record made today never reads as one from before the split.
+  setEnabled: (ids) => set(() => { const on = withParts(ids); return { enabled: { ...splitKeys(on), ...Object.fromEntries(on.map((id) => [id, true])) } } }),
   selectNode: (selectedNode) => set((s) => ({ selectedNode, resultsSeq: s.resultsSeq + 1 })),
   resultsSeq: 0,
   addShot: (shot) => set((s) => ({ shots: [shot, ...s.shots].slice(0, 12) })),

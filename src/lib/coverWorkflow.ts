@@ -8,6 +8,7 @@ import { presetById } from './userTypes'
 import { linear, returnEdges, edgeKey, walk, type Edge } from './workflowGraph'
 import { runningWorkflow } from './startPreset'
 import { canonicalNode, canonicalNodes } from '../data/registry'
+import { SPLIT_IDS, upgradeBoard, upgradeIds } from './nodeSplits'
 
 export type CoverRole = UserTypeId | 'custom'
 export interface CoverWorkflow {
@@ -24,6 +25,8 @@ export interface CoverWorkflow {
   /** Where each node on the board sat, as a share of the cover's width and height. */
   at: Record<string, [number, number]>
   savedAt: string
+  /** Node splits the board already has (lib/nodeSplits.ts); missing: saved before them, so a split-out node joins its host once. */
+  splits?: string[]
 }
 
 const KEY = 'ts.coverWorkflow'
@@ -36,8 +39,8 @@ export function loadCoverWorkflow(): CoverWorkflow | null {
     return { ...v, at: v.at && typeof v.at === 'object' ? v.at : {}, presetId: v.presetId && presetById(v.presetId) ? v.presetId : null }
   } catch { return null }
 }
-export function saveCoverWorkflow(w: Omit<CoverWorkflow, 'v' | 'savedAt'>) {
-  try { localStorage.setItem(KEY, JSON.stringify({ v: 1, ...w, savedAt: new Date().toISOString() } satisfies CoverWorkflow)) } catch { /* this visit only */ }
+export function saveCoverWorkflow(w: Omit<CoverWorkflow, 'v' | 'savedAt' | 'splits'>) {
+  try { localStorage.setItem(KEY, JSON.stringify({ v: 1, ...w, savedAt: new Date().toISOString(), splits: [...SPLIT_IDS] } satisfies CoverWorkflow)) } catch { /* this visit only */ }
 }
 
 /**
@@ -45,18 +48,20 @@ export function saveCoverWorkflow(w: Omit<CoverWorkflow, 'v' | 'savedAt'>) {
  * workflow as a straight run plus the saved loops that still join two of its nodes; or null (the default, on a first
  * visit only). `known` filters out node ids that no longer exist.
  */
-export function restoreCoverWorkflow(known: (id: string) => boolean): Omit<CoverWorkflow, 'v' | 'savedAt'> | null {
+export function restoreCoverWorkflow(known: (id: string) => boolean): Omit<CoverWorkflow, 'v' | 'savedAt' | 'splits'> | null {
   const saved = loadCoverWorkflow(), run = runningWorkflow()
   const clean = (w: CoverWorkflow) => {
     // A merged tool's old part ids become its lead (data/registry.ts MERGES); wires that now join a node to itself go.
     const nodes = canonicalNodes(w.nodes).filter(known), ok = new Set([...nodes, 'start', 'enter']), seen = new Set<string>()
     const edges = w.edges.map((e) => ({ a: canonicalNode(e.a), b: canonicalNode(e.b) })).filter((e) => e.a !== e.b && ok.has(e.a) && ok.has(e.b) && !seen.has(edgeKey(e)) && !!seen.add(edgeKey(e)))
-    return { ...w, nodes, edges }
+    // A board saved before a node split gains the split-out node after its host, once (lib/nodeSplits.ts).
+    const { splits: _s, ...rest } = w
+    return { ...rest, ...upgradeBoard({ nodes, edges }, w.splits) }
   }
   const sameRun = (w: CoverWorkflow, nodes: string[]) => { const r = walk(w.edges); return r.length === nodes.length && r.every((x, i) => x === nodes[i]) }
   if (saved && (!run || sameRun(saved, run.nodes) || (run.at ?? '') <= saved.savedAt)) return clean(saved)
   if (run && run.nodes.length) {
-    const nodes = canonicalNodes(run.nodes).filter(known)
+    const nodes = upgradeIds(canonicalNodes(run.nodes).filter(known), run.splits)
     const loops = saved ? saved.edges.filter((e) => returnEdges(saved.edges).has(edgeKey(e)) && nodes.includes(e.a) && nodes.includes(e.b)) : []
     const presetId = run.id && presetById(run.id) ? run.id : null
     return { role: (run.type as CoverRole) ?? saved?.role ?? 'custom', presetId, customName: presetId ? null : run.name.replace(/ · with a loop$/, ''), nodes, edges: [...linear(nodes), ...loops], at: {} }

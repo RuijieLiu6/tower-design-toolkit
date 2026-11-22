@@ -1,6 +1,7 @@
 // Saved workflows (tower-studio-workflow@1): a graph of nodes and wires from the Customize builder.
 // Stored locally (browser storage, wrapped in try/catch) and exported or imported as JSON files.
 import type { NodeKind, Params } from './workflowLogic'
+import { pendingSplits, SPLIT_IDS } from './nodeSplits'
 
 export const WORKFLOW_FORMAT = 'tower-studio-workflow@1'
 const INDEX_KEY = 'ts.workflows'
@@ -37,6 +38,8 @@ export interface Workflow {
   nodes: WfNode[]
   edges: WfEdge[]
   viewport?: { x: number; y: number; zoom: number }
+  /** Node splits the graph already has (lib/nodeSplits.ts); missing: saved before them, so a split-out node joins its host once. */
+  splits?: string[]
 }
 
 /** Minimal storage interface so tests can pass a Map-backed fake. */
@@ -55,7 +58,26 @@ export function emptyWorkflow(name = 'Untitled workflow'): Workflow {
 }
 
 export function serializeWorkflow(wf: Workflow): string {
-  return JSON.stringify(wf, null, 2)
+  return JSON.stringify({ ...wf, splits: [...SPLIT_IDS] }, null, 2)
+}
+
+/**
+ * A graph saved before a node split (lib/nodeSplits.ts): each split-out node joins as an evaluation node beside the first
+ * node of its host, wired as the host is (the same inputs and outputs), so the workflow runs as it did.
+ */
+export function upgradeGraph(nodes: WfNode[], edges: WfEdge[], done?: readonly string[] | null): { nodes: WfNode[]; edges: WfEdge[]; added: string[] } {
+  const added: string[] = []
+  for (const s of pendingSplits(done)) {
+    if (nodes.some((n) => n.ref === s.id)) continue
+    const host = nodes.find((n) => n.kind === 'eval' && s.hosts.includes(n.ref))
+    if (!host) continue
+    let id = `${host.id}-split`, k = 1
+    while (nodes.some((n) => n.id === id)) id = `${host.id}-split-${++k}`
+    nodes = [...nodes, { id, kind: 'eval', ref: s.id, x: host.x + 40, y: host.y + 105, ...(host.parent ? { parent: host.parent } : {}) }]
+    edges = [...edges, ...edges.filter((e) => e.target === host.id || e.source === host.id).map((e) => ({ ...e, id: `${e.id}-${id}`, ...(e.target === host.id ? { target: id } : { source: id }) }))]
+    added.push(s.id)
+  }
+  return { nodes, edges, added }
 }
 
 const KINDS: NodeKind[] = ['source', 'eval', 'logic', 'group']
@@ -105,13 +127,15 @@ export function parseWorkflow(text: string, known?: (ref: string, kind: NodeKind
   })
 
   const now = new Date().toISOString()
+  // Saved before a node split: the split-out node joins its host (lib/nodeSplits.ts).
+  const up = upgradeGraph(nodes, edges, Array.isArray(raw.splits) ? raw.splits.filter(isStr) : null)
   const workflow: Workflow = {
     format: WORKFLOW_FORMAT,
     id: isStr(raw.id) ? raw.id : newId(),
     name: isStr(raw.name) ? raw.name.slice(0, 120) : 'Imported workflow',
     createdAt: isStr(raw.createdAt) ? raw.createdAt : now,
     updatedAt: isStr(raw.updatedAt) ? raw.updatedAt : now,
-    nodes, edges,
+    nodes: up.nodes, edges: up.edges,
   }
   if (typeof raw.description === 'string') workflow.description = raw.description
   if (raw.project === 'vtc' || raw.project === 'city') workflow.project = raw.project

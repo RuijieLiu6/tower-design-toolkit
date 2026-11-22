@@ -8,6 +8,7 @@ import { useCommunityStore } from '../communityStore'
 import { applyDesign, defaultDesign, pickDesign, type Design } from '../project/design'
 import { breakStep } from '../project/history'
 import { hashOf } from '../project/stable'
+import { upgradeEnabled } from '../nodeSplits'
 import { useStore } from '../../store'
 import type { Digest } from './digest'
 import type { CardReview } from './review'
@@ -85,8 +86,10 @@ export function restoreIteration(id: string) {
   const it = useTrace.getState().iterations.find((x) => x.id === id)
   if (!it) return
   breakStep()
-  // Iterations saved before 27 Oct have no ground mode: they restore with the base they recorded (set by hand).
-  applyDesign({ ...defaultDesign(), ...it.design, groundMode: it.design.groundMode ?? 'manual' }, `Restored “${it.label}”. Ctrl+Z goes back.`)
+  // Iterations saved before 27 Oct have no ground mode: they restore with the base they recorded (set by hand). Those
+  // saved before a node split (lib/nodeSplits.ts) switch the new node with its host.
+  const d = defaultDesign()
+  applyDesign({ ...d, ...it.design, groundMode: it.design.groundMode ?? 'manual', enabled: upgradeEnabled(it.design.enabled ?? d.enabled) }, `Restored “${it.label}”. Ctrl+Z goes back.`)
   breakStep()
 }
 

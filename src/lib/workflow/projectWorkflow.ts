@@ -18,6 +18,7 @@ import { breakStep, withoutHistory } from '../project/history'
 import { presetById } from '../userTypes'
 import { addLoop, clean, edgeKey, insertAfter, insertByPhase, insertOn, linear, returnEdges, takeOff, walk, type Board, type Edge } from '../workflowGraph'
 import { BUILT_NODES, withParts } from '../../data/registry'
+import { SPLIT_IDS } from '../nodeSplits'
 import { analysisOnly, isDesignNode } from './designNodes'
 import { goToStep, useStep, type StepId } from '../step'
 import { usePhaseTools } from './phaseTools'
@@ -105,7 +106,7 @@ function save(wf: ProjectWorkflow) {
   const preset = wf.presetId ? presetById(wf.presetId) : null
   const name = wf.customName ?? preset?.name ?? 'My workflow'
   // The running workflow first, the landing record last, so the landing page restores this board (its time is newer).
-  try { localStorage.setItem(WORKFLOW_KEY, JSON.stringify({ name, nodes: walk(wf.edges), id: wf.presetId, type: wf.role === 'custom' ? null : wf.role, at: new Date().toISOString() })) } catch { /* this visit only */ }
+  try { localStorage.setItem(WORKFLOW_KEY, JSON.stringify({ name, nodes: walk(wf.edges), id: wf.presetId, type: wf.role === 'custom' ? null : wf.role, at: new Date().toISOString(), splits: SPLIT_IDS })) } catch { /* this visit only */ }
   saveCoverWorkflow({ role: wf.role, presetId: wf.presetId, customName: wf.customName, nodes: wf.nodes, edges: wf.edges, at: keep })
 }
 

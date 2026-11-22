@@ -14,6 +14,7 @@ import { DEFAULT_WIND_PRESETS } from '../../engine/windStructure'
 import { DEFAULT_SYSTEMS_PRESETS } from '../../engine/lifeSafety'
 import type { Tower } from '../../engine/types'
 import { DEFAULT_ON, PART_OF, withParts } from '../../data/registry'
+import { SPLIT_IDS, splitKeys, upgradeIds } from '../nodeSplits'
 import type { NodePackage } from '../nodePackages'
 import type { Trace } from '../trace/trace'
 import type { InterchangeModel } from '../interchange/model'
@@ -166,11 +167,15 @@ export function toDesign(file: ProjectFile): Design {
     models: { vtc: file.models?.vtc ?? null, city: file.models?.city ?? null },
     citySite: file.citySite ?? null,
     selectedTower: t[file.project].some((x) => x.id === file.selectedTower) ? file.selectedTower : t[file.project][0]?.id ?? '',
-    // Built nodes added after the file was saved start switched on, like in a new project.
+    // Built nodes added after the file was saved start switched on, like in a new project; a node split out of another
+    // since (lib/nodeSplits.ts: built.hbp from Relaxations & aviation) follows its host instead, and keeps an explicit off.
     enabled: (() => {
-      const ids = [...file.nodes.enabled, ...(file.nodes.known ? DEFAULT_ON.filter((id) => !file.nodes.known!.includes(id)) : [])]
+      const known = file.nodes.known
+      const fresh = known ? DEFAULT_ON.filter((id) => !known.includes(id) && !SPLIT_IDS.includes(id)) : []
+      const ids = upgradeIds([...file.nodes.enabled, ...fresh], known ? SPLIT_IDS.filter((id) => known.includes(id)) : null)
       // A merged tool's parts follow its lead (data/registry.ts MERGES); the sun preview keeps its own switch.
-      return Object.fromEntries([...withParts(ids.filter((id) => !PART_OF[id])), ...(ids.includes('built.sun') ? ['built.sun'] : [])].map((id) => [id, true]))
+      const on = [...withParts(ids.filter((id) => !PART_OF[id])), ...(ids.includes('built.sun') ? ['built.sun'] : [])]
+      return { ...splitKeys(on), ...Object.fromEntries(on.map((id) => [id, true])) }
     })(),
     fsrTier: file.rules.fsrTier,
     transitLink: file.rules.transitLink,
