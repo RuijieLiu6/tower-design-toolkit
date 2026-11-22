@@ -2,14 +2,43 @@
 // Screening only: no member sizing, no design values. Packet P10 had two critique rounds and no final gate, so code
 // readings the research corrected are "unverified" here.
 import { coreStepsOf, towerFloors } from './massing'
-import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
+import type { Flag, Floor, RuleResult, RuleState, Source, Tower } from './types'
 import { coreStiffness, CRACKED_RANGE, type CoreStiffness } from './storeyWeight'
 import { f1Empirical } from './acrossWind'
 import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, FLAT_PLATE_MIN, FLAT_PLATE_REACH, GAMMA_C, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, ringAt, ringText, PT_PLATE_REACH, PT_RATIO, sameCore, SLAB_MIN, SNOW_W, soilKpa, storeyCore, storeyWeights, USE_LOADS, worstWeightStep, type GravityReading, type StoreyWeight, type WeightPresets, type WeightResult } from './storeyWeight'
 import { USES } from './types'
 import { towerTwist } from './twist'
+import { floorOutline } from './corners'
 import { TWIST_MIN } from './acrossWind'
 import { systemShortlist, type SystemFit, type WindProcedure } from './windStructure'
+
+/** Type 10 (sloped columns): inclined more than 2° from vertical (BCBC 2024 Table 4.1.8.6; NBC 2020 the same). */
+export const TYPE10_DEG = 2
+const TYPE10_SOURCE: Source = { label: 'BC Building Code 2024, Division B, Table 4.1.8.6 Type 10 and 4.1.8.10(10) (NBC 2020 the same; two readers)', page: 'pp.4-484, 4-488' }
+
+/**
+ * The largest lean of a perimeter column that follows a turning plate (tool cycle 11): over each storey the turn (deg)
+ * times the farthest corner's distance from the outline's centre, over the storey height. Null when the plate does not turn.
+ */
+export function slopedColumnLean(t: Tower, floors: Floor[] = towerFloors(t)): { deg: number; level: number; r: number; turn: number; h: number } | null {
+  const tw = towerTwist(t, floors)
+  if (!(tw.deg > 0) || tw.storeys.length < 2) return null
+  let best: { deg: number; level: number; r: number; turn: number; h: number } | null = null
+  for (let k = 1; k < tw.storeys.length; k++) {
+    const turn = Math.abs(tw.storeys[k].angle - tw.storeys[k - 1].angle)
+    if (turn < 0.05) continue
+    const f = floors.find((x) => x.level === tw.storeys[k].level)
+    if (!f) continue
+    const ring = floorOutline(t, f)
+    if (ring.length < 3) continue
+    const cx = ring.reduce((a, p) => a + p[0], 0) / ring.length, cy = ring.reduce((a, p) => a + p[1], 0) / ring.length
+    const r = Math.max(...ring.map((p) => Math.hypot(p[0] - cx, p[1] - cy)))
+    const h = Math.max(0.1, f.z1 - f.z0)
+    const deg = (Math.atan((r * turn * Math.PI) / 180 / h) * 180) / Math.PI
+    if (!best || deg > best.deg) best = { deg, level: f.level, r, turn, h }
+  }
+  return best
+}
 
 const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.8 (2nd printing, 2025)', url: 'https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en' }
 const TEAM: Source = { label: 'Team assumption (research P10 r1, editable)' }
@@ -44,7 +73,7 @@ export interface StructureResult {
  */
 export type StructureTab = 'seismic' | 'lateral' | 'floors'
 export const STRUCTURE_TABS: { id: StructureTab; tab: string; lines: string[] }[] = [
-  { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'geometric', 'core-ratio'] },
+  { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'sloped-columns', 'geometric', 'core-ratio'] },
   { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers'] },
   { id: 'floors', tab: 'Floors & spans', lines: ['floor-reach', 'floor-dead-load'] },
 ]
@@ -111,6 +140,19 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     + (plantedDecks.length ? ` Planted deck${plantedDecks.length > 1 ? 's' : ''}: ${plantedDecks.map((l) => `${levelName(l)} (${Math.round(l.deck).toLocaleString('en-CA')} m², ${l.deckUse ? `deck-use input, ${l.deckUse.soilMm ?? wpr.soilMm} mm of soil` : l.garden ? 'open garden storey' : 'public amenity floor'})`).join(', ')}, each carried by its own floor.` : '')
     + (given.length ? ` Deck uses (the deck-use input) set the decks at ${given.map(levelName).join(', ')}: planted with their own soil, occupied or unused ones hard, whatever the storey's use (gap G32).` : '')
     + ' The podium-to-tower step usually triggers it: an irregular structure needs Vd ≥ 1.0 V.')
+
+  // Sloped columns, Type 10 (tool cycle 11; BCBC 2024 Table 4.1.8.6, read by two readers): perimeter columns that follow
+  // a turning plate lean by the turn times their distance from the axis over the storey height.
+  const lean = slopedColumnLean(t, floors)
+  const leanState: RuleState = lean && lean.deg > TYPE10_DEG ? 'warn' : 'pass'
+  rules.push({
+    id: 'sloped-columns', label: 'Sloped columns (Type 10)',
+    value: lean ? `perimeter columns that follow the turning facade lean about ${lean.deg.toFixed(1)}° at L${lean.level} (${lean.r.toFixed(1)} m from the axis, ${lean.turn.toFixed(1)}° in a ${lean.h.toFixed(2)} m storey)` : 'no turning plate read: perimeter columns can stay vertical',
+    threshold: `a gravity column inclined more than ${TYPE10_DEG}° from vertical is irregularity Type 10: design for vertical ground motion and the thrusts at the floors (4.1.8.10(10))`,
+    state: leanState, flag: 'verified', source: TYPE10_SOURCE,
+    ...(leanState === 'warn' ? { specialist: `Sloped gravity columns past ${TYPE10_DEG}° (Type 10): the structural engineer keeps the perimeter columns vertical inside the turning slab edges (cantilevered corners) or designs the sloped columns for vertical ground motion and the floor thrusts.` } : {}),
+    note: 'The lean is read for a perimeter column at the outline’s farthest corner that follows the facade from storey to storey (the turn per storey read from the storey outlines, engine/twist.ts). Columns kept vertical inside the turning edges do not lean: the corners then cantilever (floor reach reads the corner). Leans from a tapering or leaning plate are not read yet.',
+  })
 
   // Floor reach (P1 #13, NODE_LIST row 13): each tower storey's core-to-facade reach against one flat plate, and the slab
   // its span needs, which the storey weights now carry.
