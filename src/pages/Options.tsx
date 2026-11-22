@@ -1,6 +1,8 @@
 // Design options (#/options, backlog item 26): save up to four named options, compare them side by side (massing,
 // every switched-on node's result with state and evidence, deltas against a baseline), chart them by jury criterion
 // with the user's weights, and explain the difference between two options through the decision trace.
+// 21 Nov (product #2): each option carries a feasibility card (lib/feasibilityCard.ts), its land residual and its
+// non-residential FSR margin, and how they moved against the parent scheme (the baseline, the first option).
 import { ArrowLeft, ArrowDown, ArrowUp, Equal, FolderOpen, Minus, Route as RouteIcon, Save, Trash, Workflow } from '../components/icons'
 import { useEffect, useMemo, useState } from 'react'
 import { TraceRecorder } from '../components/TracePanel'
@@ -14,6 +16,9 @@ import {
 } from '../lib/options'
 import { deleteOption, liveDigestReady, openOption, refreshOptions, saveOption, useOptions } from '../lib/optionsStore'
 import { useCommunityStore } from '../lib/communityStore'
+import { useEconStore, presetsWith } from '../lib/econStore'
+import { changeText, feasibilityCard, feasibilityChange, type FeasibilityCard } from '../lib/feasibilityCard'
+import { projectSiteArea } from '../lib/siteArea'
 import { startPersistence, whenRestored } from '../lib/project/session'
 import { useTrace } from '../lib/trace/trace'
 import { useStore } from '../store'
@@ -66,6 +71,36 @@ function Massing({ o, color, top, baseline }: { o: OptionRecord; color: string; 
       ))}
       <rect x="0" y="0" width="4" height={H} fill={color} />
     </svg>
+  )
+}
+
+/** One figure of the feasibility card: the number, its change against the parent, its flag and its basis (hover for all). */
+function LensRow({ label, text, change, up, flag, basis, detail, testid }: { label: string; text: string; change: string | null; up: boolean | null; flag: string; basis: string; detail: string; testid: string }) {
+  return (
+    <div className="min-w-0" data-testid={testid} title={detail}>
+      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+        <span className="text-muted">{label}</span>
+        <b className="tabular-nums"><U>{text}</U></b>
+        {change !== null && <span className={`tabular-nums ${up === null ? 'text-muted' : up ? 'text-emerald-800' : 'text-red-800'}`}><U>{change}</U></span>}
+        <FlagChip flag={flag} />
+      </div>
+      <p className="truncate text-muted">{basis}</p>
+    </div>
+  )
+}
+
+/** The feasibility card of one option (lib/feasibilityCard.ts): residual and non-residential FSR margin, with the change against the parent. */
+function FeasibilityLens({ card, parent }: { card: FeasibilityCard; parent: FeasibilityCard | null }) {
+  const ch = parent ? feasibilityChange(card, parent) : null
+  const rel = (v: number | null, kind: 'money' | 'fsr') => (ch ? (ch.comparable ? `${changeText(v, kind)} vs baseline` : 'other site: no change shown') : null)
+  const up = (v: number | null) => (v == null || Math.abs(v) < 1e-9 ? null : v > 0)
+  return (
+    <section className="mt-2 grid gap-1.5 rounded-md border border-line bg-paper p-2 text-meta" aria-label="Feasibility" data-testid="feasibility-card">
+      <div className="font-semibold">Feasibility <span className="font-normal text-muted">· estimate, same settings for every option</span></div>
+      <LensRow testid="feasibility-residual" label="Land residual" text={card.residual.text} change={rel(ch?.residual ?? null, 'money')} up={up(ch?.residual ?? null)} flag={card.residual.flag} basis={card.residual.basis} detail={card.residual.detail} />
+      {/* The margin's change where the 9.0 rule applies (the competition), else the FSR's own change. */}
+      <LensRow testid="feasibility-nonres" label="Non-res. FSR" text={card.nonRes.text} change={rel(ch?.margin ?? ch?.fsr ?? null, 'fsr')} up={up(ch?.margin ?? ch?.fsr ?? null)} flag={card.nonRes.flag} basis={card.nonRes.basis} detail={card.nonRes.detail} />
+    </section>
   )
 }
 
@@ -152,6 +187,13 @@ export default function Options() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [showAll, setShowAll] = useState<Set<string>>(new Set())
   const totals = useMemo(() => options.map((o) => weightedTotal(criterionScores(o.design, o.digest), weights)), [options, weights])
+  // The economics lens: every option at this browser's economics settings, against the baseline (the parent scheme).
+  const econ = useEconStore()
+  const cards = useMemo(() => {
+    const presets = presetsWith(econ.overrides)
+    const settings = { permitYear: econ.permitYear, landPrice: econ.landPrice, includeRegional: econ.includeRegional, costBasis: econ.costBasis, residentialBase: econ.residentialBase, contingency: econ.contingency, civicReduced: econ.civicReduced, accTreatment: econ.accTreatment }
+    return options.map((o) => feasibilityCard(o.design, projectSiteArea(o.design.project, null, o.design.citySite), settings, presets, Object.keys(econ.overrides).length))
+  }, [options, econ])
   const [ia, ib] = [Math.min(pair[0], options.length - 1), Math.min(pair[1], options.length - 1)]
   const explain = useMemo(() => (options.length >= 2 && ia !== ib ? explainDifference(options[ia], options[ib], trace) : null), [options, ia, ib, trace])
 
@@ -201,6 +243,7 @@ export default function Options() {
                 </div>
                 <div className="mt-2"><Massing o={o} color={SERIES[i]} top={top} baseline={i === 0 ? null : topOf(options[0])} /></div>
                 <div className="mt-2 text-meta">Weighted study score <b className="tabular-nums">{Number.isFinite(totals[i]) ? Math.round(totals[i]) : '—'}</b> / 100</div>
+                {cards[i] && <FeasibilityLens card={cards[i]} parent={i === 0 ? null : cards[0]} />}
                 <div className="mt-2 flex gap-1.5">
                   <button onClick={async () => { await openOption(o); navigate('guided') }} className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-meta outline-none hover:border-accent focus-visible:ring-2 focus-visible:ring-accent"><FolderOpen size={12} aria-hidden />Open in the guided app</button>
                   {deleting === o.key ? (
