@@ -59,7 +59,7 @@ describe('P1 #13: floor reach and the slab from the span', () => {
     const ringed: Tower = { ...tower(), columnRing: true }
     const r = line(ringed, 'floor-reach')!
     expect(r.state).toBe('pass')
-    expect(r.value).toMatch(/with the column ring, spans ≈ 6\.5 m$/)
+    expect(r.value).toMatch(/with the column ring \(every storey\), worst span ≈ 6\.5 m$/)
     expect(storeyWeights(ringed).levels.find((l) => l.level === 10)!.slab).toBe(0.15)
   })
 
