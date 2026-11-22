@@ -34,6 +34,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^rise-floors/, 'Split the tower into more lift rises, or add a sky lobby (Schematic › Core & floors).'],
   [/^rise-/, 'Add cars to this rise, or start the upper rises at a sky lobby (Schematic › Core & floors).'],
   [/^core-fit/, (_st, v) => (/from L\d+, [\d.]+ m core/.test(v) ? 'A core is smaller than the lifts that run through it (the lowest, or a step): widen it, move the step higher, or end a rise below the step with a sky lobby (Structure › Core steps; Schematic › Core & floors).' : 'Turn on "Size to the lifts", or raise the core share (Schematic › Core & floors).')],
+  // Services space by use (P1 node #14, Allen & Iano pp.50, 185, 192–194).
+  [/^core-share/, (_st, v) => (/^(\d+)%/.exec(v) && Number(/^(\d+)%/.exec(v)![1]) > 25 ? 'Win back floor from a core over 25%: a sky lobby so fewer shafts run low down, or a core that steps in as rises end (Structure › Core steps; Schematic › Core & floors).' : 'Bring the core to 20–25% of the floor: turn on "Size to the lifts" or raise the core share, and check the shafts and rooms fit (Schematic › Core & floors).')],
+  [/^lifts-kpf/, 'A cross-check only: compare the lift plan with the rule of thumb and ask the lift consultant about a large gap.'],
   [/^ntg/, 'Win back net area: a sky lobby (fewer shafts low down), a smaller core, or a larger plate.'],
   [/^firefighter/, 'Give firefighters a lift that reaches the top in about a minute with one change at most (a sky-lobby shuttle).'],
   [/^stretcher/, 'Make one car in each group stretcher-sized.'],
@@ -204,6 +207,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^conductors$/, 'Keep a protected riser for the emergency, fire-pump and alarm conductors (1 h; smoke management 2 h).'],
   [/^radio$/, 'Plan the firefighters’ radio system: an equipment room and a communications riser.'],
   [/^emergency-power$/, 'Size the generator for at least 2 h at full load for every listed load (electrical engineer).'],
+  [/^plant-reach$/, 'Put a plant floor within 13 storeys of every occupied floor, 25 at most: add plant floors (Schematic › Core & floors, "Plant floor every N tower floors", or the Section tool), with a podium or basement fan room for the low floors.'],
+  [/^services-/, 'Turn on "Services by use" in the lift presets so the core holds these services, or raise the flat services figure to this one (Schematic › Core & floors); an air-water system halves the office shafts.'],
   [/^plant-floors$/, 'Add plant floors: the button under Details puts one every few floors, or set "Plant floor every N tower floors" (Schematic › Core & floors). Podium plant does not count: move it up above the podium.'],
   [/^bf-route$/, 'Give every occupied floor a passenger lift stop, the podium floors included (with the lift consultant).'],
   [/^bf-redundancy$/, 'Give each lift group a second accessible car (Schematic › Core & floors).'],

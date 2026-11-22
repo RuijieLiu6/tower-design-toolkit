@@ -209,7 +209,7 @@ export const USER_TYPES: UserType[] = [
         id: 'engineer.sustainability', type: 'engineer', name: 'Energy, carbon and daylight',
         goal: 'Energy and emissions against the targets, embodied carbon, glazing, daylight and nature.',
         project: 'city', step: 'plates',
-        nodes: ['built.energy-carbon', 'built.facade', 'built.daylight-depth', 'built.city-in-nature', 'built.solar-access'],
+        nodes: ['built.energy-carbon', 'built.facade', 'built.daylight-depth', 'built.city-in-nature', 'built.solar-access', 'built.life-safety'],
         says: ['energy and carbon targets', 'embodied carbon', 'sustainability and green building', 'daylight and glazing'],
       },
     ],

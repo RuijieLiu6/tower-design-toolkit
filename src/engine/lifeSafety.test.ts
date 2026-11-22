@@ -113,10 +113,13 @@ describe('plant, risers and emergency power (P11-M03)', () => {
     expect(roof.systems.plant).toMatchObject({ modelled: 2, podiumModelled: 1, roofLevel: top.level })
     expect(find(roof.systemRules, 'plant-floors').value).toBe(`${need} needed; 2 modelled in the tower, one the roof storey L${top.level}; 1 more in the podium`)
   })
-  it('feeds the core: the riser estimate passes once the core uses it', () => {
-    const { r } = run(vtc(), { servicesM2: 20 })
-    expect(find(r.systemRules, 'risers').state).toBe('warn')
-    expect(find(run(vtc(), { servicesM2: Math.ceil(r.systems.servicesNeeded) }).r.systemRules, 'risers').state).toBe('pass')
+  it('feeds the core: services by use replace the flat riser line (P1 node #14)', () => {
+    const { r } = run(vtc())
+    expect(r.systemRules.find((x) => x.id === 'risers')).toBeUndefined()
+    const lines = r.systemRules.filter((x) => x.id.startsWith('services-'))
+    expect(lines.length).toBeGreaterThan(0)
+    for (const l of lines) expect(l.state, l.id).toBe('pass') // the core check reserves them by use
+    expect(r.systemRules.find((x) => x.id === 'plant-reach')!.source.page).toBe('p.185')
   })
   it('lists every 3.2.7.9 load on a generator that runs at least 2 h', () => {
     const { r, egress } = run(vtc())

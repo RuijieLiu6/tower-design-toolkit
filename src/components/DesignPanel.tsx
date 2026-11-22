@@ -8,7 +8,8 @@ import { DEFAULT_EGRESS_PRESETS, PLACEMENT_LABEL, type EgressPresets } from '../
 import { BENEFIT_LABEL, HERITAGE_LABEL, stablePostedLimit } from '../engine/skyRoom'
 import { DEFAULT_LIFT_PRESETS, suggestSkyLobby, type LiftPresets } from '../engine/lifts'
 import { coreSide, towerFloors } from '../engine/massing'
-import { USES, type CommunityBenefit, type SkyRoom, type StairPlacement, type UseId } from '../engine/types'
+import { USES, type CommunityBenefit, type HvacSystem, type SkyRoom, type StairPlacement, type UseId } from '../engine/types'
+import { HVAC_LABEL } from '../engine/lifeSafety'
 import { TIER_LABEL, type FsrTier } from '../engine/vtcRules'
 import { useResults } from '../hooks/useResults'
 import { DEFAULT_SKY_ROOM, useStore, useTowers } from '../store'
@@ -29,7 +30,8 @@ function ProgramIcon({ use, small = false }: { use: UseId; small?: boolean }) {
 }
 
 /** Core & lift check presets. All are team assumptions or placeholders; the sources each one leans on are in research P11. */
-const LIFT_FIELDS: { key: keyof LiftPresets; label: string; unit?: string; step: number; scale?: number; hint: string }[] = [
+type LiftNumberKey = { [K in keyof LiftPresets]-?: LiftPresets[K] extends number ? K : never }[keyof LiftPresets]
+const LIFT_FIELDS: { key: LiftNumberKey; label: string; unit?: string; step: number; scale?: number; hint: string }[] = [
   { key: 'officeM2PerPerson', label: 'Office area per person', unit: 'm²', step: 0.5, hint: 'Stopes (22 Bishopsgate): 1 per 10 expected; UQ uses 12' },
   { key: 'utilisation', label: 'Office occupants present at peak', unit: '%', step: 1, scale: 100, hint: '22 Bishopsgate used 80%' },
   { key: 'personsPerHome', label: 'Persons per home', step: 0.1, hint: 'Arup used 1.5–4.0 by bedroom count' },
@@ -39,7 +41,7 @@ const LIFT_FIELDS: { key: keyof LiftPresets; label: string; unit?: string; step:
   { key: 'carPersons', label: 'Persons per car', step: 1, hint: '1600 kg / 21 persons, an EN 81 placeholder' },
   { key: 'shaftM2', label: 'Passenger shaft footprint', unit: 'm²', step: 0.1, hint: 'Team assumption' },
   { key: 'serviceCoreM2', label: 'Service and firefighter lifts', unit: 'm²', step: 1, hint: 'Team assumption, with lobbies' },
-  { key: 'servicesM2', label: 'Risers, services, washrooms', unit: 'm²', step: 1, hint: 'Team assumption; exit stairs now come from the egress check' },
+  { key: 'servicesM2', label: 'Risers, services, washrooms (flat)', unit: 'm²', step: 1, hint: 'Team assumption, used on every storey only when "Services by use" is off; exit stairs come from the egress check' },
   { key: 'wallAllowance', label: 'Core walls allowance', unit: '%', step: 1, scale: 100, hint: 'Team assumption until the structure module sizes the walls' },
   { key: 'firefighterSpeed', label: 'Firefighter lift speed', unit: 'm/s', step: 0.5, hint: 'Team assumption; the by-law needs a 1 min run to the top floor' },
 ]
@@ -53,6 +55,7 @@ function LiftPresetFields({ presets, onChange }: { presets: LiftPresets; onChang
           <NumberField key={f.key} label={f.label} unit={f.unit} step={f.step} hint={f.hint}
             value={presets[f.key] * (f.scale ?? 1)} onChange={(v) => onChange({ [f.key]: Math.max(f.key === 'wallAllowance' ? 0 : f.key === 'utilisation' ? 0.05 : 0.1, v / (f.scale ?? 1)) })} />
         ))}
+        <label className="col-span-2 flex items-center gap-1.5 text-meta text-muted"><Toggle checked={presets.servicesByUse !== false} onChange={() => onChange({ servicesByUse: presets.servicesByUse === false })} label="Services by use" />Services by use at each storey (Allen &amp; Iano, unverified)</label>
         <div className="col-span-2 flex items-center gap-1"><FlagChip flag="team_assumption" />
           <button onClick={() => onChange(DEFAULT_LIFT_PRESETS)} className="ml-auto text-meta text-accent hover:underline">Reset presets</button>
         </div>
@@ -365,6 +368,12 @@ export function CoreTool() {
             onChange={(v) => up({ coreShare: Math.min(0.6, Math.max(0.05, v / 100)) })} min={5} max={60} step={0.5} unit="%" />
         </div>
         <NumberField label="Plant floor every N tower floors (0 = none)" value={t.plantEvery} onChange={(v) => up({ plantEvery: Math.max(0, Math.round(v)) })} min={0} max={40} step={1} />
+        <label className="flex items-center justify-between gap-2 text-xs">
+          <span className="flex items-center gap-1.5 font-medium">HVAC system<Help label="About the HVAC system">Sets the shafts the office floors need: about 4% of the floor for all-air, less for air-water (Allen &amp; Iano p.192, unverified). Homes get pipe shafts whatever the system.</Help></span>
+          <select value={t.hvac ?? 'all-air'} onChange={(e) => up({ hvac: e.target.value as HvacSystem })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs" aria-label="HVAC system">
+            {(Object.keys(HVAC_LABEL) as HvacSystem[]).map((k) => <option key={k} value={k}>{HVAC_LABEL[k]}</option>)}
+          </select>
+        </label>
         <div>
           <div className="mb-1 flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 font-medium">Sky lobbies<Help label="About sky lobbies">A sky lobby puts the upper rises on shuttles, so their shafts stop running through the floors below.</Help></span>

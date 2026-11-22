@@ -4,7 +4,7 @@
 // but only when the designer presses the button.
 import { ArrowRight, ChevronDown, ChevronRight } from './icons'
 import { useMemo, useState } from 'react'
-import { DEFAULT_SYSTEMS_PRESETS, LIFE_SAFETY_FALSE_ASSUMPTIONS, MECH_FLOOR_SOURCE, NOT_CERTIFICATION, lifeSafety, type ChecklistItem, type LifeSafetyResult, type SystemsPresets } from '../engine/lifeSafety'
+import { DEFAULT_SYSTEMS_PRESETS, LIFE_SAFETY_FALSE_ASSUMPTIONS, NOT_CERTIFICATION, PLANT_REACH_SOURCE, lifeSafety, type ChecklistItem, type LifeSafetyResult, type SystemsPresets } from '../engine/lifeSafety'
 import type { RuleResult } from '../engine/types'
 import { nodeById } from '../data/registry'
 import { useResults } from '../hooks/useResults'
@@ -70,6 +70,7 @@ function Systems({ r }: { r: LifeSafetyResult }) {
   const updateTower = useStore((s) => s.updateTower)
   const setLiftPresets = useStore((s) => s.setLiftPresets)
   const servicesM2 = useStore((s) => s.liftPresets.servicesM2)
+  const byUse = useStore((s) => s.liftPresets.servicesByUse !== false)
   const present = useStore((s) => s.phase === 'present')
   const sys = r.systems, pl = sys.plant
   const imported = !!r.tower.imported
@@ -81,8 +82,8 @@ function Systems({ r }: { r: LifeSafetyResult }) {
           {!imported && pl.suggestEvery && pl.modelled < pl.min && (
             <button onClick={() => updateTower(r.tower.id, { plantEvery: pl.suggestEvery! })} className="rounded border border-line px-2 py-1 hover:border-accent hover:text-accent">Put a plant floor every {pl.suggestEvery} floors</button>
           )}
-          {Math.abs(sys.servicesNeeded - servicesM2) > 0.5 && (
-            <button onClick={() => setLiftPresets({ servicesM2: Math.round(sys.servicesNeeded) })} className="rounded border border-line px-2 py-1 hover:border-accent hover:text-accent">Size the core with {Math.round(sys.servicesNeeded)} m² of risers and services (now {servicesM2})</button>
+          {!byUse && (
+            <button onClick={() => setLiftPresets({ servicesByUse: true })} className="rounded border border-line px-2 py-1 hover:border-accent hover:text-accent">Size the core with services by use (now {servicesM2} m² flat)</button>
           )}
         </div>
       )}
@@ -97,7 +98,7 @@ function Systems({ r }: { r: LifeSafetyResult }) {
             <HBars label="Risers per floor" unit="m²" fmt={(v) => String(Math.round(v * 10) / 10)} labelWidth="8rem" color="#7f8c8d" rows={sys.risers.map((x) => ({ label: x.label, v: x.m2 }))} /></div>
           <div className="grid gap-1"><div className="flex justify-between font-semibold text-slate-700"><span title="3.2.7.9">Emergency generator loads</span><span className="tabular-nums" title={`Generator room about ${Math.round(sys.generatorM2)} m²`}>{sys.generatorKw} kW · {Math.round(sys.generatorM2)} m² room</span></div>
             <HBars label="Emergency generator loads (3.2.7.9)" unit="kW" labelWidth="8rem" color="#d98b1c" rows={sys.emergency.map((x) => ({ label: x.label, v: x.kw }))} /></div>
-          <p className="text-meta text-muted">Plant floors elsewhere take about 7–26% of floors ({MECH_FLOOR_SOURCE.label}): information only, no pass or fail.</p>
+          <p className="text-meta text-muted">A fan room usually serves 11–13 storeys each way, at most about 25 ({PLANT_REACH_SOURCE.label}, {PLANT_REACH_SOURCE.page}; unverified): the Plant floor reach line reads it.</p>
         </div>
       </details>
     </div>

@@ -67,6 +67,11 @@ export interface Tower {
   material?: string
   /** Schematic: core share follows what the lifts, stairs and risers need (default on). */
   coreAuto?: boolean
+  /**
+   * Schematic: the HVAC system serving the office floors (P1 node #14 services space): all-air (the default), air-water,
+   * or other (all-water or in-suite). Sets the office shaft share (Allen & Iano p.192). Unset = all-air.
+   */
+  hvac?: HvacSystem
   /** Schematic: tower floor levels used as sky lobbies (transfer floors, counted as public amenity). */
   skyLobbies?: number[]
   /**
@@ -347,6 +352,9 @@ export interface Floor {
 
 /** Evidence status, shared with the research logs. */
 export type Flag = 'verified' | 'team_assumption' | 'unverified' | 'unresolved' | 'false_assumption'
+
+/** HVAC system serving the office floors (P1 node #14). */
+export type HvacSystem = 'all-air' | 'air-water' | 'other'
 
 export interface Source { label: string; page?: string; url?: string }
 

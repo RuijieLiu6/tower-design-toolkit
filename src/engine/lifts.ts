@@ -5,6 +5,7 @@
 import { DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, skyRoomLoads, stairAreaByLevel, type EgressPresets } from './egress'
 import { coreAreaAt, coreStepAt, coreStepsOf, netToGross, netToGrossAt, towerFloors } from './massing'
 import { floorCounts } from './interior'
+import { SERVICES_BOOK, ascSource, servicesProfile } from './lifeSafety'
 import { coreLayout } from './plan'
 import type { CoreStep, Floor, PublicStop, RuleResult, RuleState, Tower } from './types'
 
@@ -39,8 +40,14 @@ export interface LiftPresets {
   lobbyM2PerCar: number
   /** Firefighter plus goods/stretcher lifts with their lobbies, full height (m², team assumption). */
   serviceCoreM2: number
-  /** Risers, electrical and comms rooms and core washrooms (m², team assumption). Exit stairs come from the egress check. */
+  /** Risers, electrical and comms rooms and core washrooms (m², team assumption), flat on every storey when `servicesByUse` is off. Exit stairs come from the egress check. */
   servicesM2: number
+  /**
+   * Services by use at each storey (P1 node #14, Allen & Iano pp.192–194, unverified): shafts, electrical and telecom
+   * rooms from each storey's use, area and the tower's HVAC system (engine/lifeSafety.ts `servicesProfile`). Default on;
+   * off = the flat `servicesM2` on every storey, as before.
+   */
+  servicesByUse?: boolean
   /** Rated speed of the full-height firefighter lift (m/s, team assumption). */
   firefighterSpeed: number
   /** Core walls and partitions, as a share added to the core's rooms (team assumption until the structure module sizes the walls). */
@@ -50,7 +57,7 @@ export interface LiftPresets {
 export const DEFAULT_LIFT_PRESETS: LiftPresets = {
   officeM2PerPerson: 10, utilisation: 0.8, personsPerHome: 2, homeM2: 75, hotelM2PerKey: 40, personsPerKey: 1.5,
   maxFloorsPerRise: 15, carPersons: 21, loadFactor: 0.8, doorTime: 5, transferTime: 1.2, accel: 1,
-  shaftM2: 7.5, lobbyM2PerCar: 4.5, serviceCoreM2: 24, servicesM2: 40, firefighterSpeed: 6, wallAllowance: 0.15,
+  shaftM2: 7.5, lobbyM2PerCar: 4.5, serviceCoreM2: 24, servicesM2: 40, servicesByUse: true, firefighterSpeed: 6, wallAllowance: 0.15,
 }
 
 export type LiftClass = 'office' | 'residential' | 'hotel' | 'public'
@@ -369,13 +376,17 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
   // (none at a sky lobby, whose hall is the lobby), service and firefighter lifts, stairs and risers, plus a wall allowance.
   const stops = rises.map((r) => new Set(r.floors.map((f) => f.level)))
   const stairsAt = stairAreaByLevel(t, e, { homeM2: p.homeM2, hotelM2PerKey: p.hotelM2PerKey })
+  // Services by use (P1 node #14): each storey's own shafts and rooms, not one flat figure (off: the flat preset).
+  const byUse = p.servicesByUse !== false
+  const servicesAt = byUse ? new Map(servicesProfile(t, p.homeM2, undefined, all).map((r) => [r.level, r.total])) : null
   const profile: CoreLevel[] = all.filter((f) => f.z0 > 0.5).map((f) => {
     const passenger = rises.filter((r) => f.z0 >= r.baseZ - 0.01 && f.z0 <= r.topZ + 0.01).reduce((s, r) => s + r.cars, 0) * p.shaftM2
     const lobby = f.skyLobby ? 0 : rises.filter((_, i) => stops[i].has(f.level)).reduce((s, r) => s + r.cars, 0) * p.lobbyM2PerCar
     const stairs = stairsAt.core.get(f.level) ?? 0
-    const rooms = passenger + lobby + p.serviceCoreM2 + stairs + p.servicesM2
+    const services = servicesAt?.get(f.level) ?? p.servicesM2
+    const rooms = passenger + lobby + p.serviceCoreM2 + stairs + services
     const walls = rooms * p.wallAllowance
-    return { level: f.level, z: f.z0, passenger, lobby, service: p.serviceCoreM2, stairs, services: p.servicesM2, walls, total: rooms + walls }
+    return { level: f.level, z: f.z0, passenger, lobby, service: p.serviceCoreM2, stairs, services, walls, total: rooms + walls }
   })
   const worst = profile.reduce<CoreLevel | null>((m, c) => (!m || c.total > m.total ? c : m), null)
   const requiredMax = worst?.total ?? (p.serviceCoreM2 + p.servicesM2) * (1 + p.wallAllowance)
@@ -437,8 +448,8 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
     threshold: segs ? 'each core ≥ what its storeys need (amber within 10%)' : 'modelled core ≥ needed (amber within 10%)',
     state: ratio < 0.9 ? 'fail' : ratio < 0.999 || planOverflow > 0 ? 'warn' : 'pass',
     flag: 'team_assumption',
-    source: { label: `Team presets: shaft ${p.shaftM2} m² and lobby ${p.lobbyM2PerCar} m² per car, service lifts ${p.serviceCoreM2} m², risers and services ${p.servicesM2} m², walls +${Math.round(p.wallAllowance * 100)}%; exit stairs from the egress check` },
-    note: `${t.coreAuto ? 'Core sized to the lifts and stairs (auto). ' : ''}Needed at the worst level = ${fmt(worst?.passenger ?? 0)} passenger shafts + ${fmt(worst?.lobby ?? 0)} lobby + ${p.serviceCoreM2} service lifts + ${fmt(worst?.stairs ?? 0)} exit stairs + ${p.servicesM2} risers and services + ${fmt(worst?.walls ?? 0)} walls. Passenger shafts alone are not the lift core (false assumption corrected in research P11).`
+    source: { label: `Team presets: shaft ${p.shaftM2} m² and lobby ${p.lobbyM2PerCar} m² per car, service lifts ${p.serviceCoreM2} m², ${byUse ? 'services by use at each storey (Allen & Iano pp.192–194, unverified)' : `risers and services ${p.servicesM2} m² flat`}, walls +${Math.round(p.wallAllowance * 100)}%; exit stairs from the egress check` },
+    note: `${t.coreAuto ? 'Core sized to the lifts and stairs (auto). ' : ''}Needed at the worst level = ${fmt(worst?.passenger ?? 0)} passenger shafts + ${fmt(worst?.lobby ?? 0)} lobby + ${p.serviceCoreM2} service lifts + ${fmt(worst?.stairs ?? 0)} exit stairs + ${fmt(worst?.services ?? p.servicesM2)} ${byUse ? 'services by use (shafts, electrical and telecom rooms, risers, washrooms: Code & life safety)' : 'risers and services'} + ${fmt(worst?.walls ?? 0)} walls. Passenger shafts alone are not the lift core (false assumption corrected in research P11).`
       + (segs ? ` The core steps: the lowest core holds every car that leaves grade; each upper core holds only the cars whose rise runs through its storeys (from the rises and sky-lobby zones above), with the service and firefighter lifts, the exit stairs and the risers, which run the full height.${short.map((g) => ` The ${g.step!.side.toFixed(1)} m core from L${g.from} is ${fmt(g.worst.total - g.modelled)} m² short at level ${g.worst.level}: widen it, or end a rise below L${g.from} (a sky lobby).`).join('')} The plan grid of shafts is laid out in the lowest core; the upper cores are checked by area, and the exit stairs keep their place at the corners of the lowest core (egress check), so check that they stay inside each upper core.`
         : ` At the top floor about ${fmt(requiredTop)} m² is enough, so the core could step in plan as groups end (Structure › Core steps).`)
       + (planOverflow > 0 ? ` In plan, ${planOverflow} shaft${planOverflow > 1 ? 's do' : ' does'} not fit inside the core walls on a grid clear of the stairs (see the board floor plan).` : ''),
@@ -454,6 +465,43 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
     source: { label: 'Stopes, Designing a Vertical Transportation Strategy in the Largest and Tallest Building in the City of London (22 Bishopsgate)', url: 'https://liftescalatorlibrary.org/paper_indexing/papers/00000193.pdf' },
     note: `UK practitioner guidance; Canadian measurement conventions differ. Uses the larger of the modelled and needed core, core-only deduction. Published samples: core about 23% of gross in 40 Japanese towers and 26% in 40 tapered supertalls (Ilgin, research P08). This estimate counts lifts, exit stairs, a services allowance and a ${Math.round(p.wallAllowance * 100)}% wall allowance only, so it reads lean until the structure and services modules size the walls and risers.`
       + (segs?.some((g) => g.step) ? ` With the core steps, each storey deducts its own core: ${segs.filter((g) => g.step).map((g) => { const pl = medianArea(all.filter((f) => f.level >= g.from && f.level <= g.to)), core = Math.max(g.modelled, g.worst.total) + (stairsAt.edge.get(g.worst.level) ?? 0); return `L${g.from}–L${g.to} ${pl > 0 ? Math.round((1 - core / pl) * 100) : 0}% (core ${fmt(core)} m² of a ${fmt(pl)} m² plate)` }).join('; ')}.` : ''),
+  })
+
+  // Core share at each core step (P1 node #14): Allen & Iano pp.50, 192 give 20–25% of a tall building's floor; the state
+  // reads the base core (the typical floor), the steps are listed. Unverified analogue (US textbook).
+  const shareRuns = (segs ?? [{ step: null, from: all.find((f) => f.z0 > 0.5)?.level ?? 1, to: all.at(-1)?.level ?? 1, modelled: modelledCore }]).map((g) => {
+    const fl = all.filter((f) => f.level >= g.from && f.level <= g.to && !f.podium)
+    const pl = g.step ? medianArea(fl) : plate
+    return { g, share: pl > 0 ? (g.step ? g.step.side * g.step.side : coreAreaAt(t, g.from)) / pl : 0 }
+  })
+  const baseShare = plate > 0 ? modelledCore / plate : 0
+  const lo = SERVICES_BOOK.coreShareLow, hi = SERVICES_BOOK.coreShareHigh
+  rules.push({
+    id: `core-share-${t.id}`,
+    label: 'Core share of the floor',
+    value: shareRuns.map(({ g, share }) => `${Math.round(share * 100)}%${g.step ? ` from L${g.from} (${g.step.side.toFixed(1)} m core)` : ''}`).join(' · '),
+    threshold: `${Math.round(lo * 100)}–${Math.round(hi * 100)}% of the floor at the base core`,
+    state: baseShare >= lo - 1e-9 && baseShare <= hi + 1e-9 ? 'pass' : 'warn',
+    flag: 'unverified',
+    source: ascSource('pp.50, 192'),
+    note: `The core holds the lifts, stairs and services at each core step (Core holds the lifts, above); this line sets its share against the book’s band: 40–70-storey offices averaged about 27%, recent ones 20–24%, structure about 12% of the core. ${baseShare < lo ? 'Below 20%: check that the shafts, rooms and walls really fit. ' : baseShare > hi ? 'Above 25%: lettable area is lost; a sky lobby or a stepped core wins it back. ' : ''}Upper steps are listed for reading: a core that steps in as rises end is expected to fall below the band. US rule of thumb: unverified analogue.`,
+  })
+
+  // KPF rule-of-thumb cross-check (KPF 2025 p.5, addendum 21 Nov): reported beside the up-peak count, never replacing it.
+  const officeGfa = all.filter((f) => f.use === 'office' && f.z0 > 0.5).reduce((s, f) => s + f.area, 0)
+  const units = all.filter((f) => f.use === 'residential').reduce((s, f) => s + (floorCounts(t, f)?.homes ?? (f.area * netToGrossAt(t, f)) / p.homeM2), 0)
+  const kpfOffice = Math.ceil(officeGfa / 4181 - 1e-9)
+  const kpfHomes = units > 0 ? 2 + Math.max(0, Math.ceil((units - 100) / 100 - 1e-9)) : 0
+  const planCars = (cls: LiftClass) => rises.filter((r) => r.cls === cls).reduce((s, r) => s + r.cars, 0)
+  rules.push({
+    id: `lifts-kpf-${t.id}`,
+    label: 'Lift count cross-check (rule of thumb)',
+    value: `rule of thumb ${kpfOffice + kpfHomes} cars vs lift plan ${planCars('office') + planCars('residential')}${kpfOffice ? ` · office ${kpfOffice} vs ${planCars('office')}` : ''}${kpfHomes ? ` · homes ${kpfHomes} vs ${planCars('residential')}` : ''}`,
+    threshold: 'reported only: the up-peak count above decides',
+    state: 'unknown',
+    flag: 'unverified',
+    source: { label: 'KPF, Higher Buildings Policy study for the City of Vancouver (2025): elevator rule of thumb', page: 'p.5' },
+    note: `Office: 1 car per 4,181 m² (45,000 sf) of office floor, here ${fmt(officeGfa)} m². Homes: 2 cars for the first 100 units, then 1 more per 100, here about ${fmt(units)} units. Shuttles, hotel and public lifts are not in the rule. A cross-check of the traffic model, never a replacement for it.`,
   })
 
   // Firefighter elevator: VBBL 2019 3.2.6.5 (and 2007): reach every floor with at most one change, 1 min run to the top floor it serves.
@@ -498,7 +546,7 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
   return {
     rises, skyLobbies, plate, modelledCore, requiredMax, requiredTop, profile, totalCars, shaftsAtGrade, edgeStairs, planOverflow, ntg, rules,
     maxLevel: worst?.level ?? null,
-    breakdownMax: { passenger: worst?.passenger ?? 0, lobby: worst?.lobby ?? 0, service: p.serviceCoreM2, stairs: worst?.stairs ?? 0, services: p.servicesM2, walls: worst?.walls ?? 0 },
+    breakdownMax: { passenger: worst?.passenger ?? 0, lobby: worst?.lobby ?? 0, service: p.serviceCoreM2, stairs: worst?.stairs ?? 0, services: worst?.services ?? p.servicesM2, walls: worst?.walls ?? 0 },
     direct: skyLobbies.length && !opts.skipDirect ? liftCheck({ ...t, skyLobbies: [], skyRoom: null }, p, e) : undefined,
   }
 }

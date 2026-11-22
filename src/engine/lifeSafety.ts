@@ -4,10 +4,16 @@
 // VBBL 2025 is in force but unread (HTTP 403 in research), so every clause item is flagged unverified. Items the egress
 // and lift nodes already check are linked from their results, never re-checked here. An early checklist, not code
 // certification: the code consultant, fire engineer and Chief Building Official decide.
+//
+// Services space by use (P1 node #14, 21 Nov): shafts, electrical and telecom rooms per floor by use and HVAC system,
+// fan-room reach and the core share, from Allen & Iano's rules of thumb (read once; US textbook on an NBC 2010 /
+// IBC 2009 base, so every value is an unverified analogue for Vancouver). It replaces the flat 40.5 m² on every floor
+// and the Wikipedia plant-floor source; the Core & lift check reserves these services at each storey (engine/lifts.ts).
 import type { EgressResult } from './egress'
+import { floorCounts } from './interior'
 import type { LiftPresets, LiftResult } from './lifts'
-import { towerFloors } from './massing'
-import type { Floor, Flag, RuleResult, RuleState, Source, Tower, UseId } from './types'
+import { coreAreaAt, floorAreasByUse, towerFloors } from './massing'
+import type { Floor, Flag, HvacSystem, RuleResult, RuleState, Source, Tower, UseId } from './types'
 
 const PART3 = 'Vancouver Building By-law 2019, Part 3'
 const VBBL_32: Source = { label: `${PART3}, Section 3.2 Building Fire Safety (consolidated 1 Jul 2024; VBBL 2025 unread)`, url: 'https://free.bcpublications.ca/civix/document/id/public/vbbl2019/59509560' }
@@ -18,7 +24,34 @@ const PHCP: Source = { label: 'PHCP Pros, High-rise water distribution (trade ar
 const CIBSE_D: Source = { label: 'CIBSE Guide D, chapter 6 evacuation lifts (UK guidance; 2015 edition, superseded)', url: 'https://www.cibse.org/knowledge-research/knowledge-portal/transportation-systems-in-buildings-guide-d/' }
 const BC_B24: Source = { label: 'BC Information Bulletin B24-05, 2024 BC Codes (provincial reference: BC Codes do not apply in Vancouver)', url: 'https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/construction-industry/building-codes-and-standards/bulletins/2024-code/b24-05_2024_edition_of_the_bc_codes.pdf' }
 const TEAM: Source = { label: 'Team preset (no sourced value; research P11-M03)' }
-export const MECH_FLOOR_SOURCE: Source = { label: 'Wikipedia, Mechanical floor (tertiary source, citations needed)', url: 'https://en.wikipedia.org/wiki/Mechanical_floor' }
+/** Allen & Iano (read 21 Nov, P1 node #14): every value an unverified analogue (US rules of thumb, NBC 2010 / IBC 2009 base). */
+const ASC_LABEL = 'Allen & Iano, The Architect’s Studio Companion, 5th ed. (Wiley 2012): US rules of thumb on an NBC 2010 / IBC 2009 base, an analogue for Vancouver'
+export const ascSource = (page: string): Source => ({ label: ASC_LABEL, page })
+/** Plant-floor reach: a fan room usually serves 11–13 storeys each way, at most about 25 (replaces the Wikipedia source). */
+export const PLANT_REACH_SOURCE: Source = ascSource('p.185')
+
+/** Allen & Iano values (read once, 21 Nov): unverified. */
+export const SERVICES_BOOK = {
+  /** Vertical shafts for a tall all-air office: about 4% of the floor served (p.192). */
+  shaftAllAir: 0.04,
+  /** Air-water and other systems need less (p.192): 2% is the reader's reading of "less", used for every non-office use too. */
+  shaftOther: 0.02,
+  /** Homes: one 0.3 × 1.2 m pipe shaft per two unit stacks (p.194). */
+  pipeShaftM2: 0.36,
+  /** Electrical room 2.4 × 3.0 m per 1,400–1,900 m² of floor (p.193); the 1,400 m² end is used, so the count errs high. */
+  electricalM2: 7.2,
+  electricalReachM2: 1400,
+  /** Telecom room 3.0 × 3.7 m on each office floor (p.193). */
+  telecomM2: 11.1,
+  /** Storeys a fan room serves each way: up to 13 usual (pass), up to 25 the most (check), beyond that fail (p.185). */
+  reachTypical: 13,
+  reachMax: 25,
+  /** Core share of a tall building's floor: 20–25% (pp.50, 192). */
+  coreShareLow: 0.2,
+  coreShareHigh: 0.25,
+}
+export const HVAC_LABEL: Record<HvacSystem, string> = { 'all-air': 'All-air', 'air-water': 'Air-water', other: 'Other (all-water or in-suite)' }
+export const hvacOf = (t: Pick<Tower, 'hvac'>): HvacSystem => t.hvac ?? 'all-air'
 
 /** Printed with every result of this node (P11-M05 method step 7). */
 export const NOT_CERTIFICATION = 'Early checklist, not code certification. Clauses read in VBBL 2019; VBBL 2025 is in force and unread, so every clause is flagged unverified until someone reads it.'
@@ -29,7 +62,10 @@ export interface SystemsPresets {
   pMinKpa: number
   /** Static pressure rating of chillers, exchangers and coils (kPa): above it, a heat-exchanger break (team, unsourced). */
   hydronicRatingKpa: number
-  /** Floors one air-handling plant floor serves (team, unsourced). */
+  /**
+   * Floors one air-handling plant floor serves, both ways together: 26 = 13 each way, the top of Allen & Iano's usual
+   * 11–13 (p.185, unverified). Roof plant serves half that, downwards only.
+   */
   airReachFloors: number
   /** Motor power of one high-rise passenger or firefighter lift (kW, team). */
   liftKw: number
@@ -54,7 +90,7 @@ export interface SystemsPresets {
   commsRoomM2: number
   airShaftM2: number
   chuteM2: number
-  /** Core washrooms and janitor room per floor (m², team). */
+  /** Core washrooms and janitor room per floor (m², team): office, retail, civic and amenity floors (homes and hotel rooms have their own). */
   washroomsM2: number
   /** Transformer vault and main switchroom at the base (m², team). */
   baseElectricalM2: number
@@ -64,7 +100,7 @@ export interface SystemsPresets {
 }
 
 export const DEFAULT_SYSTEMS_PRESETS: SystemsPresets = {
-  pMinKpa: 140, hydronicRatingKpa: 1600, airReachFloors: 20, liftKw: 60, firePump: true, firePumpKw: 110, stairFanKw: 15, smokeFanKw: 40,
+  pMinKpa: 140, hydronicRatingKpa: 1600, airReachFloors: 26, liftKw: 60, firePump: true, firePumpKw: 110, stairFanKw: 15, smokeFanKw: 40,
   lifeSafetyKw: 25, runtimeH: 2, genM2PerKw: 0.1, waterRiserM2: 2, hydronicRiserM2: 2.5, electricalRoomM2: 5, emergencyRiserM2: 1.5,
   commsRoomM2: 2, airShaftM2: 6, chuteM2: 1.5, washroomsM2: 20, baseElectricalM2: 120, controlRoomM2: 15, radioRoomM2: 10,
 }
@@ -118,8 +154,14 @@ export interface SystemsResult {
   plant: PlantEstimate
   risers: RiserRow[]
   riserTotal: number
-  /** Risers plus core washrooms per floor: what the Core & lift check's "risers, services, washrooms" preset stands for. */
+  /** The old flat estimate: risers plus core washrooms on every floor (team presets), kept for comparison. */
   servicesNeeded: number
+  /** Services by use on every storey (P1 node #14, Allen & Iano): what the Core & lift check reserves at each level. */
+  services: FloorServices[]
+  /** The typical storey of each use, by total area. */
+  typical: FloorServices[]
+  /** Fan-room reach (Allen & Iano p.185). */
+  reach: PlantReach
   emergency: LoadRow[]
   generatorKw: number
   generatorM2: number
@@ -140,7 +182,7 @@ export interface LifeSafetyResult {
 }
 
 export interface LifeSafetyInput {
-  transitLink: boolean; liftPresets: Pick<LiftPresets, 'homeM2' | 'hotelM2PerKey' | 'servicesM2'>; presets?: SystemsPresets
+  transitLink: boolean; liftPresets: Pick<LiftPresets, 'homeM2' | 'hotelM2PerKey' | 'servicesM2' | 'servicesByUse'>; presets?: SystemsPresets
   /** Pedestrian entrances on the street frontage (the public realm frontage input, competition site), when known. */
   entrances?: number | null
 }
@@ -173,6 +215,108 @@ function zones(floors: Floor[], H: number, h: number): ZoneRow[] {
   return out
 }
 
+// --- Services space by use (P1 node #14; Allen & Iano pp.185, 192–194, read once: unverified) ---------------------------
+type TeamServices = Pick<SystemsPresets, 'emergencyRiserM2' | 'commsRoomM2' | 'airShaftM2' | 'chuteM2' | 'washroomsM2'>
+export interface FloorServices {
+  level: number
+  use: UseId
+  area: number
+  /** Ducts and pipe shafts: 4% (all-air office) or 2% of the floor; homes one pipe shaft per two unit stacks (pp.192, 194). */
+  shafts: number
+  /** Electrical rooms, 7.2 m² per 1,400 m² of floor (p.193). */
+  electrical: number
+  /** Telecom room on an office floor (11.1 m², p.193), else the team comms riser. */
+  comms: number
+  /** Team items: protected emergency riser; garbage chute (homes, hotel); corridor make-up air shaft (homes, 3.2.6.2.(6)). */
+  team: number
+  /** Core washrooms (team) on office, retail, civic and amenity floors. */
+  washrooms: number
+  total: number
+  /**
+   * A plant or podium storey: it carries the shafts and risers of the nearest tower storey (they run through the tower
+   * core), no rooms of its own; podium services sit in the podium, outside the tower core.
+   */
+  through: boolean
+}
+
+const WASHROOM_USES = new Set<UseId>(['office', 'retail', 'civic', 'amenity'])
+
+/** Services one storey needs, by its uses (a floor split by use counts each part) and the tower's HVAC system. */
+export function floorServices(t: Tower, f: Floor, homeM2: number, p: TeamServices = DEFAULT_SYSTEMS_PRESETS): FloorServices {
+  const hvac = hvacOf(t)
+  const netShare = f.area > 0 ? Math.max(0, f.area - coreAreaAt(t, f.level)) / f.area : 0
+  let shafts = 0, office = false, washrooms = false, chute = false, homes = false, occupied = false
+  for (const [use, a] of Object.entries(floorAreasByUse(f)) as [UseId, number][]) {
+    if (!(a > 0) || use === 'mechanical') continue
+    occupied = true
+    if (use === 'residential') {
+      const n = (f.use === 'residential' ? floorCounts(t, f)?.homes : undefined) ?? (a * netShare) / Math.max(1, homeM2)
+      shafts += Math.ceil(n / 2 - 1e-9) * SERVICES_BOOK.pipeShaftM2
+      homes = true
+      chute = true
+    } else shafts += a * (use === 'office' && hvac === 'all-air' ? SERVICES_BOOK.shaftAllAir : SERVICES_BOOK.shaftOther)
+    if (use === 'hotel') chute = true
+    if (use === 'office') office = true
+    if (WASHROOM_USES.has(use)) washrooms = true
+  }
+  if (!occupied || f.podium) return { level: f.level, use: f.use, area: f.area, shafts: 0, electrical: 0, comms: 0, team: p.emergencyRiserM2, washrooms: 0, total: p.emergencyRiserM2, through: true }
+  const electrical = Math.max(1, Math.ceil(f.area / SERVICES_BOOK.electricalReachM2 - 1e-9)) * SERVICES_BOOK.electricalM2
+  const comms = office ? SERVICES_BOOK.telecomM2 : p.commsRoomM2
+  const team = p.emergencyRiserM2 + (chute ? p.chuteM2 : 0) + (homes ? p.airShaftM2 : 0)
+  const wc = washrooms ? p.washroomsM2 : 0
+  return { level: f.level, use: f.use, area: f.area, shafts, electrical, comms, team, washrooms: wc, total: shafts + electrical + comms + team + wc, through: false }
+}
+
+/** Services on every storey, bottom-up. A plant or podium storey carries the shafts and risers of the tower storey below it (above it at the base). */
+export function servicesProfile(t: Tower, homeM2: number, p: TeamServices = DEFAULT_SYSTEMS_PRESETS, floors: Floor[] = towerFloors(t)): FloorServices[] {
+  const rows = floors.map((f) => floorServices(t, f, homeM2, p))
+  for (let i = 0; i < rows.length; i++) {
+    if (!rows[i].through) continue
+    let j = i - 1
+    while (j >= 0 && rows[j].through) j--
+    if (j < 0) { j = i + 1; while (j < rows.length && rows[j].through) j++ }
+    const from = rows[j]
+    if (from && !from.through) rows[i] = { ...rows[i], shafts: from.shafts, team: from.team, total: from.shafts + from.team }
+  }
+  return rows
+}
+
+/** The typical tower storey of each use (the median-area storey whose main use it is), plant and podium storeys left out, by total area of that use. */
+export function typicalServices(rows: FloorServices[]): FloorServices[] {
+  const byUse = new Map<UseId, FloorServices[]>()
+  for (const r of rows) if (!r.through) byUse.set(r.use, [...(byUse.get(r.use) ?? []), r])
+  return [...byUse.values()].sort((a, b) => b.reduce((s, r) => s + r.area, 0) - a.reduce((s, r) => s + r.area, 0))
+    .map((list) => [...list].sort((a, b) => a.area - b.area)[Math.floor(list.length / 2)])
+}
+
+export interface PlantReach {
+  /** Farthest any occupied storey sits from a plant floor, in storeys (the roof plant counted above the top storey). */
+  storeys: number
+  level: number | null
+  use: UseId | null
+  /** The plant that serves it: "the L28 plant floor" or "the roof plant". */
+  from: string
+}
+
+/**
+ * Fan-room reach (Allen & Iano p.185): every occupied storey, podium included, to the nearest plant floor or the roof
+ * plant, assumed above the top storey unless the top storey is plant (team, as the plant-floor count). Basement plant
+ * is not modelled.
+ */
+export function plantReach(floors: Floor[]): PlantReach {
+  const plant = floors.map((f, i) => (f.use === 'mechanical' ? i : -1)).filter((i) => i >= 0)
+  const roof = floors.length && floors[floors.length - 1].use !== 'mechanical' ? floors.length : null
+  const sources = roof === null ? plant : [...plant, roof]
+  let out: PlantReach = { storeys: 0, level: null, use: null, from: '' }
+  floors.forEach((f, i) => {
+    if (f.use === 'mechanical' || !sources.length) return
+    const j = sources.reduce((b, s) => (Math.abs(s - i) < Math.abs(b - i) ? s : b), sources[0])
+    const d = Math.abs(j - i)
+    if (d > out.storeys) out = { storeys: d, level: f.level, use: f.use, from: j === roof ? 'the roof plant' : `the L${floors[j].level} plant floor` }
+  })
+  return out
+}
+
 export function systemsEstimate(t: Tower, lifts: LiftResult, egress: EgressResult, input: LifeSafetyInput): SystemsResult {
   const p = input.presets ?? DEFAULT_SYSTEMS_PRESETS
   const floors = towerFloors(t)
@@ -186,8 +330,9 @@ export function systemsEstimate(t: Tower, lifts: LiftResult, egress: EgressResul
   const hydH = Math.max(10, p.hydronicRatingKpa / KPA_PER_M)
   const hydronic = zones(floors, H, hydH)
   const hydronicBreaks = Math.max(0, hydronic.length - 1)
-  // Air handling: roof plant serves the top zone; each further zone needs a plant floor in the tower.
-  const airFloors = Math.max(0, Math.ceil(tower.length / Math.max(1, p.airReachFloors)) - 1)
+  // Air handling: roof plant serves half a reach downwards; each further plant floor serves a whole reach (both ways).
+  const reachAll = Math.max(1, p.airReachFloors)
+  const airFloors = Math.max(0, Math.ceil((tower.length - reachAll / 2) / reachAll - 1e-9))
   const min = Math.max(hydronicBreaks, airFloors), max = hydronicBreaks + airFloors
   // Modelled plant counts tower floors only, as the range does; podium plant is reported apart (G44).
   const modelled = tower.filter((f) => f.use === 'mechanical').length
@@ -208,6 +353,7 @@ export function systemsEstimate(t: Tower, lifts: LiftResult, egress: EgressResul
     ...(groupC ? [{ id: 'chute', label: 'Garbage and recycling chute', m2: p.chuteM2, note: 'residential and hotel floors' }] : []),
   ]
   const riserTotal = risers.reduce((s, x) => s + x.m2, 0)
+  const services = servicesProfile(t, input.liftPresets.homeM2, p, floors)
 
   // Emergency power, VBBL 2019 3.2.7.9.(1): elevators, power-dependent firefighting water, stair air-quality and venting
   // fans. The firefighter lift plus one more run at once; the others are recalled in turn (team reading, consultant to confirm).
@@ -224,6 +370,7 @@ export function systemsEstimate(t: Tower, lifts: LiftResult, egress: EgressResul
   return {
     water, hydronic, plant: { hydronicBreaks, airFloors, min, max, modelled, podiumModelled, roofLevel, towerFloors: tower.length, suggestEvery, snapTo },
     risers, riserTotal, servicesNeeded: riserTotal + p.washroomsM2, emergency, generatorKw, generatorM2,
+    services, typical: typicalServices(services), reach: plantReach(floors),
     baseM2: p.baseElectricalM2 + generatorM2 + p.controlRoomM2 + p.radioRoomM2,
   }
 }
@@ -235,6 +382,47 @@ export function plantValue(pl: PlantEstimate): string {
   return pl.podiumModelled > 0
     ? `${need} needed; ${pl.modelled} modelled in the tower${roof}; ${pl.podiumModelled} more in the podium`
     : `${need} needed; ${pl.modelled} modelled${roof}`
+}
+
+const USE_WORD: Record<UseId, string> = { office: 'Office', residential: 'Home', hotel: 'Hotel', retail: 'Retail', civic: 'Civic', amenity: 'Amenity', mechanical: 'Plant' }
+
+/** Why a design lies outside the services-space method (node contract): free-form storeys or a system the book does not cover. */
+export function servicesSpecialist(t: Tower): string | undefined {
+  if (t.imported || t.drawn) return 'Imported or drawn storeys: the rules of thumb are for the typical floors of a regular plate.'
+  if (hvacOf(t) === 'other') return 'An all-water or in-suite system lies outside the book’s all-air and air-water rules: size the shafts with the MEP engineer.'
+  return undefined
+}
+
+/** How a typical storey's shafts were sized, for the line's note. */
+function shaftBasis(t: Tower, r: FloorServices): string {
+  if (r.use === 'residential') return `shafts: one 0.3 × 1.2 m pipe shaft per two unit stacks (p.194), about ${fmt(r.shafts / SERVICES_BOOK.pipeShaftM2)} shafts`
+  if (r.use === 'office' && hvacOf(t) === 'all-air') return 'shafts: 4% of the floor for a tall all-air office (p.192)'
+  return `shafts: 2% of the floor (p.192 gives less than the all-air 4%${r.use === 'office' ? ` for ${HVAC_LABEL[hvacOf(t)].toLowerCase()} systems` : ''}; 2% is the reader’s reading)`
+}
+
+/** Services-space lines (P1 node #14): the typical storey of each use, and the fan-room reach. */
+export function servicesRules(t: Tower, sys: SystemsResult, liftPresets: LifeSafetyInput['liftPresets']): RuleResult[] {
+  const byUse = liftPresets.servicesByUse !== false
+  const specialist = servicesSpecialist(t)
+  const lines: RuleResult[] = sys.typical.map((r) => {
+    const parts = [`shafts ${fmt(r.shafts)}`, `electrical ${fmt(r.electrical)}`, `${r.use === 'office' ? 'telecom' : 'comms'} ${fmt(r.comms)}`, r.washrooms ? `washrooms ${fmt(r.washrooms)}` : '', `risers and chutes ${fmt(r.team)}`].filter(Boolean)
+    const short = !byUse && r.total > liftPresets.servicesM2 + 0.5
+    return {
+      id: `services-${r.use}`, label: `${USE_WORD[r.use]} floor services`, value: `${fmt(r.total)} m² vs ${r1(sys.servicesNeeded)}`,
+      threshold: byUse ? `by use at each storey, which the Core & lift check reserves (vs ${r1(sys.servicesNeeded)} m², the old flat figure)` : `the Core & lift check reserves ${liftPresets.servicesM2} m² flat ("by use" is off)`,
+      state: short ? 'warn' : 'pass', flag: 'unverified', source: ascSource(r.use === 'residential' ? 'pp.193–194' : 'pp.192–193'), ...(specialist ? { specialist } : {}),
+      note: `L${r.level}, a ${fmt(r.area)} m² storey: ${parts.join(' + ')} m². ${shaftBasis(t, r)}; electrical rooms 2.4 × 3.0 m per 1,400 m² (the book gives 1,400–1,900 m², p.193)${r.use === 'office' ? '; a 3.0 × 3.7 m telecom room on each office floor (p.193)' : ''}. Washrooms, the emergency riser, chutes and the corridor make-up air shaft are team presets; washroom counts by the business table (p.199) are not computed. US rules of thumb on an NBC 2010 / IBC 2009 base: unverified analogues, a VBBL check is needed.`,
+    }
+  })
+  const R = sys.reach
+  lines.push({
+    id: 'plant-reach', label: 'Plant floor reach',
+    value: R.level === null ? 'no occupied storeys' : `farthest coverage ${R.storeys} storeys (L${R.level} ${USE_WORD[R.use ?? 'office'].toLowerCase()}, from ${R.from})`,
+    threshold: 'at most 13 storeys each way is usual; 14–25 check; over 25 fail', state: R.storeys <= SERVICES_BOOK.reachTypical ? 'pass' : R.storeys <= SERVICES_BOOK.reachMax ? 'warn' : 'fail',
+    flag: 'unverified', source: PLANT_REACH_SOURCE, ...(specialist ? { specialist } : {}),
+    note: 'Every occupied storey, the podium included, to the nearest plant floor. Roof plant is assumed above the top storey (team, as for the plant-floor count) and basement plant is not modelled, so low floors far from plant need a podium or basement fan room. A fan room usually serves 11–13 storeys each way and at most about 25 (US rule of thumb, unverified). In-suite or all-water systems for homes lean less on fan rooms.',
+  })
+  return lines
 }
 
 const item = (clause: string, r: Omit<ChecklistItem, 'clause' | 'basis'>, basis: ChecklistItem['basis'] = 'model'): ChecklistItem => ({ ...r, clause, basis })
@@ -333,11 +521,10 @@ export function lifeSafety(t: Tower, lifts: LiftResult, egress: EgressResult, in
   const systemRules: RuleResult[] = [
     { id: 'plant-floors', label: 'Plant floors in the tower', value: plantValue(pl), threshold: 'range from hydronic breaks and air-handling reach (team presets)',
       state: pl.modelled >= pl.min ? 'pass' : 'warn', flag: 'team_assumption', source: TEAM,
-      note: `${pl.hydronicBreaks} hydronic break${pl.hydronicBreaks === 1 ? '' : 's'} (equipment rated ${p.hydronicRatingKpa} kPa), ${pl.airFloors} air-handling floor${pl.airFloors === 1 ? '' : 's'} (one per ${p.airReachFloors} floors; roof plant serves the top). Roof and basement plant are extra. Only floors above the podium count as modelled; podium plant is listed apart.${pl.roofLevel !== null ? ` The top storey L${pl.roofLevel} is plant and is counted; if it is the roof plant that serves the top zone, it is extra, so add one more in the tower.` : ''}${pl.snapTo.length ? ` Snap plant to L${pl.snapTo.join(', L')} (outrigger or sky-lobby floors) where you can.` : ''}` },
+      note: `${pl.hydronicBreaks} hydronic break${pl.hydronicBreaks === 1 ? '' : 's'} (equipment rated ${p.hydronicRatingKpa} kPa), ${pl.airFloors} air-handling floor${pl.airFloors === 1 ? '' : 's'} (each serves ${p.airReachFloors} floors, ${Math.round(p.airReachFloors / 2)} each way; roof plant serves the top ${Math.round(p.airReachFloors / 2)}: Allen & Iano p.185 gives 11–13 each way as usual, unverified). Roof and basement plant are extra. Only floors above the podium count as modelled; podium plant is listed apart.${pl.roofLevel !== null ? ` The top storey L${pl.roofLevel} is plant and is counted; if it is the roof plant that serves the top zone, it is extra, so add one more in the tower.` : ''}${pl.snapTo.length ? ` Snap plant to L${pl.snapTo.join(', L')} (outrigger or sky-lobby floors) where you can.` : ''}` },
     { id: 'water-zones', label: 'Domestic water pressure zones', value: `${sys.water.length} zones of up to ${r1((PRV_LIMIT_KPA - p.pMinKpa) / KPA_PER_M)} m, a PRV station in the risers at each`, threshold: `at most ${PRV_LIMIT_KPA} kPa at any fixture; at least ${p.pMinKpa} kPa at the top one`,
       state: 'pass', flag: 'unverified', source: { ...VPBL_26, page: '2.6.3.3' }, note: `The ${p.pMinKpa} kPa minimum is a trade-article preset (${PHCP.label}); no Vancouver minimum-pressure clause was found.` },
-    { id: 'risers', label: 'Risers and core services per floor', value: `${r1(sys.riserTotal)} m² of risers + ${p.washroomsM2} m² washrooms = ${r1(sys.servicesNeeded)} m²`, threshold: `the Core & lift check assumes ${input.liftPresets.servicesM2} m²`,
-      state: sys.servicesNeeded <= input.liftPresets.servicesM2 + 0.5 ? 'pass' : 'warn', flag: 'team_assumption', source: TEAM, note: 'Use this figure in the core to size it with these risers.' },
+    ...servicesRules(t, sys, input.liftPresets),
     { id: 'base-plant', label: 'Plant and electrical space at the base', value: `${fmt(sys.baseM2)} m²: transformer and switchroom ${p.baseElectricalM2}, generator ${fmt(sys.generatorM2)}, control facility ${p.controlRoomM2}, radio ${p.radioRoomM2}`, threshold: 'below grade or in the podium (team presets)',
       state: 'pass', flag: 'team_assumption', source: TEAM, note: 'Heavy plant at the top instead needs a goods lift that reaches it (22 Bishopsgate needed a special 7,400 kg operation).' },
   ]
