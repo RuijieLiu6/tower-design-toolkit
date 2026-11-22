@@ -8,7 +8,7 @@ import type { DesignTool } from './tools/registry'
 export default {
   id: 'f2f-use-set',
   label: 'Storey height by use',
-  short: 'Storeys',
+  short: 'Storey',
   icon: Ruler,
   stages: ['basic', 'advanced'],
   order: 200,
