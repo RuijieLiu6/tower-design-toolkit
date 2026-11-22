@@ -82,7 +82,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^skyroom-(share|amenity)/, 'Open more of the sky room to the public, or add a second public level.'],
   [/^skyroom-none/, 'Open a sky lobby to the public (Schematic › Sky lobbies).'],
   // P1 #2 (21 Nov): HBP 2026 declarations.
-  [/^skyroom-benefit/, 'Declare the community benefit the tower offers (Schematic › Sky lobbies › Community benefit, HBP 2.1(g)).'],
+  // Book node #2 addition (21 Nov): a hotel floor or lobby offered as the public room is not counted.
+  [/^skyroom-benefit/, (st, v) => (st === 'warn' && /hotel/.test(v) ? 'A hotel floor or lobby does not count as the public benefit: give the public room or stop a floor of its own outside the hotel, on its own lifts (Schematic › Sky lobbies), or declare a benefit the model delivers.'
+    : 'Declare the community benefit the tower offers (Schematic › Sky lobbies › Community benefit, HBP 2.1(g)).')],
   [/^skyroom-heritage/, (st) => (st === 'fail' ? 'Keep the Class A heritage building: HBP 2.1(f) allows no demolition. Retain it and build around or over it.' : 'Declare whether a Class A heritage building stands on the site (Schematic › Sky lobbies › Class A heritage, HBP 2.1(f)).')],
   [/^skyroom-access/, 'Make the room free to enter and open daily hours.'],
   // Public realm (draft Central Downtown Design Guidelines)

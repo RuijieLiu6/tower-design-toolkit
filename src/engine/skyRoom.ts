@@ -43,6 +43,28 @@ export const BENEFIT_LABEL: Record<CommunityBenefit, string> = {
   transfer: 'recipient site for a density transfer',
 }
 export const HERITAGE_LABEL: Record<'none' | 'retained' | 'demolished', string> = { none: 'no Class A heritage building on the site', retained: 'a Class A heritage building on the site, retained', demolished: 'a Class A heritage building demolished' }
+/**
+ * A hotel lobby is never the public benefit (book node #2 addition, 21 Nov): City staff found a hotel lobby plus roof
+ * garden an inadequate public amenity (2002, research P01); the book's model, a mid-height hotel sky lobby (Al-Kodmany,
+ * Placemaking with Tall Buildings, pp.241–243), is not adopted, and its "public" deck pool is for hotel guests (p.249).
+ */
+const PM_HOTEL = 'Al-Kodmany, Placemaking with Tall Buildings (Routledge 2026), p.241 and p.249 (book notes placemaking-ch8-10.md; read once, unverified)'
+/**
+ * The public room's level and the public stops that are hotel floors or a hotel lobby. The room: its level set to hotel
+ * floor by floor, or the floor the sky lobby takes lying inside the hotel band (hotel floors below and above it); a sky
+ * lobby at a change of use reads as a transfer floor between uses and counts. A stop: on a hotel floor, or "hotel" in its
+ * label (a hotel lobby, bar or restaurant).
+ */
+export function hotelPublicLevels(t: Tower, room: Floor | null, stops: PublicStopFloor[]): { room: boolean; stops: number[] } {
+  let inHotel = false
+  if (room) {
+    const without = towerFloors({ ...t, skyLobbies: (t.skyLobbies ?? []).filter((l) => l !== room.level) })
+    const use = (l: number) => without.find((f) => f.level === l)?.use
+    inHotel = use(room.level) === 'hotel' && (t.floorUses?.[room.level] === 'hotel' || (use(room.level - 1) === 'hotel' && use(room.level + 1) === 'hotel'))
+  }
+  return { room: inHotel, stops: stops.filter((x) => x.floor.use === 'hotel' || /hotel/i.test(x.stop.label ?? '')).map((x) => x.floor.level) }
+}
+
 const STOPES = { label: 'Stopes, Designing a Vertical Transportation Strategy in the Largest and Tallest Building in the City of London (22 Bishopsgate)', url: 'https://liftescalatorlibrary.org/paper_indexing/papers/00000193.pdf' }
 const VBBL_ACCESS = { label: 'Vancouver Building By-law 2019, Section 3.8 Accessibility (VBBL 2025 unread)', url: 'https://free.bcpublications.ca/civix/document/id/public/vbbl2019/369101801' }
 
@@ -84,25 +106,33 @@ export function benefitLines(t: Tower, room: Floor | null, stops: PublicStopFloo
     for (let i = 0; i < lv.length; i++) { let j = i; while (j + 1 < lv.length && lv[j + 1] === lv[j] + 1) j++; out.push(j > i ? `L${lv[i]}–L${lv[j]}` : `L${lv[i]}`); i = j }
     return out.join(', ')
   }
+  // A hotel floor or lobby offered as the public room or a public stop is named and not counted (book node #2 addition).
+  const hotel = hotelPublicLevels(t, room, stops)
+  const counted = stops.filter((x) => !hotel.stops.includes(x.floor.level))
   const parts = [
-    room ? `public room L${room.level}` : '',
-    stops.length ? `public stops ${stops.map((x) => `L${x.floor.level}`).join(', ')}` : '',
+    room && !hotel.room ? `public room L${room.level}` : '',
+    counted.length ? `public stops ${counted.map((x) => `L${x.floor.level}`).join(', ')}` : '',
     civic.length ? `civic floor${civic.length > 1 ? 's' : ''} ${runs(civic)}` : '',
   ].filter(Boolean)
+  const hotelLv = [...(room && hotel.room ? [room.level] : []), ...hotel.stops]
+  const notCounted = hotelLv.length ? `; not counted: ${hotelLv.map((l) => `L${l}`).join(', ')}, a hotel floor or lobby, which is not public space` : ''
   const b = t.communityBenefit ?? null
   const h = t.heritageA ?? null
+  const facility = b === 'cultural' || b === 'social'
   return [
     {
       id: `skyroom-benefit-${t.id}`,
       label: 'Community benefit (HBP 2.1(g))',
-      value: b ? `2.1(g): community benefit — ${BENEFIT_LABEL[b]}${parts.length ? `, ${parts.join(' + ')}` : ''}` : `Not declared${parts.length ? `; in the model: ${parts.join(' + ')}` : ''}`,
-      threshold: 'one of: a recipient site for a density transfer, heritage retention, a significant cultural or social facility, or low-cost housing (2.1(g))',
-      state: b ? 'pass' : 'unknown',
+      value: (b ? `2.1(g): community benefit — ${BENEFIT_LABEL[b]}${parts.length ? `, ${parts.join(' + ')}` : ''}` : `Not declared${parts.length ? `; in the model: ${parts.join(' + ')}` : ''}`) + notCounted,
+      threshold: 'one of: a recipient site for a density transfer, heritage retention, a significant cultural or social facility, or low-cost housing (2.1(g)); a hotel lobby never counts as public space',
+      // A declared facility whose only delivery in the model is a hotel floor or lobby is not delivered.
+      state: b ? (facility && !parts.length && hotelLv.length ? 'warn' : 'pass') : 'unknown',
       flag: 'verified',
       source: HBP_2026,
-      note: b
-        ? `Declared by the team (communityBenefit). ${(b === 'cultural' || b === 'social') && !parts.length ? 'Nothing in the model delivers it yet: open a sky lobby to the public, add public stops or civic floors. ' : ''}Whether the City accepts it, and how it is secured, is settled at rezoning; the policy sets no size.`
-        : 'Declare the benefit the tower offers (communityBenefit, Schematic › Sky lobbies). A public room, public stops and civic floors on the public route are candidates for a cultural or social facility.',
+      note: (b
+        ? `Declared by the team (communityBenefit). ${facility && !parts.length ? `Nothing in the model delivers it yet${hotelLv.length ? ' (a hotel floor or lobby does not)' : ''}: open a sky lobby to the public, add public stops or civic floors. ` : ''}Whether the City accepts it, and how it is secured, is settled at rezoning; the policy sets no size.`
+        : 'Declare the benefit the tower offers (communityBenefit, Schematic › Sky lobbies). A public room, public stops and civic floors on the public route are candidates for a cultural or social facility.')
+        + (hotelLv.length ? ` A hotel floor or lobby is never counted: City staff found a hotel lobby plus roof garden an inadequate public amenity (2002). The book's model of a public room, a mid-height hotel sky lobby, is not adopted, and its "public" deck pool is for hotel guests (${PM_HOTEL}). Give the public room its own floor and lifts; a hotel bar can sit beside it, not replace it.` : ''),
     },
     {
       id: `skyroom-heritage-${t.id}`,
