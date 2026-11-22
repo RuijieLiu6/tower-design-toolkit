@@ -226,7 +226,7 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     geo ? `The SFRS here is the core, and it steps: ${jumps.map((x) => `${Math.round(x.ratio * 100)}% at L${x.c.from}`).join(', ')}.${geo.ratio > 1.3 ? ' Over 130% is a Type 3 irregularity: the dynamic analysis carries it, or smaller steps (each within 130%) avoid it.' : ' Each step stays within 130%.'}` : 'The SFRS here is the core, which keeps its size; a wider podium only counts if its walls join the SFRS.')
 
   // Open storeys, gates, voids and a core top (tool cycle 12, R7 tool 5): Types 1, 6, 4 and 5 by the core-alone proxy.
-  const open = openStoreys(t, { core, H, floors, weights, coreTop: opts.coreTop })
+  const open = openStoreys(t, { core, H, floors, weights, coreTop: opts.coreTop ?? coreTopZ(t) ?? undefined })
   rules.push(...openStoreyLines(open, cont))
 
   const cs = t.coreShare
