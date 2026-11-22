@@ -10,6 +10,10 @@ import type { RuleResult } from '../../engine/types'
 import { svgImage } from '../../lib/sheetAdd'
 import { isSw, useSwOut, type SwId } from '../../lib/swRun'
 import { useSwStudy } from '../../lib/swStudy'
+import { headlineLine, headlineLineId } from '../../lib/presetHeadline'
+import { useUserType } from '../../lib/userTypes'
+import { useResults } from '../../hooks/useResults'
+import StatusRow from '../StatusRow'
 import { useStore, useTowers } from '../../store'
 import { KeyList, ruleKey } from '../ResultViz'
 import SheetButton from '../SheetButton'
@@ -285,6 +289,21 @@ function LightDay() {
   )
 }
 
+/**
+ * The preset's headline line above the key results (lib/presetHeadline.ts): Sun on the design's own square leads Sun
+ * and shadow for the street, the workshop and the public realm. Mounted only when the preset names one.
+ */
+function PresetHeadline({ line: id }: { line: string }) {
+  const r = useResults()
+  const line = headlineLine(id, r)
+  return (
+    <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] rounded-xl border border-line bg-panel px-3 py-1" data-testid="preset-headline" data-line={id} aria-label="Headline for this workflow">
+      <StatusRow state={line.state} title={line.label} value={line.value} flag={line.flag}
+        detail={<>{line.threshold && <p>{line.threshold}</p>}{line.note && <p>{line.note}</p>}<p className="text-muted">{line.source.label}{line.source.page ? `, ${line.source.page}` : ''}. Computed by Open space and links (Public realm); shown first here for this workflow.</p></>} />
+    </ul>
+  )
+}
+
 /** The panel for the picked tool (none for other checks). */
 export default function SwResults() {
   const node = useStore((s) => s.selectedNode)
@@ -292,11 +311,13 @@ export default function SwResults() {
   const busy = useSwOut((s) => (isSw(node) ? !!s.busy[node] : false))
   const err = useSwOut((s) => (isSw(node) ? s.errors[node] : undefined))
   const towers = useTowers().length
+  const lead = useUserType((s) => headlineLineId(node ?? '', s.preset))
   if (!isSw(node)) return null
   const keys = out ? out.keys ?? out.rules.map(ruleKey) : []
   return (
     <section aria-label="Key results" data-testid="sw-results" data-node={node} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 border-b border-line px-4 py-3">
       <h3 className="flex items-center justify-between text-control font-semibold text-ink">Key results {busy && <span className="text-meta font-normal text-muted" role="status">Running…</span>}</h3>
+      {lead && towers > 0 && <PresetHeadline line={lead} />}
       {!towers ? <p className="text-meta text-muted">Place or draw a tower first.</p>
         : err ? <p className="text-meta text-red-700">This study stopped: {err}</p>
           : out ? (keys.length ? <div data-testid="sw-key">{node === 'built.sw-daylight' || node === 'built.sw-light-hour' ? <BigKeyList keys={keys} /> : <KeyList keys={keys.map((k) => ({ ...k, reading: true }))} />}</div> : <p className="text-meta text-muted">Nothing to read yet.</p>)

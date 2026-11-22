@@ -25,7 +25,15 @@ export interface Preset {
   nodes: string[]
   /** How people describe this goal in their own words (the agent's examples). */
   says: string[]
+  /**
+   * The line that leads a node's results in this workflow, by the node's lead id (node placement, 21 Nov 2026):
+   * display only, the line keeps its id and the node that computes it (lib/presetHeadline.ts).
+   */
+  headline?: Record<string, string>
 }
+
+/** Sun on the design's own square (P1 #3) leads Sun and shadow for the street, the workshop and the public realm. */
+const SQUARE_SUN_LEADS = { 'built.sw-shadow': 'pr-square-sun' }
 
 export interface UserType {
   id: UserTypeId
@@ -66,6 +74,7 @@ export const USER_TYPES: UserType[] = [
         // 21 Nov (P1 #3): open space and the sun on the design's own square.
         nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.relax-aviation', 'built.solar-access', 'built.sun', 'built.wind-screen', 'built.pr-ground', 'built.pr-frontage'],
         says: ['shadows on my street and park', 'would it block the mountain views', 'how tall can a tower be here', 'impact on my neighbourhood'],
+        headline: SQUARE_SUN_LEADS,
       },
       {
         id: 'designer.form', type: 'designer', name: 'Sketch a tower and see how it does',
@@ -80,6 +89,7 @@ export const USER_TYPES: UserType[] = [
         project: 'vtc', step: 'program',
         nodes: ['built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.solar-access', 'built.city-in-nature', 'built.interior', 'built.sky-villages'],
         says: ['community workshop with residents', 'co-design session', 'public space and ground floor with the community'],
+        headline: SQUARE_SUN_LEADS,
       },
       {
         // Sinnie, 13 Nov: "a preset workflow named demo: site, massing, program, sun/wind/rain/energy related nodes, and
@@ -165,6 +175,7 @@ export const USER_TYPES: UserType[] = [
         // 21 Nov (P1 #3): open space and the sun on the design's own square.
         nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.sky-room', 'built.city-in-nature', 'built.pr-ground', 'built.sky-villages', 'built.pr-frontage'],
         says: ['shadow on parks', 'solar access guidelines', 'pedestrian wind', 'public realm review'],
+        headline: SQUARE_SUN_LEADS,
       },
       {
         id: 'planner.growth', type: 'planner', name: 'Density, transit and servicing',

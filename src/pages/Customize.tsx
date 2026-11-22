@@ -30,6 +30,8 @@ import { SOLAR_NODE, useSolarAccess } from '../hooks/useSolarAccess'
 import { startPersistence, whenRestored } from '../lib/project/session'
 import { navigate } from '../lib/route'
 import { builtOutput, guardOutput } from '../lib/workflowLive'
+import { headlineLine, headlineLineId, ledOutput } from '../lib/presetHeadline'
+import { useUserType } from '../lib/userTypes'
 import { useProjectSiteArea } from '../lib/siteArea'
 import { canConnect, evaluateGraph, isLogic, runSchedule, SOURCES, type GraphNode, type NodeOutput } from '../lib/workflowLogic'
 import { makeRunRecord, type RunMode } from '../lib/runRecord'
@@ -74,6 +76,7 @@ function Builder() {
   const towers = useTowers()
   const model = useStore((s) => s.models[s.project])
   const results = useResults()
+  const presetId = useUserType((s) => s.preset)
   const siteArea = useProjectSiteArea().area
   // Nodes whose results live outside useResults (import session: economics, parking, facade, claims guard, provenance).
   const econ = useEconomics().result, mobility = useMobility(), facade = useFacade(), culture = useCultureGate(), provenance = useProvenanceIssues()
@@ -141,11 +144,16 @@ function Builder() {
       if (e.status === 'researched') return { state: 'idle', headline: 'Researched, not runnable', items: [] }
       if (e.status === 'community') return communityOutput(e.def) ?? { state: 'idle', headline: 'Imported node: no result yet', items: [] }
       // A check with nothing to read (no building model, no study site) waits instead of judging an empty design.
-      return guardOutput(e.def.id, { project, towers: towers.length, siteArea }, () => builtOutput(e.def!, results, project, solarLines) ?? extraOutput(e.def!.id, { econ, mobility, facade, culture, provenance, model: { model, towers } }))
+      return guardOutput(e.def.id, { project, towers: towers.length, siteArea }, () => {
+        const out = builtOutput(e.def!, results, project, solarLines) ?? extraOutput(e.def!.id, { econ, mobility, facade, culture, provenance, model: { model, towers } })
+        // The preset's headline line leads this node (lib/presetHeadline.ts: Sun on the design's square for Sun and shadow).
+        const lead = headlineLineId(e.def!.id, presetId)
+        return lead ? ledOutput(out, headlineLine(lead, results)) : out
+      })
         ?? { state: 'idle', headline: 'Built: open it in the guided app for results', items: [] }
     }
     return evaluateGraph(graph, edges, { evalNode, sourceHeadline, towers: towers.map((t) => ({ id: t.id, name: t.name })) }, { until: runMode === 'step' ? step : undefined })
-  }, [graph, edgeKey, results, project, towers, siteArea, model, community, communityOutput, solarLines, econ, mobility, facade, culture, provenance, runMode, step]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [graph, edgeKey, results, project, towers, siteArea, model, community, communityOutput, solarLines, econ, mobility, facade, culture, provenance, runMode, step, presetId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const schedule = useMemo(() => runSchedule(graph, edges), [graph, edgeKey]) // eslint-disable-line react-hooks/exhaustive-deps
   const notRun = useMemo<Record<string, NodeOutput>>(() => Object.fromEntries(graph.map((n) => [n.id, { state: 'idle', headline: 'Not run yet: press Run all', items: [] } as NodeOutput])), [graph])
