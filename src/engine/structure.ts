@@ -2,7 +2,7 @@
 // Screening only: no member sizing, no design values. Packet P10 had two critique rounds and no final gate, so code
 // readings the research corrected are "unverified" here.
 import { coreStepsOf, coreTopZ, towerFloors } from './massing'
-import { coreTopText } from './openingField'
+import { apertureLines, coreTopText } from './openingField'
 import type { Flag, Floor, RuleResult, RuleState, Source, Tower } from './types'
 import { coreStiffness, CRACKED_RANGE, type CoreStiffness } from './storeyWeight'
 import { f1Empirical } from './acrossWind'
@@ -75,7 +75,7 @@ export interface StructureResult {
 export type StructureTab = 'seismic' | 'lateral' | 'floors'
 export const STRUCTURE_TABS: { id: StructureTab; tab: string; lines: string[] }[] = [
   { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'sloped-columns', 'geometric', 'core-ratio'] },
-  { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers'] },
+  { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers', 'aperture-core', 'aperture-sky', 'aperture-bridge'] },
   { id: 'floors', tab: 'Floors & spans', lines: ['floor-reach', 'floor-dead-load'] },
 ]
 /** The tab a structure line shows under (unlisted lines: the first). */
@@ -215,6 +215,9 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     add('outriggers', 'Outrigger floors', outriggers.map((l) => `L${l}`).join(', '), 'outriggers as capacity-protected elements beside the listed core-wall SFRS', 'warn', 'unverified', { ...NBC, page: '4.1.8.9(3), (5); Commentary J' },
       'Not a listed SFRS in NBC 2020: special study likely. Stiff outrigger floors shorten the real period below Ta: dynamic analysis.')
   }
+
+  // Openings through the tower (tool cycle 12): the core clear of each, its sky, and what spans its head as a tie.
+  rules.push(...apertureLines(t, north))
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
   return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav, core }

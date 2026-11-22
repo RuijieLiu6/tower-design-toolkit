@@ -13,8 +13,9 @@ const s = useStore.getInitialState()
 const vtc = (patch: Partial<Tower> = {}): Tower => ({ ...s.towers.vtc[0], ...patch })
 const city = (patch: Partial<Tower> = {}): Tower => ({ ...s.towers.city[0], ...patch })
 const lines = (t: Tower) => structureCheck(t, windProcedure(t)).rules
-// Towers that between them give every structure line: outriggers, a column ring, core steps, both projects.
-const towers = () => [vtc(), city(), vtc({ outriggerFloors: [40, 50], columnRing: true }), vtc({ coreSteps: [{ fromLevel: 40, side: 14 }] }), city({ coreAuto: false, coreShare: 0.12 })]
+// Towers that between them give every structure line: outriggers, a column ring, core steps, an opening, both projects.
+const towers = () => [vtc(), city(), vtc({ outriggerFloors: [40, 50], columnRing: true }), vtc({ coreSteps: [{ fromLevel: 40, side: 14 }] }), city({ coreAuto: false, coreShare: 0.12 }),
+  vtc({ apertures: [{ z0: 200, z1: 216, bearing: 0, width: 20 }] })]
 const views = LEAD_VIEWS['built.structure']
 
 describe('Structure sub-tabs (node placement, 21 Nov)', () => {

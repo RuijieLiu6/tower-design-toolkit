@@ -6,8 +6,8 @@ import { useLeadView, viewOf } from '../lib/leadViews'
 import { CONTINUITY_RULE, windProcedure, type Fit } from '../engine/windStructure'
 import { storeyCore, type CoreCentre } from '../engine/storeyWeight'
 import { coreSide, coreStepsOf, coreTopZ, floorsAboveCore, towerFloors } from '../engine/massing'
-import { levelRuns } from '../engine/openingField'
-import type { CoreStep, Tower } from '../engine/types'
+import { aperturesOf, levelRuns } from '../engine/openingField'
+import type { Aperture, CoreStep, Tower } from '../engine/types'
 import { VTC_NORTH_DEG } from '../context'
 import { useStore, useTowers } from '../store'
 import { FalseAssumptions } from './WindStructurePanel'
@@ -168,6 +168,54 @@ function CoreTop({ t }: { t: Tower }) {
   )
 }
 
+/**
+ * Tool cycle 12 (R7 Ridge Gate): openings cut through the tower along a line of sight. The lines above read each one:
+ * the core clear of it, the sky through it and what spans its head; Egress asks its ears for their own exits.
+ */
+function Openings({ t }: { t: Tower }) {
+  const updateTower = useStore((s) => s.updateTower)
+  const list = t.apertures ?? []
+  const set = (next: Aperture[]) => updateTower(t.id, { apertures: next.length ? next : undefined })
+  const edit = (k: number, patch: Partial<Aperture>) => set(list.map((a, i) => (i === k ? { ...a, ...patch } : a)))
+  const add = () => {
+    const z0 = coreTopZ(t) ?? Math.round(t.height * 0.9)
+    set([...list, { label: 'Gate', z0, z1: Math.min(t.height, z0 + 16), bearing: 0, width: Math.round(coreSide(t)) }])
+  }
+  const num = (label: string, value: number | undefined, on: (v: number | undefined) => void, o: { step?: number; unit?: string; tip: string; w?: string }) => (
+    <label className="flex items-center gap-1 text-muted" title={o.tip}>{label}
+      <span className="flex items-center rounded border border-line bg-panel">
+        <input type="number" step={o.step ?? 0.5} value={value ?? ''} aria-label={`Opening ${label}`}
+          onChange={(e) => { const v = Number(e.target.value); on(e.target.value === '' ? undefined : Number.isFinite(v) ? v : undefined) }} className={`${o.w ?? 'w-16'} bg-transparent px-1.5 py-0.5 text-right tabular-nums text-ink outline-none`} />
+        {o.unit && <span className="pr-1.5">{o.unit}</span>}
+      </span>
+    </label>
+  )
+  return (
+    <div className="mt-2 rounded-md border border-line p-2 text-meta" data-testid="openings">
+      <div className="flex items-center justify-between gap-2"><span className="font-semibold">Openings</span><FlagChip flag="team_assumption" /></div>
+      {!list.length && <div className="mt-1 text-muted">None declared.</div>}
+      {list.map((a, k) => (
+        <div key={k} className="mt-1.5 flex flex-wrap items-center gap-2 border-t border-line pt-1.5 first-of-type:border-0">
+          <input value={a.label ?? ''} onChange={(e) => edit(k, { label: e.target.value || undefined })} placeholder={`opening ${k + 1}`} aria-label="Opening name"
+            className="w-24 rounded border border-line bg-panel px-1.5 py-0.5 text-ink outline-none focus:border-accent" />
+          {num('sill', a.z0, (v) => v != null && edit(k, { z0: v }), { unit: 'm', tip: 'Sill height above grade' })}
+          {num('head', a.z1, (v) => v != null && edit(k, { z1: v }), { unit: 'm', tip: 'Head height above grade' })}
+          {num('width', a.width, (v) => v != null && v > 0 && edit(k, { width: v }), { unit: 'm', tip: 'Clear width across the line of sight', w: 'w-14' })}
+          {num('bearing', a.bearing, (v) => edit(k, { bearing: v }), { step: 0.1, unit: '°', tip: 'The line of sight through it, degrees clockwise from true north (either way along it)', w: 'w-14' })}
+          {num('seen from', a.distance, (v) => edit(k, { distance: v != null && v > 0 ? v : undefined }), { step: 10, unit: 'm', tip: 'Distance to the viewpoint it is aimed at (blank: 2 km)', w: 'w-20' })}
+          <label className="flex items-center gap-1 text-muted" title="Judge its sky against the overcast line (250 arcmin², 7% contrast) instead of 100 arcmin² (13%)">
+            <input type="checkbox" checked={!!a.overcast} onChange={(e) => edit(k, { overcast: e.target.checked || undefined })} aria-label="Judge under overcast" />overcast
+          </label>
+          <button type="button" onClick={() => set(list.filter((_, i) => i !== k))} className="rounded border border-line px-2 py-0.5 hover:border-accent hover:text-accent" aria-label={`Remove opening ${k + 1}`}>Remove</button>
+        </div>
+      ))}
+      <button type="button" onClick={add} className="mt-1.5 rounded border border-line px-2 py-0.5 hover:border-accent hover:text-accent">Add an opening</button>
+      {list.length > aperturesOf(t).length && <div className="mt-1 text-warning">An opening needs a width and a head above its sill to be read.</div>}
+      <MethodFold title="About openings"><p>An opening is a slab of space its width wide, from sill to head, running straight through the plan along its bearing, centred on the core at the sill. The model must have the cut (a drawn or imported form; a parametric box has none). The lines read the core inside it, its own clear area and how large that looks straight on from its viewpoint, and what spans its head as a tie between the ears beside it; Egress asks each ear the core does not reach for two exits.</p></MethodFold>
+    </div>
+  )
+}
+
 /** P1 #13 floor reach: an interior column ring at about half the core-to-facade reach (Ching p.10), which halves the slab span. */
 function ColumnRing({ t }: { t: Tower }) {
   const updateTower = useStore((s) => s.updateTower)
@@ -234,6 +282,7 @@ export default function StructurePanel() {
               {(r.tower.imported || r.tower.coreCentre) && <CorePicker t={r.tower} core={r.weights.core} />}
               <CoreSteps t={r.tower} />
               <CoreTop t={r.tower} />
+              <Openings t={r.tower} />
               <OutriggerPicker t={r.tower} placed={r.outriggers} />
             </>}
             {tab === 'floors' && <>

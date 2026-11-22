@@ -102,6 +102,12 @@ export interface Tower {
    */
   earStairs?: number
   /**
+   * Openings cut through the tower (tool cycle 12, R7 Ridge Gate): open, unglazed gates or slots along a line of sight.
+   * Read by the structure lines "aperture-core", "aperture-sky" and "aperture-bridge" and by the egress line "ear-exits"
+   * (engine/openingField.ts). The geometry itself is the model's: a parametric box has no cut. Absent or empty: none.
+   */
+  apertures?: Aperture[]
+  /**
    * What each deck is for (gaps G25, G32): `occupied` (a terrace people use, the default for a deck not listed),
    * `planted` (closed to people but for maintenance) or `none` (a plain roof no one goes on), with an optional soil depth
    * on a planted deck. Read by Wind on terraces and roofs (lib/swRun.ts, matched by engine/sw/decks.ts `deckUseOf`) and
@@ -197,6 +203,30 @@ export interface Tower {
   autoAligned?: boolean
   /** The tower form shaping the shaft (engine/towerForms.ts, after dtmass): its type, parameters and the base it starts from. */
   form?: { type: import('./towerForms').FormType; p: Record<string, number>; base: import('./towerForms').FormBase }
+}
+
+/**
+ * An opening through the tower (`Tower.apertures`, tool cycle 12): a slab of space `width` metres wide between the sill
+ * `z0` and the head `z1`, running straight through the plan along a line of sight.
+ */
+export interface Aperture {
+  /** What it is, in a few words (the Ridge Gate). */
+  label?: string
+  /** Sill and head heights above grade (m). */
+  z0: number
+  z1: number
+  /** The line of sight through it as a true compass bearing (° clockwise from true north; either way along it). */
+  bearing?: number
+  /** Or its axis in the tower's own frame (° counter-clockwise from the tower's +x), used when no bearing is given. */
+  axis?: number
+  /** Clear width across the line of sight (m). */
+  width: number
+  /** A point on its axis in the tower's own frame (m); absent: the core centre at the opening. */
+  centre?: [number, number]
+  /** Distance to the viewpoint it is aimed at (m), e.g. 4,710 m to the QE Park cone origin; absent: the silhouette's 2 km. */
+  distance?: number
+  /** Judge the sky against the overcast line (Shang & Bishop's 250 min², 7% contrast) instead of 100 min² (13%). */
+  overcast?: boolean
 }
 
 /** What a deck is for (`Tower.deckUses`, gaps G25 and G32). */
