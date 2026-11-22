@@ -12,6 +12,7 @@ import { DEFAULT_FACADE, facadeCheck } from '../../engine/facade'
 import { interiorCheck } from '../../engine/interior'
 import { daylightScreen } from '../../engine/daylightDepth'
 import { DEFAULT_SYSTEMS_PRESETS, lifeSafety, type SystemsPresets } from '../../engine/lifeSafety'
+import { hbpChecklist } from '../../engine/hbpArea'
 import { aviationChecklist, relaxationChecklist } from '../../engine/relaxAviation'
 import { CITY_ORIGIN } from '../../store'
 import { liftCheck, type LiftPresets } from '../../engine/lifts'
@@ -124,7 +125,9 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.economics': DEFAULT_ECON,
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),
-    'built.relax-aviation': towers.map((t) => [...(i.project === 'city' ? relaxationChecklist(t, [], 15, i.studyArea ?? null, CITY_ORIGIN) : []), ...aviationChecklist(t, i.project === 'city' ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)]),
+    // Higher Buildings area and ceiling (book node #1): both projects; the competition site reads as an assumed site.
+    'built.relax-aviation': towers.map((t) => [...hbpChecklist(t, i.project, CITY_ORIGIN, { routeOn: false, ceilingFt: null, streets: i.cityStreets?.streets.map((s) => s.name) ?? null }),
+      ...(i.project === 'city' ? relaxationChecklist(t, [], 15, i.studyArea ?? null, CITY_ORIGIN) : []), ...aviationChecklist(t, i.project === 'city' ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)]),
     ...(i.culture ? { 'built.culture-claims': claimsLines(i.culture.claimsText, i.culture.records), 'built.provenance': provenanceLines(i.culture.prov ?? []) } : {}),
   }
 }

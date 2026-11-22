@@ -61,7 +61,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.neighbourhood', type: 'designer', name: 'What a tower would mean for my street',
         goal: 'A real Vancouver site: the views it blocks, the shadows it casts and how tall the City lets it go.',
         project: 'city', step: 'site',
-        nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.solar-access', 'built.sun', 'built.wind-screen'],
+        nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.relax-aviation', 'built.solar-access', 'built.sun', 'built.wind-screen'],
         says: ['shadows on my street and park', 'would it block the mountain views', 'how tall can a tower be here', 'impact on my neighbourhood'],
       },
       {

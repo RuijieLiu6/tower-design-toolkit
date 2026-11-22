@@ -2,6 +2,7 @@
 // carbon; P11-M04 low-carbon systems). Screening, not compliance: formal results need an EMG v3.0 energy model and a
 // listed whole-building LCA tool. Limits come from documents opened in research P04 r2 (two critique rounds, no final
 // gate); every intensity used to *estimate* the design is a team assumption or unverified, and says so.
+import { HBP_CBD_FT } from './hbpArea'
 import { solarPosition } from './solar'
 import { sunVector } from './sun'
 import { readsStoreys, towerFloors, towerFootprint, towerMasses } from './massing'
@@ -449,7 +450,9 @@ export interface EnergyCarbonResult {
 const cmp = (est: number, lim: number): RuleState => (!Number.isFinite(lim) ? 'unknown' : est <= lim ? 'pass' : 'fail')
 const margin = (est: number, lim: number) => (Number.isFinite(lim) && lim > 0 ? `${est <= lim ? '' : '+'}${Math.round(((est - lim) / lim) * 100)}%` : '')
 
-export function energyCarbonCheck(towers: Tower[], input: EnergyInput, ctx: { cars: number; northDeg: number; lat: number; lon: number; obstacles: Obstacle[]; shortlistSystem: SystemId; obstaclesKnown: boolean }): EnergyCarbonResult {
+export function energyCarbonCheck(towers: Tower[], input: EnergyInput, ctx: { cars: number; northDeg: number; lat: number; lon: number; obstacles: Obstacle[]; shortlistSystem: SystemId; obstaclesKnown: boolean
+  /** The site's Higher Buildings ceiling (engine/hbpArea.ts hbpCeiling); absent: the CBD's 600 ft. */
+  hbpCeiling?: { ft: number; basis: string } | null }): EnergyCarbonResult {
   const a = areas(towers)
   const wl = weightedLimits(a.byUse)
   const pick = (m: Metric) => input.regime === 'rezoning' ? wl.hbp[m] : input.regime === 'permit' ? wl.vbbl[m] : Math.min(wl.hbp[m], wl.vbbl[m])
@@ -487,8 +490,12 @@ export function energyCarbonCheck(towers: Tower[], input: EnergyInput, ctx: { ca
   }
   op.push(rule('en-vfar', 'Vertical facade-to-floor ratio (VFAR)', a.vfar.toFixed(2), 'report only; 0.65 or more may earn the EMG form adjustment', a.vfar >= 0.65 ? 'warn' : 'pass', 'verified', EMG('VFAR definition'), 'Above-ground wall area ÷ modelled floor area. A higher VFAR raises TEDI; towers usually sit below 0.65.'))
   op.push(rule('en-wwr', 'Window-to-wall ratio', `${Math.round(input.wwr * 100)}% (design intent)`, '≤ 40% (reference-building cap)', input.wwr <= 0.4 ? 'pass' : 'warn', 'verified', VBBL_WWR, 'Glazing above 40% earns no allowance in reference-model comparisons and raises TEDI. Set it in the energy inputs until the facade module exists.'))
+  // Book node #1 (21 Nov): the Figure 1 legend sets ceilings by area, so this is a ceiling, not guidance, and a 610–700 ft
+  // tower no longer passes by default. The site's ceiling comes from engine/hbpArea.ts when the caller has one.
   const ft = Math.max(0, ...towers.map((t) => t.height)) * 3.281
-  op.push(rule('en-hbp-height', 'HBP height guidance', `${Math.round(ft)} ft tallest`, '~550–700 ft for the highest CBD buildings (guidance, not a limit)', ft <= 700 ? 'pass' : 'warn', 'verified', { ...HBP, page: '2.1(c), 3(b)' }, 'Above about 700 ft the competition tower conflicts with HBP height guidance; the policy is under review and the VTC site is hypothetical.'))
+  const ceil = ctx.hbpCeiling ?? { ft: HBP_CBD_FT, basis: 'the CBD up to the view corridors, else up to 600 ft' }
+  op.push(rule('en-hbp-height', 'HBP height ceiling', `${Math.round(ft)} ft tallest vs ${Math.round(ceil.ft)} ft`, `Figure 1 ceiling: ${ceil.basis}; about 700 ft only on one identified site fronting W Georgia, Burrard or Granville (2.1(c) says “about”)`, ft <= ceil.ft ? 'pass' : 'warn', 'unverified', { ...HBP, page: '2.1(b)–(d); p.5 Figure 1; s.3' },
+    'The ceilings are a visual read of Figure 1’s low-resolution legend (unverified); Site limits › Relaxations & aviation reads the area on this site. Above every ceiling, the case rests on 2.1(a) (a significant skyline benchmark) and the review adds two international experts from 550 ft (s.3). The policy is under review and the VTC site is hypothetical.'))
 
   // Embodied carbon
   const shortlistSystem = ctx.shortlistSystem

@@ -1,11 +1,13 @@
 // Relaxations, zoning and aviation obligations (Context Model C01-M06, research r2). Two parts:
-// - Relaxations are not caps: the Higher Buildings Policy lets selected rezonings enter the Queen Elizabeth Park view
-//   (cones 3.2.x); Exceptional Downtown Sites (PVG 3.4, 8,000 m² or more) may also enter B1, B2 and D. Some views get no
-//   relief (A, E, 9.x, J1, G, H). Masks are switched on by the user, never applied automatically, and nothing here is a
-//   permit determination.
+// - Relaxations open views, not heights: the Higher Buildings Policy lets selected rezonings inside its Figure 1 areas
+//   enter the Queen Elizabeth Park view (cones 3.2.x), and only inside the CBD outline; each area keeps its Figure 1
+//   ceiling (engine/hbpArea.ts, 21 Nov). Exceptional Downtown Sites (PVG 3.4, 8,000 m² or more) may also enter B1, B2
+//   and D. Some views get no relief (A, E, 9.x, J1, G, H). Masks are switched on by the user, never applied
+//   automatically, and nothing here is a permit determination.
 // - Aviation is rule-based: CAR 601.23 makes a structure over 150 m above ground an obstacle (over 90 m within 6 km of
 //   an aerodrome), 601.24 asks for notice; AC 601-007 says when to submit an aeronautical assessment. YVR's zoning
 //   covers Richmond only. NAV CANADA outcomes are case by case. Aerodrome positions are secondary transcriptions.
+import { hbpFootprint, hbpReading } from './hbpArea'
 import { maxHeightAt } from './heightSurface'
 import { towerFootprint } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
@@ -30,7 +32,7 @@ export type Instrument = 'hbp' | 'eds'
 export interface Relaxation { id: Instrument; label: string; cones: string[]; clause: string; source: Source; eligibility: string; flag: Flag }
 export const RELAXATIONS: Record<Instrument, Relaxation> = {
   hbp: { id: 'hbp', label: 'Higher Buildings Policy', cones: ['3.2.1', '3.2.2', '3.2.3', '3.2.4'], clause: 'HBP 2.1; process s.3', source: HBP,
-    eligibility: 'Selected rezonings in the policy’s Figure 1 areas; heights of about 550–700 ft in the CBD are guidance, not caps. Figure 1 is not digitised here, and other Council-approved corridors are not listed in the research.', flag: 'verified' },
+    eligibility: 'Selected rezonings inside the policy’s Figure 1 areas (2.1(b)); QE View 3 may be entered only inside the CBD outline. Each area has a ceiling in the Figure 1 legend (p.5): the CBD up to the view corridors, else up to 600 ft; shoulders of 550 and 500 ft; about 700 ft only on one identified site fronting W Georgia, Burrard or Granville (2.1(c) itself says “about”). The ceilings are a visual read of a low-resolution legend (unverified); the area is the City’s May 2026 exhibit map, digitized (unverified against Figure 1). Other Council-approved corridors are not listed in the research.', flag: 'verified' },
   eds: { id: 'eds', label: 'Exceptional Downtown Site', cones: ['B1', 'B2', 'D'], clause: 'PVG 3.4.1–3.4.2', source: { ...PVG, page: '3.4, pp.7–8' },
     eligibility: 'Downtown sites of 8,000 m² or more may also enter B1, B2 and D, keeping the views to the Lions. View 12.2 was removed from Table 1 on 4 Jun 2025.', flag: 'verified' },
 }
@@ -150,7 +152,12 @@ export function relaxationChecklist(t: Tower, on: Instrument[], ground: number, 
   const fp = towerFootprint(t).map(([x, y]) => [x + origin[0], y + origin[1]] as [number, number])
   const centre: [number, number] = [t.x + origin[0], t.y + origin[1]]
   const pts = [centre, ...fp]
-  const at = pts.map((p) => relaxationAt(p, on))
+  // The Higher Buildings route enters QE View 3 only with the footprint inside the CBD outline (HBP p.5 legend): switched
+  // on elsewhere, it is reported and not applied (book node #1, 21 Nov; it was a free switch before).
+  const qe3 = on.includes('hbp') ? hbpReading(hbpFootprint(t, origin)).qe3 : 'yes'
+  const gated = on.includes('hbp') && qe3 !== 'yes'
+  const applied = gated ? on.filter((k) => k !== 'hbp') : on
+  const at = pts.map((p) => relaxationAt(p, applied))
   const covering = [...new Set(at.flatMap((a) => a.covering))]
   const top = ground + (t.imported ? t.imported.top : t.height)
   const out: RuleResult[] = []
@@ -160,7 +167,8 @@ export function relaxationChecklist(t: Tower, on: Instrument[], ground: number, 
   }
   const byRoute = (r: ConeRoute) => covering.filter((c) => coneRoute(c) === r)
   const hbp = byRoute('hbp'), eds = byRoute('eds'), none = byRoute('none'), unlisted = byRoute('unlisted')
-  if (hbp.length) out.push({ id: 'relax-hbp', label: 'Higher Buildings Policy route', value: `could allow entering ${hbp.join(', ')}${on.includes('hbp') ? ' (switched on)' : ''}`, threshold: 'a rezoning under the policy; heights are guidance, not caps', state: 'unknown', flag: 'verified', source: { ...HBP, page: '2.1' }, note: RELAXATIONS.hbp.eligibility })
+  if (hbp.length) out.push({ id: 'relax-hbp', label: 'Higher Buildings Policy route', value: `could allow entering ${hbp.join(', ')}${gated ? ` (switched on, not applied: ${qe3 === 'uncertain' ? 'the footprint is not clearly inside' : 'the footprint is outside'} the CBD outline)` : on.includes('hbp') ? ' (switched on)' : ''}`,
+    threshold: 'a rezoning inside a Figure 1 area; QE View 3 only inside the CBD outline; the area’s Figure 1 ceiling still applies', state: 'unknown', flag: 'verified', source: { ...HBP, page: '2.1(b)–(d); p.5 Figure 1' }, note: RELAXATIONS.hbp.eligibility })
   if (eds.length) out.push({ id: 'relax-eds', label: 'Exceptional Downtown Site route', value: `could allow entering ${eds.join(', ')}${on.includes('eds') ? ' (switched on)' : ''}`, threshold: `site of ${EDS_MIN_SITE.toLocaleString()} m² or more, views to the Lions kept`,
     state: siteArea === null ? 'unknown' : siteArea >= EDS_MIN_SITE ? 'warn' : 'fail', flag: 'verified', source: { ...PVG, page: '3.4.1–3.4.2' },
     note: siteArea === null ? 'The site area is not known in Real Vancouver: choose a study site in the Site step, or type the parcel area.' : `Site ${Math.round(siteArea).toLocaleString()} m²${siteAreaSource ? ` (${siteAreaSource})` : ''}.` })
@@ -173,14 +181,16 @@ export function relaxationChecklist(t: Tower, on: Instrument[], ground: number, 
     id: 'relax-limit', label: on.length ? 'Estimated limit with the routes switched on' : 'Estimated limit (no relaxation switched on)',
     value: unknownAfter ? 'a binding cone has no estimate' : after === null ? 'no binding cone left' : `${r1(after)} m geodetic; top ${r1(top)} m`,
     threshold: 'top of the tower at or below the lowest binding cone (estimate)', state: unknownAfter ? 'unknown' : after === null ? 'pass' : top <= after ? 'pass' : 'fail',
-    flag: 'team_assumption', source: { ...PVG, page: 'cl. 3.1.1; lower boundary Z = Lv + k·D (estimate)' }, note: 'Estimates from the view-cone model; the City View Cone Assessment governs.',
+    flag: 'team_assumption', source: { ...PVG, page: 'cl. 3.1.1; lower boundary Z = Lv + k·D (estimate)' },
+    note: `Estimates from the view-cone model; the City View Cone Assessment governs.${gated ? ' The Higher Buildings route is left out here: it enters QE View 3 only inside the CBD outline.' : ''}`,
   })
   return out
 }
 
 export const RELAX_AVIATION_FALSE_ASSUMPTIONS: { claim: string; correction: string; source: Source }[] = [
   { claim: 'YVR or harbour obstacle surfaces cap downtown heights.', correction: 'YVR zoning (SOR/80-902) covers Richmond lands only; no zoning was found for the harbour water aerodrome or heliport.', source: { ...YVR, page: 'Part II' } },
-  { claim: 'The Higher Buildings Policy supplies height caps.', correction: 'It is a relaxation: higher buildings may enter the QE view and named corridors; its heights are approximate guidance. PVG 3.4.2 lets Exceptional Downtown Sites also enter B1, B2 and D.', source: { ...HBP, page: '2.1' } },
+  // Corrected 21 Nov (book node #1): this line once said the policy's heights were guidance, not caps.
+  { claim: 'The Higher Buildings Policy heights are guidance, not caps, and its route opens anywhere downtown.', correction: 'Higher buildings go only inside the Figure 1 areas (2.1(b)), and the legend gives each area a ceiling: the CBD up to the view corridors, else up to 600 ft; shoulders of 550 and 500 ft (a visual read of a low-resolution legend: unverified). QE View 3 may be entered only inside the CBD outline; about 700 ft only on W Georgia, Burrard or Granville (2.1(c), which says “about”). PVG 3.4.2 lets Exceptional Downtown Sites also enter B1, B2 and D.', source: { ...HBP, page: '2.1(b)–(d); p.5 Figure 1' } },
   { claim: 'No aviation rule applies downtown; it is case by case only.', correction: 'There is no zoning surface, but CAR 601.23 makes any structure over 150 m above ground an obstacle (over 90 m within 6 km of an aerodrome), and 601.24 requires notice and Standard 621 marking.', source: { ...CAR, page: '601.23–601.24' } },
   { claim: 'The water aerodrome’s notification surface is 60 m above ground.', correction: 'That holds only without defined water channels. With channels it is runway-type: 2% out to 3,000 m (AC 601-007 4.7(2)). Classify CYHC and CBC7 from the CWAS and CFS.', source: { ...AC, page: '4.7' } },
   { claim: 'View 12.2 (Granville Bridge) can be entered by an Exceptional Downtown Site.', correction: 'Row 12.2 was deleted from PVG Table 1 on 4 Jun 2025.', source: GRANVILLE },

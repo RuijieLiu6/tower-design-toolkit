@@ -10,6 +10,8 @@ interface RelaxState {
   on: Instrument[]
   /** Site area for the Exceptional Downtown Site test (m²); unknown until entered. */
   siteArea: number | null
+  /** A site-specific Higher Buildings ceiling (ft) typed by the user, e.g. a Council-approved figure; null = the area's (book node #1). */
+  hbpCeilingFt: number | null
 }
-export const useRelax = create<RelaxState>(() => ({ show: false, on: [], siteArea: null }))
+export const useRelax = create<RelaxState>(() => ({ show: false, on: [], siteArea: null, hbpCeilingFt: null }))
 export const toggleInstrument = (k: Instrument) => useRelax.setState((s) => ({ on: s.on.includes(k) ? s.on.filter((x) => x !== k) : [...s.on, k] }))
