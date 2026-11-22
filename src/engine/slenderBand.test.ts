@@ -64,10 +64,12 @@ describe('sourced slenderness bands (P1 #9)', () => {
     expect(at(300, 36).value).toContain('higher-risk')
   })
 
-  it('cites BCBC 2024 Revision 1 for encapsulated mass timber', () => {
+  it('cites BCBC 2024 Table 3.2.2.93 for encapsulated mass timber, with the base articles beside it', () => {
     const t = defaultTower('vtc')
     const timber = systemShortlist(t, windProcedure(t)).find((s) => s.id === 'timber')!
+    expect(timber.fit).toBe('out')
+    expect(timber.route).toContain('18 storeys / 76 m')
     expect(timber.route).toContain('12 storeys / 50 m')
-    expect(timber.source.page).toBe('BCBC pp.3-125, 3-131')
+    expect(timber.source.page).toContain('p.3-148')
   })
 })

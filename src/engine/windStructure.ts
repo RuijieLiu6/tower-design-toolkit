@@ -198,8 +198,10 @@ export function systemShortlist(t: Tower, wp: WindProcedure): SystemFit[] {
     reason: H > 40 ? `${H.toFixed(0)} m is above the 40 m SC4 cap` : 'within the 40 m cap', flag: 'unverified', source: { ...TABLE_4189, page: 'SC4 height limits' } })
   out.push({ id: 'diagrid', name: 'Diagrid or mega-frame', route: 'Not a listed SFRS: alternative solution (equivalence) with peer review; unlisted systems take Rd = Ro = 1.0',
     fit: 'check', reason: 'Possible only through the equivalence route; "other" SFRS are not permitted at SC3–SC4.', flag: 'unverified', source: { ...TABLE_4189, page: 'Commentary J paras 213–214' } })
-  out.push({ id: 'timber', name: 'Mass timber lateral system', route: 'Timber SFRS limited to 20 m at SC4; encapsulated mass timber stops at 12 storeys / 50 m (BCBC 2024 Revision 1)', fit: 'out',
-    reason: 'A supertall lateral system must be concrete, steel or composite; timber can stay in a separated podium building.', flag: 'unverified', source: { label: 'BC Building Code 2024 Revision 1: encapsulated mass timber (Groups C and D) to 12 storeys and 50 m; NBC 2020 Table 4.1.8.9 (as read in research P10)', page: 'BCBC pp.3-125, 3-131' } })
+  out.push({ id: 'timber', name: 'Mass timber lateral system', route: 'Timber SFRS limited to 20 m at SC4; encapsulated mass timber reaches at most 18 storeys / 76 m for residential and office (BCBC 2024 Table 3.2.2.93, 70-min encapsulation; the base Group C and D articles stop at 12 storeys / 50 m)', fit: 'out',
+    // Read on the page by two readers (21 Nov, research/books/GEMINI_MERGE.md row 7): Table 3.2.2.93 (p.3-148) gives
+    // Groups C and D 18 storeys / 76 m at 70 min; Articles 3.2.2.48 and 3.2.2.57 (pp.3-125, 3-131) give 12 storeys / 50 m.
+    reason: 'A supertall lateral system must be concrete, steel or composite; timber can stay in a separated podium building.', flag: 'verified', source: { label: 'BC Building Code 2024 Division B: Table 3.2.2.93 encapsulated mass timber (Groups C and D to 18 storeys and 76 m, 70 min); Articles 3.2.2.48 and 3.2.2.57 (12 storeys and 50 m); NBC 2020 Table 4.1.8.9 (as read in research P10)', page: 'BCBC p.3-148 (Table 3.2.2.93); pp.3-125, 3-131' } })
   return out
 }
 
