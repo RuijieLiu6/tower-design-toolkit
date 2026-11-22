@@ -78,6 +78,20 @@ export const USE_LOADS: Record<UseId, { slab: number; sdl: number; part: number 
 // --- Floor reach and slab from the span (P1 #13, NODE_LIST row 13; book values read once: unverified) ---------------
 /** One flat plate reaches about 7.6–9.1 m at 150–205 mm (Ching et al., Building Structures Illustrated, ch. 7, p.8). */
 export const FLAT_PLATE_REACH = 9.1
+/** Does the declared interior column ring serve this storey (Tower.columnRing: true for every storey, or a level range). */
+export function ringAt(t: Pick<Tower, 'columnRing'>, level: number): boolean {
+  const r = t.columnRing
+  if (!r) return false
+  if (r === true) return true
+  return level >= (r.from ?? -Infinity) && level <= (r.to ?? Infinity)
+}
+/** The ring's storeys in words: "every storey", "L40 up", "L12–L40". */
+export function ringText(t: Pick<Tower, 'columnRing'>): string {
+  const r = t.columnRing
+  if (!r) return 'none'
+  if (r === true || (r.from == null && r.to == null)) return 'every storey'
+  return r.to == null ? `L${r.from} up` : r.from == null ? `up to L${r.to}` : `L${r.from}–L${r.to}`
+}
 export const FLAT_PLATE_MIN = 7.6
 /** Post-tensioned flat plate up to about 14 m at about L/40–45 (Allen & Iano, Architect's Studio Companion, 5th ed., pp.118–119). */
 export const PT_PLATE_REACH = 14
@@ -348,7 +362,7 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
   const reach = floors.map((f, k) => floorReach(plates[k].ring, cores[k]))
   const slabT = floors.map((f, k) => {
     if (p.slabFrom === 'use' || f.podium || transitional[k] || !(reach[k].axial > 0)) return USE_LOADS[f.use].slab
-    return slabForSpan(t.columnRing && reach[k].axial > FLAT_PLATE_REACH ? reach[k].axial / 2 : reach[k].axial)
+    return slabForSpan(ringAt(t, f.level) && reach[k].axial > FLAT_PLATE_REACH ? reach[k].axial / 2 : reach[k].axial)
   })
   const plantedQ = PLANTED_SLAB * GAMMA_C + soilKpa(p.soilMm) + PLANTED_BUILDUP + SNOW_W
   const plantedAt = (mm: number | undefined) => PLANTED_SLAB * GAMMA_C + soilKpa(mm ?? p.soilMm) + PLANTED_BUILDUP + SNOW_W

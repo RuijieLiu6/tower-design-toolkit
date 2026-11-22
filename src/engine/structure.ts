@@ -5,7 +5,7 @@ import { coreStepsOf, towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 import { coreStiffness, CRACKED_RANGE, type CoreStiffness } from './storeyWeight'
 import { f1Empirical } from './acrossWind'
-import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, FLAT_PLATE_MIN, FLAT_PLATE_REACH, GAMMA_C, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, PT_PLATE_REACH, PT_RATIO, sameCore, SLAB_MIN, SNOW_W, soilKpa, storeyCore, storeyWeights, USE_LOADS, worstWeightStep, type GravityReading, type StoreyWeight, type WeightPresets, type WeightResult } from './storeyWeight'
+import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, FLAT_PLATE_MIN, FLAT_PLATE_REACH, GAMMA_C, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, ringAt, ringText, PT_PLATE_REACH, PT_RATIO, sameCore, SLAB_MIN, SNOW_W, soilKpa, storeyCore, storeyWeights, USE_LOADS, worstWeightStep, type GravityReading, type StoreyWeight, type WeightPresets, type WeightResult } from './storeyWeight'
 import { USES } from './types'
 import { towerTwist } from './twist'
 import { TWIST_MIN } from './acrossWind'
@@ -225,11 +225,12 @@ export function floorReachLines(t: Tower, w: WeightResult, wpr: WeightPresets = 
   const m1 = (v: number) => v.toFixed(1)
   const lv = w.levels.filter((l) => !l.roof && !l.podium && !l.transitional && l.reach && l.reach.axial > 0)
   const ring = !!t.columnRing
-  const span = (l: StoreyWeight) => (ring && l.reach!.axial > FLAT_PLATE_REACH ? l.reach!.axial / 2 : l.reach!.axial)
+  // a ring serves every storey or a level range (tool cycle 11)
+  const span = (l: StoreyWeight) => (ringAt(t, l.level) && l.reach!.axial > FLAT_PLATE_REACH ? l.reach!.axial / 2 : l.reach!.axial)
   const far = lv.reduce<StoreyWeight | null>((a, b) => (!a || b.reach!.axial > a.reach!.axial ? b : a), null)
   const corner = lv.reduce<StoreyWeight | null>((a, b) => (!a || b.reach!.corner > a.reach!.corner ? b : a), null)
   const past = lv.filter((l) => l.reach!.axial > FLAT_PLATE_REACH), pastPT = lv.filter((l) => l.reach!.axial > PT_PLATE_REACH)
-  const worst = far ? span(far) : 0
+  const worst = lv.reduce((m, l) => Math.max(m, span(l)), 0)
   const src = { ...CHING, page: 'pp.8, 10 (PDF pages); Allen & Iano pp.103, 113, 118–119; Dobson p.66 (City of Vancouver Vertical Studio deck, 15 Sep 2026)' }
   const slabs = lv.map((l) => l.slab ?? 0).filter((x) => x > 0)
   const cm = (v: number) => `${Math.round(v * 1000)} mm`
@@ -238,14 +239,14 @@ export function floorReachLines(t: Tower, w: WeightResult, wpr: WeightPresets = 
   const tw = far ? towerTwist(t) : null
   const specialist = [tw && tw.deg >= TWIST_MIN ? `the plate turns ${Math.round(tw.deg)}° on a straight core, so column lines lean or transfer` : '', pastPT.length && !ring ? `${pastPT.length} storeys reach past a post-tensioned plate (${PT_PLATE_REACH} m): a long-span floor needs an engineer's scheme` : ''].filter(Boolean).join('; ')
   out.push({ ...(specialist ? { specialist } : {}), id: 'floor-reach', label: 'Floor reach: core to facade',
-    value: far ? `depth axial ${m1(far.reach!.axial)} m (${levelName(far)}), corner ${m1(corner!.reach!.corner)} m (${levelName(corner!)})${ring ? `; with the column ring, spans ≈ ${m1(worst)} m` : ''}` : 'no tower storeys',
+    value: far ? `depth axial ${m1(far.reach!.axial)} m (${levelName(far)}), corner ${m1(corner!.reach!.corner)} m (${levelName(corner!)})${ring ? `; with the column ring (${ringText(t)}), worst span ≈ ${m1(worst)} m` : ''}` : 'no tower storeys',
     threshold: `≤ ${FLAT_PLATE_REACH} m: one flat plate, 150–205 mm; to about ${PT_PLATE_REACH} m a post-tensioned plate at about L/${PT_RATIO[0]}–${PT_RATIO[1]}; beyond, an interior column ring or a long-span floor`,
     state: !far ? 'unknown' : worst > FLAT_PLATE_REACH ? 'warn' : 'pass', flag: 'unverified', source: src,
     note: !far ? 'No tower storey with a plate outside its core.' :
       `Reach from the core face (each storey's own core; ${m1(sideNow)} m at ${levelName(far)}) to the plate edge on the core's axes, and from the core to the farthest corner of the outline. One flat plate reaches about ${FLAT_PLATE_MIN}–${FLAT_PLATE_REACH} m at 150–180 mm, 205 mm at most (Ching p.8); a post-tensioned plate about L/${PT_RATIO[0]}–${PT_RATIO[1]} up to about ${PT_PLATE_REACH} m, a conventional one about L/26–33 (Allen & Iano pp.118–119). `
       + `${past.length} of ${lv.length} tower storeys reach past one flat plate${pastPT.length ? `, ${pastPT.length} past a post-tensioned plate` : ''}. `
-      + (ring ? `An interior column ring is declared (columnRing): past ${FLAT_PLATE_REACH} m the slab spans half the reach, so the worst span is about ${m1(worst)} m. ` : '')
-      + (worst > FLAT_PLATE_REACH ? `Past one flat plate: declare an interior column ring at about half the reach, or a long-span floor onto the perimeter columns, which pre-compresses them against uplift where outriggers pull (Ching p.10); post-tensioned beams for a ${m1(worst)} m span run about ${(worst / 24).toFixed(2)}–${(worst / 20).toFixed(2)} m deep (L/20–24; concrete beams L/16–18, girders L/12, or L/15 post-tensioned; Allen & Iano pp.103, 113). ` : '')
+      + (ring ? `An interior column ring is declared (columnRing, ${ringText(t)}): past ${FLAT_PLATE_REACH} m the slab spans half the reach on its storeys, so the worst span is about ${m1(worst)} m. ` : '')
+      + (worst > FLAT_PLATE_REACH ? `${ring ? 'Past one flat plate where the ring does not serve, or past it even halved: extend the ring’s storeys, add a second ring,' : 'Past one flat plate: declare an interior column ring at about half the reach,'} or a long-span floor onto the perimeter columns, which pre-compresses them against uplift where outriggers pull (Ching p.10); post-tensioned beams for a ${m1(worst)} m span run about ${(worst / 24).toFixed(2)}–${(worst / 20).toFixed(2)} m deep (L/20–24; concrete beams L/16–18, girders L/12, or L/15 post-tensioned; Allen & Iano pp.103, 113). ` : '')
       + 'The corner reach is the diagonal to the farthest plate corner: a corner column or a cantilever (no cantilever limit in these books). '
       + (slabs.length ? `Slab carried into the storey weights: ${cm(Math.min(...slabs))}–${cm(Math.max(...slabs))} (L/${PT_RATIO[1]} of each storey's span, the thinner end of the range, at least ${cm(SLAB_MIN)}; L/${PT_RATIO[0]} is 12% thicker${pastPT.length ? `; past ${PT_PLATE_REACH} m the same ratio stands in for a long-span floor's weight, a team extrapolation` : ''}). ` : '')
       + 'For comparison, the KPF office test fit in the City’s Higher Buildings review has a 12.5 m (41 ft) deep core and about 12.8 m from core to glass (Dobson p.66; analog, a 94 × 63 m block). Podium storeys and the wider one- or two-storey run just above them are left out: their column grid is not modelled and their slab keeps the use preset. Book values read once: unverified.' })

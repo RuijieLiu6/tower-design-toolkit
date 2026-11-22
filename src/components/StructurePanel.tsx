@@ -131,11 +131,28 @@ function CoreSteps({ t }: { t: Tower }) {
 /** P1 #13 floor reach: an interior column ring at about half the core-to-facade reach (Ching p.10), which halves the slab span. */
 function ColumnRing({ t }: { t: Tower }) {
   const updateTower = useStore((s) => s.updateTower)
+  const r = t.columnRing
+  const range = r && r !== true ? r : null
+  // The ring's storeys (tool cycle 11): blank ends run to the bottom or the top; both blank is every storey.
+  const setEnd = (key: 'from' | 'to', v: string) => {
+    const next = { ...(range ?? {}), [key]: v === '' ? undefined : Math.max(1, Math.round(Number(v))) }
+    updateTower(t.id, { columnRing: next.from == null && next.to == null ? true : next })
+  }
   return (
-    <label className="mt-2 flex items-center gap-2 rounded-md border border-line p-2 text-meta" title="A ring of columns at about half the reach from the core to the facade, on storeys past one flat plate (9.1 m, Ching p.8): the slab spans half the reach and thins.">
-      <input type="checkbox" checked={!!t.columnRing} onChange={(e) => updateTower(t.id, { columnRing: e.target.checked || undefined })} aria-label="Interior column ring" />
-      <span className="font-semibold">Interior column ring</span><FlagChip flag="unverified" />
-    </label>
+    <div className="mt-2 grid gap-1.5 rounded-md border border-line p-2 text-meta" data-testid="column-ring">
+      <label className="flex items-center gap-2" title="A ring of columns at about half the reach from the core to the facade, on storeys past one flat plate (9.1 m, Ching p.8): the slab spans half the reach and thins.">
+        <input type="checkbox" checked={!!r} onChange={(e) => updateTower(t.id, { columnRing: e.target.checked || undefined })} aria-label="Interior column ring" />
+        <span className="font-semibold">Interior column ring</span><FlagChip flag="unverified" />
+      </label>
+      {!!r && (
+        <div className="flex items-center gap-1.5 text-muted" title="Only these storeys get the ring, for example the turning top; blank runs to the bottom or the top">
+          Storeys
+          <input type="number" min={1} step={1} value={range?.from ?? ''} placeholder="bottom" onChange={(e) => setEnd('from', e.target.value)} className="w-16 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums text-ink" aria-label="Column ring: lowest storey" />
+          to
+          <input type="number" min={1} step={1} value={range?.to ?? ''} placeholder="top" onChange={(e) => setEnd('to', e.target.value)} className="w-16 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums text-ink" aria-label="Column ring: highest storey" />
+        </div>
+      )}
+    </div>
   )
 }
 

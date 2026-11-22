@@ -34,6 +34,9 @@ export interface Band {
   f2f?: number
 }
 
+/** The storeys an interior column ring serves (levels, inclusive); a missing end runs to the bottom or the top. */
+export interface ColumnRingRange { from?: number; to?: number }
+
 export interface Tower {
   id: string
   name: string
@@ -105,9 +108,10 @@ export interface Tower {
   /**
    * Schematic: a ring of interior columns at about half the core-to-facade reach on every tower storey whose reach is
    * past one flat plate (9.1 m, Ching p.8), so the slab spans half the reach (P1 #13 floor reach; engine/storeyWeight.ts).
-   * Absent or false: the floor spans from the core to the facade unbroken, as the designs draw it.
+   * Absent or false: the floor spans from the core to the facade unbroken, as the designs draw it. A level range (tool
+   * cycle 11, review R6-5) limits the ring to those storeys, e.g. only the turning top: { from: 40 } or { from, to }.
    */
-  columnRing?: boolean
+  columnRing?: boolean | ColumnRingRange
   /** Schematic: one sky lobby opened to the public as a sky room (null = none). */
   skyRoom?: SkyRoom | null
   /**
