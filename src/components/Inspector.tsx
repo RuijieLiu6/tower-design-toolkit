@@ -24,6 +24,7 @@ import { PlatePanel, SeparationPanel } from './SiteLimitsPanel'
 import SilhouettePanel from './SilhouettePanel'
 import F2fUsePanel from './F2fUsePanel'
 import EgressDoors from './EgressDoors'
+import CoreNeed from './CoreNeed'
 import SkyVillagesPanel from './SkyVillagesPanel'
 import SiteHeights from './site/SiteHeights'
 import RelaxAviationPanel from './RelaxAviationPanel'
@@ -443,6 +444,7 @@ export default function Inspector() {
           </Fold></div>
           <div className="mt-3 text-meta font-semibold tabular-nums" title={`Core at its worst level (L${r.maxLevel ?? '—'}): ${Math.round(r.requiredMax)} m² needed, ${Math.round(r.modelledCore)} m² modelled${r.tower.coreAuto ? ' (sized to the lifts)' : ''}`}>Core at L{r.maxLevel ?? '—'}: {Math.round(r.requiredMax)} m² needed · {Math.round(r.modelledCore)} m² modelled</div>
           <CoreBar r={r} />
+          <CoreNeed r={r} />
           <CoreProfile r={r} />
           <SkyLobbyCompare r={r} />
           <LiftStrategy t={r.tower} />
