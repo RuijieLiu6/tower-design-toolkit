@@ -37,6 +37,20 @@ export interface StructureResult {
   core: CoreStiffness
 }
 
+/**
+ * The Structure tool's sub-tabs (node placement, 21 Nov 2026): every rule line keeps its id and shows under one tab;
+ * the Wind procedure tab is a node of its own. A line not listed here shows under the first tab, so a new line is never
+ * dropped from the results.
+ */
+export type StructureTab = 'seismic' | 'lateral' | 'floors'
+export const STRUCTURE_TABS: { id: StructureTab; tab: string; lines: string[] }[] = [
+  { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'geometric', 'core-ratio'] },
+  { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers'] },
+  { id: 'floors', tab: 'Floors & spans', lines: ['floor-reach', 'floor-dead-load'] },
+]
+/** The tab a structure line shows under (unlisted lines: the first). */
+export const structureTabOf = (lineId: string): StructureTab => STRUCTURE_TABS.find((g) => g.lines.includes(lineId))?.id ?? STRUCTURE_TABS[0].id
+
 /** `north` (true north clockwise from the project frame's +y) places deck uses that name a facing (`Tower.deckUses`). */
 export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS, north = 0): StructureResult {
   const rules: RuleResult[] = []

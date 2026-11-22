@@ -10,6 +10,7 @@ import type { RuleState } from '../engine/types'
 import { useResults } from '../hooks/useResults'
 import { byState, coneRows, fixFor, ruleKey, STATE_WORD, type CheckRow } from '../lib/fixes'
 import { nodeOfLine } from '../lib/options'
+import { inView, lineRuleId, useLeadView, viewOf } from '../lib/leadViews'
 import { useTrace } from '../lib/trace/trace'
 import StatusRow, { STATUS_ICON as ICON } from './StatusRow'
 import { resultClass, resultWord } from '../lib/status'
@@ -24,6 +25,9 @@ const LEAD = 3
 export function useCheckRows(nodeId: string): { rows: CheckRow[]; extra: string | null } | null {
   const digest = useTrace((s) => s.live?.digest)
   const { cones } = useResults()
+  // A lead with views (lib/leadViews.ts: Structure's tabs): the rows of the view in the strip, each line in one view.
+  const picked = useLeadView((s) => s.view)
+  const view = viewOf(nodeId, picked)
   return useMemo(() => {
     if (nodeId === 'built.viewcones') {
       if (!cones.length) return null
@@ -31,14 +35,14 @@ export function useCheckRows(nodeId: string): { rows: CheckRow[]; extra: string 
       const rows = cones.flatMap((r) => { const c = coneRows(r.tower.id, r.tower.name, r.checks, r.topZ); outside += c.outside; return cones.length > 1 ? c.rows.map((x) => ({ ...x, title: `${x.title} (${r.tower.name})` })) : c.rows })
       return { rows: rows.sort(byState), extra: outside ? `${outside} protected view${outside === 1 ? '' : 's'} the tower${cones.length > 1 ? 's do' : ' does'} not enter` : null }
     }
-    const lines = (digest?.lines ?? []).filter((l) => nodeOfLine(l.id) === nodeId)
+    const lines = inView((digest?.lines ?? []).filter((l) => nodeOfLine(l.id) === nodeId), view, (l) => lineRuleId(l.id))
     if (!lines.length) return null
     const rows = lines.map((l): CheckRow => {
       const parts = l.id.split(':'), towerId = parts.length > 2 ? parts[1] : '', ruleId = parts.slice(parts.length > 2 ? 2 : 1).join(':')
       return { id: l.id, state: l.state, title: l.label, value: l.value, flag: l.flag, fix: fixFor(ruleKey(ruleId, towerId), l.state, l.value, l.threshold, l.flag) }
     })
     return { rows: rows.sort(byState), extra: null }
-  }, [nodeId, digest, cones])
+  }, [nodeId, digest, cones, view])
 }
 
 /** One result: the shared status row (StatusRow.tsx), also used by the viewport's proposal card. */

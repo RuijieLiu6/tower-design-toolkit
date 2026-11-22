@@ -1,7 +1,8 @@
 // Results for "Structure: system & seismic" (research P10-M01, M03, M05): seismic route, core continuity and regularity,
 // outrigger floors you place, and a lateral-system shortlist. Screening only; the engineer of record decides.
 import { useMemo, useState } from 'react'
-import { SEISMIC_FALSE_ASSUMPTIONS, structureCheck, suggestOutriggers } from '../engine/structure'
+import { SEISMIC_FALSE_ASSUMPTIONS, structureCheck, structureTabOf, suggestOutriggers, type StructureTab } from '../engine/structure'
+import { useLeadView, viewOf } from '../lib/leadViews'
 import { CONTINUITY_RULE, windProcedure, type Fit } from '../engine/windStructure'
 import { storeyCore, type CoreCentre } from '../engine/storeyWeight'
 import { coreSide, coreStepsOf, towerFloors } from '../engine/massing'
@@ -138,38 +139,56 @@ function ColumnRing({ t }: { t: Tower }) {
   )
 }
 
+/**
+ * Structure in three tabs (node placement, 21 Nov 2026), picked in the results strip beside Wind procedure
+ * (lib/leadViews.ts): System & seismic (category, route, irregularities, the shortlist), Lateral & sway (core alone,
+ * P-Δ, off-centre weight and sustained sway, core steps, outriggers) and Floors & spans (floor reach, dead load from the
+ * span, the column ring). The lines keep their ids; each shows under one tab (engine/structure.ts STRUCTURE_TABS).
+ */
 export default function StructurePanel() {
   const results = useStructures()
+  const tab = useLeadView((s) => viewOf('built.structure', s.view)?.id ?? 'seismic') as StructureTab
   return (
-    <>
-      {results.map((r) => (
-        <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
-          <div className="mb-2"><Stats cols={2}>
-            <Stat label="Seismic Category" value={`${r.seismicCategory}`} color="#946200" tip="Dynamic analysis required; core walls continuous to the foundation" />
-            <Stat label="Period Ta (seismic only)" value={`≈ ${r.Ta.toFixed(2)}`} unit="s" />
-          </Stats></div>
-          <RuleRows rules={r.rules} />
-          {(r.tower.imported || r.tower.coreCentre) && <CorePicker t={r.tower} core={r.weights.core} />}
-          <CoreSteps t={r.tower} />
-          <ColumnRing t={r.tower} />
-          <OutriggerPicker t={r.tower} placed={r.outriggers} />
-          <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700" title="A shortlist, never a single best">Lateral systems at SC4 (shortlist)</h4>
-          <ul className="grid min-w-0 gap-1">
-            {r.systems.map((s) => (
-              <li key={s.id} className="flex min-w-0 items-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-meta" title={`${s.name}: ${s.reason}\nCode route: ${s.route}\nSource: ${s.source.label}${s.source.page ? `, ${s.source.page}` : ''}`}>
-                <span className="min-w-0 flex-1 truncate">{s.name}</span><FlagDot flag={s.flag} />
-                <span className={`shrink-0 rounded border px-1.5 py-0.5 text-meta font-semibold ${FIT[s.fit].cls}`}>{FIT[s.fit].label}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-1.5"><Evidence title="Why each system fits or not" items={r.systems.map((s) => ({ id: s.id, label: s.name, flag: s.flag, value: s.reason, note: `Code route: ${s.route}`, source: s.source, card: false }))} /></div>
-          <MethodFold><p>{CONTINUITY_RULE}</p><p>Seismic Category {r.seismicCategory}: dynamic analysis required; core walls continuous to the foundation; Ta ≈ {r.Ta.toFixed(2)} s (seismic only).</p></MethodFold>
-        </Section>
-      ))}
-      <FalseAssumptions items={SEISMIC_FALSE_ASSUMPTIONS} />
+    <div data-structure-tab={tab}>
+      {results.map((r) => {
+        const rules = r.rules.filter((x) => structureTabOf(x.id) === tab)
+        return (
+          <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
+            {tab === 'seismic' && <>
+              <div className="mb-2"><Stats cols={2}>
+                <Stat label="Seismic Category" value={`${r.seismicCategory}`} color="#946200" tip="Dynamic analysis required; core walls continuous to the foundation" />
+                <Stat label="Period Ta (seismic only)" value={`≈ ${r.Ta.toFixed(2)}`} unit="s" />
+              </Stats></div>
+              <RuleRows rules={rules} />
+              <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700" title="A shortlist, never a single best">Lateral systems at SC4 (shortlist)</h4>
+              <ul className="grid min-w-0 gap-1">
+                {r.systems.map((s) => (
+                  <li key={s.id} className="flex min-w-0 items-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-meta" title={`${s.name}: ${s.reason}\nCode route: ${s.route}\nSource: ${s.source.label}${s.source.page ? `, ${s.source.page}` : ''}`}>
+                    <span className="min-w-0 flex-1 truncate">{s.name}</span><FlagDot flag={s.flag} />
+                    <span className={`shrink-0 rounded border px-1.5 py-0.5 text-meta font-semibold ${FIT[s.fit].cls}`}>{FIT[s.fit].label}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-1.5"><Evidence title="Why each system fits or not" items={r.systems.map((s) => ({ id: s.id, label: s.name, flag: s.flag, value: s.reason, note: `Code route: ${s.route}`, source: s.source, card: false }))} /></div>
+              <MethodFold><p>{CONTINUITY_RULE}</p><p>Seismic Category {r.seismicCategory}: dynamic analysis required; core walls continuous to the foundation; Ta ≈ {r.Ta.toFixed(2)} s (seismic only).</p></MethodFold>
+            </>}
+            {tab === 'lateral' && <>
+              <RuleRows rules={rules} />
+              {(r.tower.imported || r.tower.coreCentre) && <CorePicker t={r.tower} core={r.weights.core} />}
+              <CoreSteps t={r.tower} />
+              <OutriggerPicker t={r.tower} placed={r.outriggers} />
+            </>}
+            {tab === 'floors' && <>
+              <RuleRows rules={rules} />
+              <ColumnRing t={r.tower} />
+            </>}
+          </Section>
+        )
+      })}
+      {tab === 'seismic' && <FalseAssumptions items={SEISMIC_FALSE_ASSUMPTIONS} />}
       <Section title="Read with care" folded>
         <p className="text-meta text-slate-700">Screening only: no member sizing, forces or drifts as design values. Research packet P10 had two critique rounds and no final gate, so code readings it corrected are shown as unverified. Slenderness and the wind procedure are in the node Wind procedure (slenderness).</p>
       </Section>
-    </>
+    </div>
   )
 }

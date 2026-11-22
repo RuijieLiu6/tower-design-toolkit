@@ -8,6 +8,10 @@ import SwResults from './sw/SwResults'
 import { groupVisible, UiScopeContext, useUiItems, useUiVisibility } from '../lib/ui/registry'
 import { useShallow } from 'zustand/react/shallow'
 import { ALL_NODES, BUILT_NODES, CATEGORIES, MERGES, canonicalNode } from '../data/registry'
+import { LEAD_VIEWS, lineRuleId, useLeadView, viewOf } from '../lib/leadViews'
+import { nodeOfLine } from '../lib/options'
+import { useTrace } from '../lib/trace/trace'
+import { STATUS_ICON, STATUS_TONE } from './StatusRow'
 import { useCommunityNodeDefs } from '../lib/communityStore'
 import { useStep } from '../lib/step'
 import { useTowerAdds, watchTowerAdds } from '../lib/towerAdds'
@@ -69,6 +73,17 @@ function ResultsPicker() {
   const current = lead && !on.some((n) => n.id === lead) ? [...ALL_NODES, ...community].find((n) => n.id === lead) : undefined
   const options = current ? [current, ...on] : on
   const merge = lead ? MERGES[lead] : undefined
+  // A lead with views of its own (lib/leadViews.ts: Structure) shows them in place of its one tab, before its parts.
+  const views = lead ? LEAD_VIEWS[lead] : undefined
+  const picked = useLeadView((s) => s.view)
+  const setView = useLeadView((s) => s.setView)
+  const view = lead ? viewOf(lead, picked) : null
+  const digest = useTrace((s) => s.live?.digest)
+  const leadLines = lead && views ? (digest?.lines ?? []).filter((l) => nodeOfLine(l.id) === lead) : []
+  const strip = merge && lead ? [
+    ...(views ? views.map((v) => ({ key: `${lead}#${v.id}`, id: lead, tab: v.tab, view: v.id as string | undefined })) : [{ key: lead, id: lead, tab: merge.tab, view: undefined }]),
+    ...merge.parts.map((p) => ({ key: p.id, id: p.id, tab: p.tab, view: undefined as string | undefined })),
+  ] : []
   return (
     <div className="border-b border-line px-4 py-2">
     <div className="flex items-center gap-2">
@@ -86,10 +101,21 @@ function ResultsPicker() {
     </div>
     {merge && lead && (
       <div role="tablist" aria-label={`${merge.name}: parts`} data-testid="merge-parts" className="mt-2 flex flex-wrap gap-1">
-        {[{ id: lead, tab: merge.tab }, ...merge.parts].map((p) => (
-          <button key={p.id} type="button" role="tab" aria-selected={selectedNode === p.id} data-part={p.id} onClick={() => selectNode(p.id)}
-            className={`rounded-full px-2.5 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${selectedNode === p.id ? 'bg-selected font-semibold text-accent-hover' : 'bg-subtle text-muted hover:text-ink'}`}>{p.tab}</button>
-        ))}
+        {strip.map((p) => {
+          const on = selectedNode === p.id && (!p.view || view?.id === p.view)
+          // A view holding a failing or open line says so on its tab (symbol + count; the words on hover).
+          const v = p.view ? views?.find((x) => x.id === p.view) : undefined
+          const open = v ? leadLines.filter((l) => v.has(lineRuleId(l.id)) && (l.state === 'fail' || l.state === 'warn')) : []
+          const worst = open.some((l) => l.state === 'fail') ? 'fail' : open.length ? 'warn' : null
+          const Mark = worst ? STATUS_ICON[worst] : null
+          return (
+            <button key={p.key} type="button" role="tab" aria-selected={on} data-part={p.id} data-view={p.view} onClick={() => { if (p.view && lead) setView(lead, p.view); selectNode(p.id) }}
+              title={open.length ? `${p.tab}: ${open.length} line${open.length === 1 ? '' : 's'} to resolve` : undefined}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-meta outline-none focus-visible:ring-2 focus-visible:ring-accent ${on ? 'bg-selected font-semibold text-accent-hover' : 'bg-subtle text-muted hover:text-ink'}`}>
+              {p.tab}{Mark && worst && <><Mark size={13} className={STATUS_TONE[worst]} aria-hidden /><span className="tabular-nums">{open.length}</span><span className="sr-only"> to resolve</span></>}
+            </button>
+          )
+        })}
       </div>
     )}
     </div>

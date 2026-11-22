@@ -33,9 +33,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Core & lifts
   [/^rise-floors/, 'Split the tower into more lift rises, or add a sky lobby (Schematic › Core & floors).'],
   [/^rise-/, 'Add cars to this rise, or start the upper rises at a sky lobby (Schematic › Core & floors).'],
-  [/^core-fit/, (_st, v) => (/from L\d+, [\d.]+ m core/.test(v) ? 'A core is smaller than the lifts that run through it (the lowest, or a step): widen it, move the step higher, or end a rise below the step with a sky lobby (Structure › Core steps; Schematic › Core & floors).' : 'Turn on "Size to the lifts", or raise the core share (Schematic › Core & floors).')],
+  [/^core-fit/, (_st, v) => (/from L\d+, [\d.]+ m core/.test(v) ? 'A core is smaller than the lifts that run through it (the lowest, or a step): widen it, move the step higher, or end a rise below the step with a sky lobby (Structure › Lateral & sway › Core steps; Schematic › Core & floors).' : 'Turn on "Size to the lifts", or raise the core share (Schematic › Core & floors).')],
   // Services space by use (P1 node #14, Allen & Iano pp.50, 185, 192–194).
-  [/^core-share/, (_st, v) => (/^(\d+)%/.exec(v) && Number(/^(\d+)%/.exec(v)![1]) > 25 ? 'Win back floor from a core over 25%: a sky lobby so fewer shafts run low down, or a core that steps in as rises end (Structure › Core steps; Schematic › Core & floors).' : 'Bring the core to 20–25% of the floor: turn on "Size to the lifts" or raise the core share, and check the shafts and rooms fit (Schematic › Core & floors).')],
+  [/^core-share/, (_st, v) => (/^(\d+)%/.exec(v) && Number(/^(\d+)%/.exec(v)![1]) > 25 ? 'Win back floor from a core over 25%: a sky lobby so fewer shafts run low down, or a core that steps in as rises end (Structure › Lateral & sway › Core steps; Schematic › Core & floors).' : 'Bring the core to 20–25% of the floor: turn on "Size to the lifts" or raise the core share, and check the shafts and rooms fit (Schematic › Core & floors).')],
   [/^lifts-kpf/, 'A cross-check only: compare the lift plan with the rule of thumb and ask the lift consultant about a large gap.'],
   [/^ntg/, 'Win back net area: a sky lobby (fewer shafts low down), a smaller core, or a larger plate.'],
   [/^firefighter/, 'Give firefighters a lift that reaches the top in about a minute with one change at most (a sky-lobby shuttle).'],
@@ -53,15 +53,15 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
     ? 'Bring the tower’s weight back over the core (align the tiers, or shift the core under the heavy side); as built, plan a tie-down or outrigger strategy and a pre-set (camber), as at Vancouver House.'
     : 'Declare a pre-set (camber) of the floors for the structural reviewer; aligning the tiers over the core lowers the sway.')],
   // Core alone (P1 #10): below the 46/H stiffness the sway and across-wind lines assume.
-  [/^core-alone$/, (st) => (st === 'fail' ? 'The core alone is far softer than the 46/H frequency the sway and across-wind lines assume: thicken the base walls or raise f′c (weight presets), enlarge the core, or declare outriggers or belt trusses (Structure) and have the engineer show their share; a model frequency (Wind procedure) replaces both readings.'
-    : 'The core alone gives part of the stiffness 46/H assumes: declare what supplies the rest (outriggers or belt trusses in Structure, a perimeter frame), or thicken the base walls; the engineer\'s model frequency settles it.')],
+  [/^core-alone$/, (st) => (st === 'fail' ? 'The core alone is far softer than the 46/H frequency the sway and across-wind lines assume: thicken the base walls or raise f′c (weight presets), enlarge the core, or declare outriggers or belt trusses (Structure › Lateral & sway) and have the engineer show their share; a model frequency (Wind procedure) replaces both readings.'
+    : 'The core alone gives part of the stiffness 46/H assumes: declare what supplies the rest (outriggers or belt trusses in Structure › Lateral & sway, a perimeter frame), or thicken the base walls; the engineer\'s model frequency settles it.')],
   [/^p-delta$/, 'Gravity on the swayed core adds more than 10% to its sway: stiffen the core (thicker base walls, a larger core, outriggers) or lighten the upper storeys.'],
   // Floor reach (P1 #13): past one flat plate.
-  [/^floor-reach$/, 'The floor reaches past one flat plate from the core: tick Interior column ring (Structure) for a ring at about half the reach, plan a long-span floor with post-tensioned beams onto the perimeter columns, or bring the plate edge closer to the core (Massing).'],
+  [/^floor-reach$/, 'The floor reaches past one flat plate from the core: tick Interior column ring (Structure › Floors & spans) for a ring at about half the reach, plan a long-span floor with post-tensioned beams onto the perimeter columns, or bring the plate edge closer to the core (Massing).'],
   [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],
-  [/^continuity$/, (st) => (st === 'fail' ? 'An upper core stands outside the core below: move its centre or shrink it so it sits inside the lower core (Structure › Core steps), so its walls can run down to the foundation.'
+  [/^continuity$/, (st) => (st === 'fail' ? 'An upper core stands outside the core below: move its centre or shrink it so it sits inside the lower core (Structure › Lateral & sway › Core steps), so its walls can run down to the foundation.'
     : 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.')],
-  [/^geometric$/, 'The core steps by more than 130% at one level: split it into smaller steps (each within 130%, Structure › Core steps), or carry the Type 3 irregularity in the dynamic analysis.'],
+  [/^geometric$/, 'The core steps by more than 130% at one level: split it into smaller steps (each within 130%, Structure › Lateral & sway › Core steps), or carry the Type 3 irregularity in the dynamic analysis.'],
   // Egress & stairs
   [/^stair-width/, 'Widen the exit stairs or add one (Schematic › Exit stairs), or lower the busiest floor\'s occupant load.'],
   [/^exits/, 'Add an exit stair so every floor has at least two (Schematic › Exit stairs).'],
