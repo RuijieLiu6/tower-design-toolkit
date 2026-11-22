@@ -90,6 +90,18 @@ export interface Tower {
    */
   coreSteps?: CoreStep[]
   /**
+   * The core's top in metres above grade (tool cycle 12, R7 Ridge Gate): the core ends here, below an opening or a crown.
+   * A storey whose mid-height lies above it has no core: no core area or walls, and no lift or core stair reaches it
+   * (engine/massing.ts `coreTopLevel`); the lifts, egress and structure lines say what that leaves. Absent, or above
+   * the top storey's mid-height: the core runs to the roof, as before.
+   */
+  coreTop?: number
+  /**
+   * Exit stairs the design declares in each part of a storey the core does not reach: each storey above the core top,
+   * and each ear beside an opening (tool cycle 12). Absent: none. Read by the egress line "ear-exits".
+   */
+  earStairs?: number
+  /**
    * What each deck is for (gaps G25, G32): `occupied` (a terrace people use, the default for a deck not listed),
    * `planted` (closed to people but for maintenance) or `none` (a plain roof no one goes on), with an optional soil depth
    * on a planted deck. Read by Wind on terraces and roofs (lib/swRun.ts, matched by engine/sw/decks.ts `deckUseOf`) and

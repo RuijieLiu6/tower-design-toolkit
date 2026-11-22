@@ -2,7 +2,7 @@
 // layouts by use (unit mix for homes, keys for hotels, lease depth for offices) and an activity programme for public
 // floors. When a tower has `interior` set, the lift check, egress and economics read the counts from here instead of
 // their area proxies; without it they keep the proxies (flagged as such). Every preset is a team assumption.
-import { coreSide, coreSideAt, coreStepsOf, blockSpans, netToGrossAt, ownUseArea, spanAt, towerFloors } from './massing'
+import { coreSide, coreSideAt, coreStepsOf, coreTopZ, blockSpans, netToGrossAt, ownUseArea, spanAt, towerFloors } from './massing'
 import type { Floor, Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export type UnitType = 'studio' | 'one' | 'two' | 'three'
@@ -178,8 +178,8 @@ function levelOf(t: Tower, f: Pick<Floor, 'z0' | 'z1'> & { level?: number }): nu
   return towerFloors(t).find((x) => mid >= x.z0 && mid < x.z1)?.level ?? 0
 }
 
-/** The core on one floor (m): the tower's, or the step of a core that steps with the tiers (gap G18). */
-const floorCore = (t: Tower, f: Pick<Floor, 'z0' | 'z1'> & { level?: number }) => (coreStepsOf(t).length ? coreSideAt(t, levelOf(t, f)) : coreSide(t))
+/** The core on one floor (m): the tower's, or the step of a core that steps with the tiers (gap G18); none above the core top. */
+const floorCore = (t: Tower, f: Pick<Floor, 'z0' | 'z1'> & { level?: number }) => (coreStepsOf(t).length || coreTopZ(t) != null ? coreSideAt(t, levelOf(t, f)) : coreSide(t))
 
 /**
  * The tower as seen on one floor: the plate of the stacked block at that level, with the core of that floor: the

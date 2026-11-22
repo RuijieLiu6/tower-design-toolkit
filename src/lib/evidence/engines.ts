@@ -119,8 +119,8 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
   const { towers } = i
   const vtc = i.project === 'vtc' && towers.length > 0
   const lifts = towers.map((t) => liftCheck(t, i.liftPresets, i.egressPresets))
-  const egress = towers.map((t) => egressCheck(t, i.egressPresets, i.liftPresets))
   const north = i.project === 'vtc' ? VTC_NORTH_DEG : 0
+  const egress = towers.map((t) => egressCheck(t, i.egressPresets, i.liftPresets, north))
   const facadeSettings: FacadeInput = { ...DEFAULT_FACADE, ...Object.fromEntries(Object.entries(i.facade ?? {}).filter(([, v]) => v !== undefined)) }
   const facade = facadeCheck(towers, facadeSettings, north)
   const natureInput: NatureInput = { ...i.cityInNature, ...(i.groundPorous != null ? { groundPorous: i.groundPorous } : {}), ...(i.groundPlantedM2 != null ? { groundPlantedM2: i.groundPlantedM2 } : {}) }

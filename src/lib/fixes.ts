@@ -36,6 +36,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^core-fit/, (_st, v) => (/from L\d+, [\d.]+ m core/.test(v) ? 'A core is smaller than the lifts that run through it (the lowest, or a step): widen it, move the step higher, or end a rise below the step with a sky lobby (Structure › Lateral & sway › Core steps; Schematic › Core & floors).' : 'Turn on "Size to the lifts", or raise the core share (Schematic › Core & floors); the Core & lifts results show what the core needs (lifts, stairs, services) and the HVAC choice that sets the services shafts.')],
   // Services space by use (P1 node #14, Allen & Iano pp.50, 185, 192–194).
   [/^core-share/, (_st, v) => (/^(\d+)%/.exec(v) && Number(/^(\d+)%/.exec(v)![1]) > 25 ? 'Win back floor from a core over 25%: a sky lobby so fewer shafts run low down, or a core that steps in as rises end (Structure › Lateral & sway › Core steps; Schematic › Core & floors).' : 'Bring the core to 20–25% of the floor: turn on "Size to the lifts" or raise the core share, and check the shafts and rooms fit (Schematic › Core & floors).')],
+  // Tool cycle 12: the lifts end with the core.
+  [/^core-top-lifts/, (st) => (st === 'fail' ? 'No lift reaches the occupied storeys above the core top: make them plant, raise the core top so the core and its lifts reach them (Structure › Lateral & sway › Core top), or give them a lift of their own.'
+    : 'Only plant lies above the core top: confirm with a code consultant that the firefighter lift need not reach it, and plan how its equipment is lifted in (or raise the core top).')],
   [/^lifts-kpf/, 'A cross-check only: compare the lift plan with the rule of thumb and ask the lift consultant about a large gap.'],
   [/^ntg/, 'Win back net area: a sky lobby (fewer shafts low down), a smaller core, or a larger plate.'],
   [/^firefighter/, 'Give firefighters a lift that reaches the top in about a minute with one change at most (a sky-lobby shuttle).'],
@@ -71,6 +74,9 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^egress-posted/, 'A posted load below the Table load needs a permanent sign (3.1.17.1(2)) and an accepted case that fewer people will use the floor (a code consultant or fire engineer); or post at the Table load and size the stairs for it (Egress › Posted loads).'],
   [/^stair-width/, 'Widen the exit stairs or add one (Schematic › Exit stairs), or lower the busiest floor\'s occupant load.'],
   [/^exits/, 'Add an exit stair so every floor has at least two (Schematic › Exit stairs).'],
+  // Tool cycle 12: storeys the core does not reach (above the core top, or ears beside an opening).
+  [/^ear-exits/, (st) => (st === 'fail' ? 'Occupied storeys the core does not reach need two ways out each: declare two exit stairs in each ear (Structure › Lateral & sway › Core top), make those storeys plant, or carry the core up to them (raise the core top).'
+    : 'Plant the core does not reach has fewer than two ways out: declare two exit stairs in each ear (Structure › Lateral & sway › Core top), or have a code consultant accept one for a service space.')],
   // P1 #11 (21 Nov): the smoke-path reading of the same exits (a code-consultant reading).
   [/^separation-smoke/, 'Open the core stair doors on opposite faces of the core (the tower’s stairDoorFaces), or move a stair to the plate edge (Schematic › Exit stairs); a code consultant confirms the smoke-path reading.'],
   [/^separation/, 'Move the stairs apart: try "Core + edge" or "At the edges" (Schematic › Exit stairs).'],

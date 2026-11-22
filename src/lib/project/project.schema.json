@@ -952,6 +952,16 @@
             }
           }
         },
+        "coreTop": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "The core's top in metres above grade (tool cycle 12): storeys whose mid-height lies above it have no core, no lift and no core stair. Optional: absent, the core runs to the roof."
+        },
+        "earStairs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Exit stairs declared in each part of a storey the core does not reach (each ear; each storey above the core top), tool cycle 12. Optional: absent, none."
+        },
         "publicStops": {
           "type": "array",
           "maxItems": 20,

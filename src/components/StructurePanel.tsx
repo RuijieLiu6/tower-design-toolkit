@@ -5,7 +5,8 @@ import { SEISMIC_FALSE_ASSUMPTIONS, structureCheck, structureTabOf, suggestOutri
 import { useLeadView, viewOf } from '../lib/leadViews'
 import { CONTINUITY_RULE, windProcedure, type Fit } from '../engine/windStructure'
 import { storeyCore, type CoreCentre } from '../engine/storeyWeight'
-import { coreSide, coreStepsOf, towerFloors } from '../engine/massing'
+import { coreSide, coreStepsOf, coreTopZ, floorsAboveCore, towerFloors } from '../engine/massing'
+import { levelRuns } from '../engine/openingField'
 import type { CoreStep, Tower } from '../engine/types'
 import { VTC_NORTH_DEG } from '../context'
 import { useStore, useTowers } from '../store'
@@ -128,6 +129,45 @@ function CoreSteps({ t }: { t: Tower }) {
   )
 }
 
+/**
+ * Tool cycle 12 (R7 Ridge Gate): the core may end below an opening or a crown. Storeys above the core top have no core,
+ * so no lift or core stair reaches them; the exit stairs each ear declares are read by the egress line "ear-exits".
+ */
+function CoreTop({ t }: { t: Tower }) {
+  const updateTower = useStore((s) => s.updateTower)
+  const floors = useMemo(() => towerFloors(t), [t])
+  const top = coreTopZ(t)
+  const above = floorsAboveCore(t, floors)
+  const setTop = (v: number | undefined) => updateTower(t.id, { coreTop: v != null && Number.isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : undefined })
+  const fromLevel = (l: number) => { const f = floors.find((x) => x.level === Math.round(l)); if (f) setTop(f.z0) }
+  const field = 'flex items-center rounded border border-line bg-panel'
+  const input = 'bg-transparent px-1.5 py-0.5 text-right tabular-nums text-ink outline-none'
+  return (
+    <div className="mt-2 rounded-md border border-line p-2 text-meta" data-testid="core-top">
+      <div className="flex items-center justify-between gap-2"><span className="font-semibold">Core top</span><FlagChip flag="team_assumption" /></div>
+      <div className="mt-1 text-muted">{above.length && top != null ? `Ends at +${top.toFixed(1)} m: ${levelRuns(above.map((f) => f.level))} have no core` : 'The core runs to the roof'}</div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-1 text-muted" title="Height above grade where the core ends">at
+          <span className={field}><input type="number" step={0.1} min={0} value={top ?? ''} placeholder="roof" aria-label="Core top height"
+            onChange={(e) => setTop(e.target.value === '' ? undefined : Number(e.target.value))} className={`w-20 ${input}`} /><span className="pr-1.5">m</span></span>
+        </label>
+        <label className="flex items-center gap-1 text-muted" title="The first storey with no core: the core ends at its floor">or below L
+          <span className={field}><input type="number" step={1} min={1} value={above[0]?.level ?? ''} placeholder="—" aria-label="First storey above the core top"
+            onChange={(e) => { const v = Number(e.target.value); if (e.target.value !== '' && Number.isFinite(v)) fromLevel(v) }} className={`w-14 ${input}`} /></span>
+        </label>
+        {top != null && <button type="button" onClick={() => setTop(undefined)} className="rounded border border-line px-2 py-0.5 hover:border-accent hover:text-accent">To the roof</button>}
+      </div>
+      {above.length > 0 && (
+        <label className="mt-1.5 flex items-center gap-1 text-muted" title="Exit stairs in each part of a storey the core does not reach (each ear); read by Egress">Exit stairs in each ear
+          <span className={field}><input type="number" step={1} min={0} value={t.earStairs ?? 0} aria-label="Exit stairs in each ear"
+            onChange={(e) => { const v = Math.max(0, Math.round(Number(e.target.value))); updateTower(t.id, { earStairs: Number.isFinite(v) && v > 0 ? v : undefined }) }} className={`w-12 ${input}`} /></span>
+        </label>
+      )}
+      <MethodFold title="About the core top"><p>A storey whose mid-height lies above the core top has no core: no core area (its net area is the whole plate), no core walls in the storey weights, no lift and no core stair. Core holds the lifts stops the lift rises at the last storey with a core and flags the storeys above; Egress asks each part of those storeys for two exits of its own; the core-alone frequency stops the cantilever at the core top and carries the storeys above as a rigid crown (an upper bound).</p></MethodFold>
+    </div>
+  )
+}
+
 /** P1 #13 floor reach: an interior column ring at about half the core-to-facade reach (Ching p.10), which halves the slab span. */
 function ColumnRing({ t }: { t: Tower }) {
   const updateTower = useStore((s) => s.updateTower)
@@ -193,6 +233,7 @@ export default function StructurePanel() {
               <RuleRows rules={rules} />
               {(r.tower.imported || r.tower.coreCentre) && <CorePicker t={r.tower} core={r.weights.core} />}
               <CoreSteps t={r.tower} />
+              <CoreTop t={r.tower} />
               <OutriggerPicker t={r.tower} placed={r.outriggers} />
             </>}
             {tab === 'floors' && <>

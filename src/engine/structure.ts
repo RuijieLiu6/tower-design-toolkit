@@ -1,7 +1,8 @@
 // Structure screening (research P10-M01 system shortlist, P10-M03 seismic route, P10-M05 continuity and regularity).
 // Screening only: no member sizing, no design values. Packet P10 had two critique rounds and no final gate, so code
 // readings the research corrected are "unverified" here.
-import { coreStepsOf, towerFloors } from './massing'
+import { coreStepsOf, coreTopZ, towerFloors } from './massing'
+import { coreTopText } from './openingField'
 import type { Flag, Floor, RuleResult, RuleState, Source, Tower } from './types'
 import { coreStiffness, CRACKED_RANGE, type CoreStiffness } from './storeyWeight'
 import { f1Empirical } from './acrossWind'
@@ -107,18 +108,22 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   const runs: { from: number; side: number; x: number; y: number }[] = []
   if (steps.length) {
     const at = storeyCore(t, weights.core)
-    for (const f of floors) { const c = at(f.level), last = runs[runs.length - 1]; if (!last || !sameCore(last, c)) runs.push({ from: f.level, ...c }) }
+    // storeys above a core top have no core (tool cycle 12): they start no run
+    for (const f of floors) { const c = at(f.level), last = runs[runs.length - 1]; if (!(c.side > 0)) continue; if (!last || !sameCore(last, c)) runs.push({ from: f.level, ...c }) }
   }
+  // the core ends below the top (tool cycle 12): its walls still run from their own top to the foundation
+  const ends = coreTopText(t, floors)
   const outside = runs.slice(1).map((c, k) => ({ c, below: runs[k], over: Math.max(Math.abs(c.x - runs[k].x) + c.side / 2 - runs[k].side / 2, Math.abs(c.y - runs[k].y) + c.side / 2 - runs[k].side / 2) })).filter((x) => x.over > 0.05)
   const m1 = (v: number) => v.toFixed(1)
   if (runs.length > 1) {
     add('continuity', 'Core walls continuous to the foundation', outside.length ? `the core from ${outside.map((x) => `L${x.c.from}`).join(', ')} stands ${outside.map((x) => `${m1(x.over)} m`).join(', ')} outside the core below` : `the core steps in ${runs.length - 1} time${runs.length > 2 ? 's' : ''}, each upper core inside the one below`,
       'required where Ta ≥ 1 s and IE·S(1.0) > 0.25: walls continuous from their top to the foundation, none transferred or offset (Types 4 and 5)', outside.length ? 'fail' : 'pass', 'verified', { ...NBC, page: '4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
-      `Core steps: ${runs.map((c) => `L${c.from} ${m1(c.side)} m at (${m1(c.x)}, ${m1(c.y)})`).join(' → ')} (tower frame). The walls of each upper core must run down to the foundation inside the larger cores below; the outer walls end at the step, continuous from their own top down. An upper core outside the one below needs a transfer, which is not permitted, with no nonlinear-analysis route. A core whose centre moves at a step carries its upper part off the centre of its lower part: the off-centre storey line measures each storey from its own core, and the sway line adds that jog (each core section carries the weights above it about its own centre).`)
+      `${ends ? `${ends} ` : ''}Core steps: ${runs.map((c) => `L${c.from} ${m1(c.side)} m at (${m1(c.x)}, ${m1(c.y)})`).join(' → ')} (tower frame). The walls of each upper core must run down to the foundation inside the larger cores below; the outer walls end at the step, continuous from their own top down. An upper core outside the one below needs a transfer, which is not permitted, with no nonlinear-analysis route. A core whose centre moves at a step carries its upper part off the centre of its lower part: the off-centre storey line measures each storey from its own core, and the sway line adds that jog (each core section carries the weights above it about its own centre).`)
   } else {
-    add('continuity', 'Core walls continuous to the foundation', imported ? 'core not modelled for imported massing' : 'the modelled core runs from the foundation to the top',
+    const topWord = ends ? ` to its top at +${coreTopZ(t)!.toFixed(1)} m` : ' to the top'
+    add('continuity', 'Core walls continuous to the foundation', imported ? `core not modelled for imported massing${ends ? `; declared to end at +${coreTopZ(t)!.toFixed(1)} m` : ''}` : `the modelled core runs from the foundation${topWord}`,
       'required where Ta ≥ 1 s and IE·S(1.0) > 0.25: no wall that ends, steps or is transferred (Types 4 and 5)', imported ? 'unknown' : 'pass', 'verified', { ...NBC, page: '4.1.8.10(4), Table 4.1.8.6 Types 4–5' },
-      'Keep it that way in design: open podium spaces wrap around the core; a wall transfer is not permitted, with no nonlinear-analysis route.')
+      `${ends ? `${ends} ` : ''}Keep it that way in design: open podium spaces wrap around the core; a wall transfer is not permitted, with no nonlinear-analysis route.`)
   }
 
   // Weight irregularity (Type 2) by storey weight (gap G6, research R5 §3); the floor-area ratio stays in the note.
@@ -233,7 +238,7 @@ export function coreLines(t: Tower, c: CoreStiffness, H: number, outriggers: num
   const hz = (v: number) => v.toFixed(3)
   const steps = coreStepsOf(t).length > 0
   const tw = towerTwist(t)
-  const why = [steps ? 'the core steps, which a single-tube cantilever reads only section by section' : '', tw.deg >= TWIST_MIN ? `the plate twists ${Math.round(tw.deg)}°, which moves the perimeter the core does not count` : '',
+  const why = [steps ? 'the core steps, which a single-tube cantilever reads only section by section' : '', c.top != null ? `the core ends at +${c.top.toFixed(1)} m and the storeys above ride on it as a rigid crown, whose frame is not read` : '', tw.deg >= TWIST_MIN ? `the plate twists ${Math.round(tw.deg)}°, which moves the perimeter the core does not count` : '',
     H > RC_TOWERS.hMax ? `${H.toFixed(0)} m is past the book's tallest RC example (${RC_TOWERS.hMax} m)` : ''].filter(Boolean).join('; ')
   const sp = why ? { specialist: why } : {}
   const secs = c.sections.map((s) => `${s.z0.toFixed(0)} m: ${s.side.toFixed(1)} m core, ${s.t.toFixed(2)} m walls`).join('; ')
@@ -246,6 +251,7 @@ export function coreLines(t: Tower, c: CoreStiffness, H: number, outriggers: num
     note: `The modelled core alone as a cantilever fixed at grade: each storey's square core with its walls by band (${secs}), I = (s⁴ − (s − 2t)⁴)/12 (base ${c.base.I.toFixed(0)} m⁴ gross), E = 33,500 · (f′c/60)^(1/3) = ${Math.round(c.E).toLocaleString('en-CA')} MPa at f′c ${c.fc} MPa (RC2 p.381, aggregate factors 1), times a cracked factor ${c.cracked} (team; ${CRACKED_RANGE[0]}–${CRACKED_RANGE[1]} gives ${hz(c.range[0])}–${hz(c.range[1])} Hz; gross ${hz(c.gross)} Hz; uncracked stiffness serves little, RC1 pp.26, 32). f1 by Rayleigh on the storey weights (slabs from the floor reach, walls by band). `
       + `The percentage is the core's share of the stiffness 46/H assumes, (f_core / f_46/H)². The book's ten RC towers of ${RC_TOWERS.hMin}–${RC_TOWERS.hMax} m ran H/T ${RC_TOWERS.htLow}–${RC_TOWERS.htHigh} (f1 = ${hz(RC_TOWERS.htLow / H)}–${hz(RC_TOWERS.htHigh / H)} Hz here), 9 of 10 inside 46/H ±50%. `
       + (c.f1 >= emp.central ? 'The core alone reaches the stiffness the sway and across-wind lines assume.' : `Below the central value: the sway and across-wind lines' 46/H stiffness assumes the frame, belts, outriggers or coupling supply the other ${Math.round((1 - share) * 100)}%; the across-wind line shows the core-alone reading beside it.`)
+      + (c.top != null ? ` The core ends at +${c.top.toFixed(1)} m (Structure › Lateral & sway › Core top): the cantilever stops there, and the storeys above load it as a rigid crown on its top (their own frame's flexibility is not read), so this frequency is an upper bound for the core alone.` : '')
       + (outriggers.length ? ` Outriggers are placed at ${outriggers.map((l) => `L${l}`).join(', ')}: their share is not computed here, so this reads a lower bound until the engineer shows it.` : '')
       + ' Walls by band, f′c and the cracked factor are presets (the weight presets); a model frequency from the engineer replaces all of it. Confidence C: a core-alone tube model that ignores outriggers, frames and coupling.' })
   const pd = c.pDelta

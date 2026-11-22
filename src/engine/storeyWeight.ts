@@ -15,7 +15,7 @@
 // entries name facings is split into its decks (engine/sw/decks.ts `towerDecks`), each weighed at its own centre.
 // A core that steps with the tiers (gap G18, `Tower.coreSteps`): each storey's walls are those of its own core, and the
 // off-centre lines measure each storey's weight centre from its own core.
-import { blockSpans, coreSide, coreSideAt, coreStepsOf, rectCorners, spanAt, towerFloors } from './massing'
+import { blockSpans, coreSide, coreSideAt, coreStepsOf, coreTopLevel, coreTopZ, rectCorners, spanAt, towerFloors } from './massing'
 import { deckUseOf, towerDecks } from './sw/decks'
 import type { DeckUse, Floor, Tower, UseId } from './types'
 
@@ -193,6 +193,8 @@ export interface WeightResult {
   core: CoreCentre
   /** The core of the storey on grade, under the first suspended floor (absent: `core`). */
   ground?: StoreyCore
+  /** The core's top (m above grade) when it ends below the top storey (`Tower.coreTop`, tool cycle 12); absent: it runs to the roof. */
+  coreTop?: number
   presets: WeightPresets
 }
 
@@ -299,7 +301,14 @@ export function storeyCore(t: Tower, base: CoreCentre = coreCentre(t)): (level: 
   let c: P = [base.x, base.y]
   for (const s of steps) { if (s.centre?.length === 2 && s.centre.every(Number.isFinite)) c = [s.centre[0], s.centre[1]]; cores.push({ side: s.side, x: c[0], y: c[1] }) }
   const own: StoreyCore = { side: base.side, x: base.x, y: base.y }
-  return (level) => { let k = -1; for (let i = 0; i < steps.length; i++) if (steps[i].fromLevel <= level) k = i; return k < 0 ? own : cores[k] }
+  // Above the core top (tool cycle 12) the storey has no core: side 0 at the centre of the core below it, so walls and
+  // core area vanish while offsets are still measured from the core the storey stands on.
+  const last = coreTopLevel(t)
+  return (level) => {
+    let k = -1; for (let i = 0; i < steps.length; i++) if (steps[i].fromLevel <= level) k = i
+    const c = k < 0 ? own : cores[k]
+    return level > last ? { ...c, side: 0 } : c
+  }
 }
 
 /** Two storey cores that are the same within 5 cm (a core share's side read back from a typed one). */
@@ -308,15 +317,18 @@ export const sameCore = (a: StoreyCore, b: StoreyCore) => Math.abs(a.side - b.si
 /** The core as boxes up the tower (tower frame): one per run of storeys sharing a core; without core steps, one box from the ground to the top. */
 export function coreBoxes(t: Tower, floors: Floor[] = towerFloors(t)): (StoreyCore & { z0: number; z1: number })[] {
   const base = coreCentre(t, floors)
-  const top = floors.length ? floors[floors.length - 1].z1 : t.height
+  // A core top (tool cycle 12) ends the boxes at that height, below the storeys it leaves without a core.
+  const ct = coreTopZ(t)
+  const top = Math.min(floors.length ? floors[floors.length - 1].z1 : t.height, ct ?? Infinity)
   const own = { side: base.side, x: base.x, y: base.y }
-  if (!coreStepsOf(t).length || !floors.length) return [{ ...own, z0: 0, z1: top }]
+  if ((!coreStepsOf(t).length && ct == null) || !floors.length) return [{ ...own, z0: 0, z1: top }]
   const at = storeyCore(t, base)
   const out: (StoreyCore & { z0: number; z1: number })[] = []
   for (const f of floors) {
     const c = at(f.level), last = out[out.length - 1]
-    if (last && sameCore(last, c)) { last.z1 = f.z1; continue }
-    out.push({ ...c, z0: out.length ? f.z0 : 0, z1: f.z1 })
+    if (!(c.side > 0)) continue
+    if (last && sameCore(last, c)) { last.z1 = Math.min(f.z1, top); continue }
+    out.push({ ...c, z0: out.length ? f.z0 : 0, z1: Math.min(f.z1, top) })
   }
   return out
 }
@@ -427,7 +439,8 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
   }
   const total = levels.reduce((s, l) => s + l.W, 0)
   const volume = floors.reduce((s, f) => s + f.area * Math.max(0, f.z1 - f.z0), 0)
-  return { levels, total, density: volume > 0 ? (total * 1000) / (G * volume) : 0, core, ...(n ? { ground: cores[0] } : {}), presets: p }
+  const ct = coreTopZ(t), ends = ct != null && n > 0 && coreTopLevel(t) < floors[n - 1].level
+  return { levels, total, density: volume > 0 ? (total * 1000) / (G * volume) : 0, core, ...(n ? { ground: cores[0] } : {}), ...(ends ? { coreTop: ct! } : {}), presets: p }
 }
 
 /** Type 2 by weight: the worst ratio between adjacent levels; a roof lighter than the floor below is exempt (Table 4.1.8.6). */
@@ -544,6 +557,11 @@ export interface CoreStiffness {
   pDelta: number
   /** Distinct (side, wall) sections up the core, bottom-up, from height z0 (m). */
   sections: { z0: number; side: number; t: number }[]
+  /**
+   * The core's top (m) when it ends below the tower's top (tool cycle 12): the cantilever stops there and the storeys
+   * above ride on it as a rigid crown (their frame's own flexibility is not read), so f1 is an upper bound. Absent: none.
+   */
+  top?: number
 }
 
 /**
@@ -560,9 +578,12 @@ export function coreStiffness(w: WeightResult, H: number): CoreStiffness {
   const top = Math.max(H, ...lv.map((l) => l.z), 1)
   const g0 = w.ground ?? { side: w.core.side, x: w.core.x, y: w.core.y }
   const steps: { z: number; side: number }[] = [{ z: 0, side: g0.side }]
-  for (const l of w.levels) if (!l.roof && l.coreSide != null && Math.abs(l.coreSide - steps[steps.length - 1].side) > 1e-6) steps.push({ z: l.z, side: l.coreSide })
+  // storeys with no core (above a core top, tool cycle 12) add no section: the cantilever stops at the core top
+  for (const l of w.levels) if (!l.roof && l.coreSide != null && l.coreSide > 0 && Math.abs(l.coreSide - steps[steps.length - 1].side) > 1e-6) steps.push({ z: l.z, side: l.coreSide })
   const sideAt = (z: number) => { let s = steps[0].side; for (const x of steps) if (x.z <= z + 1e-9) s = x.side; return s }
-  const N = 400, dz = top / N
+  const cut = w.coreTop != null && w.coreTop > 0 && w.coreTop < top ? w.coreTop : null
+  const zTop = cut ?? top
+  const N = 400, dz = zTop / N
   const zs = Array.from({ length: N + 1 }, (_, k) => k * dz)
   const EI = zs.map((z) => E * 1e6 * tubeI(sideAt(z), wallAt(p, z, top)))
   const F = lv.map((l) => l.W * 1000)
@@ -575,7 +596,11 @@ export function coreStiffness(w: WeightResult, H: number): CoreStiffness {
     }
     return d
   }
-  const at = (d: number[], z: number) => { const x = Math.min(N, Math.max(0, z / dz)), k = Math.min(N - 1, Math.floor(x)); return d[k] + (d[k + 1] - d[k]) * (x - k) }
+  // above the core top a level moves with the core's top as a rigid crown: the top's sway plus its slope times the height above it
+  const at = (d: number[], z: number) => {
+    if (z > zTop) return d[N] + ((d[N] - d[N - 1]) / dz) * (z - zTop)
+    const x = Math.min(N, Math.max(0, z / dz)), k = Math.min(N - 1, Math.floor(x)); return d[k] + (d[k + 1] - d[k]) * (x - k)
+  }
   const M0 = zs.map((z) => lv.reduce((s, l, i) => (l.z > z ? s + F[i] * (l.z - z) : s), 0))
   const d0 = deflect(M0)
   const di = lv.map((l) => at(d0, l.z))
@@ -589,7 +614,7 @@ export function coreStiffness(w: WeightResult, H: number): CoreStiffness {
     const Mp = zs.map((z, k) => lv.reduce((s, l, i) => (l.z > z ? s + F[i] * (dl[i] - d[k]) : s), 0))
     const extra = deflect(Mp).map((x) => x / cracked)
     const next = dC.map((x, k) => x + extra[k])
-    const r = next[N] / Math.max(1e-12, dC[N])
+    const r = cut != null && lv.length ? at(next, Math.max(...lv.map((l) => l.z))) / Math.max(1e-12, at(dC, Math.max(...lv.map((l) => l.z)))) : next[N] / Math.max(1e-12, dC[N])
     d = next
     if (!Number.isFinite(r) || r > 10) { pDelta = Infinity; break }
     if (Math.abs(r - pDelta) < 1e-6) { pDelta = r; break }
@@ -598,7 +623,7 @@ export function coreStiffness(w: WeightResult, H: number): CoreStiffness {
   const sections: CoreStiffness['sections'] = []
   for (let k = 0; k <= N; k++) { const z = zs[k], s = sideAt(z), t = wallAt(p, z, top), last = sections[sections.length - 1]; if (!last || Math.abs(last.side - s) > 1e-6 || Math.abs(last.t - t) > 1e-6) sections.push({ z0: last ? z : 0, side: s, t }) }
   return { f1: gross * Math.sqrt(cracked), range: [gross * Math.sqrt(CRACKED_RANGE[0]), gross * Math.sqrt(CRACKED_RANGE[1])], gross, E, fc, cracked,
-    base: { side: g0.side, t: wallAt(p, 0, top), I: tubeI(g0.side, wallAt(p, 0, top)) }, pDelta, sections }
+    base: { side: g0.side, t: wallAt(p, 0, top), I: tubeI(g0.side, wallAt(p, 0, top)) }, pDelta, sections, ...(cut != null ? { top: cut } : {}) }
 }
 
 /**
@@ -613,7 +638,7 @@ function coreJog(w: WeightResult, H: number, EI: number): GravityReading['jog'] 
   // sections bottom-up: the storey on grade, then the core of the storey above each suspended floor
   const g0 = w.ground ?? { x: w.core.x, y: w.core.y, side: w.core.side }
   const raw: { from: number; z0: number; c: StoreyCore }[] = [{ from: 0, z0: 0, c: g0 }]
-  for (const l of w.levels) { if (l.roof) continue; const c = own(l), last = raw[raw.length - 1]; if (!sameCore(last.c, c)) raw.push({ from: l.level, z0: l.z, c }) }
+  for (const l of w.levels) { if (l.roof) continue; const c = own(l), last = raw[raw.length - 1]; if (!(c.side > 0)) continue; if (!sameCore(last.c, c)) raw.push({ from: l.level, z0: l.z, c }) }
   const z1 = (k: number) => (k + 1 < raw.length ? raw[k + 1].z0 : Infinity)
   // ∫ (H − h) dh over [a, b]
   const I = (a: number, b: number) => (b > a ? (b - a) * H - (b * b - a * a) / 2 : 0)

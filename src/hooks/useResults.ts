@@ -15,6 +15,7 @@ import { nodeOn } from '../lib/analysis'
 import { useWindScreen } from './useWindScreen'
 import { SCREEN_LABEL } from '../engine/windScreen'
 import { CITY_ORIGIN, useStore, useTowers } from '../store'
+import { VTC_NORTH_DEG } from '../context'
 import { SW_IDS, useSwOut } from '../lib/swRun'
 import { nodeById } from '../data/registry'
 
@@ -82,7 +83,7 @@ export function useResults() {
         })
       : []), [])
     const lifts = attempt('built.core-lifts', () => towers.map((t) => ({ tower: t, ...liftCheck(t, liftPresets, egressPresets) })), [])
-    const egress = attempt('built.egress', () => towers.map((t) => ({ tower: t, ...egressCheck(t, egressPresets, liftPresets) })), [])
+    const egress = attempt('built.egress', () => towers.map((t) => ({ tower: t, ...egressCheck(t, egressPresets, liftPresets, project === 'vtc' ? VTC_NORTH_DEG : 0) })), [])
     const skyRooms = attempt('built.sky-room', () => towers.map((t, i) => ({ tower: t, ...skyRoomCheck(t, lifts[i], egress[i], egressPresets, liftPresets, skyTerraces?.[t.id]) })), [])
     // Public realm checks run on the competition block, whose streets are known (research P06).
     const vtc = project === 'vtc' && towers.length > 0

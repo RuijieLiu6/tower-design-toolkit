@@ -7,6 +7,7 @@ import { coreCentre, storeyCore } from './storeyWeight'
 import { towerTwist } from './twist'
 import type { CoreFace, Floor, RuleResult, StairCorner, StairPlacement, Tower } from './types'
 import { floorCounts } from './interior'
+import { earExitLines } from './openingField'
 
 export interface EgressPresets {
   /** Exit stairs per floor (at least two, 3.4.2.1). */
@@ -582,7 +583,8 @@ export interface EgressResult {
 
 const fmt = (v: number) => Math.round(v).toLocaleString()
 
-export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS, li: LoadInputs = { homeM2: 75, hotelM2PerKey: 40 }): EgressResult {
+/** `north` (true north clockwise from the project frame's +y) only names the ears of the storeys the core does not reach. */
+export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS, li: LoadInputs = { homeM2: 75, hotelM2PerKey: 40 }, north = 0): EgressResult {
   const storeys = storeyLoads(t, e, li)
   const n = Math.max(2, Math.round(e.stairs))
   const above = storeys.filter((s) => s.z > 0.5)
@@ -681,6 +683,8 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     flag: 'verified',
     source: { ...VBBL_EXITS, page: '3.4.2.1' },
   })
+  // Tool cycle 12: storeys the core does not reach (above a core top) are left by their own stairs.
+  rules.push(...earExitLines(t, { source: VBBL_EXITS, north }))
   rules.push({
     id: `separation-${t.id}`,
     label: 'Exit separation',

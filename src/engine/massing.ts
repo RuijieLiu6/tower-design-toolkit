@@ -215,16 +215,57 @@ export function coreStepAt(t: Tower, level: number): CoreStep | null {
   return out
 }
 
-/** Side of the square core on one floor level (m): its step's, else the core share's. */
+// --- Core top (tool cycle 12, R7 Ridge Gate) --------------------------------------------------------------------------
+// The core may end below an opening or a crown (`Tower.coreTop`, m above grade). A storey whose mid-height lies above
+// it has no core: its core side and area read 0, so net area, homes, core walls and weights see a plate with no core,
+// and the lifts, egress and structure lines flag the storeys no lift or core stair reaches.
+
+/** The declared core top (m above grade), or null: none declared, the core runs to the roof. */
+export function coreTopZ(t: Pick<Tower, 'coreTop'>): number | null {
+  const z = t.coreTop
+  return typeof z === 'number' && Number.isFinite(z) && z > 0 ? z : null
+}
+
+const coreTopCache = new WeakMap<Tower, number>()
+/**
+ * The highest floor level that keeps the core (its storey's mid-height below the core top); Infinity without a core
+ * top. A core top above every storey's mid-height leaves every storey its core.
+ */
+export function coreTopLevel(t: Tower): number {
+  const z = coreTopZ(t)
+  if (z == null) return Infinity
+  let v = coreTopCache.get(t)
+  if (v == null) {
+    v = 0
+    for (const f of towerFloors(t)) if ((f.z0 + f.z1) / 2 < z) v = Math.max(v, f.level)
+    coreTopCache.set(t, v)
+  }
+  return v
+}
+
+/** Does the core reach this floor level (false only above a declared core top)? */
+export const hasCoreAt = (t: Tower, level: number): boolean => level <= coreTopLevel(t)
+
+/** The floors above the core top (none without one), bottom-up. */
+export function floorsAboveCore(t: Tower, floors: Floor[] = towerFloors(t)): Floor[] {
+  if (coreTopZ(t) == null) return []
+  const last = coreTopLevel(t)
+  return floors.filter((f) => f.level > last)
+}
+
+/** Side of the square core on one floor level (m): its step's, else the core share's; 0 above the core top. */
 export function coreSideAt(t: Tower, level: number): number {
+  if (!hasCoreAt(t, level)) return 0
   return coreStepAt(t, level)?.side ?? coreSide(t)
 }
 
 /**
  * Core area on one floor level (m²): its step's square where the core steps with the tiers, else the core share of
- * the typical plate, as before. Deducted from that floor's own area (an imported tower: its own storey plate).
+ * the typical plate, as before; 0 above the core top. Deducted from that floor's own area (an imported tower: its own
+ * storey plate).
  */
 export function coreAreaAt(t: Tower, level: number): number {
+  if (!hasCoreAt(t, level)) return 0
   const s = coreStepAt(t, level)
   return s ? s.side * s.side : t.coreShare * t.width * t.depth
 }
@@ -232,9 +273,11 @@ export function coreAreaAt(t: Tower, level: number): number {
 /**
  * Net-to-gross on one floor if only the core is deducted. Without core steps: the tower's share (`netToGross`), as
  * before. With them, every floor deducts its own core from its own plate (the floor's area), so a stepped-in core
- * gives the upper tiers back their floor.
+ * gives the upper tiers back their floor. Above the core top: 1, nothing deducted (the stairs those storeys need are
+ * the egress line's "ear-exits").
  */
 export function netToGrossAt(t: Tower, f: Pick<Floor, 'level' | 'area'>): number {
+  if (!hasCoreAt(t, f.level)) return 1
   if (!t.coreSteps?.length || !coreStepsOf(t).length || !(f.area > 0)) return netToGross(t)
   const c = coreSideAt(t, f.level)
   return Math.max(0, Math.min(1, 1 - (c * c) / f.area))

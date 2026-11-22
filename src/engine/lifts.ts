@@ -3,7 +3,8 @@
 // Early sizing, not certification: waiting and destination times need simulation (roadmap).
 // Research: 04 Tool Plan/research/modules-completion/P11/revise-r2_P11.json (single pass since 22 Oct; see flags there).
 import { DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, skyRoomLoads, stairAreaByLevel, type EgressPresets } from './egress'
-import { coreAreaAt, coreStepAt, coreStepsOf, netToGross, netToGrossAt, towerFloors } from './massing'
+import { coreAreaAt, coreStepAt, coreStepsOf, hasCoreAt, netToGross, netToGrossAt, towerFloors } from './massing'
+import { coreTopLiftLines } from './openingField'
 import { floorCounts } from './interior'
 import { SERVICES_BOOK, ascSource, servicesProfile } from './lifeSafety'
 import { coreLayout } from './plan'
@@ -223,7 +224,8 @@ function splitByUse(served: Floor[], max: number): { cls: LiftClass; floors: Flo
 export function planRises(t: Tower, p: LiftPresets): Group[] {
   const all = towerFloors(t)
   const sky = all.filter((f) => f.skyLobby)
-  const served = all.filter((f) => !f.podium && f.z0 > 0.5 && f.use !== 'mechanical' && !f.skyLobby)
+  // no lift serves a storey above the core top (tool cycle 12): its shafts end with the core
+  const served = all.filter((f) => !f.podium && f.z0 > 0.5 && f.use !== 'mechanical' && !f.skyLobby && hasCoreAt(t, f.level))
   const max = Math.max(1, Math.round(p.maxFloorsPerRise))
   const bases: (Floor | null)[] = [null, ...sky]
   const out: Group[] = []
@@ -379,7 +381,8 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
   // Services by use (P1 node #14): each storey's own shafts and rooms, not one flat figure (off: the flat preset).
   const byUse = p.servicesByUse !== false
   const servicesAt = byUse ? new Map(servicesProfile(t, p.homeM2, undefined, all).map((r) => [r.level, r.total])) : null
-  const profile: CoreLevel[] = all.filter((f) => f.z0 > 0.5).map((f) => {
+  // storeys above the core top have no core to hold anything (tool cycle 12; their own line follows the core fit)
+  const profile: CoreLevel[] = all.filter((f) => f.z0 > 0.5 && hasCoreAt(t, f.level)).map((f) => {
     const passenger = rises.filter((r) => f.z0 >= r.baseZ - 0.01 && f.z0 <= r.topZ + 0.01).reduce((s, r) => s + r.cars, 0) * p.shaftM2
     const lobby = f.skyLobby ? 0 : rises.filter((_, i) => stops[i].has(f.level)).reduce((s, r) => s + r.cars, 0) * p.lobbyM2PerCar
     const stairs = stairsAt.core.get(f.level) ?? 0
@@ -454,6 +457,8 @@ export function liftCheck(t: Tower, p: LiftPresets = DEFAULT_LIFT_PRESETS, e: Eg
         : ` At the top floor about ${fmt(requiredTop)} m² is enough, so the core could step in plan as groups end (Structure › Lateral & sway › Core steps).`)
       + (planOverflow > 0 ? ` In plan, ${planOverflow} shaft${planOverflow > 1 ? 's do' : ' does'} not fit inside the core walls on a grid clear of the stairs (see the board floor plan).` : ''),
   })
+  // A core that ends below the top (tool cycle 12): its lifts end with it.
+  rules.push(...coreTopLiftLines(t, all))
 
   rules.push({
     id: `ntg-${t.id}`,
