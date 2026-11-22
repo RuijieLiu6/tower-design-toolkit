@@ -382,6 +382,16 @@ export function straightStairs(t: Tower, spots: StairSpot[], a: number, placemen
 
 /** Default door faces of the core stairs, in stair order: two core stairs open on opposite faces. */
 export const DEFAULT_DOOR_FACES: CoreFace[] = ['n', 's', 'e', 'w']
+/** The door face each of `n` core stairs opens on: the tower's `stairDoorFaces`, else the default for that stair. */
+export const doorFacesOf = (t: Pick<Tower, 'stairDoorFaces'>, n: number): CoreFace[] => Array.from({ length: n }, (_, k) => t.stairDoorFaces?.[k] ?? DEFAULT_DOOR_FACES[k % 4])
+/**
+ * `stairDoorFaces` with core stair `k` (of `n`) opening on `face`; the others keep the face they open on now, so one
+ * pick never moves another door. Back to the defaults it is undefined (the default faces, as before the input).
+ */
+export function withDoorFace(t: Pick<Tower, 'stairDoorFaces'>, n: number, k: number, face: CoreFace): CoreFace[] | undefined {
+  const next = doorFacesOf(t, n).map((f, i) => (i === k ? face : f))
+  return next.every((f, i) => f === DEFAULT_DOOR_FACES[i % 4]) ? undefined : next
+}
 const FACE_AT: Record<CoreFace, readonly [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] }
 
 /** The segment a–b passes through the open square |x|, |y| < h (Liang–Barsky against a square shrunk by a hair). */
@@ -548,6 +558,8 @@ export interface EgressResult {
   /** A twisted imported tower (or an edge stair placed by hand on one read storey by storey): how its edge stairs were
    *  placed as straight shafts (G31); `spots` are then every stair's centre in the tower frame. Null: the corners. */
   straightStairs: StraightStairs | null
+  /** Exit separation along the smoke path (P1 #11): the `separation-smoke` line's reading, unverified, beside `separation`. */
+  smoke: SmokePath
   rules: RuleResult[]
 }
 
@@ -675,7 +687,7 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     flag: 'unverified',
     source: { label: 'BC Building Code 2024, Division B, 3.4.2.3(3) and Note A-3.4.2.3.(1) (book notes bcbc-2024.md); VBBL 2025 to confirm', page: 'pp.3-233, 3-381' },
     specialist: 'A code-consultant reading of the smoke path (3.4.2.3(3)): confirm it before an edge stair is dropped or kept on its strength.',
-    note: `Core stair doors at mid-face of the ${smoke.core.toFixed(1)} m core${doorsGiven ? ' on the faces you set (stairDoorFaces)' : ', on opposite faces by default (set stairDoorFaces for the faces they open on)'}; edge stairs at their centres; the shorter way round the core's fire-separated walls (team geometry, rectangular core about the tower centre). Doors on adjacent faces halve it, on the same face it is about nothing. The straight-line line above stays the check of record until a code consultant accepts this reading.`,
+    note: `Core stair doors at mid-face of the ${smoke.core.toFixed(1)} m core${doorsGiven ? ' on the faces you set (Egress › Stair doors)' : ', on opposite faces by default (Egress › Stair doors sets the faces they open on)'}; edge stairs at their centres; the shorter way round the core's fire-separated walls (team geometry, rectangular core about the tower centre). Doors on adjacent faces halve it, on the same face it is about nothing. The straight-line line above stays the check of record until a code consultant accepts this reading.`,
   })
   if (straight) {
     const e1 = straight.edge.find((e) => e.how !== 'found') ?? straight.edge[0]
@@ -802,5 +814,5 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     note: `Office 9.3, personal services 4.6, mercantile 3.7 (first storey${e.retailLinked ? ', and a second storey entered from a pedestrian way' : ''}) or 5.6, dining 1.2, standing 0.4, lounges 1.85 (BCBC 2024 p.3-105), public corridor 3.7 m² per person; 2 persons per sleeping room. Team mapping: amenity, civic and tenant sky-lobby floors at ${e.amenityFactor} m² per person (the lounge row) until programmed, hotel keys as 2 persons, plant floors as 0, net area = floor less the core.`,
   })
 
-  return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, podiumExits, podiumFar: podFar ? [podFar.x, podFar.y] : null, podiumOutline, straightStairs: straight, rules }
+  return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, podiumExits, podiumFar: podFar ? [podFar.x, podFar.y] : null, podiumOutline, straightStairs: straight, smoke, rules }
 }

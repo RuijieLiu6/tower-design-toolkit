@@ -23,6 +23,7 @@ import LifeSafetyPanel from './LifeSafetyPanel'
 import { PlatePanel, SeparationPanel } from './SiteLimitsPanel'
 import SilhouettePanel from './SilhouettePanel'
 import F2fUsePanel from './F2fUsePanel'
+import EgressDoors from './EgressDoors'
 import SkyVillagesPanel from './SkyVillagesPanel'
 import SiteHeights from './site/SiteHeights'
 import RelaxAviationPanel from './RelaxAviationPanel'
@@ -463,6 +464,7 @@ export default function Inspector() {
           </Stats>
           <StairPlan t={e.tower} e={e} />
           <StairChart e={e} />
+          <EgressDoors e={e} />
           <div className="mt-3"><RuleRows rules={e.rules} /></div>
           <MethodFold>
             <p>Sized storey by storey from VBBL 2019 Part 3 (equal to VBBL 2007). The stair area feeds the core &amp; lift check, so a wider stair grows the core. Evacuation time, smoke control and stair pressurisation are not modelled (P11-M08).</p>
