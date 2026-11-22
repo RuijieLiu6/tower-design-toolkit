@@ -161,17 +161,21 @@ function parametricFloors(t: Tower): Floor[] {
   }
   // Above the podium: floors at each band's floor-to-floor (the tower's unless the band sets its own), each taking the
   // block at its mid-height; band counts by largest remainder (engine/blocks.ts bandCounts).
-  const counts = bandCounts(t, height - podiumTop)
+  // Blocks that carry no floor area (tool cycle 12: a bridge, a crown frame) hold no storeys: the bands share the rest
+  // of the height, and the storeys step over them.
+  const above = spans.slice(podium.length)
+  const bare = above.filter((s) => s.block.structureOnly && s.z1 > s.z0)
+  const counts = bandCounts(t, height - podiumTop - bare.reduce((a, s) => a + (s.z1 - s.z0), 0))
   const f2f = bandF2f(t)
   let z = podiumTop
   let level = floors.length
   let towerIndex = 0
   const sky = new Set(t.skyLobbies ?? [])
   const plantAt = new Set(t.plantLevels ?? [])
-  const above = spans.slice(podium.length)
   t.bands.forEach((b, bi) => {
     const h = f2f[bi]
     for (let k = 0; k < counts[bi]; k++) {
+      for (const s of bare) if (z >= s.z0 - 1e-6 && z < s.z1 - 1e-6) z = s.z1
       level++
       towerIndex++
       // Schematic: a sky lobby replaces the program floor at that level (counted as public amenity, team assumption);

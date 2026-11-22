@@ -1123,6 +1123,10 @@
               },
               "podium": {
                 "type": "boolean"
+              },
+              "structureOnly": {
+                "type": "boolean",
+                "description": "A block that carries no floor area (tool cycle 12: a bridge, a crown frame): a mass that is weighed, with no floors."
               }
             }
           }

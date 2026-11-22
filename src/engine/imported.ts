@@ -100,7 +100,9 @@ export function towerPatch(m: ImportedMass): Partial<Tower> {
 /** Plate-sum check (P14-M04): sum of plate area x storey height against the mesh volume (sliced part only). */
 export function plateSumCheck(m: ImportedMass): { sum: number; volume: number; error: number } | null {
   if (m.volume == null || m.volume <= 0) return null
-  const sum = m.storeys.reduce((s, x) => s + x.area * (x.z1 - x.z0), 0)
+  // structure-only parts (tool cycle 12) are out of the floor area but in the mesh: add their plan area back
+  const soArea = (x: ImportedStorey) => (x.structureOnly ?? []).reduce((a, r) => a + Math.abs(r.reduce((t, [px, py], i) => { const [qx, qy] = r[(i + 1) % r.length]; return t + px * qy - qx * py }, 0)) / 2, 0)
+  const sum = m.storeys.reduce((s, x) => s + (x.area + soArea(x)) * (x.z1 - x.z0), 0)
   return { sum, volume: m.volume, error: (sum - m.volume) / m.volume }
 }
 

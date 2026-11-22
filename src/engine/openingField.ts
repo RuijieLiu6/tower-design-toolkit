@@ -10,6 +10,7 @@
 //   occupied storey there fails, plant only is a Check (the firefighter lift reaches the top floor, BCBC 3.2.6.5).
 import { coreTopLevel, coreTopZ, floorRing, floorsAboveCore, towerFloors } from './massing'
 import { coreCentre, storeyCore } from './storeyWeight'
+import { isStructureOnlyRing } from './structureOnly'
 import type { Floor, RuleResult, RuleState, Source, Tower, UseId } from './types'
 import { USES } from './types'
 
@@ -62,12 +63,13 @@ export function coreTopText(t: Tower, floors: Floor[] = towerFloors(t)): string 
 
 /**
  * The parts of a floor's plate in the tower's own frame: its outer outlines (an imported storey's outer rings, with
- * holes left out; a parametric tower's block at mid-height). Each separate outline is a part a person must leave.
+ * holes and structure-only parts left out; a parametric tower's block at mid-height). Each separate outline is a part a
+ * person must leave.
  */
 export function floorParts(t: Tower, f: Pick<Floor, 'level' | 'z0' | 'z1'>): P[][] {
   if (t.imported) {
     const s = t.imported.storeys.find((x) => x.level === f.level)
-    const loops = ((s?.loops ?? []) as P[][]).filter((r) => r.length >= 3 && Math.abs(sArea(r)) > 1e-6)
+    const loops = ((s?.loops ?? []) as P[][]).filter((r) => r.length >= 3 && Math.abs(sArea(r)) > 1e-6 && !(s && isStructureOnlyRing(s, r)))
     // counter-clockwise rings are outer; a clockwise ring inside one is a hole, else an outer ring wound the other way
     return loops.filter((r) => sArea(r) > 0 || !loops.some((o) => o !== r && sArea(o) > 0 && inRing(r[0], o)))
   }

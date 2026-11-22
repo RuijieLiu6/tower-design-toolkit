@@ -272,6 +272,11 @@ export interface Block {
   use?: UseId
   /** Storey height of this podium block's floors (a generated podium: retail at 5 m, office at 3.9 m); absent: about 4.5 m. */
   f2f?: number
+  /**
+   * A block that carries no floor area (tool cycle 12): a bridge or a crown frame. It stays a mass (shadow, cones,
+   * silhouette, wind) and is weighed (engine/structureOnly.ts), but gives no floors, homes, keys or FSR.
+   */
+  structureOnly?: boolean
 }
 
 /** One storey of an imported mass, cut at mid-height (research P14-M04, Path A). */
@@ -279,7 +284,7 @@ export interface ImportedStorey {
   level: number
   z0: number
   z1: number
-  /** Plate area at mid-height (m²), overlaps counted once. */
+  /** Plate area at mid-height (m²), overlaps counted once, less any structure-only parts (`structureOnly`): the floor area. */
   area: number
   use: UseId
   podium: boolean
@@ -299,6 +304,12 @@ export interface ImportedStorey {
   glazedT?: (number | null)[]
   /** Id of the model element (Layer 0 interchange) that set this storey's use; absent when it follows the program bands. */
   src?: string
+  /**
+   * Outlines of the storey's parts that carry no floor area (tool cycle 12): a bridge, a crown frame, louvred plant
+   * screens declared so (tower frame, m). They are also in `loops`, so mass, silhouette, wind and weight read them; `area`
+   * and `hasFloor` leave them out. Set with engine/structureOnly.ts `withStructureOnly`.
+   */
+  structureOnly?: [number, number][][]
   /**
    * Parts of this storey given to another use (gap G14), e.g. a 378 m² unheated winter garden ('none') or an amenity
    * room on a home storey: homes, keys and offices are laid out on the storey's area less these parts, and floor area

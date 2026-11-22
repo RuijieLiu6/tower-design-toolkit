@@ -17,6 +17,7 @@
 // off-centre lines measure each storey's weight centre from its own core.
 import { blockSpans, coreSide, coreSideAt, coreStepsOf, coreTopLevel, coreTopZ, rectCorners, spanAt, towerFloors } from './massing'
 import { deckUseOf, towerDecks } from './sw/decks'
+import { structureParts } from './structureOnly'
 import type { DeckUse, Floor, Tower, UseId } from './types'
 
 type P = [number, number]
@@ -179,6 +180,8 @@ export interface StoreyWeight {
   coreX?: number
   coreY?: number
   coreSide?: number
+  /** Weight of the structure-only parts carried at this level (kN; tool cycle 12: a bridge, a crown frame), included in W. */
+  structure?: number
 }
 
 export interface CoreCentre { x: number; y: number; side: number; how: string }
@@ -436,6 +439,22 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
       { w: perimOf(n - 1) * h * p.facadeKpa, c: pl.pc },
       { w: coreKpm(n - 1) * h, c: coreC(n - 1) },
     ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', ...(u ? { deckUse: { soilMm: planted ? u.soilMm ?? p.soilMm : null } } : {}), garden: false, podium: f.podium, transitional: transitional[n - 1], onPodium: false, use: f.use, slab: slabT[n - 1], reach: reach[n - 1], dx: pl.ext[0], dy: pl.ext[1] }, n - 1)
+  }
+  // Parts that carry no floor area (tool cycle 12: a bridge, a crown frame): a hard deck of their plan area (slab, finish,
+  // the snow share, as a roof) plus their facade where no floor shares the storey, on the level at or below their storey
+  // (team assumption; the engineer weighs the real frame).
+  for (const sp of structureParts(t)) {
+    const lv = [...levels].reverse().find((l) => l.z <= sp.z0 + 0.01) ?? levels[0]
+    if (!lv) continue
+    const w = sp.area * (USE_LOADS.mechanical.slab * GAMMA_C + HARD_DECK + SNOW_W) + (sp.onFloor ? 0 : sp.perim * (sp.z1 - sp.z0) * p.facadeKpa)
+    let cx = 0, cy = 0, A = 0
+    for (let i = 0; i < sp.ring.length; i++) { const [x0, y0] = sp.ring[i], [x1, y1] = sp.ring[(i + 1) % sp.ring.length], k = x0 * y1 - x1 * y0; A += k; cx += (x0 + x1) * k; cy += (y0 + y1) * k }
+    const c: P = Math.abs(A) > 1e-9 ? [cx / (3 * A), cy / (3 * A)] : sp.ring[0]
+    const W = lv.W + w
+    lv.cx = W > 0 ? (lv.W * lv.cx + w * c[0]) / W : lv.cx
+    lv.cy = W > 0 ? (lv.W * lv.cy + w * c[1]) / W : lv.cy
+    lv.W = W
+    lv.structure = (lv.structure ?? 0) + w
   }
   const total = levels.reduce((s, l) => s + l.W, 0)
   const volume = floors.reduce((s, f) => s + f.area * Math.max(0, f.z1 - f.z0), 0)
