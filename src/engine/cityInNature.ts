@@ -4,7 +4,6 @@
 // entered by the designer until the modules that compute them (P05-M02..M08) are built.
 import { DEFAULT_WEIGHT_PRESETS } from './storeyWeight'
 import { deckUseOf, towerDecks } from './sw/decks'
-import { towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export type SiteType = 'A' | 'B' | 'C'
@@ -200,7 +199,15 @@ export interface NatureContext {
   facadeFrom?: 'settings' | 'defaults'
   /** The soil depth (mm) given to planted decks without their own (storey-weight presets); said when it is not the default. */
   soilPresetMm?: number
+  /** Planted-spandrel (greenwall) facade zones and their wall area (engine/natureSources.ts greenwallArea; node built.green-ratio). */
+  greenwalls?: GreenWalls | null
+  /** Modelled gross floor area of the towers (m²; every storey, as energyCarbon areas().mfa), for vegetated area ÷ GFA. */
+  gfa?: number | null
 }
+
+/** One greenwall zone's planted wall: face length × band height (the storey) × (1 − WWR), summed over its storeys. */
+export interface GreenWallPart { tower: string; face: string; from: number; to: number; m2: number }
+export interface GreenWalls { m2: number; parts: GreenWallPart[] }
 
 // --- One input set for the panel and the evidence hub (node built.nature-inputs, 21 Nov) --------------------------------
 // The City in Nature panel and the evidence hub used to build their inputs apart: the panel lacked the model trees, the
@@ -217,53 +224,6 @@ export function qeFromCones(cones: ConeResult[] | null): boolean | null | undefi
   if (qe.some((k) => k.state === 'within_uncertainty')) return null
   return false
 }
-
-type FaceStrip = { z0: number; z1: number; length: number; wwr: number }
-/** What City in Nature reads from the rest of the design, the same for the panel and the evidence hub. */
-export interface NatureSources {
-  project: 'vtc' | 'city'
-  towers: Tower[]
-  /** True north (degrees; lib/northView.ts trueNorthDeg). */
-  north: number
-  /** The Facade node's result for these towers (engine/facade.ts facadeCheck): its faces and the glass beside planted decks. */
-  facade: { faces: FaceStrip[]; deckFaces?: (FaceStrip & { deckZ: number })[] } | null
-  /** `facade` was built from the Facade node's own settings (true) or its defaults (false, said in the bird-zone line). */
-  facadeFromSettings: boolean
-  /** The Facade node's own treated share (0–1), when entered there; the ledger's own figure wins. */
-  facadeTreated?: number | null
-  /** Real Vancouver: the view-cone results. Absent on Real Vancouver: the views line says they were not read. */
-  cones?: ConeResult[] | null
-  /** Soil depth (mm) for planted decks without their own: the storey-weight presets' (default 600 mm). */
-  soilMm?: number
-}
-
-/** The arguments cityInNature takes, from one set of sources. Model trees and planting at grade come from the input. */
-export function natureArgs(input: NatureInput, s: NatureSources): { coneOverall: string[] | null; ctx: NatureContext } {
-  const city = s.project === 'city'
-  const soilMm = s.soilMm ?? DEFAULT_WEIGHT_PRESETS.soilMm
-  return {
-    coneOverall: city && s.cones ? s.cones.map((c) => c.overall) : null,
-    ctx: {
-      project: s.project,
-      fourthStoreyTop: fourthStoreyTop(s.towers.map(towerFloors)),
-      faces: s.facade?.faces ?? null, deckFaces: s.facade?.deckFaces ?? null,
-      facadeFrom: s.facade ? (s.facadeFromSettings ? 'settings' : 'defaults') : undefined,
-      facadeTreated: s.facadeTreated ?? null,
-      qeFromCones: city ? qeFromCones(s.cones ?? null) : undefined,
-      plantedSoil: plantedSoil(s.towers, s.north, soilMm),
-      soilPresetMm: soilMm,
-      groundPorous: input.groundPorous ?? null,
-      groundPlantedM2: input.groundPlantedM2 ?? null,
-    },
-  }
-}
-
-/** City in Nature for a design from one set of sources (the panel and the evidence hub both call this). */
-export function cityInNatureFrom(input: NatureInput, siteArea: number | null, s: NatureSources): NatureResult {
-  const a = natureArgs(input, s)
-  return cityInNature(input, siteArea, a.coneOverall, a.ctx)
-}
-
 
 export interface NatureRow {
   id: string
@@ -340,9 +300,12 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
   const plantedDecks = ctx.plantedSoil ?? []
   const deckPlanted = plantedDecks.reduce((s, d) => s + d.area, 0)
   const groundPlanted = ctx.groundPlantedM2 != null && Number.isFinite(ctx.groundPlantedM2) && ctx.groundPlantedM2 > 0 ? ctx.groundPlantedM2 : 0
-  const coverRead = reading(input.vegetatedM2, deckPlanted + groundPlanted > 0 ? deckPlanted + groundPlanted : null)
+  // Planted walls (greenwall facade zones, node built.green-ratio) join the modelled cover beside decks and grade.
+  const wallPlanted = ctx.greenwalls?.m2 ?? 0
+  const modelledVeg = deckPlanted + groundPlanted + wallPlanted
+  const coverRead = reading(input.vegetatedM2, modelledVeg > 0 ? modelledVeg : null)
   const cover = share(coverRead ? coverRead.used : input.vegetatedM2)
-  const coverNote = !coverRead ? '' : ` Modelled cover: ${plantedDecks.length ? `the planted decks of the deck-use input, ${plantedDecks.map((d) => `${d.tower} L${d.level} ${m2s(d.area)}`).join(', ')} (whole deck area taken as planted)` : 'no planted deck declared'}${groundPlanted ? ` + ${m2s(groundPlanted)} of planting at grade, typed` : ''}.`
+  const coverNote = !coverRead ? '' : ` Modelled cover: ${plantedDecks.length ? `the planted decks of the deck-use input, ${plantedDecks.map((d) => `${d.tower} L${d.level} ${m2s(d.area)}`).join(', ')} (whole deck area taken as planted)` : 'no planted deck declared'}${groundPlanted ? ` + ${m2s(groundPlanted)} of planting at grade, typed` : ''}${wallPlanted ? ` + ${m2s(wallPlanted)} of planted wall (greenwall facade zones: face length × storey height × (1 − WWR)); counting wall area in a share of site is the team’s reading, R019 may mean plan area only (unverified)` : ''}.`
   rows.push({
     id: 'cover', name: 'Vegetative cover at maturity, share of site', half: 'space', direction: '4.2',
     value: coverRead ? `${lead(cover)}: ${coverRead.tail}` : cover === null ? (siteArea ? 'not entered' : 'needs a site area') : pct(cover),
@@ -351,6 +314,33 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
     state: coverRead?.differs ? 'warn' : coverLine && cover !== null ? judge(cover >= coverLine, 'team_assumption') : 'unknown',
     force: 'team_assumption', flag: coverLine ? 'team_assumption' : 'unresolved', source: { ...S.r019, page: 'cover A 30%, B 40%' },
     note: `Using R019 cover figures as a pass line is the team’s reading.${coverNote}`,
+  })
+
+  // Vegetated area against site and floor area (node built.green-ratio, NODE_LIST #5): decks, walls and grade added up,
+  // with the split. No threshold: Ecocity in the Sky (the book that would set one) is not read yet; Placemaking's tropical
+  // precedents (Al-Kodmany pp.151–161) are shown as analogues only. Always unknown and flagged unresolved.
+  const vegTotal = modelledVeg
+  const split = vegTotal > 0 ? `decks ${Math.round((deckPlanted / vegTotal) * 100)}%, walls ${Math.round((wallPlanted / vegTotal) * 100)}%, grade ${Math.round((groundPlanted / vegTotal) * 100)}%` : ''
+  const ratio = (v: number) => (v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toFixed(2))
+  const wallsNote = ctx.greenwalls?.parts.length ? ` Planted walls: ${ctx.greenwalls.parts.map((w) => `${w.tower} ${w.face} L${w.from}–${w.to >= 999 ? 'top' : w.to} ${m2s(w.m2)}`).join(', ')}.` : ''
+  const vegHow = `Vegetated area = planted decks (deck-use input, whole deck) ${m2s(deckPlanted)} + planted walls (greenwall facade zones: face length × storey height × (1 − WWR)) ${m2s(wallPlanted)} + planting at grade (typed) ${m2s(groundPlanted)}.${wallsNote} The typed vegetated area is not used here.`
+  const vegEmpty = 'no vegetated area modelled: declare planted decks, greenwall facade zones or planting at grade'
+  const ECO_PENDING = 'no threshold: awaits Ecocity in the Sky (not read); Placemaking pp.151–161 tropical precedents as analogues only (more than 2× site, p.156; green plot ratio 1,100%, p.161)'
+  const PM = { label: 'Al-Kodmany, Placemaking with Tall Buildings (Routledge 2026), Ch.7, analogues only', page: 'pp.151–161' }
+  rows.push({
+    id: 'green-site', name: 'Vegetated area ÷ site (decks, walls, grade)', half: 'space', direction: '4.2',
+    value: vegTotal <= 0 ? vegEmpty : !siteArea ? `${m2s(vegTotal)} (${split}); needs a site area` : `${ratio(vegTotal / siteArea)} × site, ${m2s(vegTotal)} (${split})`,
+    entered: vegTotal > 0 ? false : null, threshold: ECO_PENDING, state: 'unknown',
+    force: 'team_assumption', flag: 'unresolved', source: PM,
+    note: `${vegHow} A reading, not a rule: no Vancouver rule sets this ratio, and the precedents are tropical towers.`,
+  })
+  const gfa = ctx.gfa ?? null
+  rows.push({
+    id: 'green-gfa', name: 'Vegetated area ÷ GFA (decks, walls, grade)', half: 'space', direction: '4.2',
+    value: vegTotal <= 0 ? vegEmpty : !gfa ? `${m2s(vegTotal)} (${split}); needs the storeys from the design` : `${ratio(vegTotal / gfa)} × GFA, ${m2s(vegTotal)} of ${m2s(gfa)} (${split})`,
+    entered: vegTotal > 0 ? false : null, threshold: ECO_PENDING, state: 'unknown',
+    force: 'team_assumption', flag: 'unresolved', source: PM,
+    note: `${vegHow} GFA is the modelled floor area of every storey (as the energy node counts it).`,
   })
 
   rows.push({

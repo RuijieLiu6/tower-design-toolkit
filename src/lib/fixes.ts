@@ -219,6 +219,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^mob-transit$/, 'Turn on the transit link to the station (Program step › Ground & public realm).'],
   [/^rain-(detention|first-stage)$/, 'Answer the rainwater pathway under Details: the volume shown is what an engineered pathway must store.'],
   [/^bird-zone$/, 'Enter the treated share of glass in the bird zone (Facade node) and the mature tree height, if trees are planned.'],
+  // Vegetated area ÷ site and ÷ GFA (node built.green-ratio): a reading with no threshold yet; this says how to give it area.
+  [/^green-(site|gfa)$/, 'Model the planting so the ratio reads: mark decks planted (Tower › deck use), set greenwall facade zones (Sun & Wind › Façade zones) and type the planting at grade (Green claims check › cover). No threshold until Ecocity in the Sky is read.'],
   [/^eds-criteria$/, 'Answer the three criteria in writing under Details: the Lions views, the open space and canopy strategy, the UNDRIP strategy.'],
   // Skyline silhouette (a design reading: never a fail)
   [/^sil-legible$/, 'Give the outline one move the city can read, on most sides: a step of the size the rule names on two or more faces, a block that slides, a taper or a twist (Massing blocks, or Tower form in the Typology tab, Form step).'],

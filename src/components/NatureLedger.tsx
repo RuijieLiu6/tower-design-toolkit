@@ -1,7 +1,8 @@
 // City in Nature evidence ledger (research P05-M01): indicators with value, threshold, force, flag and source, values
 // entered here until the modules that compute them are built. No composite score, by design.
 import { useMemo, type ReactNode } from 'react'
-import { DIRECTIONS, FORCE_LABEL, cityInNatureFrom, isBinding, type ConeResult, type Direction, type Force, type NatureInput, type NatureRow, type SiteType } from '../engine/cityInNature'
+import { cityInNatureFrom } from '../engine/natureSources'
+import { DIRECTIONS, FORCE_LABEL, isBinding, type ConeResult, type Direction, type Force, type NatureInput, type NatureRow, type SiteType } from '../engine/cityInNature'
 import { DEFAULT_WEIGHT_PRESETS } from '../engine/storeyWeight'
 import { useFacade } from '../hooks/useFacade'
 import { siteAreaNote, useProjectSiteArea } from '../lib/siteArea'
@@ -115,6 +116,8 @@ export default function NatureLedger({ cones }: { cones: ConeResult[] | null }) 
         <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
           <Row r={row('canopy')}><NumberInput label="Mature canopy" value={input.canopyM2} unit="m²" onChange={(v) => set({ canopyM2: v })} /></Row>
           <Row r={row('cover')}><NumberInput label="Vegetated area" value={input.vegetatedM2} unit="m²" onChange={(v) => set({ vegetatedM2: v })} /><NumberInput label="Planting at grade" value={input.groundPlantedM2 ?? null} unit="m²" onChange={(v) => set({ groundPlantedM2: v })} /></Row>
+          <Row r={row('green-site')} />
+          <Row r={row('green-gfa')} />
           <Row r={row('habitat')}><YesNo label="Planned?" value={input.habitatAssessment} onChange={(v) => set({ habitatAssessment: v })} /></Row>
           <Row r={row('rain-pathway')}><YesNo label="Planned?" value={input.engineeredRainwater} onChange={(v) => set({ engineeredRainwater: v })} /></Row>
           <Row r={row('retention')}><NumberInput label="Retained per day" value={input.retainedM3} unit="m³" onChange={(v) => set({ retainedM3: v })} /></Row>

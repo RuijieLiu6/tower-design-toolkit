@@ -4,7 +4,8 @@
 // The engagement-and-claims guard and the AI-use log run when a culture input is given (gap G15): the app passes the
 // browser's ledger (lib/cultureStore.ts), the design harness passes a design's records and board text.
 import { VTC_NORTH_DEG } from '../../context'
-import { cityInNatureFrom, type ConeResult } from '../../engine/cityInNature'
+import type { ConeResult } from '../../engine/cityInNature'
+import { cityInNatureFrom } from '../../engine/natureSources'
 import { claimsLines, type Nation, type NationRecord } from '../../engine/culture'
 import { DEFAULT_ECON } from '../../engine/economics'
 import { egressCheck, type EgressPresets } from '../../engine/egress'
