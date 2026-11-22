@@ -45,6 +45,21 @@ export interface NodeDef {
   projects?: ('vtc' | 'city')[]
   /** Built but off until the user switches it on (e.g. heavier runs or a map that covers the ground). */
   defaultOff?: boolean
+  /**
+   * How far the method can be trusted (node contract, 21 Nov): A = a deterministic code or geometry check with a read
+   * source; B = a sourced empirical rule of thumb (analogue or industry); C = an early-stage proxy that degrades on
+   * complex geometry.
+   */
+  confidence?: NodeConfidence
+  /** One plain sentence: when the method stops being reliable (e.g. twisted or porous forms, a non-Canadian code basis). */
+  boundary?: string
+}
+
+export type NodeConfidence = 'A' | 'B' | 'C'
+export const CONFIDENCE_LABEL: Record<NodeConfidence, string> = {
+  A: 'A · code or geometry check with a read source',
+  B: 'B · sourced rule of thumb (analogue or industry)',
+  C: 'C · early-stage proxy; weaker on complex geometry',
 }
 
 /** Every built node, the parts of merged tools included (see MERGES below). */

@@ -341,4 +341,9 @@ export interface RuleResult {
   flag: Flag
   source: Source
   note?: string
+  /**
+   * The design lies outside the method's boundary (free form, twist, height beyond the source's range): a visible
+   * "needs specialist" marker beside the state, saying why. Never a replacement for the state.
+   */
+  specialist?: string
 }

@@ -24,6 +24,11 @@ export function FlagChip({ flag }: { flag: Flag | string }) {
   return <span title={m.title} className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-meta font-medium leading-none ${m.className}`}><Icon size={11} />{m.label}</span>
 }
 
+/** The node contract's marker: the design lies outside this method's boundary, so a specialist must confirm the line. */
+export function SpecialistChip({ why }: { why: string }) {
+  return <span title={why} data-testid="specialist-chip" className="inline-flex items-center gap-1 rounded border border-amber-600 px-1.5 py-0.5 text-meta font-medium leading-none text-amber-800">Needs specialist</span>
+}
+
 /**
  * An assessment result as a chip: its circle symbol and short word in the status colour (design system, 7 Nov;
  * components/ResultState.tsx). `value` lets an open line say what it waits for ("Needs model", "Needs input").

@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 import { FLAG_ICONS } from '../data/icons'
 import type { Flag, RuleResult, RuleState, Source } from '../engine/types'
 import { CardChip } from './RuleCardView'
-import { FLAG_META, FlagChip, StateChip } from './ui'
+import { FLAG_META, FlagChip, SpecialistChip, StateChip } from './ui'
 import { keepUnits, useUnitText } from './Units'
 
 export const STATE_COL: Record<RuleState, string> = { pass: '#2f855a', warn: '#c27c0e', fail: '#c53030', unknown: '#64748b' }
@@ -144,7 +144,7 @@ export function SourceLink({ source, className = 'text-meta text-muted' }: { sou
   return source.url ? <a href={source.url} target="_blank" rel="noreferrer" className={`${className} break-words hover:text-accent`}>{text}</a> : <span className={`${className} break-words`}>{text}</span>
 }
 
-export interface EvidenceItem { id: string; label: string; flag: Flag | string; source?: Source; threshold?: string; note?: string; value?: string; extra?: ReactNode; card?: boolean }
+export interface EvidenceItem { id: string; label: string; flag: Flag | string; source?: Source; threshold?: string; note?: string; value?: string; extra?: ReactNode; card?: boolean; specialist?: string }
 
 /** The flag, source, threshold and note behind each row, one fold for the whole list. Nothing is dropped from the cards. */
 export function Evidence({ items, title = 'Evidence' }: { items: EvidenceItem[]; title?: string }) {
@@ -155,7 +155,7 @@ export function Evidence({ items, title = 'Evidence' }: { items: EvidenceItem[];
       <ul className="grid min-w-0 gap-2">
         {items.map((r) => (
           <li key={r.id} className="grid min-w-0 gap-0.5" data-evidence={r.id}>
-            <div className="flex min-w-0 flex-wrap items-center gap-1"><b className="min-w-0 break-words text-ink">{r.label}</b><FlagChip flag={r.flag} />{r.extra}{r.card !== false && <CardChip ruleId={r.id} />}</div>
+            <div className="flex min-w-0 flex-wrap items-center gap-1"><b className="min-w-0 break-words text-ink">{r.label}</b><FlagChip flag={r.flag} />{r.specialist && <SpecialistChip why={r.specialist} />}{r.extra}{r.card !== false && <CardChip ruleId={r.id} />}</div>
             {r.value && <div className="break-words text-ink">{keepUnits(u(r.value))}</div>}
             {r.threshold && <div className="break-words text-muted">Needs {keepUnits(u(r.threshold))}</div>}
             {r.note && <div className="break-words text-slate-600">{keepUnits(u(r.note))}</div>}
@@ -175,7 +175,7 @@ export function RuleRows({ rules, evidence = true, title }: { rules: RuleResult[
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5" data-testid="rule-rows">
       <KeyList keys={shown.map(ruleKey)} />
-      {evidence && <Evidence title={title} items={rules.map((r) => ({ id: r.id, label: r.label, flag: r.flag, source: r.source, threshold: r.threshold, note: r.note, value: r.value.length > 14 ? r.value : undefined }))} />}
+      {evidence && <Evidence title={title} items={rules.map((r) => ({ id: r.id, label: r.label, flag: r.flag, source: r.source, threshold: r.threshold, note: r.note, value: r.value.length > 14 ? r.value : undefined, specialist: r.specialist }))} />}
     </div>
   )
 }
