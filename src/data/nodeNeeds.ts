@@ -9,6 +9,7 @@ export const NODE_NEEDS: Record<string, NodeNeeds> = {
   'built.vtc-rules': { reads: ['each tower’s height, floors and uses', 'the competition block'], asks: ['the FSR tier you claim', 'whether the below-grade transit link is designed'] },
   'built.fsr': { reads: ['every floor’s area and use', 'the site area (the block, or the study site’s parcels)'], asks: [] },
   'built.viewcones': { reads: ['each tower’s outline and top height', 'the ground elevation', 'the City view cones'], asks: ['a Real Vancouver tower position'] },
+  'built.hbp': { reads: ['each tower’s footprint and top', 'the study site’s streets (Real Vancouver)', 'the sky room’s community benefit (2.1(g))'], asks: ['a site-specific ceiling, if the City has set one'] },
   'built.relax-aviation': { reads: ['the towers’ heights and positions', 'the view cones'], asks: ['which relaxation routes to switch on per cone'] },
   'built.sun': { reads: ['the towers’ massing', 'true north'], asks: ['the date and hour (Sun & time)'] },
   'built.solar-access': { reads: ['the towers’ massing', 'the protected parks and school sites', 'the City buildings with LiDAR heights'], asks: ['a reading for spaces the guidelines leave open (competition site)'] },

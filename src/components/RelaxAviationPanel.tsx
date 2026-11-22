@@ -1,6 +1,6 @@
 // Results for "Relaxations & aviation" (C01-M06): the "Relaxations" mask switch and routes, the relaxation lines and the
 // aviation checklist for each tower, and the corrected assumptions. Screening only; never a permit or aeronautical
-// determination.
+// determination. The Higher Buildings area and ceiling are their own node since 21 Nov (HbpPanel.tsx): a link here.
 import { useMemo } from 'react'
 import { NOT_A_DETERMINATION, RELAXATIONS, RELAX_AVIATION_FALSE_ASSUMPTIONS, aviationChecklist, relaxationChecklist, type Instrument } from '../engine/relaxAviation'
 import type { RuleResult, Tower } from '../engine/types'
@@ -9,12 +9,11 @@ import { CITY_ORIGIN, useStore, useTowers } from '../store'
 import { ROUTE_STYLE } from './RelaxationMasks'
 import { FalseAssumptions } from './WindStructurePanel'
 import { NumberField, Section, Toggle } from './ui'
+import { ChevronRight } from './icons'
 import { Caveat, MethodFold, RuleRows } from './ResultViz'
 import { useProjectSiteArea } from '../lib/siteArea'
-import { useSiteStreets } from '../lib/siteStreets'
-import { hbpChecklist } from '../engine/hbpArea'
 
-export interface RelaxAviationResult { tower: Tower; hbp: RuleResult[]; relax: RuleResult[]; aviation: RuleResult[]; rules: RuleResult[] }
+export interface RelaxAviationResult { tower: Tower; relax: RuleResult[]; aviation: RuleResult[]; rules: RuleResult[] }
 
 export function useRelaxAviation(): RelaxAviationResult[] {
   const towers = useTowers()
@@ -22,27 +21,23 @@ export function useRelaxAviation(): RelaxAviationResult[] {
   const ground = useStore((s) => s.groundElevation)
   const on = useRelax((s) => s.on)
   const typed = useRelax((s) => s.siteArea)
-  const ceilingFt = useRelax((s) => s.hbpCeilingFt)
   const study = useProjectSiteArea()
-  const streetsResult = useSiteStreets().result
-  const streets = useMemo(() => (streetsResult ? streetsResult.streets.map((s) => s.name) : null), [streetsResult])
   // A typed area wins; otherwise the study site's (lib/siteArea.ts), named in the note.
   const siteArea = typed ?? study.area
   const areaSource = typed !== null ? 'typed in the Relaxations panel (team assumption)' : study.area !== null ? `${study.basis === 'parcels' ? 'the joined City parcels' : 'the study site boundary'}: ${study.source}` : undefined
   return useMemo(() => towers.map((t) => {
     const city = project === 'city'
-    // Higher Buildings area and ceiling (book node #1): both projects; the competition site reads as an assumed site.
-    const hbp = hbpChecklist(t, city ? 'city' : 'vtc', CITY_ORIGIN, { routeOn: on.includes('hbp'), ceilingFt, streets: city ? streets : null })
     const relax = city ? relaxationChecklist(t, on, ground, siteArea, CITY_ORIGIN, areaSource) : []
     const aviation = aviationChecklist(t, city ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)
-    return { tower: t, hbp, relax, aviation, rules: [...hbp, ...relax, ...aviation] }
-  }), [towers, project, ground, on, siteArea, areaSource, ceilingFt, streets])
+    return { tower: t, relax, aviation, rules: [...relax, ...aviation] }
+  }), [towers, project, ground, on, siteArea, areaSource])
 }
 
 export default function RelaxAviationPanel() {
   const results = useRelaxAviation()
   const project = useStore((s) => s.project)
-  const { show, on, siteArea, hbpCeilingFt } = useRelax()
+  const { show, on, siteArea } = useRelax()
+  const openHbp = () => { const s = useStore.getState(); if (!s.enabled['built.hbp']) s.toggleNode('built.hbp'); s.selectNode('built.hbp') }
   const study = useProjectSiteArea()
   return (
     <>
@@ -72,14 +67,13 @@ export default function RelaxAviationPanel() {
             <MethodFold title="Why"><p>The competition site is hypothetical, so no view cone is modelled on it. Its 11,468 m² block is over the 8,000 m² Exceptional Downtown Site size (team reading, research C01); the views A, E, 9.x and J1 would still bind. Switch to Real Vancouver to see the masks.</p></MethodFold>
           </>
         )}
-        <div className="mt-2">
-          <NumberField label="Site-specific Higher Buildings ceiling" unit="ft" value={hbpCeilingFt ?? 0} min={0} step={5} onChange={(v) => useRelax.setState({ hbpCeilingFt: v > 0 ? v : null })}
-            hint={project === 'city' ? '0 = the Figure 1 area’s ceiling (unverified read)' : '0 = the CBD’s 600 ft (assumed site)'} />
-        </div>
+        <button type="button" onClick={openHbp} data-testid="relax-open-hbp" title="Whether the site lies in a Higher Buildings area, its ceiling and the 700 ft streets: their own node"
+          className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-panel px-2 py-1.5 text-left text-meta text-ink outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-accent">
+          <span>Higher Buildings area and ceiling</span><span className="flex items-center gap-0.5 text-muted">Higher Buildings Policy<ChevronRight size={14} aria-hidden /></span>
+        </button>
       </Section>
       {results.map((r) => (
         <Section key={r.tower.id} title={`Results: ${r.tower.name}`}>
-          {r.hbp.length > 0 && <><h4 className="mb-1 text-meta font-semibold text-slate-700">Higher Buildings area</h4><div className="mb-3"><RuleRows rules={r.hbp} /></div></>}
           {r.relax.length > 0 && <><h4 className="mb-1 text-meta font-semibold text-slate-700">View relaxations</h4><div className="mb-3"><RuleRows rules={r.relax} /></div></>}
           <h4 className="mb-1 text-meta font-semibold text-slate-700">Aviation obligations</h4>
           <RuleRows rules={r.aviation} />

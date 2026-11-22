@@ -3,7 +3,7 @@
 // the cover's first-screen bundle does not pull in the app.
 /** The key word under each check's icon: one or two words, taken from its name where possible (voice control). */
 export const NODE_WORDS: Record<string, string> = {
-  'built.vtc-rules': 'Hard rules', 'built.fsr': 'FSR', 'built.viewcones': 'Site limits', 'built.separation': 'Separation', 'built.floorplate': 'Plate', 'built.relax-aviation': 'Aviation',
+  'built.vtc-rules': 'Hard rules', 'built.fsr': 'FSR', 'built.viewcones': 'Site limits', 'built.separation': 'Separation', 'built.floorplate': 'Plate', 'built.relax-aviation': 'Aviation', 'built.hbp': 'HB Policy',
   'built.sun': 'Shadow', 'built.core-lifts': 'Core', 'built.egress': 'Egress', 'built.life-safety': 'Life safety',
   'built.sky-room': 'Sky room', 'built.economics': 'Value', 'built.culture-claims': 'Claims', 'built.model': 'Model',
   'built.provenance': 'AI-use log', 'built.mobility': 'Mobility', 'built.facade': 'Facade', 'built.interior': 'Interior',

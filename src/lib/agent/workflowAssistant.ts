@@ -47,7 +47,8 @@ const ALIASES: Record<string, string[]> = {
   'built.vtc-rules': ['hard rules', 'competition rules', 'vtc rules', 'height band', 'brief rules'],
   'built.fsr': ['fsr', 'floor area', 'floor space ratio', 'density', 'gfa', 'program area', 'mixed-use', 'mixed use', 'program mix'],
   'built.viewcones': ['view cone', 'view cones', 'viewcone', 'protected view', 'protected views', 'height limit', 'height limits'],
-  'built.relax-aviation': ['relaxation', 'relaxations', 'aviation', 'airport', 'higher buildings policy', 'exceptional site'],
+  'built.relax-aviation': ['relaxation', 'relaxations', 'aviation', 'airport', 'exceptional site'],
+  'built.hbp': ['higher buildings policy', 'higher buildings area', 'higher buildings', 'height ceiling', 'policy ceiling', 'community benefit', 'hbp'],
   'built.sun': ['shadow', 'shadows', 'sun and shadow', 'sun preview'],
   'built.solar-access': ['solar access', 'sun hours', 'shadow on parks', 'new shadow', 'sunlight on parks', 'park', 'parks'],
   'built.core-lifts': ['lift', 'lifts', 'elevator', 'elevators', 'vertical transport', 'core size'],
@@ -108,7 +109,7 @@ const PHASE_WORDS: Record<PhaseId, string[]> = {
   present: ['present', 'presentation', 'boards', 'board'],
 }
 /** The checks against rules and targets, for "the (relevant) checks / constraints". */
-const CHECKS = ['built.vtc-rules', 'built.viewcones', 'built.relax-aviation', 'built.solar-access', 'built.core-lifts', 'built.egress', 'built.life-safety', 'built.sky-room', 'built.mobility',
+const CHECKS = ['built.vtc-rules', 'built.viewcones', 'built.relax-aviation', 'built.hbp', 'built.solar-access', 'built.core-lifts', 'built.egress', 'built.life-safety', 'built.sky-room', 'built.mobility',
   'built.facade', 'built.daylight-depth', 'built.sw-daylight', 'built.sw-natvent', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.city-in-nature', 'built.wind-procedure', 'built.structure', 'built.wind-study', 'built.wind-screen', 'built.energy-carbon', 'built.sw-energy']
 const CHECK_WORDS = ['constraint checks', 'constraints', 'checks', 'rule checks', 'rules', 'compliance', 'limits', 'evaluations', 'analysis']
 

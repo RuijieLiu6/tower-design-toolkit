@@ -71,6 +71,8 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
   // Relaxations & aviation: a tower under a flight path.
   'built.relax-aviation': (c) => <>{plate(c)}{tower(c, 11, 6, 6, 4, 4)}
     <path d="M30 9.5 l11-4.2 1.4 1.4-6.6 4.1 1.2 5.4-1.6.8-2.8-4.9-4.5 1.5-1-1.1z" fill={A(c, 2)} />{line([28, 14], [34, 11.6], A(c, 1), 1, '1.5 1.8')}</>,
+  // Higher Buildings Policy: a tower inside the policy area, the area's ceiling dashed above it.
+  'built.hbp': (c) => <>{plate(c)}{tower(c, 11, 6, 6, 4, 4)}{line([20, 5], [42, 5], A(c, 2), 1.4, '2 1.6')}</>,
   // Sun & shadow preview: the sun, and the tower's shadow on the ground.
   'built.sun': (c) => <>{plate(c)}{flat('rgb(58 66 80 / 0.28)', 0.95, [5.5, 10.5], [10.5, 10.5], [13, 16], [8, 16])}{tower(c, 10)}
     <circle cx={38} cy={9.5} r={4.6} fill={A(c, 1)} /><circle cx={38} cy={9.5} r={2.6} fill={A(c, 0)} /></>,

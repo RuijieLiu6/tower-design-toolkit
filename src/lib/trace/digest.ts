@@ -13,7 +13,7 @@ export interface Digest { lines: ResultLine[]; metrics: Record<string, number> }
 const STATES: RuleState[] = ['pass', 'warn', 'fail', 'unknown']
 const GROUP: Record<string, string> = {
   rules: 'VTC rules', lifts: 'Core & lifts', egress: 'Egress & stairs', skyRooms: 'Sky room', streetwall: 'Streetwall',
-  frontage: 'Frontage', groundPlane: 'Open space & links', cones: 'View cones', fsr: 'FSR', nature: 'City in Nature', wind: 'Wind procedure', structure: 'Structure', windStudy: 'Pedestrian wind', lifeSafety: 'Code & life safety', relaxAviation: 'Relaxations & aviation',
+  frontage: 'Frontage', groundPlane: 'Open space & links', cones: 'View cones', fsr: 'FSR', nature: 'City in Nature', wind: 'Wind procedure', structure: 'Structure', windStudy: 'Pedestrian wind', lifeSafety: 'Code & life safety', relaxAviation: 'Relaxations & aviation', hbp: 'Higher Buildings Policy',
   separation: 'Tower separation', plate: 'Tower floor plate', silhouette: 'Skyline silhouette',
 }
 /** View-cone outcomes as rule states: above the estimate fails, no estimate or within uncertainty needs a check. */

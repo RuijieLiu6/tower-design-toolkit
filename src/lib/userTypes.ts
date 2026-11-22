@@ -131,7 +131,7 @@ export const USER_TYPES: UserType[] = [
         id: 'practitioner.rezoning', type: 'practitioner', name: 'Rezoning feasibility',
         goal: 'Height limits, view cones and their relaxations, density and the land value, before the first meeting.',
         project: 'city', step: 'site',
-        nodes: ['built.heights', 'built.viewcones', 'built.relax-aviation', 'built.vista', 'built.fsr', 'built.economics', 'built.solar-access', 'built.f2f-use', 'built.pr-frontage'],
+        nodes: ['built.heights', 'built.viewcones', 'built.relax-aviation', 'built.hbp', 'built.vista', 'built.fsr', 'built.economics', 'built.solar-access', 'built.f2f-use', 'built.pr-frontage'],
         says: ['rezoning enquiry', 'feasibility and pro forma', 'how tall and how much floor area', 'Higher Buildings Policy site'],
       },
       {
@@ -165,7 +165,7 @@ export const USER_TYPES: UserType[] = [
         id: 'planner.views', type: 'planner', name: 'Views and the Higher Buildings Policy',
         goal: 'Which protected views the proposal enters, how far, and which relaxation routes could apply.',
         project: 'city', step: 'site',
-        nodes: ['built.viewcones', 'built.relax-aviation', 'built.vista', 'built.view-from', 'built.heights', 'built.solar-access', 'built.city-in-nature', 'built.wind-procedure'],
+        nodes: ['built.viewcones', 'built.relax-aviation', 'built.hbp', 'built.vista', 'built.view-from', 'built.heights', 'built.solar-access', 'built.city-in-nature', 'built.wind-procedure'],
         says: ['protected view cones', 'Higher Buildings Policy', 'height review', 'skyline and mountain views'],
       },
       {
@@ -182,7 +182,7 @@ export const USER_TYPES: UserType[] = [
         goal: 'Floor area and value, homes and keys per floor, trips and the station entrance, parking and loading.',
         project: 'city', step: 'program',
         // 21 Nov (P1 #2): the HBP 2.1(g) community benefit, with the sky room.
-        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior', 'built.f2f-use', 'built.sky-room', 'built.sky-villages'],
+        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior', 'built.f2f-use', 'built.sky-room', 'built.hbp', 'built.sky-villages'],
         says: ['density and FSR', 'transit and trips', 'parking and loading', 'community benefits'],
       },
     ],
@@ -247,7 +247,7 @@ export const USER_TYPES: UserType[] = [
         id: 'developer.feasibility', type: 'developer', name: 'Does a tower pay on this site',
         goal: 'A real Vancouver site: the land residual against the land price, density, the cost of height and the office stack beside it.',
         project: 'city', step: 'site',
-        nodes: ['built.economics', 'built.fsr', 'built.f2f-use', 'built.wind-procedure', 'built.viewcones', 'built.relax-aviation'],
+        nodes: ['built.economics', 'built.fsr', 'built.f2f-use', 'built.wind-procedure', 'built.viewcones', 'built.relax-aviation', 'built.hbp'],
         says: ['pro forma and land residual', 'does it pencil out', 'land value and density on a real site', 'feasibility before buying a site'],
       },
       {
@@ -261,7 +261,7 @@ export const USER_TYPES: UserType[] = [
         id: 'developer.height', type: 'developer', name: 'Height, slenderness and cost',
         goal: 'How tall and slender before cost and sales risk climb: KPF’s higher-risk band (800 ft and 8:1) and its cost band against height, beside the residual.',
         project: 'vtc', step: 'volume',
-        nodes: ['built.wind-procedure', 'built.economics', 'built.f2f-use', 'built.fsr', 'built.vtc-rules'],
+        nodes: ['built.wind-procedure', 'built.economics', 'built.f2f-use', 'built.fsr', 'built.vtc-rules', 'built.hbp'],
         says: ['how tall is worth building', 'slender tower, damper and cost', 'cost of height', 'supertall risk and sales'],
       },
     ],

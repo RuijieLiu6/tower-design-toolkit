@@ -152,8 +152,9 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),
     'built.f2f-use': towers.map((t) => f2fUse(t, towerFloors(t)).rules),
     'built.sky-villages': towers.map((t) => skyVillages(t, towerFloors(t), { north, homeM2: i.liftPresets.homeM2 }).rules),
-    // Higher Buildings area and ceiling (book node #1): both projects; the competition site reads as an assumed site.
-    'built.relax-aviation': towers.map((t) => [...hbpChecklist(t, i.project, CITY_ORIGIN, { routeOn: false, ceilingFt: null, streets: i.cityStreets?.streets.map((s) => s.name) ?? null }),
+    // Higher Buildings area and ceiling (book node #1; its own node since 21 Nov): both projects, the competition site an assumed site.
+    'built.hbp': towers.map((t) => hbpChecklist(t, i.project, CITY_ORIGIN, { routeOn: false, ceilingFt: null, streets: i.cityStreets?.streets.map((s) => s.name) ?? null })),
+    'built.relax-aviation': towers.map((t) => [
       ...(i.project === 'city' ? relaxationChecklist(t, [], 15, i.studyArea ?? null, CITY_ORIGIN) : []), ...aviationChecklist(t, i.project === 'city' ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)]),
     ...(i.culture ? { 'built.culture-claims': claimsLines(i.culture.claimsText, i.culture.records, i.culture.motifReader), 'built.provenance': provenanceLines(i.culture.prov ?? []) } : {}),
   }

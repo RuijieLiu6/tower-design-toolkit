@@ -267,7 +267,7 @@ export const cardsFor = (resultId: string) => RULE_CARDS.filter((c) => cardMatch
 export const NODE_GROUPS: Record<string, string[]> = {
   'built.vtc-rules': ['rules'], 'built.core-lifts': ['lifts'], 'built.egress': ['egress'], 'built.sky-room': ['skyRooms'],
   'built.pr-streetwall': ['streetwall'], 'built.pr-frontage': ['frontage'], 'built.pr-ground': ['groundPlane'], 'built.viewcones': ['cones'],
-  'built.city-in-nature': ['nature'], 'built.wind-procedure': ['wind'], 'built.structure': ['structure'], 'built.wind-study': ['windStudy'], 'built.life-safety': ['lifeSafety'], 'built.relax-aviation': ['relaxAviation'],
+  'built.city-in-nature': ['nature'], 'built.wind-procedure': ['wind'], 'built.structure': ['structure'], 'built.wind-study': ['windStudy'], 'built.life-safety': ['lifeSafety'], 'built.relax-aviation': ['relaxAviation'], 'built.hbp': ['hbp'],
   'built.wind-comfort': ['windComfort'],
   'built.daylight-sw': ['daylightSW'],
   'built.ventilation-sw': ['ventilationSW'],

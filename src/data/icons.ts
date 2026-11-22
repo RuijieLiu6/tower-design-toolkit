@@ -16,7 +16,7 @@ import {
   FileJson, FileUp, Footprints, GitCommitHorizontal, GraduationCap, Grid2x2, Hammer, HardHat, ImagePlus, LandPlot, Layers2, LayoutGrid,
   LayoutPanelTop, MapPinned, SquareDashed, ScrollText, CircleCheckBig, Ban, GitCompareArrows, Network, Package, Axis3d, MessageSquare, MessagesSquare, Image as ImageIcon, PencilLine, PenTool, Recycle, Rows3,
   Banknote, Coins, Percent, TrendingUp,
-  PlayCircle, Droplets, Waves, Thermometer, Gauge, Spline, CalendarClock, SolarPanel, CloudRain, WindPerson, AirVent, Blinds, DaylightGrid, WindowSky, FormBox, Skyline, SkyLevels, StoreyHeight, Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
+  PlayCircle, Droplets, Waves, Thermometer, Gauge, Spline, CalendarClock, SolarPanel, CloudRain, WindPerson, AirVent, Blinds, DaylightGrid, WindowSky, FormBox, Skyline, PolicyCeiling, SkyLevels, StoreyHeight, Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
 } from '../components/icons'
 import type { Category } from './registry'
 import type { Flag, UseId } from '../engine/types'
@@ -112,6 +112,7 @@ export const NODE_ICONS: Record<string, LucideIcon> = {
   'built.fsr': Calculator,
   'built.viewcones': Cone,
   'built.relax-aviation': Plane,
+  'built.hbp': PolicyCeiling,
   'built.sun': Sunrise,
   'built.core-lifts': ArrowUpDown,
   'built.egress': DoorOpen,

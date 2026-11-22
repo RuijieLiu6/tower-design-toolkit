@@ -318,6 +318,8 @@ export const FormBox = make('FormBox', p('M12 3L20 7.5V16.5L12 21L4 16.5V7.5ZM4 
 /** Storey height by use (P1 #8, 21 Nov): three storeys of a section with a height dimension beside them. */
 export const StoreyHeight = make('StoreyHeight', p('M3 20.5H15M3 14.5H15M3 8.5H15M3 3.5H15M5 20.5V3.5M13 20.5V3.5M19.5 8.5V14.5M17.5 8.5H21.5M17.5 14.5H21.5'))
 /** Green and shared levels up the tower (book node #18, 21 Nov): a tower in section, two bands across it and a gap between. */
+/** Higher Buildings Policy (node placement, 21 Nov): a policy area on the ground, two towers and the ceiling bar over them. */
+export const PolicyCeiling = make('PolicyCeiling', p('M2.5 20.5L6 14.5H18L21.5 20.5ZM9 14.5V7.5M15 14.5V7.5M5.5 4.5H18.5'))
 export const SkyLevels = make('SkyLevels', p('M7.5 21.5V2.5H16.5V21.5M4 21.5H20M5 7.5H19M5 15.5H19M12 9.5V13.5M10.5 11.5H13.5'))
 /** Skyline silhouette (21 Nov): a stepped tower among lower neighbours on the horizon line. */
 export const Skyline = make('Skyline', p('M2.5 20.5H21.5M4 20.5V14.5H8M8 20.5V9.5H10.5V4.5H13.5V9.5H16V20.5M16 16H20V20.5'))

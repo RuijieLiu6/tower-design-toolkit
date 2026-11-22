@@ -28,6 +28,7 @@ import CoreNeed from './CoreNeed'
 import SkyVillagesPanel from './SkyVillagesPanel'
 import SiteHeights from './site/SiteHeights'
 import RelaxAviationPanel from './RelaxAviationPanel'
+import HbpPanel from './HbpPanel'
 import EnergyCarbonResults from './EnergyCarbonResults'
 import RulesBehind from './RulesBehind'
 import EconomicsResults from './EconomicsResults'
@@ -533,6 +534,7 @@ export default function Inspector() {
       {n.id === 'built.structure' && enabled[n.id] && <StructurePanel />}
       {n.id === 'built.life-safety' && enabled[n.id] && <LifeSafetyPanel />}
       {n.id === 'built.relax-aviation' && enabled[n.id] && <RelaxAviationPanel />}
+      {n.id === 'built.hbp' && enabled[n.id] && <HbpPanel />}
       {n.id === 'built.separation' && enabled[n.id] && <SeparationPanel />}
       {n.id === 'built.floorplate' && enabled[n.id] && <PlatePanel />}
       {n.id === 'built.silhouette' && enabled[n.id] && <SilhouettePanel />}
