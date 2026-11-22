@@ -7,7 +7,7 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
 import { VTC_NORTH_DEG } from '../context'
-import { ACUITY_ARCMIN, DEFAULT_VIEW_M, LEGIBLE_ARCMIN, LEGIBLE_NOTE, LEGIBLE_VIEWS, metresAt, silhouetteReading, SKY_ARCMIN2, SKY_NOTE, SKY_VIEWS, skyContext, type AxisReading, type SilhouetteReading } from '../engine/silhouette'
+import { ACUITY_ARCMIN, DEFAULT_VIEW_M, LEGIBLE_ARCMIN, LEGIBLE_NOTE, LEGIBLE_VIEWS, MERGE_GAP_M, metresAt, silhouetteReading, SKY_ARCMIN2, SKY_NOTE, SKY_VIEWS, skyContext, STAIR_TREAD_M, type AxisReading, type SilhouetteReading } from '../engine/silhouette'
 import { ALL_VIEWPOINTS, CONTRAST, CONTRAST_NOTE, VIEWPOINT_NOTE, viewpointOutline, viewpointReadings, viewpointRules, viewSite, type Contrast, type ViewpointAt, type ViewpointReading, type ViewSite } from '../engine/silhouetteViewpoint'
 import { useSwStudy } from '../lib/swStudy'
 import { useStore, useTowers } from '../store'
@@ -250,7 +250,7 @@ export default function SilhouettePanel() {
             <RuleRows rules={r.rules} />
           </div>
           <MethodFold>
-            <p>The tower part above the podium is cut at every block or storey change and seen straight on from 8 compass views (true north applied); a view and its opposite see the same outline, mirrored. A change is how far the outline's two edges move where it steps, slides, tapers or twists; steps that keep moving it the same way with up to 10 m of straight outline between them count as one.</p>
+            <p>The tower part above the podium is cut at every block or storey change and seen straight on from 8 compass views (true north applied); a view and its opposite see the same outline, mirrored. A change is how far the outline's two edges move where it steps, slides, tapers or twists; steps that keep moving it the same way with up to {MERGE_GAP_M} m of straight outline between them count as one, and so does a stair of three or more such steps with treads up to {STAIR_TREAD_M} m, so a smooth form reads the same whether it is modelled storey by storey or in parts of up to about five storeys (gap G56).</p>
             <p>{LEGIBLE_NOTE}</p>
             <p>{SKY_NOTE}</p>
             <p>{VIEWPOINT_NOTE}</p>

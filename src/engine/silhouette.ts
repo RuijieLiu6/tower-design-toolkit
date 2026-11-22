@@ -8,7 +8,12 @@
 // applied); a view and its opposite see the same outline, mirrored, so four axes are computed and reported as pairs.
 // Up the tower, wherever the outline's left or right edge moves, that is a step; steps that keep moving the edges the
 // same way with straight runs of at most MERGE_GAP_M between them read as one change (a taper, or a slope of small
-// steps). A change's size is how far its two edges move in all (|left| + |right|): the change of width when the
+// steps). Gap G56 (R7 §3): that rule made the reading depend on how finely a smooth form was modelled (the Compass Turn
+// as 8 four-storey parts read 0 of 8 views, largest change 4.2 m; as 32 per-storey parts 8 of 8, 33.4 m), because a
+// part's straight run broke the slope. Edge moves are read wherever the storey outline changes, on every route (a block
+// or a drawn mass holds one outline; an imported or free form changes storey by storey), and a stair of three or more
+// steps that move the outline the same way, with treads of at most STAIR_TREAD_M, reads as the slope it models (team):
+// a smooth form split into parts up to about five storeys tall reads as it does storey by storey. A change's size is how far its two edges move in all (|left| + |right|): the change of width when the
 // outline narrows or widens (the juror's arithmetic, 76.4 → 70.0 m), and twice the slide when a block slides sideways
 // without changing width. Its angular size at a viewing distance d is atan(size / d).
 //
@@ -62,6 +67,12 @@ export const ACUITY_ARCMIN = 1
 export const LEGIBLE_VIEWS = 5
 /** Steps moving the outline the same way with a straight run of at most this between them read as one change (m, team). */
 export const MERGE_GAP_M = 10
+/**
+ * Gap G56: in a stair of at least three steps that move the outline the same way, treads (straight runs between steps)
+ * of at most this read as part of the slope the stair models (m, team: about five storeys, so a smooth form modelled in
+ * parts up to that tall reads as it does storey by storey). Longer treads, or two steps alone, keep MERGE_GAP_M.
+ */
+export const STAIR_TREAD_M = 20
 /** Edge movements under this are slicing noise (m). */
 const MIN_STEP_M = 0.05
 /** A turn of the widest outline under this reads as an aspect change, not a twist (degrees, team). */
@@ -219,17 +230,29 @@ function extent(rings: P[][], u: P): { l: number; r: number } {
 
 const sgn = (v: number) => (Math.abs(v) < MIN_STEP_M ? 0 : Math.sign(v))
 
-/** The changes up one axis: edge steps, merged while they keep moving the same way across short straight runs. */
+/**
+ * The changes up one axis: edge steps, merged while they keep moving the same way across short straight runs, or across
+ * the treads of a stair of same-way steps (gap G56).
+ */
 export function axisChanges(edges: AxisReading['edges'], distance: number): Change[] {
-  const out: (Change & { dl: number; dr: number })[] = []
+  const steps: { z: number; dl: number; dr: number }[] = []
   for (let i = 1; i < edges.length; i++) {
     const dl = edges[i].l - edges[i - 1].l, dr = edges[i].r - edges[i - 1].r
     if (Math.abs(dl) < MIN_STEP_M && Math.abs(dr) < MIN_STEP_M) continue
-    const z = edges[i].z0, last = out[out.length - 1]
-    const same = last && z - last.z1 <= MERGE_GAP_M + 1e-6 && sgn(dl) * sgn(last.dl) >= 0 && sgn(dr) * sgn(last.dr) >= 0
-    if (same) { last.dl += dl; last.dr += dr; last.z1 = z; continue }
-    out.push({ z0: z, z1: z, dl, dr, size: 0, dw: 0, arcmin: 0 })
+    steps.push({ z: edges[i].z0, dl, dr })
   }
+  const sameWay = (a: { dl: number; dr: number }, b: { dl: number; dr: number }) => sgn(a.dl) * sgn(b.dl) >= 0 && sgn(a.dr) * sgn(b.dr) >= 0
+  // G56: a link joins a step to the one before when both move the outline the same way across a tread of at most
+  // STAIR_TREAD_M; links in a chain of two or more (three steps or more) are a stair's treads.
+  const link = steps.map((s, i) => i > 0 && s.z - steps[i - 1].z <= STAIR_TREAD_M + 1e-6 && sameWay(s, steps[i - 1]))
+  const stair = link.map((ok, i) => ok && (!!link[i - 1] || !!link[i + 1]))
+  const out: (Change & { dl: number; dr: number })[] = []
+  steps.forEach(({ z, dl, dr }, i) => {
+    const last = out[out.length - 1]
+    const same = last && (z - last.z1 <= MERGE_GAP_M + 1e-6 || stair[i]) && sameWay({ dl, dr }, last)
+    if (same) { last.dl += dl; last.dr += dr; last.z1 = z; return }
+    out.push({ z0: z, z1: z, dl, dr, size: 0, dw: 0, arcmin: 0 })
+  })
   return out.map(({ dl, dr, z0, z1 }) => { const size = Math.abs(dl) + Math.abs(dr); return { z0, z1, size, dw: dr - dl, arcmin: arcmin(size, distance) } })
 }
 
@@ -556,7 +579,7 @@ export function silhouetteRules(r: Omit<SilhouetteReading, 'rules'>): RuleResult
   const counts: RuleResult = {
     id: 'sil-count', label: 'Distinct legible silhouette changes',
     value: axes.map((a) => `${a.pair} ${a.legible} of ${a.changes.length}`).join(' · '),
-    threshold: `${reported}; legible = ≥ ${LEGIBLE_ARCMIN}′ from ${km(d)} (${one(tMetres)} m); steps that move the outline the same way with ≤ ${MERGE_GAP_M} m between them count as one`,
+    threshold: `${reported}; legible = ≥ ${LEGIBLE_ARCMIN}′ from ${km(d)} (${one(tMetres)} m); steps that move the outline the same way with ≤ ${MERGE_GAP_M} m between them count as one, and so does a stair of three or more such steps with treads up to ${STAIR_TREAD_M} m (a smooth form modelled in parts, gap G56)`,
     state: 'unknown', flag: 'team_assumption', source: METHOD,
   }
   const taper: RuleResult = {

@@ -326,3 +326,61 @@ describe('sky through screens and glass (G33)', () => {
     expect(blocked.sky.counted).toBe(false)
   })
 })
+
+// G56 (R7 §3): the merge rule depended on how finely a smooth form was modelled. R7's Compass Turn in miniature: above a
+// 54 m square shaft (45 storeys of 4 m), 32 storeys of 3.7 m whose plan narrows 54 → 46.5 m while a 45° corner cut grows
+// 0 → 16.5 m, modelled storey by storey (32 parts) or in 8 four-storey parts (each holding its plan for 14.8 m).
+describe('G56: a smooth form reads the same however finely it is split into parts', () => {
+  const chamfer = (w: number, c: number): P[] => { const x = w / 2; return [[-x + c, -x], [x - c, -x], [x, -x + c], [x, x - c], [x - c, x], [-x + c, x], [-x, x - c], [-x, -x + c]] }
+  /** The share of the turn a storey samples: its own mid-height, or the mid-height of its part of `per` storeys. */
+  const share = (k: number, per: number) => (Math.floor(k / per) + 0.5) / (32 / per)
+  const turn = (per: number) => importedTower([
+    ...stack([{ n: 45, f2f: 4, ring: rect(54, 54) }]),
+    ...Array.from({ length: 32 }, (_, k): ImportedStorey => {
+      const t = share(k, per), ring = chamfer(54 - 7.5 * t, 16.5 * t)
+      return { level: 46 + k, z0: 180 + 3.7 * k, z1: 180 + 3.7 * (k + 1), area: ringArea(ring), use: 'residential', podium: false, hasFloor: true, loops: [ring] }
+    }),
+  ])
+  const taper = (per: number) => tower([blk('shaft', 180, 54, 54), ...Array.from({ length: 32 / per }, (_, j) => { const w = 54 - 24 * share(j * per, per); return blk(`t${j}`, 3.7 * per, w, w) })])
+
+  it('imported or free form (the harness route): 32 per-storey parts and 8 four-storey parts both read 8 of 8 views', () => {
+    const fine = silhouetteReading(turn(1)), coarse = silhouetteReading(turn(4))
+    for (const r of [fine, coarse]) {
+      expect(r.legibleViews).toBe(8)
+      expect(r.state).toBe('pass')
+      // one change per view: the diagonals (true N/S and E/W on the competition grid) narrow by about 33 m, the grid faces by about 7 m
+      for (const a of r.axes) expect(a.changes).toHaveLength(1)
+    }
+    expect(fine.largest!.size).toBeCloseTo(Math.SQRT2 * 24 * (31.5 / 32), 6) // 33.4 m, R7's figure
+    expect(coarse.largest!.size).toBeCloseTo(Math.SQRT2 * 24 * (7.5 / 8), 6) // 31.8 m: the coarse model's last part samples less of the turn
+    expect(Math.abs(fine.largest!.size - coarse.largest!.size)).toBeLessThan(2)
+    expect(axis(coarse, 'N/S').changes[0]).toMatchObject({ z0: 180, z1: expect.closeTo(180 + 7 * 14.8, 6) })
+    // the coarse model's steps: 4.2 m each on the diagonals, 14.8 m apart, under 10′ alone (the old 0 of 8)
+    const step = Math.SQRT2 * 24 / 8
+    expect(step).toBeCloseTo(4.24, 2)
+    expect(arcmin(step, DEFAULT_VIEW_M)).toBeLessThan(LEGIBLE_ARCMIN)
+  })
+
+  it('parametric blocks: a taper as 32 one-storey blocks or 8 four-storey blocks reads the same views', () => {
+    const fine = silhouetteReading(taper(1)), coarse = silhouetteReading(taper(4))
+    expect(fine.legibleViews).toBe(8)
+    expect(coarse.legibleViews).toBe(8)
+    for (const k of [0, 1, 2, 3]) expect(coarse.axes[k].changes).toHaveLength(1)
+    expect(axis(coarse, 'N/S').changes[0].size).toBeCloseTo(24 * (7.5 / 8), 6)
+    expect(axis(fine, 'N/S').changes[0].size).toBeCloseTo(24 * (31.5 / 32), 6)
+  })
+
+  it('keeps stepped forms apart: two setbacks alone, or treads longer than 20 m, stay separate changes', () => {
+    // two same-way setbacks 15 m apart: not a stair (two steps), the 10 m rule keeps them apart
+    const two = silhouetteReading(tower([blk('a', 150, 54, 54), blk('b', 15, 50, 50), blk('c', 135, 46, 46)]))
+    expect(axis(two, 'N/S').changes.map((c) => c.z0)).toEqual([150, 165])
+    // a stair of 25 m treads: three changes
+    const tiers = silhouetteReading(tower([blk('a', 150, 54, 54), blk('b', 25, 50, 50), blk('c', 25, 46, 46), blk('d', 100, 42, 42)]))
+    expect(axis(tiers, 'N/S').changes.map((c) => c.z0)).toEqual([150, 175, 200])
+    // the same stair with 15 m treads: one change of 12 m
+    const stair = silhouetteReading(tower([blk('a', 150, 54, 54), blk('b', 15, 50, 50), blk('c', 15, 46, 46), blk('d', 120, 42, 42)]))
+    expect(axis(stair, 'N/S').changes).toHaveLength(1)
+    expect(axis(stair, 'N/S').changes[0]).toMatchObject({ z0: 150, z1: 180, size: expect.closeTo(12, 6) })
+    expect(line(stair, 'sil-count').threshold).toContain('a stair of three or more such steps with treads up to 20 m')
+  })
+})
