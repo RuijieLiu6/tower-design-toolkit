@@ -26,7 +26,7 @@ import { provenanceLines, type ProvEntry } from '../../engine/provenance'
 import { cityGroundPlaneCheck, cityStreetwallCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
 import { cityFrontageWithSquare, frontageWithSquare } from '../../engine/squareEdges'
 import { silhouetteReading, skyContext, type SkyContext, type SkyScreens } from '../../engine/silhouette'
-import { viewpointReadings, viewpointRules, viewSite, type Contrast, type ViewpointRef } from '../../engine/silhouetteViewpoint'
+import { datumLevels, datumRule, stepHeights, viewpointReadings, viewpointRules, viewSite, type Contrast, type ViewpointRef } from '../../engine/silhouetteViewpoint'
 import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
 import { DEFAULT_WEIGHT_PRESETS, type WeightPresets } from '../../engine/storeyWeight'
@@ -162,7 +162,10 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.silhouette': towers.map((t) => {
       const context = skyContext(towers, t, i.silhouetteContext)
       const vp = viewpointReadings(t, { site: viewSite(i.project, i.silhouetteGround), contrast: i.silhouetteContrast, context, viewpoints: i.silhouetteViewpoints })
-      return [...silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context, glassT: i.silhouetteGlassT, screens: i.silhouetteScreens }).rules, ...viewpointRules(vp.qe, vp.others)]
+      const r = silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context, glassT: i.silhouetteGlassT, screens: i.silhouetteScreens })
+      // R7 tool 9 (cheap form): neighbours' roofs (the masses checked behind, with the design's other towers), belts, the QE ridge line
+      const datums = datumLevels(t, { steps: stepHeights(r.axes), base: r.base, top: r.top, roofs: (context?.prisms ?? []).map((p) => ({ ring: p.ring, z1: p.z1, name: p.name })), ridge: vp.qe?.terrain ?? null })
+      return [...r.rules, ...viewpointRules(vp.qe, vp.others), datumRule(datums)]
     }),
     // The assumption ledger, and the readings beside the residual (KPF office lot test, cost band against height).
     'built.economics': [DEFAULT_ECON, kpfReadings(towers)],

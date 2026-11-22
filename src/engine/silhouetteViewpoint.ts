@@ -30,8 +30,9 @@
 //   and sky close in tone, R7d §4): 16′ / 250 arcmin². A viewpoint reads when its largest change or its largest opening
 //   of sky reaches the line. A design reading, never a fail.
 import siteData from '../data/defaultSite.json'
+import { towerFloors } from './massing'
 import { toUtm10 } from './relaxAviation'
-import { arcmin, arcmin2, axisChanges, behindExtent, cut, merge, meet, openBands, openingsOf, place, SILHOUETTE_SOURCE, silhouetteSlices, skyStoreys, type Change, type Iv, type SkyContext, type SkyRow } from './silhouette'
+import { arcmin, arcmin2, axisChanges, behindExtent, cut, merge, meet, openBands, openingsOf, place, SILHOUETTE_SOURCE, silhouetteSlices, skyStoreys, type AxisReading, type Change, type Iv, type SkyContext, type SkyRow } from './silhouette'
 import { ringMetrics } from './site'
 import { storeyCore } from './storeyWeight'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
@@ -477,4 +478,66 @@ export function viewpointReadings(t: Tower, o: ViewpointOptions & { viewpoints?:
   const refs: ViewpointRef[] = [...ALL_VIEWPOINTS.filter((v) => v.id !== 'qe'), ...(o.viewpoints ?? [])]
   const others = refs.map((ref) => viewpointReading(t, ref, o)).filter((r): r is ViewpointReading => !!r)
   return { qe, others }
+}
+
+// --- Datum levels (R7 tool 9, R7c T-M5, cheap form) --------------------------------------------------------------------
+// Levels a step could take, offered in the silhouette view: neighbours' roofs within reach, the tower's own belts (plant,
+// outrigger and sky-lobby storeys) and the ridge line from Queen Elizabeth Park where it was read. Each is given with the
+// nearest change of the outline, so a step can be moved onto it by hand. A reading, not a judgement.
+
+/** Neighbours' roofs farther than this from the tower are not offered (m, team). */
+export const DATUM_REACH_M = 400
+/** At most this many neighbours' roofs, the nearest first (team: keeps the view legible). */
+const DATUM_NEIGHBOURS = 8
+export interface Datum { z: number; kind: 'roof' | 'belt' | 'ridge'; label: string; /** The nearest outline change (m above grade) and how far the datum is above it. */ step: { z: number; dz: number } | null }
+export interface Roof { ring: [number, number][]; z1: number; name?: string }
+
+/** Candidate step levels for a tower: neighbours' roofs within reach (project frame, m above grade), its belts and the QE ridge line. */
+export function datumLevels(t: Tower, o: { steps: number[]; base: number; top: number; roofs?: Roof[]; ridge?: { z: number } | null }): Datum[] {
+  const { base, top } = o
+  const inSpan = (z: number) => z > base + 0.5 && z < top - 0.5
+  const pts = silhouetteSlices(t).flatMap((s) => s.rings.flat())
+  if (!pts.length) return []
+  const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length
+  const near = (o.roofs ?? []).filter((r) => r.ring.length >= 3 && inSpan(r.z1)).map((r) => {
+    const x = r.ring.reduce((a, p) => a + p[0], 0) / r.ring.length, y = r.ring.reduce((a, p) => a + p[1], 0) / r.ring.length
+    return { ...r, d: Math.hypot(x - cx, y - cy) }
+  }).filter((r) => r.d <= DATUM_REACH_M && r.d > 1).sort((a, b) => a.d - b.d).slice(0, DATUM_NEIGHBOURS)
+  // roofs within a metre of each other are one level
+  const groups: { z: number; names: string[] }[] = []
+  for (const r of near) {
+    const who = r.name ?? `a neighbour ${Math.round(r.d)} m away`, g = groups.find((x) => Math.abs(x.z - r.z1) < 1)
+    if (g) g.names.push(who); else groups.push({ z: r.z1, names: [who] })
+  }
+  const out: Omit<Datum, 'step'>[] = groups.map((g) => ({ z: g.z, kind: 'roof', label: `${g.names.length > 1 ? 'roofs' : 'roof'} of ${g.names.join(' and ')}` }))
+  const floors = towerFloors(t)
+  const belts: [number[] | undefined, string][] = [[t.plantLevels, 'plant belt'], [t.outriggerFloors, 'outrigger belt'], [t.skyLobbies, 'sky lobby']]
+  for (const [levels, what] of belts) for (const lv of levels ?? []) {
+    const f = floors.find((x) => x.level === lv)
+    if (f && inSpan(f.z0) && !out.some((x) => x.kind === 'belt' && Math.abs(x.z - f.z0) < 0.05)) out.push({ z: f.z0, kind: 'belt', label: `L${lv} ${what}` })
+  }
+  if (o.ridge && inSpan(o.ridge.z)) out.push({ z: o.ridge.z, kind: 'ridge', label: 'the ridge line from Queen Elizabeth Park' })
+  return out.sort((a, b) => a.z - b.z).map((d) => {
+    const s = o.steps.reduce<number | null>((m, z) => (m === null || Math.abs(z - d.z) < Math.abs(m - d.z) ? z : m), null)
+    return { ...d, step: s === null ? null : { z: s, dz: d.z - s } }
+  })
+}
+
+/** Heights where the outline moves in any of the 8 views (m above grade), from the silhouette reading's axes. */
+export function stepHeights(axes: AxisReading[]): number[] {
+  const zs = axes.flatMap((a) => a.edges.flatMap((e, i) => (i > 0 && (Math.abs(e.l - a.edges[i - 1].l) >= 0.05 || Math.abs(e.r - a.edges[i - 1].r) >= 0.05) ? [e.z0] : [])))
+  return [...new Set(zs.map((z) => Math.round(z * 1000) / 1000))].sort((x, y) => x - y)
+}
+
+/** The datum levels as one reported line. */
+export function datumRule(ds: Datum[]): RuleResult {
+  const at = (z: number) => `+${z.toFixed(1)} m`
+  return {
+    id: 'sil-datums', label: 'Step levels on offer: neighbours’ roofs, belts, the ridge line',
+    value: ds.length ? ds.map((d) => `${at(d.z)} ${d.label}${d.step ? (Math.abs(d.step.dz) < 0.05 ? ' (a change of the outline is there)' : ` (nearest change ${at(d.step.z)}, ${Math.abs(d.step.dz).toFixed(1)} m ${d.step.dz > 0 ? 'below' : 'above'})`) : ''}`).join(' · ')
+      : 'none within the tower’s height above the podium',
+    threshold: `reported, not judged; neighbours’ roofs within ${DATUM_REACH_M} m (the ${DATUM_NEIGHBOURS} nearest), the tower’s plant, outrigger and sky-lobby storeys, and the QE Park ridge line where it was read`,
+    state: 'unknown', flag: 'team_assumption', source: R7D_SOURCE,
+    note: 'R7c T-M5 (datum snap): a step that meets a neighbour’s roof or a belt ties the tower to its context and to its structure. These are candidate levels only: move a step onto one in Massing blocks or in the model. The competition context’s future towers (186, 244 and 305 m) are its own roofs; on Real Vancouver only the design’s other towers are offered unless the city’s buildings are given.',
+  }
 }

@@ -6,9 +6,9 @@
 // choices, the tower drawn as seen from there, and the readings against the contrast's line.
 import { useMemo } from 'react'
 import { create } from 'zustand'
-import { VTC_NORTH_DEG } from '../context'
+import { isExtruded, useVtcContext, VTC_NORTH_DEG } from '../context'
 import { ACUITY_ARCMIN, DEFAULT_VIEW_M, LEGIBLE_ARCMIN, LEGIBLE_NOTE, LEGIBLE_VIEWS, MERGE_GAP_M, metresAt, silhouetteReading, SKY_ARCMIN2, SKY_NOTE, SKY_VIEWS, skyContext, STAIR_TREAD_M, type AxisReading, type SilhouetteReading } from '../engine/silhouette'
-import { ALL_VIEWPOINTS, CONTRAST, CONTRAST_NOTE, VIEWPOINT_NOTE, viewpointOutline, viewpointReadings, viewpointRules, viewSite, type Contrast, type ViewpointAt, type ViewpointReading, type ViewSite } from '../engine/silhouetteViewpoint'
+import { ALL_VIEWPOINTS, CONTRAST, CONTRAST_NOTE, datumLevels, datumRule, stepHeights, VIEWPOINT_NOTE, viewpointOutline, viewpointReadings, viewpointRules, viewSite, type Contrast, type Datum, type Roof, type ViewpointAt, type ViewpointReading, type ViewSite } from '../engine/silhouetteViewpoint'
 import { useSwStudy } from '../lib/swStudy'
 import { useStore, useTowers } from '../store'
 import { MethodFold, RuleRows, STATE_COL, Stat, Stats } from './ResultViz'
@@ -27,7 +27,7 @@ const DISTANCES = [500, 1000, 2000, 5000]
 const km = (d: number) => (d >= 1000 ? `${d / 1000} km` : `${d} m`)
 
 /** A tower's silhouette reading with its viewpoint readings (Queen Elizabeth Park and the others), their lines appended. */
-export type PanelReading = SilhouetteReading & { vp: { qe: ViewpointReading | null; others: ViewpointReading[] }; site: ViewSite }
+export type PanelReading = SilhouetteReading & { vp: { qe: ViewpointReading | null; others: ViewpointReading[] }; site: ViewSite; datums: Datum[] }
 
 export function useSilhouettes(): PanelReading[] {
   const towers = useTowers()
@@ -40,6 +40,12 @@ export function useSilhouettes(): PanelReading[] {
   const own = useSilhouetteView((s) => (s.viewpoint === 'own' ? s.own : null))
   // the wind settings' deck screen (gap G33): its open share is the sky seen through it, reported apart and not judged
   const screenH = useSwStudy((s) => s.deckScreenH), screenOpen = useSwStudy((s) => s.deckScreenPorosity)
+  // R7 tool 9 (datum levels): the competition context's future towers and extruded buildings as neighbours' roofs
+  const { ctx } = useVtcContext()
+  const roofs = useMemo<Roof[]>(() => (project !== 'vtc' || !ctx ? [] : [
+    ...ctx.future_towers.filter((f) => f.z1).map((f, i) => ({ ring: f.footprint, z1: f.z1 as number, name: `Future tower ${i + 1}` })),
+    ...ctx.buildings.filter(isExtruded).map((b) => ({ ring: b.footprint, z1: b.z1 })),
+  ]), [project, ctx])
   return useMemo(() => {
     const screens = screenH != null && screenH > 0 ? { h: screenH, t: screenOpen, from: "the wind settings' deck screen" } : null
     const site = viewSite(project, ground)
@@ -47,9 +53,11 @@ export function useSilhouettes(): PanelReading[] {
       const context = skyContext(towers, t)
       const r = silhouetteReading(t, { northDeg: north, distance, context, glassT, screens })
       const vp = viewpointReadings(t, { site, contrast, context, viewpoints: own ? [own] : [] })
-      return { ...r, rules: [...r.rules, ...viewpointRules(vp.qe, vp.others)], vp, site }
+      const others: Roof[] = (context?.prisms ?? []).map((p) => ({ ring: p.ring, z1: p.z1, name: p.name }))
+      const datums = datumLevels(t, { steps: stepHeights(r.axes), base: r.base, top: r.top, roofs: [...others, ...roofs], ridge: vp.qe?.terrain ?? null })
+      return { ...r, rules: [...r.rules, ...viewpointRules(vp.qe, vp.others), datumRule(datums)], vp, site, datums }
     })
-  }, [towers, project, north, ground, distance, glassT, screenH, screenOpen, contrast, own])
+  }, [towers, project, north, ground, distance, glassT, screenH, screenOpen, contrast, own, roofs])
 }
 
 /** One view pair's outline, centred on its base, to the shared scale `k` (px per m). */
@@ -71,7 +79,7 @@ function Elevation({ a, k, base, H, w }: { a: AxisReading; k: number; base: numb
   )
 }
 
-function Elevations({ r }: { r: SilhouetteReading }) {
+function Elevations({ r }: { r: PanelReading }) {
   const H = Math.max(1, r.top - r.base)
   const half = Math.max(1, ...r.axes.flatMap((a) => { const c = a.edges.length ? (a.edges[0].l + a.edges[0].r) / 2 : 0; return a.edges.flatMap((e) => [Math.abs(e.l - c), Math.abs(e.r - c)]) }))
   const w = 64, h = 132, k = Math.min((w - 8) / (2 * half), (h - 16) / H)
@@ -80,14 +88,17 @@ function Elevations({ r }: { r: SilhouetteReading }) {
       <div className="grid grid-cols-4 gap-1" role="img" aria-label={`Outline of ${r.tower.name} from the four view pairs; marks where it changes, green when legible from ${km(r.distance)}`}>
         {r.axes.map((a) => (
           <figure key={a.pair} className="m-0 min-w-0 text-center">
-            <svg viewBox={`0 0 ${w} ${h}`} className="w-full rounded-md bg-[#f7f8fa]"><Elevation a={a} k={k} base={r.base} H={H} w={w} /></svg>
+            <svg viewBox={`0 0 ${w} ${h}`} className="w-full rounded-md bg-[#f7f8fa]">
+              <Elevation a={a} k={k} base={r.base} H={H} w={w} />
+              {r.datums.map((d, i) => { const y = 8 + (H - (d.z - r.base)) * k; return <line key={`d${i}`} x1={0} x2={w} y1={y} y2={y} stroke="#7a8794" strokeWidth={0.6} strokeDasharray="1 2"><title>{`Step level on offer: +${d.z.toFixed(1)} m, ${d.label}`}</title></line> })}
+            </svg>
             <figcaption className="mt-0.5 truncate text-meta tabular-nums" title={a.largest ? `Largest change ${a.largest.size.toFixed(1)} m` : 'No change'}>
               <b>{a.pair}</b> {a.largest ? `${a.largest.size.toFixed(1)} m` : '—'}
             </figcaption>
           </figure>
         ))}
       </div>
-      <p className="mt-1 text-meta text-muted">Drawn to one scale, above the podium. Green: a change of {LEGIBLE_ARCMIN}′ or more from {km(r.distance)} ({metresAt(LEGIBLE_ARCMIN, r.distance).toFixed(1)} m). Grey dashes: smaller.</p>
+      <p className="mt-1 text-meta text-muted">Drawn to one scale, above the podium. Green: a change of {LEGIBLE_ARCMIN}′ or more from {km(r.distance)} ({metresAt(LEGIBLE_ARCMIN, r.distance).toFixed(1)} m). Grey dashes: smaller.{r.datums.length ? ' Dotted: step levels on offer (neighbours’ roofs, belts, the ridge line; hover for each).' : ''}</p>
     </SheetFrame>
   )
 }

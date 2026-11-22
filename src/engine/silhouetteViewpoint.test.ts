@@ -272,3 +272,55 @@ describe('result lines', () => {
     expect(lines.find((x) => x.id === 'sil-viewpoints')!.value).toContain('Station roof 800 m at 270°')
   })
 })
+
+// R7 tool 9 (datum snap, cheap form): neighbours' roofs, the tower's belts and the QE ridge line offered as step levels.
+describe('step levels on offer', () => {
+  const c = () => {
+    const t = tower([{ ...blk('p', 18, 90, 64), podium: true }, blk('lo', 163.7, 54, 54), blk('mid', 58.5, 46, 46), blk('hi', 59.6, 38, 38)])
+    return { ...t, plantLevels: [3, 47] }
+  }
+  const roofs = [
+    { ring: rect(30, 30, 150, 100), z1: 185.5, name: 'Future tower 1' },
+    { ring: rect(30, 30, -200, 150), z1: 243.8, name: 'Future tower 2' },
+    { ring: rect(30, 30, 900, 0), z1: 304.8, name: 'Far tower' },
+    { ring: rect(30, 30, 0, 250), z1: 400, name: 'Taller tower' },
+  ]
+
+  it('lists roofs within reach and the tower’s height, its belts and the ridge line, each with the nearest change of the outline', async () => {
+    const { silhouetteReading } = await import('./silhouette')
+    const { datumLevels, datumRule, stepHeights } = await import('./silhouetteViewpoint')
+    const { towerFloors } = await import('./massing')
+    const t = c(), r = silhouetteReading(t), qe = viewpointReading(t, 'qe', { site: VTC })!
+    expect(stepHeights(r.axes)).toEqual([181.7, 240.2])
+    const ds = datumLevels(t, { steps: stepHeights(r.axes), base: r.base, top: r.top, roofs, ridge: qe.terrain })
+    const belt = towerFloors(t).find((f) => f.level === 47)!
+    expect(ds.map((d) => d.kind)).toEqual(belt.z0 < 185.5 ? ['belt', 'roof', 'ridge', 'roof'] : ['roof', 'belt', 'ridge', 'roof'])
+    const roof = ds.find((d) => d.label === 'roof of Future tower 1')!
+    expect(roof.step).toEqual({ z: 181.7, dz: expect.closeTo(3.8, 6) })
+    const ridge = ds.find((d) => d.kind === 'ridge')!
+    expect(ridge.z).toBeCloseTo(qe.terrain!.z, 9)
+    expect(ridge.step!.z).toBe(240.2)
+    expect(ds.some((d) => /Far tower|Taller tower/.test(d.label))).toBe(false) // beyond 400 m; above the top
+    expect(ds.some((d) => d.label === 'L3 plant belt')).toBe(false) // in the podium's height
+    const line = datumRule(ds)
+    expect(line).toMatchObject({ id: 'sil-datums', state: 'unknown', flag: 'team_assumption' })
+    expect(line.value).toContain('+185.5 m roof of Future tower 1 (nearest change +181.7 m, 3.8 m below)')
+    expect(line.value).toContain('+243.8 m roof of Future tower 2 (nearest change +240.2 m, 3.6 m below)')
+    expect(datumRule([]).value).toBe('none within the tower’s height above the podium')
+    // two roofs within a metre are one level
+    const two = datumLevels(t, { steps: [], base: r.base, top: r.top, roofs: [roofs[0], { ring: rect(20, 20, 100, -150), z1: 186 }] })
+    expect(two.filter((d) => d.kind === 'roof').map((d) => d.label)).toEqual(['roofs of Future tower 1 and a neighbour 180 m away'])
+  })
+
+  it('reaches the evidence groups with the masses checked behind as the neighbours', async () => {
+    const { evidenceGroups } = await import('../lib/evidence/engines')
+    const { useStore } = await import('../store')
+    const s = useStore.getState()
+    const base = { fsrTier: 2 as const, transitLink: false, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets }
+    const g = evidenceGroups({ ...base, project: 'vtc', towers: [c()], silhouetteContext: { prisms: roofs.map((r) => ({ ring: r.ring, z0: 0, z1: r.z1, name: r.name })), what: 'test context' } })
+    const line = (g['built.silhouette'] as { id: string; value: string }[][])[0].find((x) => x.id === 'sil-datums')!
+    expect(line.value).toMatch(/^\+\d+\.\d m /)
+    expect(line.value).toContain('the ridge line from Queen Elizabeth Park')
+    expect(line.value).toContain('roof of Future tower 2')
+  })
+})
