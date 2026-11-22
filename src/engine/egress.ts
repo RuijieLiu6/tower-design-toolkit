@@ -5,7 +5,7 @@
 import { coreAreaAt, coreSide, readsStoreys, towerFloors } from './massing'
 import { coreCentre, storeyCore } from './storeyWeight'
 import { towerTwist } from './twist'
-import type { Floor, RuleResult, StairCorner, StairPlacement, Tower } from './types'
+import type { CoreFace, Floor, RuleResult, StairCorner, StairPlacement, Tower } from './types'
 import { floorCounts } from './interior'
 
 export interface EgressPresets {
@@ -373,6 +373,80 @@ export function straightStairs(t: Tower, spots: StairSpot[], a: number, placemen
   return { twist, levels: outs.map((o) => o.level), clear: r, stairs, edge }
 }
 
+// --- Exit separation along the smoke path (P1 #11, 21 Nov) ------------------------------------------------------------
+// BCBC 2024 3.4.2.3(3) (p.3-233) measures exit separation along the shortest path smoke would travel, which may not
+// cross a fire separation; its Note A-3.4.2.3.(1) (p.3-381) lets two of the exits satisfy it. Around a fire-separated
+// core the path runs door to door round the core's walls, the shorter way: doors at mid-face of a 24 m core on opposite
+// faces are 12 + 24 + 12 = 48 m apart (book notes bcbc-2024.md). A code-consultant reading, shown beside the
+// straight-line line, never in its place.
+
+/** Default door faces of the core stairs, in stair order: two core stairs open on opposite faces. */
+export const DEFAULT_DOOR_FACES: CoreFace[] = ['n', 's', 'e', 'w']
+const FACE_AT: Record<CoreFace, readonly [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] }
+
+/** The segment a–b passes through the open square |x|, |y| < h (Liang–Barsky against a square shrunk by a hair). */
+function crossesSquare(a: P, b: P, h: number): boolean {
+  const k = h - 1e-6
+  let t0 = 0, t1 = 1
+  const dx = b[0] - a[0], dy = b[1] - a[1]
+  for (const [p, q] of [[-dx, a[0] + k], [dx, k - a[0]], [-dy, a[1] + k], [dy, k - a[1]]] as const) {
+    if (Math.abs(p) < 1e-12) { if (q < 0) return false; continue }
+    const r = q / p
+    if (p < 0) { if (r > t1) return false; if (r > t0) t0 = r } else { if (r < t0) return false; if (r < t1) t1 = r }
+  }
+  return t1 - t0 > 1e-9
+}
+
+/** Shortest walk from a to b that does not enter the square core of half side h about the origin (its corners as turns). */
+export function pathAroundCore(a: P, b: P, h: number): number {
+  const nodes: P[] = [a, b, [h, h], [-h, h], [-h, -h], [h, -h]]
+  const dist = nodes.map(() => Infinity), done = nodes.map(() => false)
+  dist[0] = 0
+  for (let it = 0; it < nodes.length; it++) {
+    let u = -1
+    for (let i = 0; i < nodes.length; i++) if (!done[i] && (u < 0 || dist[i] < dist[u])) u = i
+    if (u < 0 || dist[u] === Infinity) break
+    done[u] = true
+    for (let v = 0; v < nodes.length; v++) {
+      if (done[v] || crossesSquare(nodes[u], nodes[v], h)) continue
+      const d = dist[u] + Math.hypot(nodes[v][0] - nodes[u][0], nodes[v][1] - nodes[u][1])
+      if (d < dist[v]) dist[v] = d
+    }
+  }
+  return dist[1]
+}
+
+export interface SmokePath {
+  /** The longest door-to-door smoke path between two exits (m): two exits must meet the separation (Note A-3.4.2.3.(1)). */
+  d: number
+  /** The pair it is between (stair indices) and each core stair's door face (null: an edge stair, read at its centre). */
+  pair: [number, number]
+  faces: (CoreFace | null)[]
+  /** The core's side (m), the square the path goes round. */
+  core: number
+}
+
+/**
+ * Exit separation along the smoke path: core stairs' doors at mid-face of the core (on `stairDoorFaces`, default
+ * opposite faces), edge stairs at their centres; for each pair the shortest walk that does not cross the core, and the
+ * longest of those. Stair spots are about the tower centre with the core centred on it (team geometry, as the
+ * straight-line line), or about `centre` when given (a twisted import's core).
+ */
+export function smokePath(t: Tower, spots: { x: number; y: number; inCore: boolean }[], centre: { x: number; y: number } = { x: 0, y: 0 }): SmokePath {
+  const c = coreSide(t), h = c / 2
+  // the k-th core stair takes the k-th face given, else the k-th default
+  const faces: (CoreFace | null)[] = spots.map(() => null)
+  let k = 0
+  for (let i = 0; i < spots.length; i++) if (spots[i].inCore) { faces[i] = t.stairDoorFaces?.[k] ?? DEFAULT_DOOR_FACES[k % 4]; k++ }
+  const at = spots.map((s, i): P => (s.inCore ? [FACE_AT[faces[i]!][0] * h, FACE_AT[faces[i]!][1] * h] : [s.x - centre.x, s.y - centre.y]))
+  let best: SmokePath = { d: 0, pair: [0, 1], faces, core: c }
+  for (let i = 0; i < spots.length; i++) for (let j = i + 1; j < spots.length; j++) {
+    const d = pathAroundCore(at[i], at[j], h)
+    if (d > best.d) best = { d, pair: [i, j], faces, core: c }
+  }
+  return best
+}
+
 export const PLACEMENT_LABEL: Record<StairPlacement, string> = {
   core: 'both in the core',
   mixed: 'one in the core, one at the far plate corner',
@@ -587,6 +661,21 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     flag: 'verified',
     source: { ...VBBL_EXITS, page: '3.4.2.3' },
     note: `Stairs ${PLACEMENT_LABEL[placement]}${placement === 'core' ? ` of a ${c.toFixed(1)} m core` : ''}${placement !== 'core' && t.stairCorner ? ` (the ${t.stairCorner.toUpperCase()} corner in the tower's frame)` : ''} (team assumption on geometry). ${openUses.length ? `Open-plan floors (${[...new Set(openUses.map((s) => s.use))].join(', ')}) need half the ${(2 * halfDiag).toFixed(1)} m diagonal; floors with a public corridor need only 9 m. ` : ''}${placement === 'core' ? 'A central core often fails this on open floors: move a stair to the plate edge, split or widen the core, or show a public corridor.' : `${edgeSpots} stair${edgeSpots > 1 ? 's' : ''} at the plate edge take about ${fmt(edgeSpots * enclosure.area)} m² of lettable floor and ${(edgeSpots * (enclosure.a + enclosure.b)).toFixed(0)} m of facade per floor.`}`,
+  })
+  // P1 #11: the same exits along the smoke path round the fire-separated core (a code-consultant reading).
+  const smoke = smokePath(t, spots, straight ? coreCentre(t) : { x: 0, y: 0 })
+  const faceWord = (i: number) => (smoke.faces[i] ? `${smoke.faces[i]!.toUpperCase()} face` : 'edge stair')
+  const doorsGiven = !!t.stairDoorFaces?.length
+  rules.push({
+    id: `separation-smoke-${t.id}`,
+    label: 'Exit separation (smoke path)',
+    value: `${smoke.d.toFixed(1)} m door to door round the core (${faceWord(smoke.pair[0])} to ${faceWord(smoke.pair[1])}) vs ${separation.toFixed(1)} m straight`,
+    threshold: `≥ ${separationNeeded.toFixed(1)} m (half the plate diagonal${openUses.length ? '' : '; 9 m cap with public corridors'}), along the shortest smoke path that does not cross a fire separation; two exits need comply`,
+    state: smoke.d >= separationNeeded - 0.05 ? 'pass' : 'fail',
+    flag: 'unverified',
+    source: { label: 'BC Building Code 2024, Division B, 3.4.2.3(3) and Note A-3.4.2.3.(1) (book notes bcbc-2024.md); VBBL 2025 to confirm', page: 'pp.3-233, 3-381' },
+    specialist: 'A code-consultant reading of the smoke path (3.4.2.3(3)): confirm it before an edge stair is dropped or kept on its strength.',
+    note: `Core stair doors at mid-face of the ${smoke.core.toFixed(1)} m core${doorsGiven ? ' on the faces you set (stairDoorFaces)' : ', on opposite faces by default (set stairDoorFaces for the faces they open on)'}; edge stairs at their centres; the shorter way round the core's fire-separated walls (team geometry, rectangular core about the tower centre). Doors on adjacent faces halve it, on the same face it is about nothing. The straight-line line above stays the check of record until a code consultant accepts this reading.`,
   })
   if (straight) {
     const e1 = straight.edge.find((e) => e.how !== 'found') ?? straight.edge[0]

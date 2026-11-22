@@ -133,7 +133,8 @@ export const USER_TYPES: UserType[] = [
         id: 'practitioner.permit', type: 'practitioner', name: 'Permit-stage checks',
         goal: 'Code, parking and loading, trips, facade, energy and nature: the lists a permit asks for.',
         project: 'city', step: 'plates',
-        nodes: ['built.life-safety', 'built.mobility', 'built.trips', 'built.facade', 'built.energy-carbon', 'built.city-in-nature'],
+        // 21 Nov (P1 #11 smoke path): exit separation read along the smoke path joins the permit checks.
+        nodes: ['built.life-safety', 'built.egress', 'built.mobility', 'built.trips', 'built.facade', 'built.energy-carbon', 'built.city-in-nature'],
         says: ['development permit', 'building permit submission', 'checklist before submitting'],
       },
     ],

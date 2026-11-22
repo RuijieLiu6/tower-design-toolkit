@@ -116,6 +116,12 @@ export interface Tower {
    * straight shaft fits every storey (engine/egress.ts straightStairs, G31). Ignored with both stairs in the core.
    */
   stairAt?: [number, number]
+  /**
+   * Schematic: the core face each core stair's door opens on (P1 #11, smoke path), in the tower's own frame (n = +y,
+   * e = +x), one per core stair in stair order. Absent (or short): n, s, e, w in turn, so two core stairs open on
+   * opposite faces. Read only by the smoke-path separation line (engine/egress.ts smokePath).
+   */
+  stairDoorFaces?: CoreFace[]
   /** Schematic: exits of the podium itself (stairs at its edge, doors at grade), on top of the tower's core stairs. Absent: none. */
   podiumExits?: PodiumExits
   /** Imported massing (research P14-M02/M04): floors come from slicing the model instead of the parametric box. */
@@ -275,6 +281,8 @@ export interface ImportedMass {
 export type StairPlacement = 'core' | 'mixed' | 'perimeter'
 /** A plate corner in the tower's own frame: e = +x (width), n = +y (depth). */
 export type StairCorner = 'ne' | 'nw' | 'se' | 'sw'
+/** A face of the core in the tower's own frame (n = +y, e = +x), for the stair doors (P1 #11). */
+export type CoreFace = 'n' | 'e' | 's' | 'w'
 /**
  * Podium exits for travel distance (engine/egress.ts): positions, or a count spread evenly round the podium edge
  * (team assumption on where they sit). `at` wins over `count`; none (or count 0) = only the tower's core stairs.

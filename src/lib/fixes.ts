@@ -56,6 +56,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Egress & stairs
   [/^stair-width/, 'Widen the exit stairs or add one (Schematic › Exit stairs), or lower the busiest floor\'s occupant load.'],
   [/^exits/, 'Add an exit stair so every floor has at least two (Schematic › Exit stairs).'],
+  // P1 #11 (21 Nov): the smoke-path reading of the same exits (a code-consultant reading).
+  [/^separation-smoke/, 'Open the core stair doors on opposite faces of the core (the tower’s stairDoorFaces), or move a stair to the plate edge (Schematic › Exit stairs); a code consultant confirms the smoke-path reading.'],
   [/^separation/, 'Move the stairs apart: try "Core + edge" or "At the edges" (Schematic › Exit stairs).'],
   [/^travel-podium/, 'Give the podium its own exits closer to its far corners.'],
   [/^travel/, 'Shorten the walk to an exit: add a stair, or place stairs at the edges (Schematic › Exit stairs).'],

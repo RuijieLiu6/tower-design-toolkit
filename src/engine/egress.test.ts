@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CORNER_SIGN, DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, STAIR_MIN_MM, cornerToward, egressCheck, podiumExitSpots, postedLimitForRoom, stairEnclosure, stairSpots, storeyLoads, straightStairs } from './egress'
+import { CORNER_SIGN, DEFAULT_EGRESS_PRESETS, LOAD_FACTOR, pathAroundCore, smokePath, STAIR_MIN_MM, cornerToward, egressCheck, podiumExitSpots, postedLimitForRoom, stairEnclosure, stairSpots, storeyLoads, straightStairs } from './egress'
 import { DEFAULT_LIFT_PRESETS, liftCheck, planRises } from './lifts'
 import { skyRoomCheck, stablePostedLimit } from './skyRoom'
 import { towerFloors } from './massing'
@@ -52,6 +52,39 @@ describe('occupant loads re-sourced (P1 #12: BCBC 2024 lounges, linked second-st
     expect(line).toMatchObject({ state: 'pass', flag: 'unverified' })
     expect(line.value).toMatch(new RegExp(`^L${on.level} retail: [0-9,]+ people`))
     expect(line.source).toMatchObject({ page: 'p.305' })
+  })
+})
+
+describe('exit separation along the smoke path (P1 #11, BCBC 3.4.2.3(3))', () => {
+  it('walks round a square core the shorter way: opposite mid-faces 2 sides, adjacent 1, straight past it when clear', () => {
+    expect(pathAroundCore([0, 12], [0, -12], 12)).toBeCloseTo(48, 6) // the book's 12 + 24 + 12
+    expect(pathAroundCore([0, 12], [12, 0], 12)).toBeCloseTo(24, 6)
+    expect(pathAroundCore([0, 12], [30, 12], 12)).toBeCloseTo(30, 6) // along the face, not through it
+  })
+  it('core stairs on opposite faces by default; adjacent faces when set; shown beside the straight line, flagged unverified with a specialist note', () => {
+    const e = egressCheck(plain, DEFAULT_EGRESS_PRESETS, li)
+    const straight = e.rules.find((r) => r.id === 'separation-t1')!
+    const smoke = e.rules.find((r) => r.id === 'separation-smoke-t1')!
+    expect(straight).toBeDefined() // the straight-line line stays
+    const sp = smokePath(plain, e.spots)
+    expect(sp.faces.filter(Boolean)).toEqual(['n', 's'])
+    expect(sp.d).toBeCloseTo(2 * sp.core, 6)
+    expect(smoke).toMatchObject({ flag: 'unverified', label: 'Exit separation (smoke path)' })
+    expect(smoke.specialist).toMatch(/code-consultant/)
+    expect(smoke.source).toMatchObject({ page: 'pp.3-233, 3-381' })
+    expect(smoke.value).toMatch(/door to door round the core \(N face to S face\)/)
+    expect(smoke.state).toBe(sp.d >= e.separationNeeded - 0.05 ? 'pass' : 'fail')
+    const adj = smokePath({ ...plain, stairDoorFaces: ['n', 'e'] }, e.spots)
+    expect(adj.d).toBeCloseTo(sp.core, 6)
+    expect(smokePath({ ...plain, stairDoorFaces: ['s', 's'] }, e.spots).d).toBeCloseTo(0, 6)
+  })
+  it('an edge stair is read at its centre, round the core where the straight line would cross it', () => {
+    const t: Tower = { ...plain, stairPlacement: 'mixed' }
+    const e = egressCheck(t, DEFAULT_EGRESS_PRESETS, li)
+    const sp = smokePath(t, e.spots)
+    expect(sp.faces.filter((f) => f === null)).toHaveLength(1)
+    expect(sp.d).toBeGreaterThan(0)
+    expect(e.rules.find((r) => r.id === 'separation-smoke-t1')!.value).toMatch(/edge stair/)
   })
 })
 
