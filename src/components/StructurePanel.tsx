@@ -163,7 +163,7 @@ function CoreTop({ t }: { t: Tower }) {
             onChange={(e) => { const v = Math.max(0, Math.round(Number(e.target.value))); updateTower(t.id, { earStairs: Number.isFinite(v) && v > 0 ? v : undefined }) }} className={`w-12 ${input}`} /></span>
         </label>
       )}
-      <MethodFold title="About the core top"><p>A storey whose mid-height lies above the core top has no core: no core area (its net area is the whole plate), no core walls in the storey weights, no lift and no core stair. Core holds the lifts stops the lift rises at the last storey with a core and flags the storeys above; Egress asks each part of those storeys for two exits of its own; the core-alone frequency stops the cantilever at the core top and carries the storeys above as a rigid crown (an upper bound).</p></MethodFold>
+      <MethodFold title="About the core top"><p>A storey whose mid-height lies above the core top has no core: no core area (its net area is the whole plate), no core walls in the storey weights, no lift and no core stair. Core holds the lifts stops the lift rises at the last storey with a core and flags the storeys above; Egress asks each part of those storeys for two exits of its own; the core-alone frequency stops the cantilever at the core top and carries the storeys above as a rigid crown (an upper bound). The lateral-system change line says what carries the load above the core top.</p></MethodFold>
     </div>
   )
 }

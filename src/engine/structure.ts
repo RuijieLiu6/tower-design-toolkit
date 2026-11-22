@@ -3,6 +3,7 @@
 // readings the research corrected are "unverified" here.
 import { coreStepsOf, coreTopZ, towerFloors } from './massing'
 import { apertureLines, coreTopText } from './openingField'
+import { lateralChangeLines } from './lateralChange'
 import type { Flag, Floor, RuleResult, RuleState, Source, Tower } from './types'
 import { coreStiffness, CRACKED_RANGE, type CoreStiffness } from './storeyWeight'
 import { f1Empirical } from './acrossWind'
@@ -75,7 +76,7 @@ export interface StructureResult {
 export type StructureTab = 'seismic' | 'lateral' | 'floors'
 export const STRUCTURE_TABS: { id: StructureTab; tab: string; lines: string[] }[] = [
   { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'sloped-columns', 'geometric', 'core-ratio'] },
-  { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers', 'aperture-core', 'aperture-sky', 'aperture-bridge'] },
+  { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers', 'lateral-change', 'aperture-core', 'aperture-sky', 'aperture-bridge'] },
   { id: 'floors', tab: 'Floors & spans', lines: ['floor-reach', 'floor-dead-load'] },
 ]
 /** The tab a structure line shows under (unlisted lines: the first). */
@@ -218,6 +219,9 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
 
   // Openings through the tower (tool cycle 12): the core clear of each, its sky, and what spans its head as a tie.
   rules.push(...apertureLines(t, north))
+  // The lateral-system change at the core top (tool cycle 12; engine/lateralChange.ts), read after every other line so
+  // it can name an open-storey soft / weak storey check if the tool has one.
+  rules.push(...lateralChangeLines(t, weights, { north, rules, floors }))
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
   return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav, core }
