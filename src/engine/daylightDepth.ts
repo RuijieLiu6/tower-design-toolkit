@@ -7,6 +7,8 @@
 // 2.5 x (head - 0.76 m) (Allen & Iano p.151). The bands run from the strictest of the three to the most generous.
 import { DEFAULT_INTERIOR } from './interior'
 import { coreSideAt } from './massing'
+import { TWIST_MIN } from './acrossWind'
+import { towerTwist } from './twist'
 import type { Floor, Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 /** Presets (team assumptions in research P02-M06): rear-half reflectance Rb, share tiers. `k` is kept for callers that
@@ -71,6 +73,17 @@ export function bandShares(p: Plate, d1: number, d2: number): Record<DaylightBan
 /** BRE limiting-depth ratio L/W + L/H for a room L deep, W wide along the window, window head H; and the limit. */
 export function limitingDepth(L: number, W: number, H: number, rb = DAYLIGHT.rb): { ratio: number; limit: number } {
   return { ratio: L / Math.max(0.1, W) + L / Math.max(0.1, H), limit: 2 / (1 - Math.min(0.95, Math.max(0, rb))) }
+}
+
+/** Node contract (21 Nov): why a tower lies outside this screen's boundary (a rectangular box plate with a central
+ *  core), or undefined when it does not. */
+export function daylightSpecialist(t: Tower): string | undefined {
+  if (t.imported) return 'Imported storeys: the screen reads a rectangular box plate, not their outlines; a daylight specialist or a simulation on the real plates confirms it.'
+  if (t.drawn) return 'A drawn free-form mass: the screen reads a rectangular box plate; a daylight specialist or a simulation on the real plates confirms it.'
+  if (t.form && t.form.type !== 'none') return `A ${t.form.type} tower form: the plate changes with height, so the typical box plate stands in; a daylight specialist confirms it.`
+  const tw = towerTwist(t)
+  if (tw.deg >= TWIST_MIN) return `The plate turns ${tw.deg.toFixed(0)}° with height: depths are read on the untwisted box plate; a daylight specialist confirms it.`
+  return undefined
 }
 
 // ---------------------------------------------------------------- per use
@@ -142,6 +155,7 @@ export interface DaylightResult { uses: UseScreen[]; rules: RuleResult[]; k: num
 export function daylightScreen(t: Tower, floors: Floor[], k = DAYLIGHT.k): DaylightResult {
   const uses = SCREENED.map((u) => screenUse(t, u, floors, k)).filter((x): x is UseScreen => !!x)
   const rules: RuleResult[] = []
+  const specialist = uses.length ? daylightSpecialist(t) : undefined
   if (!uses.length) {
     rules.push(rule('dl-none', 'Regularly occupied floors', 'no office, home or hotel floors in this tower', 'office, residential or hotel programme', 'unknown', 'unresolved', P02))
     return { uses, rules, k }
@@ -165,6 +179,7 @@ export function daylightScreen(t: Tower, floors: Floor[], k = DAYLIGHT.k): Dayli
       `One sourced reading in place of the 1 × / 2 × head, 6 m and 3 × head rules. Daylit depth at this window head (${u.head.toFixed(2)} m): primary zone ${u.depths.primary} m (EP pp.199, 229–230); overcast about ${u.depths.overcast.toFixed(1)} m, 1.5 × the clear height (EP p.204; Vancouver winters are overcast; the head stands in for the ceiling, team); full daylight depth ${u.depths.full.toFixed(1)} m, 2.5 × (${u.head.toFixed(2)} − 0.76) (Allen & Iano, The Architect’s Studio Companion, 6th ed., p.151). Each 0.1 m of window head adds 0.25 m of full depth: Storey height by use shows what that height costs the tower.`
       + (edges ? ` Garden or loggia edges at ${edges} count as an inner facade (deck use).` : '')))
   }
+  if (specialist) for (const r of rules) if (/^dl-.*-(depth|share|rule)$/.test(r.id)) r.specialist = specialist
   rules.push(rule('dl-udi', 'Over-lit daylight (UDI)', 'not computed by the depth screen: the sDA and ASE tab counts useful daylight up to 3,000 lux', `over ${DAYLIGHT_RULE.overlit.toLocaleString('en-CA')} lux reads as over-lit, where occupants close the blinds`, 'unknown', 'verified', EP_UDI,
     'UDI bands: under 200 lux none, 200–500 partial, 500–1,500 adequate, over 1,500 over-lit (EP p.198). Bright south and west faces may read better in a 3,000 lux count than occupants would find them.'))
   return { uses, rules, k }

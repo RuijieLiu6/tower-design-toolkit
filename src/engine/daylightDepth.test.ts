@@ -130,6 +130,16 @@ describe('daylight screen of a tower', () => {
     expect(screenUse({ ...t, deckUses: [{ level: lvl, use: 'none' }] }, 'residential', fl)!.innerEdges).toEqual([])
   })
 
+  it('marks a free-form or twisted tower as needing a specialist, never changing the state (node contract)', () => {
+    const box = daylightScreen(t, floors)
+    expect(box.rules.every((x) => !x.specialist)).toBe(true)
+    const tw = { ...t, form: { type: 'twist' as const, p: {}, base: 'box' as never } }
+    const r = daylightScreen(tw, floors)
+    const line = r.rules.find((x) => /^dl-.*-depth$/.test(x.id))!
+    expect(line.specialist).toMatch(/specialist/)
+    expect(line.state).toBe(box.rules.find((x) => x.id === line.id)!.state)
+  })
+
   it('adds an over-lit UDI line at 1,500 lux, not computed by the depth screen', () => {
     const r = daylightScreen(t, floors)
     expect(r.rules.find((x) => x.id === 'dl-udi')).toMatchObject({ state: 'unknown', flag: 'verified', source: { page: 'p.198' } })
