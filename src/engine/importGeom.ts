@@ -237,14 +237,42 @@ export function plateAreas(seg: number[]): { area: number; signed: number; loops
   return { area: simple ? signed : unionSegmentArea(seg), signed, loops }
 }
 
-/** Plate at one height: union area, net signed area and simplified outline rings. */
+/** A point inside a ring or within `tol` metres of one of its edges. */
+function inOrOn(p: Pt, r: Pt[], tol = 0.05): boolean {
+  let c = false
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const a = r[i], b = r[j]
+    const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy
+    const t = L2 > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2)) : 0
+    if (Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)) <= tol) return true
+    if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]) c = !c
+  }
+  return c
+}
+
+/**
+ * A storey's loops without the parts nested inside a larger part of the same winding (gap G53, review R6-5): a room or a
+ * part with its own use modelled as a solid inside the plate is not facade, and its outline would count its edges as
+ * facade (glare, sun, PV) and its area as off-centre plate. Holes (the opposite winding: a courtyard) stay. The parts'
+ * own areas by use stay with the storey as an attribute (useAreas), not as outlines.
+ */
+export function dropNestedLoops(loops: Pt[][]): Pt[][] {
+  const a = loops.map(ringArea)
+  return loops.filter((r, i) => !loops.some((o, j) => {
+    if (j === i || Math.sign(a[j]) !== Math.sign(a[i])) return false
+    const bigger = Math.abs(a[j]) > Math.abs(a[i]) + 1e-6, same = Math.abs(Math.abs(a[j]) - Math.abs(a[i])) <= 1e-6
+    return (bigger || (same && j < i)) && r.every((p) => inOrOn(p, o))
+  }))
+}
+
+/** Plate at one height: union area, net signed area and simplified outline rings (nested parts merged, G53). */
 export function plateAt(m: MeshData, h: number): { area: number; signed: number; loops: Pt[][]; open: number } {
   const seg = sliceSegments(m, h)
   const { area, signed, loops } = plateAreas(seg)
   return {
     area,
     signed,
-    loops: loops.filter((l) => l.closed && l.ring.length >= 3).map((l) => simplifyRing(l.ring).map(([x, y]) => [Math.round(x * 100) / 100, Math.round(y * 100) / 100] as Pt)),
+    loops: dropNestedLoops(loops.filter((l) => l.closed && l.ring.length >= 3).map((l) => simplifyRing(l.ring).map(([x, y]) => [Math.round(x * 100) / 100, Math.round(y * 100) / 100] as Pt))),
     open: loops.filter((l) => !l.closed).length,
   }
 }
