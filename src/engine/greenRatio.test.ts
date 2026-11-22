@@ -9,6 +9,7 @@ import { importedTower, rect, stack } from './testStoreys'
 import type { Tower } from './types'
 import { SITE } from './vtcRules'
 import { towerFloors } from './massing'
+import { defaultTower } from '../store'
 
 const green = (from: number, to: number, wwr = 0.3): FacadeZone => ({ face: 'all', from, to, strat: 'greenwall', wwr, shgc: 0.4, depth: 0, pv: 0, operable: false })
 // 40 m square homes (3.2 m storeys) on a 60 m podium; the roof over the top storey (level 44) declared planted.
@@ -54,5 +55,19 @@ describe('Vegetated area: decks, walls, grade (node built.green-ratio)', () => {
     const r = run(base())
     expect(row(r, 'green-site').value).toMatch(/^no vegetated area modelled/)
     expect(row(r, 'green-gfa').state).toBe('unknown')
+  })
+})
+
+describe('node contract on the vegetated-area lines', () => {
+  it('marks Needs specialist when a tower with greenwall zones is twisted, never changing the state', () => {
+    // The default parametric tower (no imported storeys, no turned block): inside the boundary.
+    const plain = run({ ...defaultTower('vtc'), facadeZones: [green(10, 19)] })
+    expect(row(plain, 'green-site').value).toMatch(/walls [1-9]/)
+    expect(row(plain, 'green-site').specialist).toBeUndefined()
+    // Imported storeys count as free form.
+    const r = run(base({ facadeZones: [green(10, 19)] }))
+    expect(row(r, 'green-site').specialist).toMatch(/twisted or free-form/)
+    expect(row(r, 'green-site').state).toBe('unknown')
+    expect(r.rules.find((l) => l.id === 'green-gfa')!.specialist).toMatch(/specialist/)
   })
 })

@@ -54,6 +54,16 @@ export function greenwallArea(towers: Tower[], north: number): GreenWalls | null
   return list.length ? { m2: list.reduce((s, p) => s + p.m2, 0), parts: list } : null
 }
 
+/**
+ * Node contract (21 Nov): the planted-wall reading follows each storey's plate edges and the zone set for its face; on a
+ * twisted or free-form tower (blocks turned against each other, imported or drawn storeys) which wall a zone covers needs
+ * a facade or landscape specialist's read. Null when no tower with greenwall zones is like that.
+ */
+export function greenSpecialist(towers: Tower[]): string | undefined {
+  const odd = towers.filter((t) => (t.facadeZones ?? []).some((z) => z.strat === 'greenwall') && (t.imported || (t.blocks ?? []).some((b) => Math.abs(b.rotation) > 0.5)))
+  return odd.length ? `${odd.map((t) => t.name).join(', ')}: twisted or free-form storeys, so which walls a greenwall zone covers needs a facade or landscape specialist’s read` : undefined
+}
+
 /** The arguments cityInNature takes, from one set of sources. Model trees and planting at grade come from the input. */
 export function natureArgs(input: NatureInput, s: NatureSources): { coneOverall: string[] | null; ctx: NatureContext } {
   const city = s.project === 'city'
@@ -74,6 +84,7 @@ export function natureArgs(input: NatureInput, s: NatureSources): { coneOverall:
       groundPlantedM2: input.groundPlantedM2 ?? null,
       greenwalls: greenwallArea(s.towers, s.north),
       gfa: s.towers.length ? floors.flat().reduce((a, f) => a + f.area, 0) : null,
+      greenSpecialist: greenSpecialist(s.towers),
     },
   }
 }

@@ -203,6 +203,11 @@ export interface NatureContext {
   greenwalls?: GreenWalls | null
   /** Modelled gross floor area of the towers (m²; every storey, as energyCarbon areas().mfa), for vegetated area ÷ GFA. */
   gfa?: number | null
+  /**
+   * Node contract (21 Nov): why the planted-wall reading lies outside the method's boundary (a tower with greenwall zones
+   * is twisted or free-form), shown as a Needs specialist marker on the vegetated-area lines. Absent: inside it.
+   */
+  greenSpecialist?: string
 }
 
 /** One greenwall zone's planted wall: face length × band height (the storey) × (1 − WWR), summed over its storeys. */
@@ -239,6 +244,8 @@ export interface NatureRow {
   flag: Flag
   source: Source
   note?: string
+  /** Node contract: the design lies outside the method's boundary, and why (a Needs specialist marker, never the state). */
+  specialist?: string
 }
 
 export interface NatureFalseAssumption { claim: string; correction: string; source: Source }
@@ -332,6 +339,7 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
     value: vegTotal <= 0 ? vegEmpty : !siteArea ? `${m2s(vegTotal)} (${split}); needs a site area` : `${ratio(vegTotal / siteArea)} × site, ${m2s(vegTotal)} (${split})`,
     entered: vegTotal > 0 ? false : null, threshold: ECO_PENDING, state: 'unknown',
     force: 'team_assumption', flag: 'unresolved', source: PM,
+    ...(ctx.greenSpecialist && wallPlanted > 0 ? { specialist: ctx.greenSpecialist } : {}),
     note: `${vegHow} A reading, not a rule: no Vancouver rule sets this ratio, and the precedents are tropical towers.`,
   })
   const gfa = ctx.gfa ?? null
@@ -340,6 +348,7 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
     value: vegTotal <= 0 ? vegEmpty : !gfa ? `${m2s(vegTotal)} (${split}); needs the storeys from the design` : `${ratio(vegTotal / gfa)} × GFA, ${m2s(vegTotal)} of ${m2s(gfa)} (${split})`,
     entered: vegTotal > 0 ? false : null, threshold: ECO_PENDING, state: 'unknown',
     force: 'team_assumption', flag: 'unresolved', source: PM,
+    ...(ctx.greenSpecialist && wallPlanted > 0 ? { specialist: ctx.greenSpecialist } : {}),
     note: `${vegHow} GFA is the modelled floor area of every storey (as the energy node counts it).`,
   })
 
@@ -504,7 +513,7 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
     correction: 'The Higher Buildings Policy invited exceptional core projects to enter the QE view to enhance the view of the city in nature (HBPR p.9). PVG 3.4 sets the conditions; scored as a failure, every VTC tower would fail.',
     source: { ...S.hbpr, page: 'p.9; PVG 3.4' },
   }]
-  const rules: RuleResult[] = rows.map((r) => ({ id: r.id, label: r.name, value: r.value, threshold: r.threshold, state: r.state, flag: r.flag, source: r.source, note: `${FORCE_LABEL[r.force]}${r.note ? `. ${r.note}` : ''}` }))
+  const rules: RuleResult[] = rows.map((r) => ({ id: r.id, label: r.name, value: r.value, threshold: r.threshold, state: r.state, flag: r.flag, source: r.source, note: `${FORCE_LABEL[r.force]}${r.note ? `. ${r.note}` : ''}`, ...(r.specialist ? { specialist: r.specialist } : {}) }))
   return {
     rows,
     binding: { passed: binding.filter((r) => r.state === 'pass').length, failed: binding.filter((r) => r.state === 'fail').length, open: binding.filter((r) => r.state === 'unknown').length, total: binding.length },
