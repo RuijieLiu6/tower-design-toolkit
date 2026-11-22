@@ -266,6 +266,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^mob-transit$/, 'Turn on the transit link to the station (Program step › Ground & public realm).'],
   [/^rain-(detention|first-stage)$/, 'Answer the rainwater pathway under Details: the volume shown is what an engineered pathway must store.'],
   [/^bird-zone$/, 'Enter the treated share of glass in the bird zone (Facade node) and the mature tree height, if trees are planned.'],
+  // Facade panels (tool cycle 12, engine/facetPanels.ts)
+  [/^fa-planar$/, 'Keep the faces flat: let each face keep its direction up the tower (a taper, set-backs, or a plan morph between shapes with the same edge directions, such as a square to its octagon) instead of a turn; or plan cold-bent glass or panels split into flat triangles and ask a facade engineer for the bending limit.'],
   // Vegetated area ÷ site, ÷ GFA and above grade ÷ footprint (node built.green-ratio): readings with no threshold (Ecocity
   // in the Sky gives no green plot ratio); this says how to give them area.
   [/^green-(site|gfa|above|resident|planters)$/, 'Model the planting so the ratio reads: mark decks planted (Tower › deck use), set greenwall facade zones (Sun & Wind › Façade zones), declare planters on the tower (planters: level, to, length, width) and type the planting at grade (Green claims check › cover). No book sets a target: any target is the team’s.'],

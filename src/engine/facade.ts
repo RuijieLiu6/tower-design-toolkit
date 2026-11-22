@@ -4,6 +4,7 @@
 
 import { readsStoreys, towerFloors, towerFootprint, towerMasses } from './massing'
 import { deckUseOf, towerDecks } from './sw/decks'
+import { panelLines, panelReading, type PanelReading } from './facetPanels'
 import type { RuleResult, RuleState, Tower } from './types'
 
 export type FacadeSystem = 'curtain-wall' | 'window-wall' | 'punched' | 'double-skin'
@@ -131,7 +132,7 @@ export const deckHeights = (fs: DeckFace[], top: number) => [...new Set(fs.filte
 /** UBC Bird Backgrounder Table 1 (P12-S31): treated share by tier; Tier 4 sets no percentage. */
 export const TIERS: { tier: number; share: number }[] = [{ tier: 1, share: 0.9 }, { tier: 2, share: 0.85 }, { tier: 3, share: 0.55 }]
 
-export interface FacadeResult { faces: Face[]; rules: RuleResult[]; wall: number; glass: number; zoneGlass: number; byBin: Record<string, { wall: number; glass: number }>; /** Glass beside planted decks above the zone (G34), and its faces. */ deckGlass: number; deckFaces: DeckFace[] }
+export interface FacadeResult { faces: Face[]; rules: RuleResult[]; wall: number; glass: number; zoneGlass: number; byBin: Record<string, { wall: number; glass: number }>; /** Glass beside planted decks above the zone (G34), and its faces. */ deckGlass: number; deckFaces: DeckFace[]; /** Panel sizes, sloped and warped faces (tool cycle 12, engine/facetPanels.ts). */ panels: PanelReading }
 
 export function facadeCheck(towers: Tower[], input: FacadeInput, northDeg: number): FacadeResult {
   const fs = faces(towers, input, northDeg)
@@ -182,11 +183,14 @@ export function facadeCheck(towers: Tower[], input: FacadeInput, northDeg: numbe
     state: 'unknown', flag: input.shgc == null ? 'unresolved' : 'unverified', source: { label: 'VBBL 2019 10.2.2.3(1)(e) (research P12-S71)', url: 'https://free.bcpublications.ca/civix/document/id/public/vbbl2019/564929486' },
     note: `${input.shgc != null ? (input.shgc <= 0.36 ? 'At or below the line. ' : 'Above the line: judge by the energy result. ') : ''}Towers follow 10.2.2.5, so this line's applicability is unconfirmed; legacy edition, VBBL 2025 unread.`,
   })
+  // Panel sizes and flat panels (tool cycle 12, R7 tool 3): for morphed, faceted and turning forms.
+  const panels = panelReading(towers)
+  rules.push(...panelLines(panels))
   rules.push({
     id: 'fa-feasibility', label: 'Facade feasibility items', value: '6 items not assessed: wind pressure, inter-storey drift, perimeter fire containment and spandrel height, condensation at frames, rainscreen, cleaning and maintenance access',
     threshold: 'every item has an owner result before a board shows it as resolved', state: 'unknown', flag: 'team_assumption',
     source: { label: 'Research P12-M06b feasibility checklist (owners: structure, systems, energy)' },
     note: 'None is computed here. Wind and drift come from the structure nodes; fire containment and access from systems; condensation from energy.',
   })
-  return { faces: fs, rules, wall, glass, zoneGlass, byBin, deckGlass, deckFaces }
+  return { faces: fs, rules, wall, glass, zoneGlass, byBin, deckGlass, deckFaces, panels }
 }
