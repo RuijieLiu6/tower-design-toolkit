@@ -317,6 +317,8 @@ export const WindowSky = make('WindowSky', p('M4 3.5H14V13.5H4ZM9 3.5V13.5M4 8.5
 export const FormBox = make('FormBox', p('M12 3L20 7.5V16.5L12 21L4 16.5V7.5ZM4 7.5L12 12L20 7.5M12 12V21M8 5.3L16 9.8'))
 /** Storey height by use (P1 #8, 21 Nov): three storeys of a section with a height dimension beside them. */
 export const StoreyHeight = make('StoreyHeight', p('M3 20.5H15M3 14.5H15M3 8.5H15M3 3.5H15M5 20.5V3.5M13 20.5V3.5M19.5 8.5V14.5M17.5 8.5H21.5M17.5 14.5H21.5'))
+/** Green and shared levels up the tower (book node #18, 21 Nov): a tower in section, two bands across it and a gap between. */
+export const SkyLevels = make('SkyLevels', p('M7.5 21.5V2.5H16.5V21.5M4 21.5H20M5 7.5H19M5 15.5H19M12 9.5V13.5M10.5 11.5H13.5'))
 /** Skyline silhouette (21 Nov): a stepped tower among lower neighbours on the horizon line. */
 export const Skyline = make('Skyline', p('M2.5 20.5H21.5M4 20.5V14.5H8M8 20.5V9.5H10.5V4.5H13.5V9.5H16V20.5M16 16H20V20.5'))
 export const Thermometer = make('Thermometer', p('M14 14V5.5C14 4.4 13.1 3.5 12 3.5C10.9 3.5 10 4.4 10 5.5V14C8.8 14.7 8 16 8 17.5C8 19.7 9.8 21.5 12 21.5C14.2 21.5 16 19.7 16 17.5C16 16 15.2 14.7 14 14Z'))

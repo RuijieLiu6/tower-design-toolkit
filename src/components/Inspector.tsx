@@ -23,6 +23,7 @@ import LifeSafetyPanel from './LifeSafetyPanel'
 import { PlatePanel, SeparationPanel } from './SiteLimitsPanel'
 import SilhouettePanel from './SilhouettePanel'
 import F2fUsePanel from './F2fUsePanel'
+import SkyVillagesPanel from './SkyVillagesPanel'
 import SiteHeights from './site/SiteHeights'
 import RelaxAviationPanel from './RelaxAviationPanel'
 import EnergyCarbonResults from './EnergyCarbonResults'
@@ -532,6 +533,7 @@ export default function Inspector() {
       {n.id === 'built.floorplate' && enabled[n.id] && <PlatePanel />}
       {n.id === 'built.silhouette' && enabled[n.id] && <SilhouettePanel />}
       {n.id === 'built.f2f-use' && enabled[n.id] && <F2fUsePanel />}
+      {n.id === 'built.sky-villages' && enabled[n.id] && <SkyVillagesPanel />}
       {n.id === 'built.viewcones' && project === 'vtc' && <p className="px-4 py-3 text-meta text-muted">The view cones are checked in the Real Vancouver project; on the competition site the brief's height band applies (VTC hard rules). Tower separation and floor plate run here.</p>}
       {n.id === 'built.energy-carbon' && enabled[n.id] && <EnergyCarbonResults />}
       {n.id === 'built.wind-study' && enabled[n.id] && <WindStudyPanel />}

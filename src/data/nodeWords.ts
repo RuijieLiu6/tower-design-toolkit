@@ -7,7 +7,7 @@ export const NODE_WORDS: Record<string, string> = {
   'built.sun': 'Shadow', 'built.core-lifts': 'Core', 'built.egress': 'Egress', 'built.life-safety': 'Life safety',
   'built.sky-room': 'Sky room', 'built.economics': 'Value', 'built.culture-claims': 'Claims', 'built.model': 'Model',
   'built.provenance': 'AI-use log', 'built.mobility': 'Mobility', 'built.facade': 'Facade', 'built.interior': 'Interior',
-  'built.daylight-depth': 'Daylight', 'built.f2f-use': 'Storey', 'built.view-from': 'Views', 'built.vista': 'Vista', 'built.heights': 'Height',
+  'built.daylight-depth': 'Daylight', 'built.f2f-use': 'Storey', 'built.sky-villages': 'Sky levels', 'built.view-from': 'Views', 'built.vista': 'Vista', 'built.heights': 'Height',
   'built.pr-streetwall': 'Public realm', 'built.pr-frontage': 'Frontage', 'built.pr-ground': 'Open space',
   'built.city-in-nature': 'Green claims', 'built.solar-access': 'Sun hours', 'built.wind-procedure': 'Slenderness',
   'built.structure': 'Structure', 'built.wind-study': 'Wind study', 'built.wind-screen': 'Wind screen', 'built.trips': 'Trips',

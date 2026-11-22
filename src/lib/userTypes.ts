@@ -56,7 +56,7 @@ export const USER_TYPES: UserType[] = [
         project: 'vtc', step: 'site',
         // 21 Nov (R10 juries: "not distinctive enough", no reading of the skyline): the silhouette reading joins the Form checks.
         // 21 Nov (P1 #12 occupant loads): the exit stairs, now that amenity floors fill at the BCBC 2024 lounge row.
-        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.silhouette', 'built.sky-room', 'built.f2f-use', 'built.egress'],
+        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.silhouette', 'built.sky-room', 'built.f2f-use', 'built.egress', 'built.sky-villages'],
         says: ['competition entry and boards', 'Vancouver Tall Challenge brief and rules', 'student competition deadline'],
       },
       {
@@ -78,7 +78,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.codesign', type: 'designer', name: 'Run a co-design workshop',
         goal: 'The ground floor and public space a group can shape together, with care for culture and claims.',
         project: 'vtc', step: 'program',
-        nodes: ['built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.solar-access', 'built.city-in-nature', 'built.interior'],
+        nodes: ['built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.solar-access', 'built.city-in-nature', 'built.interior', 'built.sky-villages'],
         says: ['community workshop with residents', 'co-design session', 'public space and ground floor with the community'],
       },
       {
@@ -163,7 +163,7 @@ export const USER_TYPES: UserType[] = [
         goal: 'New shadow on parks and plazas, wind at street level, sky room access and nature.',
         project: 'city', step: 'volume',
         // 21 Nov (P1 #3): open space and the sun on the design's own square.
-        nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.sky-room', 'built.city-in-nature', 'built.pr-ground'],
+        nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.sky-room', 'built.city-in-nature', 'built.pr-ground', 'built.sky-villages'],
         says: ['shadow on parks', 'solar access guidelines', 'pedestrian wind', 'public realm review'],
       },
       {
@@ -171,7 +171,7 @@ export const USER_TYPES: UserType[] = [
         goal: 'Floor area and value, homes and keys per floor, trips and the station entrance, parking and loading.',
         project: 'city', step: 'program',
         // 21 Nov (P1 #2): the HBP 2.1(g) community benefit, with the sky room.
-        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior', 'built.f2f-use', 'built.sky-room'],
+        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior', 'built.f2f-use', 'built.sky-room', 'built.sky-villages'],
         says: ['density and FSR', 'transit and trips', 'parking and loading', 'community benefits'],
       },
     ],
@@ -203,14 +203,14 @@ export const USER_TYPES: UserType[] = [
         id: 'engineer.vertical', type: 'engineer', name: 'Lifts, egress and life safety',
         goal: 'Lift groups and sky lobbies, stair widths and exits, the high-building code checklist.',
         project: 'vtc', step: 'plates',
-        nodes: ['built.core-lifts', 'built.egress', 'built.life-safety', 'built.sky-room', 'built.interior'],
+        nodes: ['built.core-lifts', 'built.egress', 'built.life-safety', 'built.sky-room', 'built.interior', 'built.sky-villages'],
         says: ['elevators and lift groups', 'egress and stairs', 'fire and life safety code'],
       },
       {
         id: 'engineer.sustainability', type: 'engineer', name: 'Energy, carbon and daylight',
         goal: 'Energy and emissions against the targets, embodied carbon, glazing, daylight and nature.',
         project: 'city', step: 'plates',
-        nodes: ['built.energy-carbon', 'built.facade', 'built.daylight-depth', 'built.city-in-nature', 'built.solar-access', 'built.life-safety'],
+        nodes: ['built.energy-carbon', 'built.facade', 'built.daylight-depth', 'built.city-in-nature', 'built.solar-access', 'built.life-safety', 'built.sky-villages'],
         says: ['energy and carbon targets', 'embodied carbon', 'sustainability and green building', 'daylight and glazing'],
       },
     ],

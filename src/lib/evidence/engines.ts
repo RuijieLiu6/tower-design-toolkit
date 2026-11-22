@@ -14,6 +14,7 @@ import { DEFAULT_FACADE, facadeCheck, type FacadeInput } from '../../engine/faca
 import { interiorCheck } from '../../engine/interior'
 import { daylightScreen } from '../../engine/daylightDepth'
 import { f2fUse } from '../../engine/f2fUse'
+import { skyVillages } from '../../engine/skyVillages'
 import { DEFAULT_SYSTEMS_PRESETS, lifeSafety, type SystemsPresets } from '../../engine/lifeSafety'
 import { hbpChecklist } from '../../engine/hbpArea'
 import { aviationChecklist, relaxationChecklist } from '../../engine/relaxAviation'
@@ -148,6 +149,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),
     'built.f2f-use': towers.map((t) => f2fUse(t, towerFloors(t)).rules),
+    'built.sky-villages': towers.map((t) => skyVillages(t, towerFloors(t), { north, homeM2: i.liftPresets.homeM2 }).rules),
     // Higher Buildings area and ceiling (book node #1): both projects; the competition site reads as an assumed site.
     'built.relax-aviation': towers.map((t) => [...hbpChecklist(t, i.project, CITY_ORIGIN, { routeOn: false, ceilingFt: null, streets: i.cityStreets?.streets.map((s) => s.name) ?? null }),
       ...(i.project === 'city' ? relaxationChecklist(t, [], 15, i.studyArea ?? null, CITY_ORIGIN) : []), ...aviationChecklist(t, i.project === 'city' ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)]),

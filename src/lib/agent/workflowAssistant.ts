@@ -62,6 +62,7 @@ const ALIASES: Record<string, string[]> = {
   'built.facade': ['facade', 'façade', 'glazing', 'glass', 'bird', 'birds', 'bird-friendly', 'window to wall'],
   'built.interior': ['interior', 'unit mix', 'units', 'homes', 'apartments', 'hotel keys', 'floor layout', 'activities'],
   'built.daylight-depth': ['daylight', 'plate depth', 'floor depth', 'natural light'],
+  'built.sky-villages': ['sky village', 'sky villages', 'sky garden', 'sky gardens', 'shared levels', 'green levels', 'vertical community', 'sky courts', 'green and shared levels'],
   'built.f2f-use': ['storey height', 'floor-to-floor', 'floor to floor', 'ceiling height', 'storey height by use'],
   'built.view-from': ['view from', 'rooftop view', 'views from', 'mountain view', 'mountain views', 'north shore'],
   'built.vista': ['vista', 'view study', 'view studies', 'site boundary'],

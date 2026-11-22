@@ -236,6 +236,10 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^dl-.*-share$/, 'Bring more floor within daylight reach: a slimmer plate (width × depth in Massing), a smaller core, or a taller floor-to-floor (it raises the window head; see Storey height by use for the height it costs).'],
   // P1 #8: a storey over typical + 0.4 m.
   [/^f2f-(residential|hotel|office)$/, 'Lower this use’s floor-to-floor toward the typical value (Program › bands, storey height) to free height under the cap, or keep it and say on the boards what the height buys (daylight depth, ceilings, services).'],
+  // Book node #18: a planted or shared gap over 25 storeys (precedent band, Ecocity pp.49, 70–71, 151, 157).
+  [/^sv-planted$/, 'Put a planted level in the longest stretch: declare a deck there planted with its soil (Tower › deck use; the list under the line names the decks in that gap), open a garden storey or winter garden, or declare planters or a greenwall band (Sun & Wind › Façade zones). The precedent puts one about every 10 storeys.'],
+  [/^sv-shared$/, 'Put a shared level in the longest stretch: a sky lobby with residents’ rooms (Section › sky lobbies), an amenity or civic floor (Program › floor use) or a public stop on the sky room’s lifts; the precedent pairs it with the plant or outrigger storey about every 25 storeys.'],
+  [/^sv-homes$/, 'Give the homes a shared level of their own: a residents’ amenity floor or a sky lobby with shared rooms in the residential stack (Program › floor use, or Section › sky lobbies).'],
   [/^dl-udi$/, 'Run Daylight › sDA and ASE and read the hours over 1,500 lux on the bright faces: shading or a lower-transmittance glass there.'],
   [/^dl-.*-limit$/, 'Bring L/W + L/H under the limit: a shallower plate or a taller floor-to-floor (Massing).'],
   [/^mob-transit$/, 'Turn on the transit link to the station (Program step › Ground & public realm).'],
