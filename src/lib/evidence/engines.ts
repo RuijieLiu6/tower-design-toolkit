@@ -4,11 +4,11 @@
 // The engagement-and-claims guard and the AI-use log run when a culture input is given (gap G15): the app passes the
 // browser's ledger (lib/cultureStore.ts), the design harness passes a design's records and board text.
 import { VTC_NORTH_DEG } from '../../context'
-import { cityInNature, fourthStoreyTop, plantedSoil } from '../../engine/cityInNature'
+import { cityInNatureFrom, type ConeResult } from '../../engine/cityInNature'
 import { claimsLines, type Nation, type NationRecord } from '../../engine/culture'
 import { DEFAULT_ECON } from '../../engine/economics'
 import { egressCheck, type EgressPresets } from '../../engine/egress'
-import { DEFAULT_FACADE, facadeCheck } from '../../engine/facade'
+import { DEFAULT_FACADE, facadeCheck, type FacadeInput } from '../../engine/facade'
 import { interiorCheck } from '../../engine/interior'
 import { daylightScreen } from '../../engine/daylightDepth'
 import { f2fUse } from '../../engine/f2fUse'
@@ -87,9 +87,18 @@ export interface EvidenceInput {
   /**
    * City in Nature from the model (gap G12): the ground wind study's trees and screens (project frame; only trees with a
    * crown count), read beside the typed canopy, and planting typed at grade (m²) added to the planted decks' cover.
+   * Since node built.nature-inputs these live on the input (`cityInNature.groundPorous`, `.groundPlantedM2`), which the
+   * panel reads too; given here, they take the input's place.
    */
   groundPorous?: readonly ModelTree[] | null
   groundPlantedM2?: number | null
+  /**
+   * The Facade node's settings (lib/facadeStore.ts: system, WWR by face, treated share …). Fields left out keep
+   * DEFAULT_FACADE. They feed the facade lines and City in Nature's glazing and treated share, as in the panel.
+   */
+  facade?: Partial<FacadeInput> | null
+  /** Real Vancouver: the view-cone results (useResults().cones), for City in Nature's views and QE Park lines. */
+  cones?: ConeResult[] | null
 }
 
 /** Both projects' results side by side, so the hub lists every node's sources whichever project is open. */
@@ -106,6 +115,9 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
   const egress = towers.map((t) => egressCheck(t, i.egressPresets, i.liftPresets))
   const wind = towers.map((t) => windProcedure(t, i.windPresets))
   const north = i.project === 'vtc' ? VTC_NORTH_DEG : 0
+  const facadeSettings: FacadeInput = { ...DEFAULT_FACADE, ...Object.fromEntries(Object.entries(i.facade ?? {}).filter(([, v]) => v !== undefined)) }
+  const facade = facadeCheck(towers, facadeSettings, north)
+  const natureInput: NatureInput = { ...i.cityInNature, ...(i.groundPorous != null ? { groundPorous: i.groundPorous } : {}), ...(i.groundPlantedM2 != null ? { groundPlantedM2: i.groundPlantedM2 } : {}) }
   const weightPresets: WeightPresets = { ...DEFAULT_WEIGHT_PRESETS, ...Object.fromEntries(Object.entries(i.weightPresets ?? {}).filter(([, v]) => v !== undefined && v !== null)) }
   return {
     'built.vtc-rules': vtc ? vtcRules(towers, { fsrTier: i.fsrTier, transitLink: i.transitLink }) : [],
@@ -116,12 +128,13 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityStreetwallCheck(towers, i.cityStreets ?? null, i.cityRing ?? null, i.publicRealm.openPublicShare).rules : [],
     'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageCheck(towers, i.cityStreets ?? null).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],
-    'built.city-in-nature': cityInNature(i.cityInNature, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, null, (() => { const fa = facadeCheck(towers, DEFAULT_FACADE, i.project === 'vtc' ? VTC_NORTH_DEG : 0); return { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: fa.faces, deckFaces: fa.deckFaces, plantedSoil: plantedSoil(towers, north, weightPresets.soilMm), groundPorous: i.groundPorous ?? null, groundPlantedM2: i.groundPlantedM2 ?? null } })()),
+    // One input set with the panel (node built.nature-inputs): the same sources, through the same function.
+    'built.city-in-nature': cityInNatureFrom(natureInput, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, { project: i.project, towers, north, facade, facadeFromSettings: !!i.facade, facadeTreated: i.facade?.treated ?? null, cones: i.project === 'city' ? i.cones ?? undefined : null, soilMm: weightPresets.soilMm }),
     'built.wind-procedure': wind.map((w) => w.rules),
     'built.structure': towers.map((t, k) => structureCheck(t, wind[k], weightPresets, north).rules),
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
     'built.mobility': mobilityCheck(towers, DEFAULT_MOBILITY, { project: i.project, transitLink: i.transitLink, homeM2: i.liftPresets.homeM2, hotelM2PerKey: i.liftPresets.hotelM2PerKey }).rules,
-    'built.facade': facadeCheck(towers, DEFAULT_FACADE, north).rules,
+    'built.facade': facade.rules,
     'built.silhouette': towers.map((t) => silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context: skyContext(towers, t, i.silhouetteContext), glassT: i.silhouetteGlassT, screens: i.silhouetteScreens }).rules),
     'built.economics': DEFAULT_ECON,
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),

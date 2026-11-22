@@ -4,6 +4,7 @@
 // entered by the designer until the modules that compute them (P05-M02..M08) are built.
 import { DEFAULT_WEIGHT_PRESETS } from './storeyWeight'
 import { deckUseOf, towerDecks } from './sw/decks'
+import { towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export type SiteType = 'A' | 'B' | 'C'
@@ -24,6 +25,16 @@ export interface NatureInput {
   pvg34: { lions: boolean; openSpaceCanopy: boolean; undrip: boolean }
   /** Human judgment per ODP Ecology direction (never computed). */
   notes: Partial<Record<Direction, string>>
+  /**
+   * Planting at grade, typed (m²): joins the planted decks in the modelled vegetated cover (gap G12). Lives here so the
+   * panel and the evidence hub read the same value (node built.nature-inputs, 21 Nov). Absent: none.
+   */
+  groundPlantedM2?: number | null
+  /**
+   * Trees and porous screens on the ground (engine/sw/wind.ts PorousObstacle, project frame): the trees' crowns give the
+   * modelled canopy (gap G12). Filled from a design file or the harness; no app tool draws them yet. Absent: none.
+   */
+  groundPorous?: readonly ModelTree[] | null
 }
 
 export const DEFAULT_NATURE: NatureInput = {
@@ -183,6 +194,74 @@ export interface NatureContext {
   groundPorous?: readonly ModelTree[] | null
   /** Planting at grade, typed (m²): joins the planted decks in the modelled vegetated cover (gap G12). */
   groundPlantedM2?: number | null
+  /** Which project the rows are for: on Real Vancouver without cone results, the views line says they were not read. */
+  project?: 'vtc' | 'city'
+  /** Where the facade faces came from: the Facade node's own settings, or its defaults (said in the bird-zone line). */
+  facadeFrom?: 'settings' | 'defaults'
+  /** The soil depth (mm) given to planted decks without their own (storey-weight presets); said when it is not the default. */
+  soilPresetMm?: number
+}
+
+// --- One input set for the panel and the evidence hub (node built.nature-inputs, 21 Nov) --------------------------------
+// The City in Nature panel and the evidence hub used to build their inputs apart: the panel lacked the model trees, the
+// planting at grade and the preset soil depth; the hub lacked the Facade node's treated share and the QE Park answer from
+// the view cones. Both now call natureArgs with the same sources, so the same design gives the same lines.
+
+/** A view-cone result as the view-cone node gives it: the worst state per tower and each cone's state. */
+export type ConeResult = { overall: string; checks?: { cone: { id: string }; state: string }[] }
+/** Whether the towers rise into a Queen Elizabeth Park cone (3.2.x): true above, false clear or below, null when uncertain. */
+export function qeFromCones(cones: ConeResult[] | null): boolean | null | undefined {
+  if (!cones || !cones.some((c) => c.checks)) return undefined
+  const qe = cones.flatMap((c) => (c.checks ?? []).filter((k) => k.cone.id.startsWith('3.2.')))
+  if (qe.some((k) => k.state === 'above')) return true
+  if (qe.some((k) => k.state === 'within_uncertainty')) return null
+  return false
+}
+
+type FaceStrip = { z0: number; z1: number; length: number; wwr: number }
+/** What City in Nature reads from the rest of the design, the same for the panel and the evidence hub. */
+export interface NatureSources {
+  project: 'vtc' | 'city'
+  towers: Tower[]
+  /** True north (degrees; lib/northView.ts trueNorthDeg). */
+  north: number
+  /** The Facade node's result for these towers (engine/facade.ts facadeCheck): its faces and the glass beside planted decks. */
+  facade: { faces: FaceStrip[]; deckFaces?: (FaceStrip & { deckZ: number })[] } | null
+  /** `facade` was built from the Facade node's own settings (true) or its defaults (false, said in the bird-zone line). */
+  facadeFromSettings: boolean
+  /** The Facade node's own treated share (0–1), when entered there; the ledger's own figure wins. */
+  facadeTreated?: number | null
+  /** Real Vancouver: the view-cone results. Absent on Real Vancouver: the views line says they were not read. */
+  cones?: ConeResult[] | null
+  /** Soil depth (mm) for planted decks without their own: the storey-weight presets' (default 600 mm). */
+  soilMm?: number
+}
+
+/** The arguments cityInNature takes, from one set of sources. Model trees and planting at grade come from the input. */
+export function natureArgs(input: NatureInput, s: NatureSources): { coneOverall: string[] | null; ctx: NatureContext } {
+  const city = s.project === 'city'
+  const soilMm = s.soilMm ?? DEFAULT_WEIGHT_PRESETS.soilMm
+  return {
+    coneOverall: city && s.cones ? s.cones.map((c) => c.overall) : null,
+    ctx: {
+      project: s.project,
+      fourthStoreyTop: fourthStoreyTop(s.towers.map(towerFloors)),
+      faces: s.facade?.faces ?? null, deckFaces: s.facade?.deckFaces ?? null,
+      facadeFrom: s.facade ? (s.facadeFromSettings ? 'settings' : 'defaults') : undefined,
+      facadeTreated: s.facadeTreated ?? null,
+      qeFromCones: city ? qeFromCones(s.cones ?? null) : undefined,
+      plantedSoil: plantedSoil(s.towers, s.north, soilMm),
+      soilPresetMm: soilMm,
+      groundPorous: input.groundPorous ?? null,
+      groundPlantedM2: input.groundPlantedM2 ?? null,
+    },
+  }
+}
+
+/** City in Nature for a design from one set of sources (the panel and the evidence hub both call this). */
+export function cityInNatureFrom(input: NatureInput, siteArea: number | null, s: NatureSources): NatureResult {
+  const a = natureArgs(input, s)
+  return cityInNature(input, siteArea, a.coneOverall, a.ctx)
 }
 
 
@@ -298,7 +377,7 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
   const soilMm = soil.m3 > 0 && siteArea ? (soil.m3 / siteArea) * 1000 : null
   const depth = typedMm === null && soilMm === null ? null : (typedMm ?? 0) + (soilMm ?? 0)
   const mm1 = (v: number) => (v < 9.95 ? v.toFixed(1) : String(Math.round(v)))
-  const soilNote = soilMm === null ? '' : ` Deck soil (deck-use input): ${soilDecks.map((d) => `${d.tower} L${d.level} ${Math.round(d.area).toLocaleString()} m² × ${Math.round(d.soilMm)} mm${d.given ? '' : ' (weight presets’ depth)'}`).join(', ')}; at ${SOIL_RETAIN.value} ${SOIL_RETAIN.unit} (team assumption, to confirm; ${SOIL_RETAIN.low}–${SOIL_RETAIN.high}) it holds about ${Math.round(soil.m3).toLocaleString()} m³ (${Math.round(soil.low).toLocaleString()}–${Math.round(soil.high).toLocaleString()}) over the site. If the typed volume already counts this soil, leave it out of the typed figure.`
+  const soilNote = soilMm === null ? '' : ` Deck soil (deck-use input): ${soilDecks.map((d) => `${d.tower} L${d.level} ${Math.round(d.area).toLocaleString()} m² × ${Math.round(d.soilMm)} mm${d.given ? '' : ' (weight presets’ depth)'}`).join(', ')}; at ${SOIL_RETAIN.value} ${SOIL_RETAIN.unit} (team assumption, to confirm; ${SOIL_RETAIN.low}–${SOIL_RETAIN.high}) it holds about ${Math.round(soil.m3).toLocaleString()} m³ (${Math.round(soil.low).toLocaleString()}–${Math.round(soil.high).toLocaleString()}) over the site. If the typed volume already counts this soil, leave it out of the typed figure.${ctx.soilPresetMm != null && ctx.soilPresetMm !== DEFAULT_WEIGHT_PRESETS.soilMm && soilDecks.some((d) => !d.given) ? ` Decks without their own depth take ${Math.round(ctx.soilPresetMm)} mm from the storey-weight presets given to the evidence hub; the panel has no setting for it and uses ${DEFAULT_WEIGHT_PRESETS.soilMm} mm, so type the depth on each deck to make both agree.` : ''}`
   rows.push({
     id: 'retention', name: 'Rainfall retained (Rain City 48 mm, reference only)', half: 'space', direction: '4.1',
     value: depth === null ? (siteArea ? 'not entered' : 'needs a site area')
@@ -362,7 +441,7 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
     entered: input.birdTreatedPct === null ? null : true,
     threshold: 'treat glazing up to the mature tree height or the 4th floor, whichever is higher (3.3(a)(i)); no percentage set', state: untreated === null ? 'unknown' : untreated <= 0.5 ? 'pass' : 'warn',
     force: 'voluntary_guideline', flag: 'verified', source: { ...S.bird, page: '3.3(a)(i)' },
-    note: 'The explanatory note gives about 12 m as a typical 4th floor; Toronto and UBC use 16 m (the facade node’s zone). Planting next to glass joins the zone at any height (3.3(c)(ii), as cited by the team, to confirm): the walls rising from each deck marked planted, over its storey and the one above, are added and reported apart.',
+    note: 'The explanatory note gives about 12 m as a typical 4th floor; Toronto and UBC use 16 m (the facade node’s zone). Planting next to glass joins the zone at any height (3.3(c)(ii), as cited by the team, to confirm): the walls rising from each deck marked planted, over its storey and the one above, are added and reported apart.' + (ctx.facadeFrom === 'defaults' ? ' Glazing here is from the Facade node’s defaults (its own settings were not passed), so it can differ from the panel, which reads them.' : ''),
   })
   rows.push({
     id: 'bird-markers', name: 'Exterior markers and corners', half: 'space', direction: '4.3',
@@ -383,11 +462,11 @@ export function cityInNature(input0: NatureInput, siteArea: number | null, coneO
   const conesAbove = cones ? cones.some((s) => s === 'above') : null
   rows.push({
     id: 'views', name: 'Protected public views kept clear', half: 'views', direction: '4.4',
-    value: cones === null ? 'not modelled on the competition site' : conesAbove ? 'enters at least one cone' : cones.some((s) => s === 'limit_unknown' || s === 'within_uncertainty') ? 'some cones have no estimate' : 'clear of the modelled cones',
+    value: cones === null ? (ctx.project === 'city' ? 'view-cone results not read here: see the View-cone height check' : 'not modelled on the competition site') : conesAbove ? 'enters at least one cone' : cones.some((s) => s === 'limit_unknown' || s === 'within_uncertainty') ? 'some cones have no estimate' : 'clear of the modelled cones',
     entered: cones === null ? null : false,
     threshold: 'no part of a building enters a cone (3.1.1), minor elements aside', state: cones === null ? 'unknown' : conesAbove ? 'warn' : cones.some((s) => s === 'limit_unknown' || s === 'within_uncertainty') ? 'unknown' : 'pass',
     force: 'voluntary_guideline', flag: 'verified', source: { ...S.pvg, page: 'cl. 3.1.1' },
-    note: cones === null ? 'The competition site is hypothetical; test views in the Real Vancouver project.' : 'From the view-cone node (estimates; the City assessment governs).',
+    note: cones === null ? (ctx.project === 'city' ? 'The view-cone results were not passed to this reading (the panel reads them once the View-cone height check has run).' : 'The competition site is hypothetical; test views in the Real Vancouver project.') : 'From the view-cone node (estimates; the City assessment governs).',
   })
 
   rows.push({

@@ -1,8 +1,8 @@
 // City in Nature evidence ledger (research P05-M01): indicators with value, threshold, force, flag and source, values
 // entered here until the modules that compute them are built. No composite score, by design.
 import { useMemo, type ReactNode } from 'react'
-import { DIRECTIONS, FORCE_LABEL, cityInNature, fourthStoreyTop, isBinding, plantedSoil, type Direction, type Force, type NatureInput, type NatureRow, type SiteType } from '../engine/cityInNature'
-import { towerFloors } from '../engine/massing'
+import { DIRECTIONS, FORCE_LABEL, cityInNatureFrom, isBinding, type ConeResult, type Direction, type Force, type NatureInput, type NatureRow, type SiteType } from '../engine/cityInNature'
+import { DEFAULT_WEIGHT_PRESETS } from '../engine/storeyWeight'
 import { useFacade } from '../hooks/useFacade'
 import { siteAreaNote, useProjectSiteArea } from '../lib/siteArea'
 import { useFacadeStore } from '../lib/facadeStore'
@@ -12,17 +12,14 @@ import { FlagChip, Section } from './ui'
 import { Evidence, FalseList, KeyBar, Legend, MethodFold, StateStack, ruleKey } from './ResultViz'
 import { keepUnits, useUnitText } from './Units'
 
-/** The ledger for the current design; cones come from the view-cone results in Real Vancouver. */
-type ConeResult = { overall: string; checks?: { cone: { id: string }; state: string }[] }
-/** Whether the towers rise into a Queen Elizabeth Park cone (3.2.x): true above, false clear or below, null when uncertain. */
-export function qeFromCones(cones: ConeResult[] | null): boolean | null | undefined {
-  if (!cones || !cones.some((c) => c.checks)) return undefined
-  const qe = cones.flatMap((c) => (c.checks ?? []).filter((k) => k.cone.id.startsWith('3.2.')))
-  if (qe.some((k) => k.state === 'above')) return true
-  if (qe.some((k) => k.state === 'within_uncertainty')) return null
-  return false
-}
+// The QE Park answer from the cones lives in the engine now (node built.nature-inputs), so the hub reads it too.
+export { qeFromCones } from '../engine/cityInNature'
 
+/**
+ * The ledger for the current design; cones come from the view-cone results in Real Vancouver. Same sources as the
+ * evidence hub (lib/evidence/engines.ts): the Facade node's faces and own treated share, the cones, the storey-weight
+ * presets' soil depth (the app has no setting for it: the default) and the input's model trees and planting at grade.
+ */
 export function useNature(cones: ConeResult[] | null) {
   const input = useStore((s) => s.cityInNature)
   const project = useStore((s) => s.project)
@@ -30,8 +27,8 @@ export function useNature(cones: ConeResult[] | null) {
   const facade = useFacade()
   const site = useProjectSiteArea()
   const facadeTreated = useFacadeStore((s) => s.treated)
-  return useMemo(() => cityInNature(input, site.area, project === 'city' && cones ? cones.map((c) => c.overall) : null,
-    { fourthStoreyTop: fourthStoreyTop(towers.map(towerFloors)), faces: facade.faces, deckFaces: facade.deckFaces, facadeTreated, qeFromCones: project === 'city' ? qeFromCones(cones) : undefined, plantedSoil: plantedSoil(towers, trueNorthDeg(project)) }), [input, project, cones, towers, facade, site.area, facadeTreated])
+  return useMemo(() => cityInNatureFrom(input, site.area, { project, towers, north: trueNorthDeg(project), facade, facadeFromSettings: true, facadeTreated, cones: project === 'city' ? cones : null, soilMm: DEFAULT_WEIGHT_PRESETS.soilMm }),
+    [input, project, cones, towers, facade, site.area, facadeTreated])
 }
 
 /** Solid = binding, dotted = target / guideline / aspiration, dashed = comparator or team assumption. */
@@ -117,7 +114,7 @@ export default function NatureLedger({ cones }: { cones: ConeResult[] | null }) 
         <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700">(a) Space for nature</h4>
         <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
           <Row r={row('canopy')}><NumberInput label="Mature canopy" value={input.canopyM2} unit="m²" onChange={(v) => set({ canopyM2: v })} /></Row>
-          <Row r={row('cover')}><NumberInput label="Vegetated area" value={input.vegetatedM2} unit="m²" onChange={(v) => set({ vegetatedM2: v })} /></Row>
+          <Row r={row('cover')}><NumberInput label="Vegetated area" value={input.vegetatedM2} unit="m²" onChange={(v) => set({ vegetatedM2: v })} /><NumberInput label="Planting at grade" value={input.groundPlantedM2 ?? null} unit="m²" onChange={(v) => set({ groundPlantedM2: v })} /></Row>
           <Row r={row('habitat')}><YesNo label="Planned?" value={input.habitatAssessment} onChange={(v) => set({ habitatAssessment: v })} /></Row>
           <Row r={row('rain-pathway')}><YesNo label="Planned?" value={input.engineeredRainwater} onChange={(v) => set({ engineeredRainwater: v })} /></Row>
           <Row r={row('retention')}><NumberInput label="Retained per day" value={input.retainedM3} unit="m³" onChange={(v) => set({ retainedM3: v })} /></Row>

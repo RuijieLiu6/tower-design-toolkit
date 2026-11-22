@@ -21,6 +21,8 @@ import { DEFAULT_WIND_PRESETS } from '../engine/windStructure'
 import { useEconomics } from '../hooks/useEconomics'
 import { useEnergyCarbon } from '../hooks/useEnergyCarbon'
 import { useFacade } from '../hooks/useFacade'
+import { useResults } from '../hooks/useResults'
+import { useFacadeStore } from '../lib/facadeStore'
 import { useMobility } from '../hooks/useMobility'
 import { useSolar } from '../hooks/useSolarAccess'
 import { useCultureStore } from '../lib/cultureStore'
@@ -155,11 +157,16 @@ export default function Sources() {
   const cityArea = projectSiteArea('city', studyArea, citySite).area
   // The engagement ledger stays in this browser (lib/cultureStore.ts); its records, board text and AI-use log feed the claims guard and log lines.
   const culture = useCultureStore(useShallow((c) => ({ records: c.records, claimsText: c.claimsText, prov: c.prov })))
+  // City in Nature reads what its panel reads (node built.nature-inputs): the Facade node's settings, and on Real Vancouver
+  // the view-cone results, which exist for the open project only.
+  const facadeSettings = useFacadeStore(useShallow((f) => ({ system: f.system, wwr: f.wwr, treated: f.treated, vegetation: f.vegetation, vlt: f.vlt, shgc: f.shgc })))
+  const openProject = useStore((x) => x.project)
+  const liveCones = useResults().cones
   const hub = useMemo(() => {
-    const base = { fsrTier: s.fsrTier, transitLink: s.transitLink, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets, systemsPresets: s.systemsPresets, culture }
+    const base = { fsrTier: s.fsrTier, transitLink: s.transitLink, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets, systemsPresets: s.systemsPresets, culture, facade: facadeSettings }
     const live = { 'built.mobility': mobility.rules, 'built.facade': facade.rules, 'built.economics': [econ.presets, (econ.result as { charges?: { lines?: unknown } } | undefined)?.charges?.lines ?? []], ...(energy ? { 'built.energy-carbon': energy } : {}), ...(solar ? { 'built.solar-access': (solar as { lines?: unknown }).lines ?? [] } : {}) }
-    return buildHub(mergeGroups(evidenceGroups({ ...base, project: 'vtc', towers: s.towers.vtc }), evidenceGroups({ ...base, project: 'city', towers: s.towers.city, studyArea: cityArea, cityRing: (citySite?.ring ?? null) as [number, number][] | null, cityStreets: streetsCtx(citySite, cityStreets) }), live))
-  }, [s, mobility, facade, econ, energy, solar, cityArea, citySite, cityStreets, culture])
+    return buildHub(mergeGroups(evidenceGroups({ ...base, project: 'vtc', towers: s.towers.vtc }), evidenceGroups({ ...base, project: 'city', towers: s.towers.city, studyArea: cityArea, cityRing: (citySite?.ring ?? null) as [number, number][] | null, cityStreets: streetsCtx(citySite, cityStreets), cones: openProject === 'city' ? liveCones : undefined }), live))
+  }, [s, mobility, facade, econ, energy, solar, cityArea, citySite, cityStreets, culture, facadeSettings, openProject, liveCones])
 
   const [tab, setTab] = useState<Tab>('sources')
   const [flag, setFlag] = useState<Flag | 'all'>('all')
