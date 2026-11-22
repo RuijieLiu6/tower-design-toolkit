@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { egressCheck } from '../engine/egress'
 import { liftCheck } from '../engine/lifts'
-import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck } from '../engine/publicRealm'
+import { cityGroundPlaneCheck, cityStreetwallCheck, groundPlaneCheck, streetwallCheck } from '../engine/publicRealm'
+import { cityFrontageWithSquare, frontageWithSquare } from '../engine/squareEdges'
 import { skyRoomCheck, type SkyTerraceLine } from '../engine/skyRoom'
 import { overall } from '../engine/viewCones'
 import { checkTowerCones } from '../engine/towerCones'
@@ -88,7 +89,8 @@ export function useResults() {
     // Real Vancouver: the study site's streets (right-of-way measured, types picked by the user) once they are found.
     const ctx = project === 'city' ? streetsCtx(citySite, streetsFound) : null
     const streetwall = attempt('built.pr-streetwall', () => (vtc ? streetwallCheck(towers, publicRealm, neighbours) : project === 'city' && towers.length ? cityStreetwallCheck(towers, ctx, cityRing, publicRealm.openPublicShare) : null), null)
-    const frontage = attempt('built.pr-frontage', () => (vtc ? frontageCheck(towers, publicRealm) : project === 'city' && towers.length ? cityFrontageCheck(towers, ctx) : null), null)
+    // Book node #17 (built.base-edges): the square as a fifth frontage, its sight lines, the station's desire line, its level, L1–L6.
+    const frontage = attempt('built.pr-frontage', () => (vtc ? frontageWithSquare(towers, publicRealm) : project === 'city' && towers.length ? cityFrontageWithSquare(towers, ctx) : null), null)
     const cross = { solar: solarLines, square: solarSquare, wind: windGround === null ? null : { zones: windGround.split(',').filter(Boolean).map((level) => ({ level: level as 'low' | 'medium' | 'high', kind: 'ground', z: 0 })), note: SCREEN_LABEL } }
     // Real Vancouver: open space over the study site, sun and wind; the link, frontage runs and station lines from its streets.
     const groundPlane = attempt('built.pr-ground', () => (vtc ? groundPlaneCheck(towers, publicRealm, cross) : project === 'city' && towers.length ? cityGroundPlaneCheck(towers, cityRing, publicRealm, cross, ctx) : null), null)

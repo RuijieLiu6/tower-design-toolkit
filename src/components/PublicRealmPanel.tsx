@@ -1,6 +1,6 @@
 // Massing stage, competition site: the few inputs the public realm checks need that Layer 0 cannot carry
 // (research P06-M01, M03, M04). Every starting value is a team assumption to be replaced by the design.
-import { cityFrontageInput, DEFAULT_PUBLIC_REALM, siteFrame, VTC_EDGES, VTC_SITE, type EdgeId, type FrontageInput, type PublicRealmInput } from '../engine/publicRealm'
+import { cityFrontageInput, DEFAULT_PUBLIC_REALM, siteFrame, VTC_EDGES, VTC_SITE, type EdgeId, type FrontageInput, type PublicRealmInput, type SquareInput } from '../engine/publicRealm'
 import { DEFAULT_CITY_LINK } from '../engine/siteStreets'
 import { setCityLink, setStation, setStreetSetting, useSiteStreets } from '../lib/siteStreets'
 import { useStore } from '../store'
@@ -120,6 +120,9 @@ function VtcPublicRealmPanel() {
   const set = useStore((s) => s.set)
   const up = (patch: Partial<PublicRealmInput>) => set({ publicRealm: { ...input, ...patch } })
   const upEdge = (id: EdgeId, patch: Partial<FrontageInput>) => up({ frontage: { ...input.frontage, [id]: { ...input.frontage[id], ...patch } } })
+  // The square as a fifth frontage (book node #17, engine/squareEdges.ts).
+  const sq: SquareInput = input.square ?? {}
+  const upSq = (patch: Partial<SquareInput>) => up({ square: { ...sq, ...patch } })
   const L = input.link
   const span = L.axis === 'ns' ? [VTC_SITE.xMin + L.width / 2, VTC_SITE.xMax - L.width / 2] : [VTC_SITE.yMin + L.width / 2, VTC_SITE.yMax - L.width / 2]
 
@@ -148,6 +151,24 @@ function VtcPublicRealmPanel() {
             </tbody>
           </table>
           <p className="mt-1 flex items-center gap-1 text-meta text-muted">Shares of each street's building frontage<Help label="About frontage shares">Hotel lobbies and transit entrances count as active; office and residential lobbies as semi-active.</Help></p>
+        </div>
+
+        <div data-testid="square-frontage">
+          <div className="mb-1 flex items-center gap-1 font-medium">Square<Help label="About the square">The fifth frontage: the edge of your largest clear open rectangle. Leave the active share empty to read it from the ground storey's use. A sunken square (below −0.5 m) needs step-free entries and stays seen from the sidewalks (Placemaking p.172).</Help></div>
+          <div className="grid grid-cols-3 gap-2">
+            <label className="flex flex-col gap-1 text-control"><span className="text-ink">Face active %</span>
+              <input type="number" step={5} min={0} max={100} placeholder="from use" value={sq.active == null ? '' : Math.round(sq.active * 100)} onChange={(ev) => upSq({ active: ev.target.value === '' ? null : Math.min(1, Math.max(0, Number(ev.target.value) / 100)) })} className={cell} aria-label="Square building face active share" /></label>
+            <NumberField label="Level" unit="m" value={sq.level ?? 0} onChange={(v) => upSq({ level: Number.isFinite(v) ? v : 0 })} step={0.5} />
+            <NumberField label="Step-free entries" value={sq.stepFree ?? 0} onChange={(v) => upSq({ stepFree: Math.max(0, Math.round(v)) })} step={1} />
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-meta text-muted">Glazed public lobby</span>
+            <select value={sq.lobby?.side ?? ''} onChange={(e) => upSq({ lobby: e.target.value ? { side: e.target.value as EdgeId, length: sq.lobby?.length ?? 20 } : null })} className="rounded border border-line bg-panel px-1.5 py-1 text-xs" aria-label="Side of the square with a glazed public lobby">
+              <option value="">none</option>
+              {(['south', 'west', 'north', 'east'] as const).map((s) => <option key={s} value={s}>{s} side</option>)}
+            </select>
+            {sq.lobby && <input type="number" step={1} min={0} value={sq.lobby.length} onChange={(ev) => upSq({ lobby: { side: sq.lobby!.side, length: Math.max(0, Number(ev.target.value)) } })} className={cell} aria-label="Glazed lobby length (m)" />}
+          </div>
         </div>
 
         <NumberField label="Unbuilt site that is public (secured by right-of-way)" unit="%" value={Math.round(input.openPublicShare * 100)} onChange={(v) => up({ openPublicShare: Math.min(1, Math.max(0, v / 100)) })} min={0} max={100} step={5}

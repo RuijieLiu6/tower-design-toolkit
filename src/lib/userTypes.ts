@@ -64,7 +64,7 @@ export const USER_TYPES: UserType[] = [
         goal: 'A real Vancouver site: the views it blocks, the shadows it casts and how tall the City lets it go.',
         project: 'city', step: 'site',
         // 21 Nov (P1 #3): open space and the sun on the design's own square.
-        nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.relax-aviation', 'built.solar-access', 'built.sun', 'built.wind-screen', 'built.pr-ground'],
+        nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.relax-aviation', 'built.solar-access', 'built.sun', 'built.wind-screen', 'built.pr-ground', 'built.pr-frontage'],
         says: ['shadows on my street and park', 'would it block the mountain views', 'how tall can a tower be here', 'impact on my neighbourhood'],
       },
       {
@@ -121,7 +121,7 @@ export const USER_TYPES: UserType[] = [
         id: 'practitioner.rezoning', type: 'practitioner', name: 'Rezoning feasibility',
         goal: 'Height limits, view cones and their relaxations, density and the land value, before the first meeting.',
         project: 'city', step: 'site',
-        nodes: ['built.heights', 'built.viewcones', 'built.relax-aviation', 'built.vista', 'built.fsr', 'built.economics', 'built.solar-access', 'built.f2f-use'],
+        nodes: ['built.heights', 'built.viewcones', 'built.relax-aviation', 'built.vista', 'built.fsr', 'built.economics', 'built.solar-access', 'built.f2f-use', 'built.pr-frontage'],
         says: ['rezoning enquiry', 'feasibility and pro forma', 'how tall and how much floor area', 'Higher Buildings Policy site'],
       },
       {
@@ -163,7 +163,7 @@ export const USER_TYPES: UserType[] = [
         goal: 'New shadow on parks and plazas, wind at street level, sky room access and nature.',
         project: 'city', step: 'volume',
         // 21 Nov (P1 #3): open space and the sun on the design's own square.
-        nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.sky-room', 'built.city-in-nature', 'built.pr-ground', 'built.sky-villages'],
+        nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.sky-room', 'built.city-in-nature', 'built.pr-ground', 'built.sky-villages', 'built.pr-frontage'],
         says: ['shadow on parks', 'solar access guidelines', 'pedestrian wind', 'public realm review'],
       },
       {

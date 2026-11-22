@@ -23,7 +23,8 @@ import { liftCheck, type LiftPresets } from '../../engine/lifts'
 import { towerFloors } from '../../engine/massing'
 import { DEFAULT_MOBILITY, mobilityCheck } from '../../engine/mobility'
 import { provenanceLines, type ProvEntry } from '../../engine/provenance'
-import { cityFrontageCheck, cityGroundPlaneCheck, cityStreetwallCheck, frontageCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
+import { cityGroundPlaneCheck, cityStreetwallCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
+import { cityFrontageWithSquare, frontageWithSquare } from '../../engine/squareEdges'
 import { silhouetteReading, skyContext, type SkyContext, type SkyScreens } from '../../engine/silhouette'
 import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
@@ -134,7 +135,8 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.life-safety': towers.map((t, k) => lifeSafety(t, lifts[k], egress[k], { transitLink: i.transitLink, liftPresets: i.liftPresets, presets: i.systemsPresets ?? DEFAULT_SYSTEMS_PRESETS, entrances: vtc ? Object.values(i.publicRealm.frontage).reduce((n, f) => n + f.entrances, 0) : null }).rules),
     'built.sky-room': towers.map((t, k) => skyRoomCheck(t, lifts[k], egress[k], i.egressPresets, i.liftPresets, i.skyTerraces?.[t.id]).rules),
     'built.pr-streetwall': vtc ? streetwallCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityStreetwallCheck(towers, i.cityStreets ?? null, i.cityRing ?? null, i.publicRealm.openPublicShare).rules : [],
-    'built.pr-frontage': vtc ? frontageCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageCheck(towers, i.cityStreets ?? null).rules : [],
+    // Book node #17 (built.base-edges): the square's edges, sight lines, desire line, level and type, and L1–L6.
+    'built.pr-frontage': vtc ? frontageWithSquare(towers, i.publicRealm).rules : i.project === 'city' ? cityFrontageWithSquare(towers, i.cityStreets ?? null).rules : [],
     'built.pr-ground': vtc ? groundPlaneCheck(towers, i.publicRealm).rules : i.project === 'city' ? cityGroundPlaneCheck(towers, i.cityRing ?? null, i.publicRealm, {}, i.cityStreets ?? null).rules : [],
     // One input set with the panel (node built.nature-inputs): the same sources, through the same function.
     'built.city-in-nature': cityInNatureFrom(natureInput, i.project === 'vtc' ? SITE.area : i.studyArea ?? null, { project: i.project, towers, north, facade, facadeFromSettings: !!i.facade, facadeTreated: i.facade?.treated ?? null, cones: i.project === 'city' ? i.cones ?? undefined : null, soilMm: weightPresets.soilMm, personsPerHome: i.liftPresets.personsPerHome, homeM2: i.liftPresets.homeM2 }),

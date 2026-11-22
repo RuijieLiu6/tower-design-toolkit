@@ -63,6 +63,23 @@ export interface PublicRealmInput {
   openPublicShare: number
   link: { enabled: boolean; axis: 'ns' | 'ew'; offset: number; width: number; openToSky: boolean; srw: boolean }
   station: { lifts: number; stairs: number; activeEdges: boolean }
+  /** The design's own square, the fifth frontage (book node #17, engine/squareEdges.ts). Absent: the defaults it names. */
+  square?: SquareInput
+}
+/**
+ * The square as a fifth frontage (book node #17 built.base-edges): the active share of the building face on it, a glazed
+ * public lobby on one of its sides, its level against the sidewalk and the step-free entries into it. Every field is
+ * optional; engine/squareEdges.ts says what it assumes for each one left out.
+ */
+export interface SquareInput {
+  /** Share of the building face on the square in active use (shops, cafes, civic rooms), 0–1. Absent: read from the ground storey's use. */
+  active?: number | null
+  /** The side of the square (its rectangle's south, west, north or east side) whose building face is a glazed public lobby, and its length (m). */
+  lobby?: { side: EdgeId; length: number } | null
+  /** The square's floor against the sidewalk (m; negative = sunken). Absent: at grade. */
+  level?: number | null
+  /** Step-free entries (ramps or lifts) into a square more than 0.5 m off the sidewalk level. */
+  stepFree?: number | null
 }
 /** Starting values for a first design (team assumptions, to be edited). Loading and parking come off the local streets. */
 export const DEFAULT_PUBLIC_REALM: PublicRealmInput = {
@@ -94,7 +111,7 @@ function shafts(t: Tower): [number, number][][] {
  * and non-convex shapes kept (G10, engine/massing.ts `storeyOutline`); otherwise, or if they cannot be read, the
  * footprint as before (the hull of an imported mass; the lowest block of a parametric tower at grade).
  */
-function planParts(t: Tower, part: OutlinePart): Pt[][][] {
+export function planParts(t: Tower, part: OutlinePart): Pt[][][] {
   const o = storeyOutline(t, part)
   if (o?.length) return o
   if (part === 'ground') return [[t.imported ? (t.podiumHeight > 0 ? towerFootprint(t, true) : towerFootprint(t)) : (towerMasses(t)[0]?.ring ?? towerFootprint(t))]]
@@ -135,7 +152,7 @@ function inside(p: Pt, poly: Pt[]): boolean {
  * stays open. Masses may overlap (an imported tower's storeys, G10). Each edge is visited once, for the rows it spans,
  * so a free form's many storey outlines stay quick.
  */
-function builtCells(ms: Pick<Mass, 'poly' | 'holes'>[], x0: number, y0: number, cx: number, cy: number, nx: number, ny: number): Uint8Array {
+export function builtCells(ms: Pick<Mass, 'poly' | 'holes'>[], x0: number, y0: number, cx: number, cy: number, nx: number, ny: number): Uint8Array {
   const built = new Uint8Array(nx * ny)
   const rows: number[][] = Array.from({ length: ny }, () => [])
   for (const m of ms) {
@@ -210,7 +227,7 @@ function onEdge(poly: Pt[], e: SiteEdge): { setback: number; from: number; to: n
   return { setback, from: Math.max(lo, Math.min(...poly.map(along))), to: Math.min(hi, Math.max(...poly.map(along))) }
 }
 /** `onEdge` over a tower's parts (they may overlap): the nearest part's setback, and the length the parts within `near` m of the line cover along it. */
-function onEdgeParts(polys: Pt[][], e: SiteEdge, near = 1): { setback: number; covered: number } {
+export function onEdgeParts(polys: Pt[][], e: SiteEdge, near = 1): { setback: number; covered: number } {
   let setback = Infinity
   const spans: [number, number][] = []
   for (const poly of polys) {

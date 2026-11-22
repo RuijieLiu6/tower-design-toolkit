@@ -124,6 +124,19 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^pr-square-sun$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on Solar access & sun hours to read the sun on your square.'
     : /^No clear/.test(v) ? 'Free a clear open rectangle on the site (the POPS line) to have a square to read.'
     : 'To bring more sun to the square, move it south of the tower or step, slim or turn the tower above it (Massing).')],
+  // Book node #17 (21 Nov, built.base-edges): the square's edges, sight lines, desire line, lobby, level and type, and L1–L6.
+  [/^pr-square-edge$/, (st, v) => (/competition block only/.test(v) ? 'Open the competition site to read the square\'s edges, sight lines and desire line; on Real Vancouver they wait for a station exit and sidewalks.'
+    : /^No clear/.test(v) ? 'Free a clear open rectangle on the site (the POPS line) to have a square to read.'
+    : st === 'unknown' ? 'Bring a building face to the square and line it with active uses or a glazed public lobby, so the square has an edge people use.'
+    : Number(/(\d+)% blank/.exec(v)?.[1] ?? 0) > Number(/(\d+)% building face/.exec(v)?.[1] ?? 0) ? 'Edge the square: bring building faces with active uses (a pavilion, a podium face, a glazed lobby) to its blank sides, or move the square against the podium.'
+    : 'Line more of the square\'s building face with shops, cafés, civic rooms or a glazed public lobby (Ground & public realm › Square).')],
+  [/^pr-square-seen$/, 'Open the square to the sidewalks: move, glaze or shorten what blocks the view from the street (a pavilion, a podium corner), or bring a sunken square nearer the sidewalk level.'],
+  [/^pr-square-desire$/, 'Clear a straight walk from the station corner across the square: move what stands on that line at grade (a pavilion, a podium corner), or shift the square toward the station.'],
+  [/^pr-square-lobby$/, (st) => (st === 'unknown' ? 'If a podium face on the square is a glazed public lobby, say which side and how long (Ground & public realm › Square).'
+    : 'Put the glazed lobby on a side of the square that has a building face (Ground & public realm › Square), or bring the podium to that side.')],
+  [/^pr-square-level$/, 'Give a square off the sidewalk level at least two step-free entries (ramps or lifts) and keep half of it seen from the sidewalks, or bring it within 0.5 m of the sidewalk (Ground & public realm › Square).'],
+  [/^pr-square-type$/, 'Described, not judged: the type follows the square\'s edges (a corner, a courtyard, a flanking lobby, a sunken floor).'],
+  [/^pr-base-six$/, 'Put shops, civic rooms or amenity on more of the L2–L6 storeys that face the streets (Program step), or raise the ground storey\'s active share by street.'],
   [/^pr-wind$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on the pedestrian wind screen; a wind tunnel study settles it.'
     : 'Open Pedestrian wind: massing screen to see where: a podium step or canopy under the windward face and softer corners lower its risk; a wind tunnel study settles it.')],
   // Relaxations & aviation (research C01-M06; node audit 7 Nov: the generic "Needs …; now …" read as broken English).
