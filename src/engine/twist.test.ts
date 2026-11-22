@@ -23,7 +23,7 @@ function twisted(n: number, ring: P[], angle: (k: number) => number): Tower {
   return importedTower(storeys, { podiumTop: 12 })
 }
 // The use presets of slab thickness, so a turned plate weighs as the straight one (P1 #13 makes the slab follow the reach).
-const rule = (t: Tower, id: string) => windProcedure(t, undefined, { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use' }).rules.find((x) => x.id === id)
+const rule = (t: Tower, id: string) => windProcedure(t, undefined, { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use', coreWallBands: null }).rules.find((x) => x.id === id)
 const gs = (v: string) => [...v.matchAll(/(\d+\.\d)% g at/g)].map((m) => Number(m[1]))
 
 describe('G19: the twist read from the storey outlines', () => {
@@ -70,7 +70,7 @@ describe('G19: the twist read from the storey outlines', () => {
     expect(a.note).toMatch(/an inference, shown as a range and never as a pass/)
     // The credit never moves the state: the same plate untwisted reads the same.
     const sq = rule(twisted(n, rect(50, 50), () => 0), 'across-wind-accel')!
-    expect(gs(sq.value)).toEqual([c, lo])
+    expect(gs(sq.value).slice(0, 2)).toEqual([c, lo]) // the third reading is the core alone (P1 #10)
     expect(a.state).toBe(sq.state)
     // The companion line: the stiffness the twist costs an outrigger or perimeter frame (Moon 2013, via R3 §3).
     const s = rule(b18b, 'twist')!

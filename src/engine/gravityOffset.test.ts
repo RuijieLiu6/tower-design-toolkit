@@ -11,7 +11,7 @@ import type { Tower } from './types'
 import { windProcedure } from './windStructure'
 
 // The use presets of slab thickness (0.20 m homes at any span), which the hand arithmetic below uses (P1 #13 made the span the default).
-const run = (t: Tower) => structureCheck(t, windProcedure(t), { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use' })
+const run = (t: Tower) => structureCheck(t, windProcedure(t), { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use', coreWallBands: null })
 const rule = (r: ReturnType<typeof run>, id: string) => r.rules.find((x) => x.id === id)!
 
 /** C7a in miniature: a podium under a 54 m tier on the core at (30, 0), then tiers that step and shift by `s` metres. */
@@ -67,9 +67,11 @@ describe('G5: off-centre storey weight against the code’s accidental arm (R5 �
     const r = run(c7(3))
     const net = rule(r, 'gravity-net')
     expect(r.gravity.net.e).toBeGreaterThan(0.1)
-    expect(net.value).toMatch(/^E = \d\.\d\d m \(e\/D 0\.\d{3}\); top sway ≈ \d+ mm elastic, ≈ \d+ mm long term$/)
+    expect(net.value).toMatch(/^E = \d\.\d\d m \(e\/D 0\.\d{3}\); top sway ≈ \d+ mm elastic, ≈ \d+ mm long term; core alone ≈ \d+ mm long term$/)
+    // the core alone (P1 #10) is softer than 46/H, so its sway is larger, and the state reads the larger
+    expect(Number(net.value.match(/core alone ≈ (\d+) mm/)![1])).toBeGreaterThan(Number(net.value.match(/≈ (\d+) mm long term;/)![1]))
     expect(r.gravity.sway.lt).toBeCloseTo(r.gravity.sway.el * 3.35, 9)
-    expect(net.state).toBe(r.gravity.sway.lt > 0.025 ? 'warn' : 'pass')
+    expect(net.state).toBe('warn')
   })
 
   it('reproduces R5’s worked sway: 250 m, 70 floors of 22.5 MN all 0.8 m off the core give about 97 mm elastic, 0.32 m long term', () => {

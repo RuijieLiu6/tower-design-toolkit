@@ -3,6 +3,8 @@
 // readings the research corrected are "unverified" here.
 import { coreStepsOf, towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
+import { coreStiffness, CRACKED_RANGE, type CoreStiffness } from './storeyWeight'
+import { f1Empirical } from './acrossWind'
 import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, FLAT_PLATE_MIN, FLAT_PLATE_REACH, GAMMA_C, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, PT_PLATE_REACH, PT_RATIO, sameCore, SLAB_MIN, SNOW_W, soilKpa, storeyCore, storeyWeights, USE_LOADS, worstWeightStep, type GravityReading, type StoreyWeight, type WeightPresets, type WeightResult } from './storeyWeight'
 import { USES } from './types'
 import { towerTwist } from './twist'
@@ -13,6 +15,7 @@ const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.8
 const TEAM: Source = { label: 'Team assumption (research P10 r1, editable)' }
 /** Book sources of the P1 structure nodes (single-pass reads, 21 Nov 2026: unverified). */
 export const CHING: Source = { label: 'Ching, Onouye & Zuberbuhler, Building Structures Illustrated (Wiley 2013), ch. 7 High-Rise Structures' }
+export const AOYAMA: Source = { label: 'Aoyama (ed.), Design of Modern Highrise Reinforced Concrete Structures (Japanese practice; an analog)' }
 export const ALLEN_IANO: Source = { label: "Allen & Iano, The Architect's Studio Companion, 5th ed. (Wiley 2012; NBC 2010 / IBC 2009 base, an analogue)" }
 
 /** Downtown Vancouver hazard, site class X450 (Vs30 450 m/s), 2% in 50 years, from the NRCan 2020 hazard API (research P10, 21 Oct 2026). */
@@ -30,6 +33,8 @@ export interface StructureResult {
   weights: WeightResult
   /** Weight-centre offsets from the core, the net offset and the sustained sway (research R5 §2). */
   gravity: GravityReading
+  /** The core alone as a cantilever: first frequency and P-Δ (P1 #10). */
+  core: CoreStiffness
 }
 
 /** `north` (true north clockwise from the project frame's +y) places deck uses that name a facing (`Tower.deckUses`). */
@@ -108,19 +113,29 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     + (g && g.ratio > 0.1 ? ' Beyond the code’s accidental arm: the torsion the code assumes is smaller than this design’s own.' : g && g.ratio > 0.05 ? ' Within the code’s accidental arm: declare it for the structural reviewer.' : '')
     + ' The code applies torsion F·(e ± 0.10·D) at every level. The core centre stands in for the stiffness centre (exact for a doubly symmetric closed core) and the 0.05 band is a team value; podium storeys, a wider one- or two-storey transitional run just above the podium, and the floor over them are left out, as their stiffness is not the core’s alone.')
   const mm = (v: number) => Math.round(v * 1000)
+  // Core alone (P1 #10): the modelled core's own stiffness against the 46/H the sway and across-wind lines assume.
+  const core = coreStiffness(weights, H)
+  const emp = f1Empirical(H)
+  const share = emp.central > 0 ? (core.f1 / emp.central) ** 2 : 0
+  const coreSway = (x: number) => (share > 0 && Number.isFinite(core.pDelta) ? (x / share) * core.pDelta : Infinity)
   // The core jog (gap G30): with core steps whose centres move, the sway and base overturning read each core section's
   // moment about its own centre; the storey-by-storey value (each storey about its own core) stays as a detail.
   const jog = grav.jog.moved ? grav.jog : null
   const lt = jog ? jog.sway.lt : grav.sway.lt
+  const ltCore = coreSway(lt)
   const MN = (v: number) => (v / 1000).toFixed(0)
   const jogText = jog ? ` With the core jog: each core section carries the tower storeys above it about its own centre, so an upper core set off the one below adds its storeys' weight × the offset to every section beneath it (unit-load integral of M(h)·(H − h) / EI, same EI and creep). Base overturning about the ground core Q_G ≈ ${MN(jog.QG)} MN·m (storey by storey ${MN(grav.QG)} MN·m); sections ${jog.sections.map((c, k) => `${k ? `L${c.from}` : 'grade'} ${m1(c.side)} m at (${m1(c.x)}, ${m1(c.y)})${k ? `, ${m1(Math.hypot(c.dx, c.dy))} m off the one below, ≈ ${MN(c.M)} MN·m about its centre (${MN(c.Mjog)} from the cores above it)` : ''}`).join('; ')}. Storey by storey (each storey about its own core, the jog left out): top sway ≈ ${mm(grav.sway.el)} mm elastic, ≈ ${mm(grav.sway.lt)} mm long term.` : ''
-  add('gravity-net', 'Net gravity eccentricity and sustained sway', g ? `E = ${grav.net.e.toFixed(2)} m (e/D ${grav.net.ratio.toFixed(3)}); top sway ≈ ${mm(jog ? jog.sway.el : grav.sway.el)} mm elastic, ≈ ${mm(lt)} mm long term${jog ? ` with the core jog (${mm(grav.sway.el)} / ${mm(grav.sway.lt)} mm storey by storey)` : ''}` : 'no tower storeys',
-    'long-term top sway ≤ 25 mm; 25–100 mm declare a pre-set (camber); over 100 mm a tie-down or outrigger strategy, as at Vancouver House', !g ? 'unknown' : lt > 0.025 ? 'warn' : 'pass', 'team_assumption',
+  add('gravity-net', 'Net gravity eccentricity and sustained sway', g ? `E = ${grav.net.e.toFixed(2)} m (e/D ${grav.net.ratio.toFixed(3)}); top sway ≈ ${mm(jog ? jog.sway.el : grav.sway.el)} mm elastic, ≈ ${mm(lt)} mm long term${jog ? ` with the core jog (${mm(grav.sway.el)} / ${mm(grav.sway.lt)} mm storey by storey)` : ''}${Number.isFinite(ltCore) ? `; core alone ≈ ${mm(ltCore)} mm long term` : ''}` : 'no tower storeys',
+    'long-term top sway ≤ 25 mm; 25–100 mm declare a pre-set (camber); over 100 mm a tie-down or outrigger strategy, as at Vancouver House', !g ? 'unknown' : Math.max(lt, ltCore) > 0.025 ? 'warn' : 'pass', 'team_assumption',
     { label: 'Research R5 §2.3–2.5 (cantilever core, EI from f1 = 46/H); case: Vancouver House, floors cambered against about 254 mm of sway (G. Poh, STRUCTURE magazine)', url: 'https://www.structuremag.org/article/vancouver-house/' },
     `Net offset of the tower's weight from the core, E = ΣW·e / ΣW = (x ${grav.net.ex.toFixed(2)}, y ${grav.net.ey.toFixed(2)}) m${jog ? ', each storey from its own core' : ''}; gravity-induced overturning about the core Q_G = |ΣW·e| ≈ ${(grav.QG / 1000).toFixed(0)} MN·m${jog ? ' storey by storey' : ''} (Type 9's ratio α needs a base shear, not computed).`
     + jogText
     + (lt > 0.1 ? ' Over 100 mm: plan a tie-down or outrigger strategy (Vancouver House: post-tensioned rods and a torsion box, each floor cambered).' : lt > 0.025 ? ' Declare a pre-set (camber) of the floors for the structural reviewer.' : '')
-    + ` Sway of a cantilever core with EI from the empirical f1 = 46/H (±50%), creep φ = ${CREEP_PHI} (ACI 209, unverified): an upper bound, since floors cast plumb on the frame below hide earlier sway, which a designed pre-set exploits. Bands are team values.`)
+    + ` Sway of a cantilever core with EI from the empirical f1 = 46/H (±50%), creep φ = ${CREEP_PHI} (ACI 209, unverified): an upper bound, since floors cast plumb on the frame below hide earlier sway, which a designed pre-set exploits. Bands are team values.`
+    + (Number.isFinite(ltCore) ? ` Core alone (P1 #10, see the core-alone line): the modelled core gives ${Math.round(share * 100)}% of the stiffness 46/H assumes, so with the core alone the long-term sway is about ${mm(lt)} ÷ ${share.toFixed(2)} × P-Δ ${core.pDelta.toFixed(2)} ≈ ${mm(ltCore)} mm (a uniform-stiffness scaling, unverified); the state reads the larger of the two, so a design whose pass rests on 46/H shows it.` : ''))
+
+  // Core-alone frequency and P-Δ (P1 #10, NODE_LIST row 10).
+  rules.push(...coreLines(t, core, H, outriggers0(t, floors)))
 
   // A core that steps (gap G18) changes the SFRS's plan dimension from storey to storey.
   const jumps = runs.slice(1).map((c, k) => ({ c, ratio: Math.max(c.side, runs[k].side) / Math.max(1e-9, Math.min(c.side, runs[k].side)) }))
@@ -141,7 +156,49 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   }
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
-  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav }
+  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav, core }
+}
+
+/** Outrigger levels placed on tower storeys. */
+const outriggers0 = (t: Tower, floors: ReturnType<typeof towerFloors>) => { const lv = new Set(floors.filter((f) => !f.podium).map((f) => f.level)); return [...new Set(t.outriggerFloors ?? [])].filter((l) => lv.has(l)).sort((a, b) => a - b) }
+
+/** Heights of the book's ten RC towers (RC2 pp.295, 398, 405, 407–415: 123–300 m, H/T 39–71). */
+export const RC_TOWERS = { hMin: 123, hMax: 300, htLow: 39, htHigh: 71 }
+/** P-Δ amplification typical of tall towers: displaced weight adds about 10% (Ching p.3). */
+export const PDELTA_TYPICAL = 1.1
+
+/**
+ * The core alone (P1 #10): its first frequency by Rayleigh against the 46/H band (Pass at or above the central value,
+ * Check inside the band, Fail below it), and the P-Δ amplification of its sway (Pass ≤ ×1.10, else Check).
+ */
+export function coreLines(t: Tower, c: CoreStiffness, H: number, outriggers: number[] = []): RuleResult[] {
+  const emp = f1Empirical(H)
+  const share = emp.central > 0 ? (c.f1 / emp.central) ** 2 : 0
+  const hz = (v: number) => v.toFixed(3)
+  const steps = coreStepsOf(t).length > 0
+  const tw = towerTwist(t)
+  const why = [steps ? 'the core steps, which a single-tube cantilever reads only section by section' : '', tw.deg >= TWIST_MIN ? `the plate twists ${Math.round(tw.deg)}°, which moves the perimeter the core does not count` : '',
+    H > RC_TOWERS.hMax ? `${H.toFixed(0)} m is past the book's tallest RC example (${RC_TOWERS.hMax} m)` : ''].filter(Boolean).join('; ')
+  const sp = why ? { specialist: why } : {}
+  const secs = c.sections.map((s) => `${s.z0.toFixed(0)} m: ${s.side.toFixed(1)} m core, ${s.t.toFixed(2)} m walls`).join('; ')
+  const src = { ...AOYAMA, page: 'p.381 (E), pp.26, 32 (cracked stiffness), pp.295, 398, 405, 407–415 (H/T 39–71)' }
+  const out: RuleResult[] = []
+  out.push({ ...sp, id: 'core-alone', label: 'Core alone: first frequency',
+    value: `core alone ${hz(c.f1)} Hz vs 46/H ${hz(emp.central)} Hz (${Math.round(share * 100)}%)`,
+    threshold: `at or above 46/H ${hz(emp.central)} Hz: Pass; ${hz(emp.lower)}–${hz(emp.central)} Hz (inside the band): Check; below ${hz(emp.lower)} Hz: Fail`,
+    state: c.f1 >= emp.central ? 'pass' : c.f1 >= emp.lower ? 'warn' : 'fail', flag: 'unverified', source: src,
+    note: `The modelled core alone as a cantilever fixed at grade: each storey's square core with its walls by band (${secs}), I = (s⁴ − (s − 2t)⁴)/12 (base ${c.base.I.toFixed(0)} m⁴ gross), E = 33,500 · (f′c/60)^(1/3) = ${Math.round(c.E).toLocaleString('en-CA')} MPa at f′c ${c.fc} MPa (RC2 p.381, aggregate factors 1), times a cracked factor ${c.cracked} (team; ${CRACKED_RANGE[0]}–${CRACKED_RANGE[1]} gives ${hz(c.range[0])}–${hz(c.range[1])} Hz; gross ${hz(c.gross)} Hz; uncracked stiffness serves little, RC1 pp.26, 32). f1 by Rayleigh on the storey weights (slabs from the floor reach, walls by band). `
+      + `The percentage is the core's share of the stiffness 46/H assumes, (f_core / f_46/H)². The book's ten RC towers of ${RC_TOWERS.hMin}–${RC_TOWERS.hMax} m ran H/T ${RC_TOWERS.htLow}–${RC_TOWERS.htHigh} (f1 = ${hz(RC_TOWERS.htLow / H)}–${hz(RC_TOWERS.htHigh / H)} Hz here), 9 of 10 inside 46/H ±50%. `
+      + (c.f1 >= emp.central ? 'The core alone reaches the stiffness the sway and across-wind lines assume.' : `Below the central value: the sway and across-wind lines' 46/H stiffness assumes the frame, belts, outriggers or coupling supply the other ${Math.round((1 - share) * 100)}%; the across-wind line shows the core-alone reading beside it.`)
+      + (outriggers.length ? ` Outriggers are placed at ${outriggers.map((l) => `L${l}`).join(', ')}: their share is not computed here, so this reads a lower bound until the engineer shows it.` : '')
+      + ' Walls by band, f′c and the cracked factor are presets (the weight presets); a model frequency from the engineer replaces all of it. Confidence C: a core-alone tube model that ignores outriggers, frames and coupling.' })
+  const pd = c.pDelta
+  out.push({ ...sp, id: 'p-delta', label: 'P-Δ amplification (core alone)',
+    value: Number.isFinite(pd) ? `P-Δ ×${pd.toFixed(2)}` : 'P-Δ does not converge: the core alone is unstable under its own weight',
+    threshold: `≤ ×${PDELTA_TYPICAL.toFixed(2)} typical (displaced weight adds about 10% to the overturning moment)`,
+    state: Number.isFinite(pd) && pd <= PDELTA_TYPICAL ? 'pass' : 'warn', flag: 'unverified', source: { ...CHING, page: 'p.3 (PDF page)' },
+    note: `The core alone's sway shape under its storey weights applied sideways, with each level's weight then carried on its displaced position: the extra moment Σ W·(δ(z_i) − δ(z)) is added and the sway recomputed until it settles; the ratio of the settled top sway to the first one is the amplification (cracked factor ${c.cracked}). Ching puts the effect at about 10% of the overturning moment (p.3); NBC's sway-effects clause is recalled, not read. The sway line applies this factor to its core-alone reading.` })
+  return out
 }
 
 /**

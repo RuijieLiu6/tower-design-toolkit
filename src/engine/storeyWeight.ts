@@ -29,8 +29,18 @@ export interface WeightPresets {
   planted: 'gardens' | 'all' | 'none'
   /** Facade weight per m² of wall (kPa). */
   facadeKpa: number
-  /** Core wall thickness (m). */
+  /** Core wall thickness (m), full height: used only when `coreWallBands` is empty or null. */
   coreWall: number
+  /**
+   * Core wall thickness by band (P1 #10): each band runs up to `upTo`, a share of the tower height (0–1], at `t` m.
+   * Default: 0.95 / 0.85 / 0.75 m by thirds, the banded walls of the book's 151.5 m wall tower (RC2 pp.291, 305,
+   * 393–394; an analog, unverified). Null or empty: `coreWall` full height, as before.
+   */
+  coreWallBands?: { upTo: number; t: number }[] | null
+  /** Core concrete strength f′c (MPa) for the core's modulus (P1 #10; team preset 70, between the book's 100 → 60 MPa bands). */
+  coreFc?: number
+  /** Cracked-section factor on the core's gross stiffness (P1 #10; team 0.6, inside 0.5–0.7: uncracked stiffness "serves little", RC1 pp.26, 32). */
+  cracked?: number
   /**
    * Floor slab thickness (P1 #13 floor reach): 'span' (default) from each tower storey's core-to-facade reach (post-
    * tensioned plate about L/45, at least 150 mm); 'use' the old use presets (USE_LOADS slab: 0.20 m homes and hotel,
@@ -38,7 +48,15 @@ export interface WeightPresets {
    */
   slabFrom?: 'span' | 'use'
 }
-export const DEFAULT_WEIGHT_PRESETS: WeightPresets = { soilMm: 600, planted: 'gardens', facadeKpa: 0.6, coreWall: 0.6, slabFrom: 'span' }
+export const DEFAULT_WALL_BANDS: { upTo: number; t: number }[] = [{ upTo: 1 / 3, t: 0.95 }, { upTo: 2 / 3, t: 0.85 }, { upTo: 1, t: 0.75 }]
+export const DEFAULT_WEIGHT_PRESETS: WeightPresets = { soilMm: 600, planted: 'gardens', facadeKpa: 0.6, coreWall: 0.6, slabFrom: 'span', coreWallBands: DEFAULT_WALL_BANDS, coreFc: 70, cracked: 0.6 }
+/** Core wall thickness (m) at height z of a tower H tall: its band, else the full-height `coreWall`. */
+export function wallAt(p: WeightPresets, z: number, H: number): number {
+  const bands = p.coreWallBands?.filter((b) => b && b.t > 0 && Number.isFinite(b.upTo)).sort((a, b) => a.upTo - b.upTo)
+  if (!bands?.length || !(H > 0)) return p.coreWall
+  const s = z / H
+  return (bands.find((b) => s <= b.upTo + 1e-9) ?? bands[bands.length - 1]).t
+}
 
 /** Reinforced normal-density concrete (kN/m³): common practice, unverified (R5 §3.3). */
 export const GAMMA_C = 24
@@ -321,7 +339,9 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
   // Core walls per metre of height (kN/m), storey by storey: a core that steps carries its own walls (G18).
   const at = storeyCore(t, core)
   const cores = floors.map((f) => at(f.level))
-  const coreKpm = (k: number) => 4 * cores[k].side * p.coreWall * GAMMA_C
+  // walls by band (P1 #10): each storey's walls at its mid-height
+  const Htop = floors.length ? floors[floors.length - 1].z1 : t.height
+  const coreKpm = (k: number) => 4 * cores[k].side * wallAt(p, (floors[k].z0 + floors[k].z1) / 2, Htop) * GAMMA_C
   const coreC = (k: number): P => [cores[k].x, cores[k].y]
   // Slab by storey (P1 #13): from the core-to-facade reach (a declared column ring halves it past one flat plate);
   // podium storeys and `slabFrom: 'use'` keep the use presets.
@@ -484,6 +504,87 @@ export function gravityEccentricity(w: WeightResult, H: number): GravityReading 
   const el = Math.hypot(top('ex'), top('ey'))
   const jog = coreJog(w, H, EI)
   return { levels, worst, largest, net: { ex: Ex, ey: Ey, e: Math.hypot(Ex, Ey), ratio }, QG: Math.hypot(Mx, My), sway: { el, lt: el * (1 + CREEP_PHI), EI }, jog }
+}
+
+// --- Core-alone stiffness (P1 #10, NODE_LIST row 10; book values read once: unverified) ---------------------------
+
+/** Concrete modulus (MPa), RC2 p.381: E = 33,500 · k1 · k2 · (γ/2.4)² · (f′c/60)^(1/3), aggregate factors k1 = k2 = 1. */
+export const concreteE = (fc: number, gamma = 2.4) => 33500 * (gamma / 2.4) ** 2 * (Math.max(1, fc) / 60) ** (1 / 3)
+/** Second moment of a square tube of side s and wall t (m⁴): (s⁴ − (s − 2t)⁴)/12, gross section. */
+export const tubeI = (s: number, t: number) => (s ** 4 - Math.max(0, s - 2 * t) ** 4) / 12
+/** Cracked factors the line shows (team range, RC1 pp.26, 32). */
+export const CRACKED_RANGE: [number, number] = [0.5, 0.7]
+
+export interface CoreStiffness {
+  /** First frequency of the core alone as a cantilever on the storey weights (Hz), at the presets' cracked factor, and at 0.5 and 0.7. */
+  f1: number
+  range: [number, number]
+  /** Gross (uncracked) first frequency (Hz). */
+  gross: number
+  /** Modulus (MPa), f′c (MPa), cracked factor; base wall, base side and base I (m⁴, gross). */
+  E: number
+  fc: number
+  cracked: number
+  base: { side: number; t: number; I: number }
+  /** P-Δ amplification of the core's sway under its own weight (top sway with gravity on the swayed shape ÷ without); Infinity when it does not converge. */
+  pDelta: number
+  /** Distinct (side, wall) sections up the core, bottom-up, from height z0 (m). */
+  sections: { z0: number; side: number; t: number }[]
+}
+
+/**
+ * The core alone as a flexural cantilever fixed at grade (P1 #10): EI(z) from the square tube of each storey's core and
+ * its banded walls, E from f′c (RC2 p.381), times the cracked factor. f1 by Rayleigh on the storey weights (every
+ * level, podium included), the shape being the static deflection under those weights applied sideways; P-Δ by iterating
+ * the extra moment Σ W·(δ(z_i) − δ(z)) on that shape until it settles (Ching p.3: about 10%).
+ */
+export function coreStiffness(w: WeightResult, H: number): CoreStiffness {
+  const p = w.presets
+  const fc = p.coreFc ?? 70, cracked = p.cracked ?? 0.6
+  const E = concreteE(fc)
+  const lv = w.levels.filter((l) => l.W > 0 && l.z > 0)
+  const top = Math.max(H, ...lv.map((l) => l.z), 1)
+  const g0 = w.ground ?? { side: w.core.side, x: w.core.x, y: w.core.y }
+  const steps: { z: number; side: number }[] = [{ z: 0, side: g0.side }]
+  for (const l of w.levels) if (!l.roof && l.coreSide != null && Math.abs(l.coreSide - steps[steps.length - 1].side) > 1e-6) steps.push({ z: l.z, side: l.coreSide })
+  const sideAt = (z: number) => { let s = steps[0].side; for (const x of steps) if (x.z <= z + 1e-9) s = x.side; return s }
+  const N = 400, dz = top / N
+  const zs = Array.from({ length: N + 1 }, (_, k) => k * dz)
+  const EI = zs.map((z) => E * 1e6 * tubeI(sideAt(z), wallAt(p, z, top)))
+  const F = lv.map((l) => l.W * 1000)
+  // deflection on the grid from a moment function, by double trapezoid integration of M / EI
+  const deflect = (M: number[]) => {
+    const th = new Array(N + 1).fill(0), d = new Array(N + 1).fill(0)
+    for (let k = 1; k <= N; k++) {
+      th[k] = th[k - 1] + (dz * (M[k - 1] / EI[k - 1] + M[k] / EI[k])) / 2
+      d[k] = d[k - 1] + (dz * (th[k - 1] + th[k])) / 2
+    }
+    return d
+  }
+  const at = (d: number[], z: number) => { const x = Math.min(N, Math.max(0, z / dz)), k = Math.min(N - 1, Math.floor(x)); return d[k] + (d[k + 1] - d[k]) * (x - k) }
+  const M0 = zs.map((z) => lv.reduce((s, l, i) => (l.z > z ? s + F[i] * (l.z - z) : s), 0))
+  const d0 = deflect(M0)
+  const di = lv.map((l) => at(d0, l.z))
+  const num = lv.reduce((s, l, i) => s + F[i] * di[i], 0), den = lv.reduce((s, l, i) => s + F[i] * di[i] ** 2, 0)
+  const gross = den > 0 ? Math.sqrt((G * num) / den) / (2 * Math.PI) : 0
+  // P-Δ on the same shape (a linear ratio, independent of the lateral load's size); the cracked stiffness carries it
+  const dC = d0.map((x) => x / cracked)
+  let d = dC, pDelta = 1
+  for (let it = 0; it < 60; it++) {
+    const dl = lv.map((l) => at(d, l.z))
+    const Mp = zs.map((z, k) => lv.reduce((s, l, i) => (l.z > z ? s + F[i] * (dl[i] - d[k]) : s), 0))
+    const extra = deflect(Mp).map((x) => x / cracked)
+    const next = dC.map((x, k) => x + extra[k])
+    const r = next[N] / Math.max(1e-12, dC[N])
+    d = next
+    if (!Number.isFinite(r) || r > 10) { pDelta = Infinity; break }
+    if (Math.abs(r - pDelta) < 1e-6) { pDelta = r; break }
+    pDelta = r
+  }
+  const sections: CoreStiffness['sections'] = []
+  for (let k = 0; k <= N; k++) { const z = zs[k], s = sideAt(z), t = wallAt(p, z, top), last = sections[sections.length - 1]; if (!last || Math.abs(last.side - s) > 1e-6 || Math.abs(last.t - t) > 1e-6) sections.push({ z0: last ? z : 0, side: s, t }) }
+  return { f1: gross * Math.sqrt(cracked), range: [gross * Math.sqrt(CRACKED_RANGE[0]), gross * Math.sqrt(CRACKED_RANGE[1])], gross, E, fc, cracked,
+    base: { side: g0.side, t: wallAt(p, 0, top), I: tubeI(g0.side, wallAt(p, 0, top)) }, pDelta, sections }
 }
 
 /**

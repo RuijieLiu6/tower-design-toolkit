@@ -35,8 +35,8 @@ describe('structure screening (P10-M01, M03, M05)', () => {
     // The first tower floor carries the podium roof as an open deck, so the step is read between it and the next floor.
     expect(w.value).toMatch(/between L5 and L6/)
     const c = rule(run(city()), 'weight')!
-    expect(c.state).toBe('pass') // no podium: uniform, as before
-    expect(c.value).toBe('uniform by weight')
+    expect(c.state).toBe('pass') // no podium: uniform, as before, but for the small steps where a wall band ends (P1 #10)
+    expect(c.value).toMatch(/^uniform by weight$|^10\d% by weight between/)
     expect(c.note).toMatch(/By floor area alone: uniform/)
   })
   it('keeps only valid tower levels as outriggers, and puts the outrigger system on the shortlist', () => {

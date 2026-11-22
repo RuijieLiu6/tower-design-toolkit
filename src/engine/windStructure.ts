@@ -6,7 +6,7 @@ import { ACCEL_LIMIT, acrossWindAccel, ceRough, cornerReduction, DEFAULT_DAMPING
 import { towerCorners } from './corners'
 import { towerFloors } from './massing'
 import { slenderBand, KPF, SLENDER_FLAG } from './slenderBand'
-import { DEFAULT_WEIGHT_PRESETS, storeyWeights, type WeightPresets } from './storeyWeight'
+import { coreStiffness, DEFAULT_WEIGHT_PRESETS, storeyWeights, type WeightPresets } from './storeyWeight'
 import { towerTwist } from './twist'
 
 const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.7 (2nd printing, 2025)', url: 'https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en' }
@@ -108,7 +108,11 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS, w
   // else at the empirical central value and its lower bound (a_W rises as f1 falls, about f1^-1.3).
   const fs = f1 !== null ? [f1] : empirical ? [emp.central, emp.lower] : []
   if (fs.length) {
-    const density = storeyWeights(t, wpr).density
+    const sw = storeyWeights(t, wpr)
+    const density = sw.density
+    // The core alone (P1 #10): a second reading at the modelled core's own frequency, so a pass resting on 46/H shows it.
+    const coreF = empirical ? coreStiffness(sw, H).f1 : 0
+    const coreAcc = coreF > 0 ? acrossWindAccel({ H, w, d, f: coreF, damping: dampingOf(p).total, density }) : null
     const { inherent, supplemental, total: damping } = dampingOf(p)
     const preset = `team preset ${(DEFAULT_DAMPING * 100).toFixed(1)}%, the Commentary sample’s value; concrete 0.02, steel 0.01`
     const inherentText = `inherent ${inherent} (${inherent === DEFAULT_DAMPING ? preset : `team setting; ${preset}`})`
@@ -129,12 +133,14 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS, w
     const limit = homes ? ACCEL_LIMIT.residential : ACCEL_LIMIT.office
     const pg = (x: number) => (x * 100).toFixed(1)
     const at = (k: number) => `${pg(acc[k].g)}% g at ${k ? 'the lower ' : 'f1 '}${fs[k].toFixed(3)} Hz`
-    add('across-wind-accel', 'Across-wind acceleration at the top (1-in-10-year wind)', acc.map((_, k) => at(k)).join('; ') + (R < 0.999 ? `; with the corner credit ${acc.map((a) => pg(a.g * R)).join('–')}% g` : '')
+    const coreOver = !!coreAcc && coreAcc.g > limit && Math.max(...acc.map((a) => a.g)) <= limit
+    add('across-wind-accel', 'Across-wind acceleration at the top (1-in-10-year wind)', acc.map((_, k) => at(k)).join('; ') + (coreAcc ? `; core alone ${pg(coreAcc.g)}% g at ${coreF.toFixed(3)} Hz` : '') + (R < 0.999 ? `; with the corner credit ${acc.map((a) => pg(a.g * R)).join('–')}% g` : '')
         + (tw ? `; with the twist credit ${pg(Math.min(...gs) * Tlo)}–${pg(Math.max(...gs) * Thi)}% g` : ''),
-      `≤ ${pg(limit)}% g (${homes ? 'homes or hotel rooms in the top third' : 'offices'}); the limits are 1.5% g residential and 2.5% g office`, acc[0].g > limit ? 'fail' : Math.max(...acc.map((a) => a.g)) > limit ? 'warn' : 'pass', 'team_assumption',
+      `≤ ${pg(limit)}% g (${homes ? 'homes or hotel rooms in the top third' : 'offices'}); the limits are 1.5% g residential and 2.5% g office`, acc[0].g > limit ? 'fail' : Math.max(...acc.map((a) => a.g), coreAcc?.g ?? 0) > limit ? 'warn' : 'pass', 'team_assumption',
       { ...COMMENTARY, page: 'paras. 109–111, 113, 115, equation (7); research R5 §4.3' },
       `NBC Commentary I equation (7), which reproduces the Commentary’s worked example (0.45 m/s²): q10 = ${Q10} kPa (Vancouver, Table C-2), V_H = ${acc[0].VH.toFixed(1)} m/s at ${H.toFixed(0)} m (rough terrain), w × d = ${w.toFixed(1)} × ${d.toFixed(1)} m, building density ${density.toFixed(0)} kg/m³ (from the storey weights), ${dampingText}, peak factor ${acc[0].gp.toFixed(2)} (Davenport, recalled).`
       + (f1 === null ? ' f1 = 46/H is empirical (±50%), so the verdict is shown at both ends: the state is Pass only when both meet the limit.' : '')
+      + (coreAcc ? ` Core alone (P1 #10): the modelled core's own first frequency, ${coreF.toFixed(3)} Hz (square tube with banded walls, E from f′c, cracked; Rayleigh on the storey weights; see the structure check's core-alone line, unverified), gives ${pg(coreAcc.g)}% g; it counts in the state, so ${coreOver ? 'this design, which meets the limit at both 46/H readings, reads Check: its pass rests on 46/H, i.e. on the frame, belts or outriggers supplying the stiffness the core lacks' : 'a pass that rests on 46/H would show here'}.` : '')
       + (red && corners.credit > 0 ? ` Corner credit R = ${R.toFixed(2)} (${red.basis}; ${corners.text}): base-moment reductions from tests applied to accelerations, an inference, shown as a range and never as a pass.` : ' No corner credit (sharp, indeterminate or under b/B 0.05).')
       + (tw ? ` Twist credit R = ${Tlo.toFixed(2)}–${Thi.toFixed(2)} for a twist of ${twist.text}, read from the storey outlines (${tw.basis}${twist.share < 0.995 ? `; scaled by the ${Math.round(twist.share * 100)}% of the height that twists, a team choice: the tests twisted the full height` : ''}): design-load reductions applied to accelerations, an inference, shown as a range and never as a pass. Twist cuts drag (along-wind) by about 6% at most (Tang et al., via research R3); its gain is across-wind.${red && corners.credit > 0 ? ' The corner and twist credits were tested apart and are not combined here.' : ''}`
         : twist.deg > 0 && twist.deg < TWIST_MIN ? ` No twist credit (the plan turns ${twist.deg.toFixed(1)}°, under the ${TWIST_MIN}° the screen credits).` : '')

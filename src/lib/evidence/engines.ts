@@ -79,7 +79,8 @@ export interface EvidenceInput {
   silhouetteScreens?: SkyScreens | null
   /**
    * Structure: storey-weight presets (gap G21; engine/storeyWeight.ts WeightPresets: soil depth on planted decks in mm,
-   * which decks are planted, facade kPa, core wall thickness). Fields left out keep DEFAULT_WEIGHT_PRESETS (600 mm of
+   * which decks are planted, facade kPa, core wall thickness; P1 #13 slabFrom; P1 #10 coreWallBands, coreFc, cracked).
+   * A coreWall given without coreWallBands means that thickness full height. Fields left out keep DEFAULT_WEIGHT_PRESETS (600 mm of
    * soil on the decks of open garden storeys and public-amenity floors). The structure node has no settings of its own,
    * so this lives in the evidence input only. Per-deck use and soil (gaps G25, G32) live on the tower instead,
    * `Tower.deckUses`, so Wind on terraces and roofs reads the same entries.
@@ -120,7 +121,9 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
   const facadeSettings: FacadeInput = { ...DEFAULT_FACADE, ...Object.fromEntries(Object.entries(i.facade ?? {}).filter(([, v]) => v !== undefined)) }
   const facade = facadeCheck(towers, facadeSettings, north)
   const natureInput: NatureInput = { ...i.cityInNature, ...(i.groundPorous != null ? { groundPorous: i.groundPorous } : {}), ...(i.groundPlantedM2 != null ? { groundPlantedM2: i.groundPlantedM2 } : {}) }
-  const weightPresets: WeightPresets = { ...DEFAULT_WEIGHT_PRESETS, ...Object.fromEntries(Object.entries(i.weightPresets ?? {}).filter(([, v]) => v !== undefined && v !== null)) }
+  const given = Object.fromEntries(Object.entries(i.weightPresets ?? {}).filter(([, v]) => v !== undefined && v !== null))
+  // a full-height wall thickness given without bands means walls of that thickness all the way up, as before (P1 #10)
+  const weightPresets: WeightPresets = { ...DEFAULT_WEIGHT_PRESETS, ...given, ...('coreWall' in given && !('coreWallBands' in given) ? { coreWallBands: null } : {}) }
   const wind = towers.map((t) => windProcedure(t, i.windPresets, weightPresets))
   return {
     'built.vtc-rules': vtc ? vtcRules(towers, { fsrTier: i.fsrTier, transitLink: i.transitLink }) : [],

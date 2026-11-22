@@ -17,8 +17,9 @@ const A8 = importedTower(stack([
   { n: 20, f2f: 4, ring: shaft },
 ]), { podiumTop: 16 })
 const GARDEN = 25
-/** The use presets of slab thickness (0.20 / 0.25 m at any span), which the hand arithmetic below uses (P1 #13 made the span the default). */
-const BY_USE = { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use' as const }
+/** The use presets of slab thickness (0.20 / 0.25 m at any span) and 0.6 m walls full height, which the hand arithmetic
+ *  below uses (P1 #13 made the span the default, P1 #10 the banded walls). */
+const BY_USE = { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use' as const, coreWallBands: null }
 
 describe('G6: storey weight by use (R5 §3)', () => {
   it('reads the open garden storey as the heaviest, not 434% light', () => {
@@ -37,7 +38,7 @@ describe('G6: storey weight by use (R5 §3)', () => {
     expect(g.W).toBeGreaterThan(1.5 * above.W)
     expect(w.value).toMatch(new RegExp(`between L(${GARDEN - 1} and L${GARDEN}|${GARDEN} and L${GARDEN + 1})$`))
     expect(w.state).toBe('warn') // a real Type 2 reading now, not an artefact
-    // With slabs from the span (13 m from the core face: about 0.29 m), the garden storey is still heavier than its neighbours.
+    // With slabs from the span (13 m from the core face: about 0.29 m) and banded walls, the garden storey is still heavier than its neighbours.
     const span = storeyWeights(A8).levels
     expect(span.find((l) => l.level === GARDEN)!.W).toBeGreaterThan(1.5 * span.find((l) => l.level === GARDEN - 1)!.W)
   })
@@ -86,10 +87,12 @@ describe('G6: storey weight by use (R5 §3)', () => {
 
   it('a uniform tower reads as before: uniform', () => {
     const uni = importedTower(stack([{ n: 40, f2f: 4, ring: rect(40, 40) }]), { podiumTop: 0 })
-    const r = structureCheck(uni, windProcedure(uni)).rules.find((x) => x.id === 'weight')!
+    const r = structureCheck(uni, windProcedure(uni), BY_USE).rules.find((x) => x.id === 'weight')!
     expect(r.value).toBe('uniform by weight')
     expect(r.state).toBe('pass')
-    expect(worstWeightStep(storeyWeights(uni).levels)!.ratio).toBeCloseTo(1, 6)
+    expect(worstWeightStep(storeyWeights(uni, BY_USE).levels)!.ratio).toBeCloseTo(1, 6)
+    // banded walls (P1 #10) step the weight a little where a band ends: still a pass
+    expect(structureCheck(uni, windProcedure(uni)).rules.find((x) => x.id === 'weight')!.state).toBe('pass')
   })
 
   it('the planted-deck preset changes only the deck load', () => {
@@ -118,7 +121,7 @@ describe('G21: storey-weight presets from the evidence input', () => {
     const weight = (g: Record<string, unknown>) => (g['built.structure'] as RuleResult[][])[0].find((x) => x.id === 'weight')!
     const share = (r: RuleResult) => Number(/^(\d+)% by weight between L\d+ and L\d+$/.exec(r.value)![1])
     // the use presets of slab thickness, so the garden step governs (with slabs from the span the podium roof does)
-    const dflt = weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use' } })), soil = weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use', soilMm: 450 } }))
+    const dflt = weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use', coreWall: 0.6 } })), soil = weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use', coreWall: 0.6, soilMm: 450 } }))
     expect(share(soil)).toBeLessThan(share(dflt))
     expect(dflt.note).toMatch(/planted: 600 mm of soil/)
     expect(soil.note).toMatch(/planted: 450 mm of soil, 7\.2 kPa/)
@@ -132,7 +135,7 @@ describe('G21: storey-weight presets from the evidence input', () => {
     const g = (soilMm: number) => storeyWeights(A8, { ...DEFAULT_WEIGHT_PRESETS, soilMm }).levels.find((l) => l.level === GARDEN)!.W
     expect(g(600) - g(450)).toBeCloseTo(1924 * soilKpa(150), 6)
     // No planted decks at all: the garden deck is hard.
-    expect(share(weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use', planted: 'none' } })))).toBeLessThan(share(soil))
+    expect(share(weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use', coreWall: 0.6, planted: 'none' } })))).toBeLessThan(share(soil))
   })
 })
 

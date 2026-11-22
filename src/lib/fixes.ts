@@ -49,9 +49,13 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^weight$/, 'One floor weighs over 150% of the next (usually the podium roof under the first tower floor, or a planted garden storey): step the podium in, lighten the deck (shallower soil or a hard deck), or carry it as an irregularity in the dynamic analysis.'],
   // Off-centre gravity (research R5 §2): each restates its rule's bands.
   [/^gravity-offset$/, 'The storey weight sits off the core: stack the tiers over the core (or move the core under them), balance a planted or heavy deck with weight on the other side, or declare the offset so the engineer carries the torsion.'],
-  [/^gravity-net$/, (_st, v) => (/long term/.test(v) && Number((v.match(/≈ (\d+) mm long term/) ?? [])[1]) > 100
+  [/^gravity-net$/, (_st, v) => (/long term/.test(v) && Math.max(...[...v.matchAll(/≈ (\d+) mm long term/g)].map((m) => Number(m[1]))) > 100
     ? 'Bring the tower’s weight back over the core (align the tiers, or shift the core under the heavy side); as built, plan a tie-down or outrigger strategy and a pre-set (camber), as at Vancouver House.'
     : 'Declare a pre-set (camber) of the floors for the structural reviewer; aligning the tiers over the core lowers the sway.')],
+  // Core alone (P1 #10): below the 46/H stiffness the sway and across-wind lines assume.
+  [/^core-alone$/, (st) => (st === 'fail' ? 'The core alone is far softer than the 46/H frequency the sway and across-wind lines assume: thicken the base walls or raise f′c (weight presets), enlarge the core, or declare outriggers or belt trusses (Structure) and have the engineer show their share; a model frequency (Wind procedure) replaces both readings.'
+    : 'The core alone gives part of the stiffness 46/H assumes: declare what supplies the rest (outriggers or belt trusses in Structure, a perimeter frame), or thicken the base walls; the engineer\'s model frequency settles it.')],
+  [/^p-delta$/, 'Gravity on the swayed core adds more than 10% to its sway: stiffen the core (thicker base walls, a larger core, outriggers) or lighten the upper storeys.'],
   // Floor reach (P1 #13): past one flat plate.
   [/^floor-reach$/, 'The floor reaches past one flat plate from the core: tick Interior column ring (Structure) for a ring at about half the reach, plan a long-span floor with post-tensioned beams onto the perimeter columns, or bring the plate edge closer to the core (Massing).'],
   [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],

@@ -71,13 +71,13 @@ describe('G8: the wind procedure node reads f1, across-wind and vortex lines', (
   it('gives the across-wind acceleration at both ends of the frequency band, against the use’s limit', () => {
     const r = windProcedure(vtc())
     const a = rule(r, 'across-wind-accel')
-    expect(a.value).toMatch(/^\d+\.\d% g at f1 0\.161 Hz; \d+\.\d% g at the lower 0\.108 Hz$/)
+    expect(a.value).toMatch(/^\d+\.\d% g at f1 0\.161 Hz; \d+\.\d% g at the lower 0\.108 Hz; core alone \d+\.\d% g at 0\.\d{3} Hz$/)
     expect(a.threshold).toMatch(/^≤ 1\.5% g \(homes or hotel rooms in the top third\)/) // the default bands end in homes
     expect(a.flag).toBe('team_assumption')
     expect(a.note).toMatch(/damping ratio 0\.015: inherent 0\.015 \(team preset 1\.5%, the Commentary sample’s value; concrete 0\.02, steel 0\.01\), no supplementary damper declared/)
-    const [c, lo] = [...a.value.matchAll(/(\d+\.\d)% g/g)].map((m) => Number(m[1]))
+    const [c, lo, core] = [...a.value.matchAll(/(\d+\.\d)% g/g)].map((m) => Number(m[1]))
     expect(lo).toBeGreaterThan(c)
-    expect(a.state).toBe(c > 1.5 ? 'fail' : lo > 1.5 ? 'warn' : 'pass')
+    expect(a.state).toBe(c > 1.5 ? 'fail' : Math.max(lo, core) > 1.5 ? 'warn' : 'pass')
     // More damping, less motion; the engineer's frequency replaces the band.
     const damped = rule(windProcedure(vtc(), { ...DEFAULT_WIND_PRESETS, damping: 0.03 }), 'across-wind-accel')
     expect(Number(damped.value.match(/^(\d+\.\d)/)![1])).toBeLessThan(c)

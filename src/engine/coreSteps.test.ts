@@ -91,7 +91,8 @@ describe('G18: the core of each storey', () => {
 
 describe('G18: storey weights and the off-centre lines take each storey’s own core', () => {
   it('moves each step’s wall weight with it, and measures each level from its own core', () => {
-    const fixed = storeyWeights(C([C_STEPS[0]])), stepped = storeyWeights(C(C_STEPS))
+    const full = { ...DEFAULT_WEIGHT_PRESETS, coreWallBands: null } // 0.6 m walls full height (P1 #10 bands them by default)
+    const fixed = storeyWeights(C([C_STEPS[0]]), full), stepped = storeyWeights(C(C_STEPS), full)
     const at = (w: typeof fixed, level: number) => w.levels.find((l) => l.level === level && !l.roof)!
     expect(at(stepped, 55)).toMatchObject({ coreX: 25.5, coreY: 4.5, coreSide: 15 })
     expect(at(stepped, 45)).toMatchObject({ coreX: 27.75, coreY: 2.25, coreSide: 19.5 })
@@ -201,7 +202,7 @@ describe('G30: the sustained-sway line with the jog between stepped cores', () =
     // The line reads the sway with the jog and keeps the storey-by-storey value beside it.
     const net = srule(t, 'gravity-net')
     const mm = (v: number) => Math.round(v * 1000)
-    expect(net.value).toBe(`E = ${g.net.e.toFixed(2)} m (e/D ${g.net.ratio.toFixed(3)}); top sway ≈ ${mm(g.jog.sway.el)} mm elastic, ≈ ${mm(g.jog.sway.lt)} mm long term with the core jog (${mm(g.sway.el)} / ${mm(g.sway.lt)} mm storey by storey)`)
+    expect(net.value).toMatch(new RegExp(`^E = ${g.net.e.toFixed(2)} m \\(e/D ${g.net.ratio.toFixed(3)}\\); top sway ≈ ${mm(g.jog.sway.el)} mm elastic, ≈ ${mm(g.jog.sway.lt)} mm long term with the core jog \\(${mm(g.sway.el)} / ${mm(g.sway.lt)} mm storey by storey\\); core alone ≈ \\d+ mm long term$`))
     expect(net.note).toMatch(/With the core jog: each core section carries the tower storeys above it about its own centre/)
     expect(net.note).toMatch(/sections grade 24\.0 m at \(30\.0, 0\.0\); L43 19\.5 m at \(27\.8, 2\.3\), 3\.2 m off the one below/)
     expect(srule(t, 'continuity').note).toMatch(/the sway line adds that jog/)
