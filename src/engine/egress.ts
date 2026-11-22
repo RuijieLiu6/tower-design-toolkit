@@ -294,13 +294,15 @@ function insideBy(x: number, y: number, loops: P[][], r: number): boolean {
  * of `dir` seen from `origin`, farthest from `from`. A grid of about 100 across the storeys' common box, the farthest
  * candidates tried first, then refined to a fifth of a step. Null when no point fits every storey.
  */
-export function straightStairSpot(storeys: P[][][], r: number, from: { x: number; y: number }, origin: { x: number; y: number }, dir: [number, number]): { x: number; y: number } | null {
-  const seen = new Set<string>(), outs: P[][][] = []
-  for (const loops of storeys) { const k = JSON.stringify(loops.map((q) => q.map((p) => [Math.round(p[0] * 100), Math.round(p[1] * 100)]))); if (!seen.has(k)) { seen.add(k); outs.push(loops) } }
+export function straightStairSpot(storeys: P[][][], rr: number | number[], from: { x: number; y: number }, origin: { x: number; y: number }, dir: [number, number]): { x: number; y: number } | null {
+  // each storey's clearance (G55: a storey's own stair width; a number: the same for every storey)
+  const rOf = (k: number) => (Array.isArray(rr) ? rr[k] ?? rr[rr.length - 1] : rr)
+  const seen = new Set<string>(), outs: P[][][] = [], radii: number[] = []
+  storeys.forEach((loops, k) => { const key = JSON.stringify([rOf(k).toFixed(2), loops.map((q) => q.map((p) => [Math.round(p[0] * 100), Math.round(p[1] * 100)]))]); if (!seen.has(key)) { seen.add(key); outs.push(loops); radii.push(rOf(k)) } })
   if (!outs.length) return null
   let x0 = -Infinity, y0 = -Infinity, x1 = Infinity, y1 = Infinity
-  for (const loops of outs) {
-    const pts = loops.flat()
+  for (const [k, loops] of outs.entries()) {
+    const pts = loops.flat(), r = radii[k]
     x0 = Math.max(x0, Math.min(...pts.map((p) => p[0])) + r); x1 = Math.min(x1, Math.max(...pts.map((p) => p[0])) - r)
     y0 = Math.max(y0, Math.min(...pts.map((p) => p[1])) + r); y1 = Math.min(y1, Math.max(...pts.map((p) => p[1])) - r)
   }
@@ -309,8 +311,8 @@ export function straightStairSpot(storeys: P[][][], r: number, from: { x: number
   const toward = (x: number, y: number) => { const vx = x - origin.x, vy = y - origin.y, d = Math.hypot(vx, vy); return d > 1e-9 && (vx * ux + vy * uy) / d >= Math.SQRT1_2 - 1e-9 }
   let killer = 0
   const fits = (x: number, y: number) => {
-    if (!insideBy(x, y, outs[killer], r)) return false
-    for (let k = 0; k < outs.length; k++) if (k !== killer && !insideBy(x, y, outs[k], r)) { killer = k; return false }
+    if (!insideBy(x, y, outs[killer], radii[killer])) return false
+    for (let k = 0; k < outs.length; k++) if (k !== killer && !insideBy(x, y, outs[k], radii[k])) { killer = k; return false }
     return true
   }
   const step = Math.max(0.2, Math.max(x1 - x0, y1 - y0) / 100)
@@ -355,13 +357,14 @@ const levelRuns = (lv: number[]) => {
  * or more, or an edge stair is placed by hand. Null otherwise (the stairs stay at the corners of the tower's
  * rectangle, as before) and with both stairs in the core.
  */
-export function straightStairs(t: Tower, spots: StairSpot[], a: number, placement: StairPlacement): StraightStairs | null {
+export function straightStairs(t: Tower, spots: StairSpot[], a: number, placement: StairPlacement, clearAt?: (level: number) => number): StraightStairs | null {
   if (placement === 'core' || !spots.some((s) => !s.inCore)) return null
   const outs = towerOutlines(t)
   if (!outs) return null
   const twist = towerTwist(t).deg, at = stairAtOf(t)
   if (!at && twist < STAIR_TWIST_MIN) return null
-  const base = coreCentre(t), r = a / 2
+  // G55: each storey's enclosure from its own stair width (the widest need at or above it), else the widest everywhere
+  const base = coreCentre(t), r = a / 2, rAt = (level: number) => (clearAt ? clearAt(level) : r)
   const stairs = spots.map((s) => (s.inCore ? { x: s.x + base.x, y: s.y + base.y } : { x: s.x, y: s.y }))
   const coreStair = spots.findIndex((s) => s.inCore)
   const from = placement === 'mixed' && coreStair >= 0 ? stairs[coreStair] : { x: base.x, y: base.y }
@@ -372,9 +375,9 @@ export function straightStairs(t: Tower, spots: StairSpot[], a: number, placemen
     // the corner of the tower's rectangle this stair stands for (a hand-placed stair: the chosen corner)
     const [i, j] = handed ? CORNER_SIGN[t.stairCorner ?? 'sw'] : [Math.sign(s.x) || 1, Math.sign(s.y) || 1]
     const corner = cornerOfSign(i, j)
-    const outside = outs.filter((o) => !insideBy(s.x, s.y, o.loops, r)).map((o) => o.level)
+    const outside = outs.filter((o) => !insideBy(s.x, s.y, o.loops, rAt(o.level))).map((o) => o.level)
     if (handed) { edge.push({ corner, how: 'placed', x: s.x, y: s.y, outside }); return }
-    const p = straightStairSpot(outs.map((o) => o.loops), r, from, base, [i * t.width, j * t.depth])
+    const p = straightStairSpot(outs.map((o) => o.loops), outs.map((o) => rAt(o.level)), from, base, [i * t.width, j * t.depth])
     if (p) { stairs[m] = p; edge.push({ corner, how: 'found', x: p.x, y: p.y, outside }) }
     else edge.push({ corner, how: 'none', x: s.x, y: s.y, outside })
   })
@@ -600,7 +603,10 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
   const placement = t.stairPlacement ?? 'core'
   const corner = stairSpots(t, n, enclosure.a, enclosure.b, placement)
   // G31: a twisted imported tower's edge stairs as straight shafts inside every tower storey
-  const straight = straightStairs(t, corner, enclosure.a, placement)
+  // G55 (review R6-1): each storey's stair enclosure from that storey's own stair width, not the widest one below it
+  const byLevel = new Map(storeys.map((s) => [s.level, s]))
+  const clearAt = (level: number) => { const st = byLevel.get(level); return st ? stairEnclosure(st.stairMm, st.f2f, e).a / 2 : enclosure.a / 2 }
+  const straight = straightStairs(t, corner, enclosure.a, placement, clearAt)
   const spots = straight ? corner.map((s, m) => ({ ...s, ...straight.stairs[m] })) : corner
   let separation = 0
   for (let i = 0; i < spots.length; i++) for (let j = i + 1; j < spots.length; j++) separation = Math.max(separation, Math.hypot(spots[i].x - spots[j].x, spots[i].y - spots[j].y))
@@ -721,7 +727,7 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
       id: `stair-straight-${t.id}`,
       label: 'Edge stair, straight shaft',
       value,
-      threshold: `the stair enclosure inside every tower storey's plate (its centre ${straight.clear.toFixed(1)} m or more from the façade)`,
+      threshold: `the stair enclosure inside every tower storey's plate, each storey's enclosure from its own stair width (the widest need at or above it; at the widest, its centre ${straight.clear.toFixed(1)} m or more from the façade)`,
       state: ok ? 'pass' : 'warn',
       flag: 'team_assumption',
       source: { label: 'Team geometry check on the stair placement (not a code clause)' },
