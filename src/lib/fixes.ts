@@ -76,7 +76,11 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],
   [/^continuity$/, (st) => (st === 'fail' ? 'An upper core stands outside the core below: move its centre or shrink it so it sits inside the lower core (Structure › Lateral & sway › Core steps), so its walls can run down to the foundation.'
     : 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.')],
-  [/^geometric$/, 'The core steps by more than 130% at one level: split it into smaller steps (each within 130%, Structure › Lateral & sway › Core steps), or carry the Type 3 irregularity in the dynamic analysis.'],
+  // Open storeys and a core top (tool cycle 12, engine/openStorey.ts): Types 1, 6, 4 and 5 by the core-alone proxy.
+  [/^soft-storey$/, 'An open storey (or the crown over a core top) is much softer than the storeys round it: keep the frame through the opening (columns with a belt above and below it, a megaframe bay), thicken the core walls until the core alone carries the 46/H stiffness (weight presets), or have the engineer carry Type 1 in the dynamic analysis.'],
+  [/^weak-storey$/, 'The open storeys carry the storey shear on the core walls alone while the storeys above share it with the frame: keep the frame and its floors through the opening, strengthen the core walls there, or have the engineer show the storey shear strength against the storey above.'],
+  [/^open-discontinuity$/, 'The lateral force path changes at an open storey or a core top: keep the core inside every open storey and the frame\'s columns continuous through it (Structure › Floors & spans, declared carries), or end the frame on a belt the core holds, and have the engineer carry Types 4 and 5.'],
+  [/^geometric$/,'The core steps by more than 130% at one level: split it into smaller steps (each within 130%, Structure › Lateral & sway › Core steps), or carry the Type 3 irregularity in the dynamic analysis.'],
   // Egress & stairs
   // Posted occupant loads (tool cycle 11, BCBC 2024 3.1.17.1(1)(c), (2)).
   // Shared levels by reach (tool cycle 11).

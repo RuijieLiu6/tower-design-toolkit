@@ -14,6 +14,7 @@ import { floorOutline } from './corners'
 import { TWIST_MIN } from './acrossWind'
 import { systemShortlist, type SystemFit, type WindProcedure } from './windStructure'
 import { columnContinuity, continuityLines, GRADUAL_RUN, LEAN_MOVE_MAX, type ContinuityReading } from './continuity'
+import { openStoreyLines, openStoreys, type OpenStoreyReading } from './openStorey'
 
 /** Type 10 (sloped columns): inclined more than 2° from vertical (BCBC 2024 Table 4.1.8.6; NBC 2020 the same). */
 export const TYPE10_DEG = 2
@@ -69,6 +70,8 @@ export interface StructureResult {
   core: CoreStiffness
   /** Column starts, stops, cantilevers and the facade's lean, storey by storey (tool cycle 12, engine/continuity.ts). */
   continuity: ContinuityReading
+  /** Open bands and the crown over a core top, with the Type 1 stiffness proxy (tool cycle 12, engine/openStorey.ts). */
+  open: OpenStoreyReading
 }
 
 /**
@@ -78,15 +81,19 @@ export interface StructureResult {
  */
 export type StructureTab = 'seismic' | 'lateral' | 'floors'
 export const STRUCTURE_TABS: { id: StructureTab; tab: string; lines: string[] }[] = [
-  { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'sloped-columns', 'geometric', 'core-ratio'] },
+  { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'sloped-columns', 'geometric', 'soft-storey', 'weak-storey', 'open-discontinuity', 'core-ratio'] },
   { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers', 'lateral-change', 'aperture-core', 'aperture-sky', 'aperture-bridge'] },
   { id: 'floors', tab: 'Floors & spans', lines: ['floor-reach', 'floor-dead-load', 'column-starts', 'cantilever', 'column-stops'] },
 ]
 /** The tab a structure line shows under (unlisted lines: the first). */
 export const structureTabOf = (lineId: string): StructureTab => STRUCTURE_TABS.find((g) => g.lines.includes(lineId))?.id ?? STRUCTURE_TABS[0].id
 
-/** `north` (true north clockwise from the project frame's +y) places deck uses that name a facing (`Tower.deckUses`). */
-export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS, north = 0): StructureResult {
+/**
+ * `north` (true north clockwise from the project frame's +y) places deck uses that name a facing (`Tower.deckUses`).
+ * `opts.coreTop` (m above grade) is where the core walls end below an opening: the open-storey lines read the crown over
+ * it as a frame on a core (tool cycle 12). Absent: the core runs to the roof.
+ */
+export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS, north = 0, opts: { coreTop?: number } = {}): StructureResult {
   const rules: RuleResult[] = []
   const add = (id: string, label: string, value: string, threshold: string, state: RuleState, flag: Flag, source: Source, note?: string) =>
     rules.push({ id, label, value, threshold, state, flag, source, note })
@@ -218,6 +225,10 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     'SFRS dimension ≤ 130% of the adjacent storey', geo && geo.ratio > 1.3 ? 'warn' : 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 3' },
     geo ? `The SFRS here is the core, and it steps: ${jumps.map((x) => `${Math.round(x.ratio * 100)}% at L${x.c.from}`).join(', ')}.${geo.ratio > 1.3 ? ' Over 130% is a Type 3 irregularity: the dynamic analysis carries it, or smaller steps (each within 130%) avoid it.' : ' Each step stays within 130%.'}` : 'The SFRS here is the core, which keeps its size; a wider podium only counts if its walls join the SFRS.')
 
+  // Open storeys, gates, voids and a core top (tool cycle 12, R7 tool 5): Types 1, 6, 4 and 5 by the core-alone proxy.
+  const open = openStoreys(t, { core, H, floors, weights, coreTop: opts.coreTop })
+  rules.push(...openStoreyLines(open, cont))
+
   const cs = t.coreShare
   add('core-ratio', 'Core ratio (core ÷ gross plate)', `${Math.round(cs * 1000) / 10}%`, 'good ≤ 25%; above 35% check', cs > 0.35 ? 'warn' : cs > 0.25 ? 'warn' : 'pass', 'team_assumption', TEAM,
     'No accessible primary source: a starting preset to calibrate against precedent plans.')
@@ -236,7 +247,7 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   rules.push(...lateralChangeLines(t, weights, { north, rules, floors }))
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
-  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav, core, continuity: cont }
+  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav, core, continuity: cont, open }
 }
 
 /** Outrigger levels placed on tower storeys. */
