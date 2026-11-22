@@ -47,8 +47,9 @@ export const DEFAULT_INTERIOR: InteriorInput = {
   keyDepth: 8.5,
   headDrop: 1.2,
   amenity: [
-    // Egress 4.6 m²/person = the egress check's amenity preset (team); switch to 1.2 (dining) if the lounge serves food.
-    { id: 'lounge', name: 'Residents’ lounge', share: 0.4, designM2: 2.8, egressM2: 4.6, hours: '07:00–23:00' },
+    // Egress 1.85 m²/person: the lounge row of BCBC 2024 Table 3.1.17.1 (p.3-105; P1 #12, was 4.6, the personal-services
+    // row); switch to 1.2 (dining) if the lounge serves food.
+    { id: 'lounge', name: 'Residents’ lounge', share: 0.4, designM2: 2.8, egressM2: 1.85, hours: '07:00–23:00' },
     { id: 'fitness', name: 'Fitness room', share: 0.3, designM2: 4.6, egressM2: 4.6, hours: '05:00–23:00' },
     { id: 'cowork', name: 'Co-working room', share: 0.3, designM2: 4.6, egressM2: 9.3, hours: '07:00–22:00' },
   ],

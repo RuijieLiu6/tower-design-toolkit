@@ -82,9 +82,10 @@ function EgressPresetFields({ presets, onChange }: { presets: EgressPresets; onC
         <NumberField label="Bedrooms per home" value={presets.bedroomsPerHome} onChange={(v) => onChange({ bedroomsPerHome: Math.max(0.5, v) })} step={0.1} hint="2 persons per sleeping room (VBBL 3.1.17.1)" />
         <NumberField label="Riser" unit="mm" value={Math.round(presets.riser * 1000)} onChange={(v) => onChange({ riser: Math.max(100, v) / 1000 })} step={5} hint="At most 180 mm keeps the 8 mm per person rate" />
         <NumberField label="Tread" unit="mm" value={Math.round(presets.tread * 1000)} onChange={(v) => onChange({ tread: Math.max(200, v) / 1000 })} step={5} hint="At least 280 mm keeps the 8 mm per person rate" />
-        <NumberField label="Amenity floors, m² per person" value={presets.amenityFactor} onChange={(v) => onChange({ amenityFactor: Math.max(0.3, v) })} step={0.1} hint="4.6 personal services until programmed; 1.2 dining; 0.4 standing (VBBL Table 3.1.17.1)" />
-        <span className="self-end pb-1 text-meta text-muted">4.6 until programmed · 1.2 dining · 0.4 standing</span>
+        <NumberField label="Amenity floors, m² per person" value={presets.amenityFactor} onChange={(v) => onChange({ amenityFactor: Math.max(0.3, v) })} step={0.1} hint="1.85 lounges until programmed (BCBC 2024 Table 3.1.17.1, p.3-105); 1.2 dining; 0.4 standing" />
+        <span className="self-end pb-1 text-meta text-muted">1.85 lounges until programmed · 1.2 dining · 0.4 standing</span>
         <label className="col-span-2 flex items-center gap-2 text-xs"><input type="checkbox" checked={presets.officeCorridor} onChange={() => onChange({ officeCorridor: !presets.officeCorridor })} />Office floors have a public corridor (exits then need only be 9 m apart)</label>
+        <label className="col-span-2 flex items-center gap-2 text-xs" title="Allen & Iano p.305 (NBC 2010 reading): 3.7 m² per person, as at grade, instead of 5.6"><input type="checkbox" checked={!!presets.retailLinked} onChange={() => onChange({ retailLinked: !presets.retailLinked })} />Second-storey shops open onto a walkway or the transit concourse</label>
         <div className="col-span-2 flex items-center gap-1"><FlagChip flag="team_assumption" />
           <button onClick={() => onChange(DEFAULT_EGRESS_PRESETS)} className="ml-auto text-meta text-accent hover:underline">Reset presets</button>
         </div>

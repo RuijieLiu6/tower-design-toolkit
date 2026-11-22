@@ -18,6 +18,43 @@ const room = (patch: Partial<SkyRoom> = {}): SkyRoom => ({ level: 40, access: 's
 const plain: Tower = { ...vtc, bands: [{ use: 'office', share: 0.55 }, { use: 'hotel', share: 0.15 }, { use: 'residential', share: 0.3 }] }
 const withRoom = (patch: Partial<SkyRoom> = {}): Tower => ({ ...plain, skyLobbies: [40], skyRoom: room(patch) })
 
+describe('occupant loads re-sourced (P1 #12: BCBC 2024 lounges, linked second-storey retail)', () => {
+  it('reads unprogrammed amenity floors at 1.85 m² per person and says so storey by storey', () => {
+    expect(DEFAULT_EGRESS_PRESETS.amenityFactor).toBe(1.85)
+    expect(LOAD_FACTOR.lounge).toBe(1.85)
+    const e = egressCheck(vtc, DEFAULT_EGRESS_PRESETS, li)
+    const am = e.storeys.filter((s) => s.use === 'amenity' && !s.podium)
+    expect(am.length).toBeGreaterThan(0)
+    for (const s of am) expect(s.load).toBeCloseTo(s.net / 1.85, 6)
+    const line = e.rules.find((r) => r.id === 'amenity-load-t1')!
+    expect(line.value).toMatch(new RegExp(`^L${am[0].level} amenity: [0-9,]+ people → stair width [0-9,]+ mm`))
+    expect(line).toMatchObject({ state: 'warn', flag: 'verified' }) // an amenity floor sets the stair width here
+    expect(line.source).toMatchObject({ page: 'p.3-105' })
+    expect(line.source.label).toMatch(/BC Building Code 2024.*Table 3\.1\.17\.1/)
+    // 1.85 against the old 4.6: about 2.5 times the people, so a wider stair
+    const old = egressCheck(vtc, { ...DEFAULT_EGRESS_PRESETS, amenityFactor: 4.6 }, li)
+    expect(e.widthMm / old.widthMm).toBeCloseTo(4.6 / 1.85, 6)
+  })
+  it('no amenity, civic or tenant sky-lobby floor: no line; the public sky room keeps its own factors', () => {
+    expect(egressCheck(plain, DEFAULT_EGRESS_PRESETS, li).rules.find((r) => r.id === 'amenity-load-t1')).toBeUndefined()
+    const st = storeyLoads(withRoom(), DEFAULT_EGRESS_PRESETS, li).find((s) => s.publicRoom)!
+    expect(st.basis).toMatch(/dining 1\.2/)
+  })
+  it('a second storey of shops on a walkway or the concourse fills at 3.7, as at grade, when declared (unverified)', () => {
+    const shops: Tower = { ...plain, podiumHeight: 9, podiumUse: 'retail' }
+    const second = (e: typeof DEFAULT_EGRESS_PRESETS) => storeyLoads(shops, e, li).filter((s) => s.z >= 0.5).sort((a, b) => a.level - b.level)[0]
+    const off = second(DEFAULT_EGRESS_PRESETS), on = second({ ...DEFAULT_EGRESS_PRESETS, retailLinked: true })
+    expect(off.use).toBe('retail')
+    expect(off.load).toBeCloseTo(off.net / 5.6, 6)
+    expect(on.load).toBeCloseTo(on.net / 3.7, 6)
+    expect(egressCheck(shops, DEFAULT_EGRESS_PRESETS, li).rules.find((r) => r.id === 'retail-linked-t1')).toBeUndefined()
+    const line = egressCheck(shops, { ...DEFAULT_EGRESS_PRESETS, retailLinked: true }, li).rules.find((r) => r.id === 'retail-linked-t1')!
+    expect(line).toMatchObject({ state: 'pass', flag: 'unverified' })
+    expect(line.value).toMatch(new RegExp(`^L${on.level} retail: [0-9,]+ people`))
+    expect(line.source).toMatchObject({ page: 'p.305' })
+  })
+})
+
 describe('occupant load (VBBL Table 3.1.17.1)', () => {
   it('uses 9.3 m² per person on office floors and 2 persons per bedroom in homes', () => {
     const st = storeyLoads(vtc, DEFAULT_EGRESS_PRESETS, li)
@@ -34,10 +71,10 @@ describe('exit stairs (VBBL 3.4.3.2)', () => {
     expect(e.widthMm).toBe(STAIR_MIN_MM)
     expect(e.rules.find((r) => r.id === 'stair-driver-t1')).toBeUndefined()
   })
-  it('flags an amenity floor that needs wider stairs, at the 4.6 m² per person team mapping', () => {
+  it('flags an amenity floor that needs wider stairs, at the BCBC 2024 lounge row (1.85 m² per person)', () => {
     const e = egressCheck(vtc, DEFAULT_EGRESS_PRESETS, li)
     expect(e.governing!.use).toBe('amenity')
-    expect(e.widthMm).toBeCloseTo((e.governing!.net / 4.6) * 8 / 2, 6)
+    expect(e.widthMm).toBeCloseTo((e.governing!.net / 1.85) * 8 / 2, 6)
     expect(e.rules.find((r) => r.id === 'stair-driver-t1')!.state).toBe('warn')
   })
   it('lets a standing public room widen the stairs from its level down, not above (width does not accumulate)', () => {

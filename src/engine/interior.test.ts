@@ -13,6 +13,18 @@ const vtc: Tower = {
   coreShare: 0.21, plantEvery: 0, coreAuto: false,
 }
 const laid: Tower = { ...vtc, interior: DEFAULT_INTERIOR }
+
+describe('residents’ lounge occupant load (P1 #12)', () => {
+  it('uses the BCBC 2024 lounge row, 1.85 m² per person, and the egress check counts it', () => {
+    const lounge = DEFAULT_INTERIOR.amenity.find((a) => a.id === 'lounge')!
+    expect(lounge.egressM2).toBe(1.85)
+    const f = towerFloors(laid).find((x) => x.use === 'amenity' && !x.podium)!
+    const st = storeyLoads(laid, DEFAULT_EGRESS_PRESETS, { homeM2: 75, hotelM2PerKey: 40 }).find((s) => s.level === f.level)!
+    const before = storeyLoads({ ...laid, interior: { ...DEFAULT_INTERIOR, amenity: DEFAULT_INTERIOR.amenity.map((a) => (a.id === 'lounge' ? { ...a, egressM2: 4.6 } : a)) } }, DEFAULT_EGRESS_PRESETS, { homeM2: 75, hotelM2PerKey: 40 }).find((s) => s.level === f.level)!
+    expect(st.basis).toMatch(/interior programme/)
+    expect(st.load).toBeGreaterThan(before.load)
+  })
+})
 const li = { homeM2: DEFAULT_LIFT_PRESETS.homeM2, hotelM2PerKey: DEFAULT_LIFT_PRESETS.hotelM2PerKey }
 
 describe('floor geometry', () => {

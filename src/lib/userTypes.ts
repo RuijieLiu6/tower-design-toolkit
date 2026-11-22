@@ -54,7 +54,8 @@ export const USER_TYPES: UserType[] = [
         goal: "The competition block and its rules, with the public realm (40% of the jury's marks) first.",
         project: 'vtc', step: 'site',
         // 21 Nov (R10 juries: "not distinctive enough", no reading of the skyline): the silhouette reading joins the Form checks.
-        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.silhouette', 'built.sky-room', 'built.f2f-use'],
+        // 21 Nov (P1 #12 occupant loads): the exit stairs, now that amenity floors fill at the BCBC 2024 lounge row.
+        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.silhouette', 'built.sky-room', 'built.f2f-use', 'built.egress'],
         says: ['competition entry and boards', 'Vancouver Tall Challenge brief and rules', 'student competition deadline'],
       },
       {

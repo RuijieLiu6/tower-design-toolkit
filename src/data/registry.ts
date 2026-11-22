@@ -100,7 +100,11 @@ export const ALL_BUILT_NODES: NodeDef[] = [
   { id: 'built.egress', name: 'Egress & stairs', category: 'SYST', phase: 'advanced', priority: 'core', status: 'built', projects: ['vtc', 'city'],
     question: 'How many people are on each storey, how wide must the exit stairs be, and do exit separation and travel distance work with this core?', jury: ['human_scale_40', 'design_excellence_20'],
     human: 'Stair strategy (scissor or separate), discharge locations against active frontage, phased evacuation, waiting areas for people who cannot use stairs, and fire engineer approval.',
-    limits: 'VBBL 2019 Part 3 values (equal to VBBL 2007); VBBL 2025 unread. Travel distance is a straight-line proxy, not a path on the plan; stair geometry and placement are team assumptions; evacuation time is roadmap (P11-M08).',
+    // Node contract (21 Nov): the loads and widths are table lookups (A); the second-storey 3.7 is a B value (an NBC
+    // 2010 analogue) and the smoke-path separation a code-consultant reading, both marked on their lines.
+    confidence: 'A',
+    boundary: 'Holds for rectangular plates with a central core under the Canadian code tables; travel and exit separation are straight-line or core-perimeter proxies that stop holding on free-form, twisted or imported plates, and the smoke-path separation is a code-consultant reading.',
+    limits: 'VBBL 2019 Part 3 values (equal to VBBL 2007); VBBL 2025 unread. Amenity, lounge, civic and tenant sky-lobby floors at the lounge row of BCBC 2024 Table 3.1.17.1, 1.85 m² per person (p.3-105; P1 #12, was 4.6); a second storey of shops on a walkway or the concourse at 3.7 when declared (Allen & Iano p.305, an NBC 2010 reading, unverified). Travel distance is a straight-line proxy, not a path on the plan; stair geometry and placement are team assumptions; evacuation time is roadmap (P11-M08).',
     packet: 'P11' },
   { id: 'built.life-safety', name: 'Code & life safety', category: 'SYST', phase: 'advanced', priority: 'core', status: 'built', projects: ['vtc', 'city'],
     question: 'Which high-building and life-safety requirements does this tower trigger, can people reach every floor step-free, and how many plant floors, how much riser space and how big an emergency generator does it need?', jury: ['design_excellence_20', 'human_scale_40'],

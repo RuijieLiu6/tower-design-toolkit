@@ -19,15 +19,26 @@ export interface EgressPresets {
   bedroomsPerHome: number
   /** Office floors have a public corridor, so exits need be only 9 m apart (3.4.2.3). Team assumption: open plan. */
   officeCorridor: boolean
-  /** m² per person on amenity and civic floors. Team mapping: 4.6 (the personal-services factor) until a floor is
-   *  programmed; 1.2 if it is a dining room, 0.4 if people stand. */
+  /** m² per person on amenity, civic and tenant sky-lobby floors until a floor is programmed: 1.85, the lounge row of
+   *  BCBC 2024 Table 3.1.17.1 (p.3-105; P1 #12, 21 Nov; was 4.6, the personal-services row); 1.2 if it is a dining
+   *  room, 0.4 if people stand. */
   amenityFactor: number
+  /**
+   * The second storey's retail is entered from a pedestrian way or the transit concourse (P1 #12): its load is then
+   * 3.7 m² per person, as at grade, instead of 5.6 (Allen & Iano p.305, an NBC 2010 reading). Absent or false: 5.6.
+   */
+  retailLinked?: boolean
 }
 
-export const DEFAULT_EGRESS_PRESETS: EgressPresets = { stairs: 2, riser: 0.18, tread: 0.28, bedroomsPerHome: 1.5, officeCorridor: false, amenityFactor: 4.6 }
+export const DEFAULT_EGRESS_PRESETS: EgressPresets = { stairs: 2, riser: 0.18, tread: 0.28, bedroomsPerHome: 1.5, officeCorridor: false, amenityFactor: 1.85 }
 
-/** Table 3.1.17.1 occupant load factors, m² per person (VBBL 2019 = VBBL 2007; research P11-S62, P11-S47). */
-export const LOAD_FACTOR = { office: 9.3, personalServices: 4.6, mercantileFirst: 3.7, mercantileUpper: 5.6, dining: 1.2, standing: 0.4, publicCorridor: 3.7 }
+/** Table 3.1.17.1 occupant load factors, m² per person (VBBL 2019 = VBBL 2007; research P11-S62, P11-S47; lounges
+ *  from BCBC 2024 p.3-105). */
+export const LOAD_FACTOR = { office: 9.3, personalServices: 4.6, mercantileFirst: 3.7, mercantileUpper: 5.6, dining: 1.2, standing: 0.4, publicCorridor: 3.7, lounge: 1.85 }
+/** BC Building Code 2024 Table 3.1.17.1, the lounge row (P1 #12; book notes bcbc-2024.md). */
+export const BCBC_LOADS = { label: 'BC Building Code 2024, Division B, Table 3.1.17.1 occupant load (lounges 1.85 m² per person); VBBL 2025 to confirm', page: 'p.3-105' }
+/** Allen & Iano on the second storey's retail (an NBC 2010 base: an analogue until the BCBC 2024 row is read). */
+export const ASC_RETAIL = { label: 'Allen & Iano, The Architect’s Studio Companion, 6th ed. (mercantile load on a second storey entered from a pedestrian way; NBC 2010 base)', page: 'p.305' }
 export const STAIR_MIN_MM = 1100
 export const TRAVEL_LIMIT_M = 45
 export const FLIGHT_MAX_M = 3.7
@@ -372,7 +383,10 @@ export const PLACEMENT_LABEL: Record<StairPlacement, string> = {
 export function storeyLoads(t: Tower, e: EgressPresets, li: LoadInputs): StoreyLoad[] {
   const rate = e.riser <= 0.18 && e.tread >= 0.28 ? 8 : 9.2
   const n = Math.max(2, Math.round(e.stairs))
-  const out: StoreyLoad[] = towerFloors(t).map((f) => {
+  const floors = towerFloors(t)
+  // The second storey: the lowest storey above grade (P1 #12, linked retail).
+  const second = floors.filter((f) => f.z0 >= 0.5).reduce<number | null>((m, f) => (m === null || f.level < m ? f.level : m), null)
+  const out: StoreyLoad[] = floors.map((f) => {
     const net = netOf(f, t)
     const publicRoom = !!(f.skyLobby && t.skyRoom && t.skyRoom.level === f.level)
     const c = floorCounts(t, f)
@@ -387,7 +401,11 @@ export function storeyLoads(t: Tower, e: EgressPresets, li: LoadInputs): StoreyL
     else if (f.skyLobby && c?.publicEgress !== undefined) { load = c.publicEgress; basis = 'sky lobby activities (interior programme)' }
     else if (f.skyLobby) { const k = Math.max(0.3, e.amenityFactor); load = net / k; basis = `sky lobby as amenity, ${k} m²/person` }
     else if (f.use === 'office') { load = net / LOAD_FACTOR.office; basis = 'office, 9.3 m²/person' }
-    else if (f.use === 'retail') { const k = f.z0 < 0.5 ? LOAD_FACTOR.mercantileFirst : LOAD_FACTOR.mercantileUpper; load = net / k; basis = `mercantile, ${k} m²/person` }
+    else if (f.use === 'retail') {
+      const linked = !!e.retailLinked && f.z0 >= 0.5 && f.level === second
+      const k = f.z0 < 0.5 || linked ? LOAD_FACTOR.mercantileFirst : LOAD_FACTOR.mercantileUpper
+      load = net / k; basis = `mercantile${linked ? ' on the second storey entered from a pedestrian way' : ''}, ${k} m²/person`
+    }
     else if (f.use === 'residential' && c?.bedrooms !== undefined) { load = c.bedrooms * 2; basis = `${c.homes} homes, ${c.bedrooms} bedrooms × 2 persons (interior layout)` }
     else if (f.use === 'residential') { load = (net / li.homeM2) * e.bedroomsPerHome * 2; basis = `homes × ${e.bedroomsPerHome} bedrooms × 2 persons` }
     else if (f.use === 'hotel' && c?.keys !== undefined) { load = c.keys * 2; basis = `${c.keys} hotel keys × 2 persons (interior layout)` }
@@ -653,6 +671,37 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     flag: 'verified',
     source: { ...VBBL_EXITS, page: '3.4.6.3' },
   })
+  // P1 #12 (21 Nov): amenity, lounge and tenant sky-lobby floors at the BCBC 2024 lounge row, storey by storey.
+  const amenity = storeys.filter((s) => !s.podium && !s.publicRoom && (s.use === 'amenity' || s.use === 'civic' || s.skyLobby))
+  if (amenity.length) {
+    const word = (s: StoreyLoad) => (s.skyLobby ? 'sky lobby' : s.use === 'civic' ? 'civic' : 'amenity')
+    const drives = governing && governing.needMm > STAIR_MIN_MM + 1 ? amenity.find((s) => s.level === governing.level) ?? null : null
+    const shown = amenity.slice().sort((a, b) => b.load - a.load).slice(0, 4).sort((a, b) => a.level - b.level)
+    rules.push({
+      id: `amenity-load-${t.id}`,
+      label: 'Amenity and lounge occupant load',
+      value: shown.map((s) => `L${s.level} ${word(s)}: ${fmt(s.load)} people → stair width ${fmt(s.needMm)} mm`).join('; ') + (amenity.length > shown.length ? `; ${amenity.length - shown.length} more` : ''),
+      threshold: `lounges ${LOAD_FACTOR.lounge} m² per person (Table 3.1.17.1); ${rate} mm per person ÷ ${n} stairs, ≥ ${STAIR_MIN_MM} mm`,
+      state: drives ? 'warn' : 'pass',
+      flag: 'verified',
+      source: BCBC_LOADS,
+      note: `${drives ? `L${drives.level} (${word(drives)}) sets the exit stair width from there down (${fmt(drives.needMm)} mm). ` : ''}Unprogrammed amenity, civic and tenant sky-lobby floors at ${e.amenityFactor} m² per person (the lounge row; it was 4.6, the personal-services row, about 2.5 times fewer people); floors with an interior programme add up their activities (residents' lounge ${LOAD_FACTOR.lounge}). The public sky room keeps its own dining 1.2 or standing 0.4. BCBC 2024 text; VBBL 2025, which governs in Vancouver, is to confirm.`,
+    })
+  }
+  const linked = e.retailLinked ? storeys.find((s) => s.use === 'retail' && s.z >= 0.5 && /pedestrian way/.test(s.basis)) ?? null : null
+  if (linked) {
+    rules.push({
+      id: `retail-linked-${t.id}`,
+      label: 'Second-storey retail on a walkway or concourse',
+      value: `L${linked.level} retail: ${fmt(linked.load)} people → ${linked.podium ? `about ${((linked.load * rate) / 1000).toFixed(1)} m of podium exit width` : `stair width ${fmt(linked.needMm)} mm`}`,
+      threshold: `${LOAD_FACTOR.mercantileFirst} m² per person, as at grade (instead of ${LOAD_FACTOR.mercantileUpper})`,
+      state: 'pass',
+      flag: 'unverified',
+      source: ASC_RETAIL,
+      specialist: 'The 3.7 value is an NBC 2010 analogue (Allen & Iano, confidence B): a code consultant confirms the BCBC 2024 and VBBL 2025 row.',
+      note: 'You said the second storey’s shops open onto a pedestrian way or the transit concourse (retailLinked), so they fill like ground-floor shops. Allen & Iano read NBC 2010: the BCBC 2024 and VBBL 2025 rows are to confirm.',
+    })
+  }
   rules.push({
     id: `loads-${t.id}`,
     label: 'Occupant load basis',
@@ -661,7 +710,7 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
     state: 'pass',
     flag: 'verified',
     source: VBBL_GENERAL,
-    note: `Office 9.3, personal services 4.6, mercantile 3.7 (first storey) or 5.6, dining 1.2, standing 0.4, public corridor 3.7 m² per person; 2 persons per sleeping room. Team mapping: amenity, civic and tenant sky-lobby floors at ${e.amenityFactor} m² per person until programmed, hotel keys as 2 persons, plant floors as 0, net area = floor less the core.`,
+    note: `Office 9.3, personal services 4.6, mercantile 3.7 (first storey${e.retailLinked ? ', and a second storey entered from a pedestrian way' : ''}) or 5.6, dining 1.2, standing 0.4, lounges 1.85 (BCBC 2024 p.3-105), public corridor 3.7 m² per person; 2 persons per sleeping room. Team mapping: amenity, civic and tenant sky-lobby floors at ${e.amenityFactor} m² per person (the lounge row) until programmed, hotel keys as 2 persons, plant floors as 0, net area = floor less the core.`,
   })
 
   return { storeys, stairs: n, placement, spots, farCorner: [far.x, far.y], governing, widthMm, enclosure, separation, separationNeeded, travel, podiumTravel, podiumExits, podiumFar: podFar ? [podFar.x, podFar.y] : null, podiumOutline, straightStairs: straight, rules }

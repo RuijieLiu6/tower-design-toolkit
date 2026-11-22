@@ -60,6 +60,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^travel-podium/, 'Give the podium its own exits closer to its far corners.'],
   [/^travel/, 'Shorten the walk to an exit: add a stair, or place stairs at the edges (Schematic › Exit stairs).'],
   [/^podium-exits/, 'Give the podium its own exit stairs.'],
+  // P1 #12 (21 Nov): an amenity or lounge floor at the BCBC 2024 lounge row sets the stair width.
+  [/^amenity-load/, 'Programme the busiest amenity floor (Interior: its activities set the load), split it over two floors, post a lower occupant load, or widen the stairs or add one (Schematic › Exit stairs).'],
   [/^flight/, 'Keep each flight under 3.7 m of rise: add a landing or lower the floor-to-floor.'],
   // Public sky room
   [/^skyroom-lifts/, 'Give visitors their own lifts, or a larger shuttle (Schematic › Sky lobbies › Public sky room).'],
