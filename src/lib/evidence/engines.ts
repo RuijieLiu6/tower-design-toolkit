@@ -26,6 +26,7 @@ import { provenanceLines, type ProvEntry } from '../../engine/provenance'
 import { cityGroundPlaneCheck, cityStreetwallCheck, groundPlaneCheck, streetwallCheck, type CityStreetsCtx, type PublicRealmInput } from '../../engine/publicRealm'
 import { cityFrontageWithSquare, frontageWithSquare } from '../../engine/squareEdges'
 import { silhouetteReading, skyContext, type SkyContext, type SkyScreens } from '../../engine/silhouette'
+import { viewpointReadings, viewpointRules, viewSite, type Contrast, type ViewpointRef } from '../../engine/silhouetteViewpoint'
 import { skyRoomCheck, type SkyTerraceLine } from '../../engine/skyRoom'
 import { structureCheck } from '../../engine/structure'
 import { DEFAULT_WEIGHT_PRESETS, type WeightPresets } from '../../engine/storeyWeight'
@@ -80,6 +81,19 @@ export interface EvidenceInput {
    * (0–1, e.g. the wind settings' deck screen and its open share); reported apart, judged only with `set`.
    */
   silhouetteScreens?: SkyScreens | null
+  /**
+   * Skyline silhouette from the city's viewpoints (R7 tool 1): the contrast that sets the pass line ('clear': 10′ /
+   * 100 arcmin², 'overcast': 16′ / 250 arcmin²); default clear.
+   */
+  silhouetteContrast?: Contrast
+  /**
+   * Skyline silhouette from the city's viewpoints: viewpoints read besides Queen Elizabeth Park (judged), every other
+   * City view-cone origin and the named places (reported). Each: an id ('cone-K', 'kits-point'), a cone id ('9.1'), or
+   * { name?, bearing, distance, eye? } from the tower (bearing of the viewer from the tower, degrees from grid north; m).
+   */
+  silhouetteViewpoints?: ViewpointRef[]
+  /** Real Vancouver: the tower's grade (geodetic m) for the viewpoint reading's angles; default the default site's ground. */
+  silhouetteGround?: number | null
   /**
    * Structure: storey-weight presets (gap G21; engine/storeyWeight.ts WeightPresets: soil depth on planted decks in mm,
    * which decks are planted, facade kPa, core wall thickness; P1 #13 slabFrom; P1 #10 coreWallBands, coreFc, cracked).
@@ -145,7 +159,11 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.wind-study': windStudyRules(Math.max(0, ...towers.map((t) => t.height))),
     'built.mobility': mobilityCheck(towers, DEFAULT_MOBILITY, { project: i.project, transitLink: i.transitLink, homeM2: i.liftPresets.homeM2, hotelM2PerKey: i.liftPresets.hotelM2PerKey }).rules,
     'built.facade': facade.rules,
-    'built.silhouette': towers.map((t) => silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context: skyContext(towers, t, i.silhouetteContext), glassT: i.silhouetteGlassT, screens: i.silhouetteScreens }).rules),
+    'built.silhouette': towers.map((t) => {
+      const context = skyContext(towers, t, i.silhouetteContext)
+      const vp = viewpointReadings(t, { site: viewSite(i.project, i.silhouetteGround), contrast: i.silhouetteContrast, context, viewpoints: i.silhouetteViewpoints })
+      return [...silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context, glassT: i.silhouetteGlassT, screens: i.silhouetteScreens }).rules, ...viewpointRules(vp.qe, vp.others)]
+    }),
     // The assumption ledger, and the readings beside the residual (KPF office lot test, cost band against height).
     'built.economics': [DEFAULT_ECON, kpfReadings(towers)],
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),

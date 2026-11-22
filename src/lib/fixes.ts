@@ -287,6 +287,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Skyline silhouette (a design reading: never a fail)
   [/^sil-legible$/, 'Give the outline one move the city can read, on most sides: a step of the size the rule names on two or more faces, a block that slides, a taper or a twist (Massing blocks, or Tower form in the Typology tab, Form step).'],
   [/^sil-sky$/, 'Let the sky show through the tower where the city sees it: an open band of two or three storeys whose plate stops short of the facade on opposite faces or wraps a corner, with no glass or core on the line of sight and no neighbour behind it (Massing blocks, or the storey outlines of an imported model).'],
+  // R7 tool 1: the viewpoint silhouette (Queen Elizabeth Park judged)
+  [/^sil-qe$/, 'Size the move to the Queen Elizabeth Park view, not to 2 km: from about 4.7 km the outline must change by about 14 m (22 m under overcast), or open about 190 m² of sky (470 m²) above the terrain line behind the tower, on the line from the park (Massing blocks, Tower form, or the storey outlines of an imported model; the line names the size from your site).'],
   // City in Nature
   [/^views$/, 'Bring the tower out of the protected views: View-cone height check says by how much to lower it, or move it (Place on map).'],
   [/^qe-view$/, 'Entering the Queen Elizabeth Park view is a pathway, not a failure: answer the Exceptional Downtown Site criteria below and make a skyline case, or lower the tower under the 3.2 cones.'],

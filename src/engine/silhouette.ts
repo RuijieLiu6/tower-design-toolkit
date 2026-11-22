@@ -190,10 +190,10 @@ export const arcmin = (m: number, d: number) => (Math.atan(Math.abs(m) / Math.ma
 /** Size (m) that subtends `a` arcminutes from `d` metres. */
 export const metresAt = (a: number, d: number) => d * Math.tan((a * Math.PI) / (180 * 60))
 
-/** The tower part's height slices (podium blocks left out, unless the tower is all podium). */
-export function silhouetteSlices(t: Tower): Slice[] {
+/** The tower part's height slices (podium blocks left out, unless the tower is all podium or `withPodium` is set). */
+export function silhouetteSlices(t: Tower, withPodium = false): Slice[] {
   const all = towerMasses(t).filter((m) => m.z1 - m.z0 > 1e-6 && m.ring.length >= 3)
-  const shaft = all.some((m) => !m.podium) ? all.filter((m) => !m.podium) : all
+  const shaft = !withPodium && all.some((m) => !m.podium) ? all.filter((m) => !m.podium) : all
   const zs = [...new Set(shaft.flatMap((m) => [m.z0, m.z1]).map((z) => Math.round(z * 1000) / 1000))].sort((a, b) => a - b)
   const out: Slice[] = []
   for (let i = 0; i + 1 < zs.length; i++) {
@@ -283,20 +283,20 @@ export function widestTurn(slices: Slice[]): SilhouetteReading['turn'] {
 // --- Sky through the tower (gap G23) ----------------------------------------------------------------------------------
 
 /** One storey for the sky-through reading: its plate rings and marked glass (project frame). */
-interface SkyStorey { level: number; z0: number; z1: number; area: number; podium: boolean; rings: P[][]; glazed: P[][]; glazedT: (number | null)[] }
-type Iv = [number, number]
+export interface SkyStorey { level: number; z0: number; z1: number; area: number; podium: boolean; rings: P[][]; glazed: P[][]; glazedT: (number | null)[] }
+export type Iv = [number, number]
 
 /** Angular area (arcmin²) of `m2` square metres seen face-on from `d` metres (small angles). */
 export const arcmin2 = (m2: number, d: number) => m2 * (10800 / (Math.PI * Math.max(1, d))) ** 2
 
 /** Tower frame → project frame. */
-function place(t: Tower, r: P[]): P[] {
+export function place(t: Tower, r: P[]): P[] {
   const a = (t.rotation * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a)
   return r.map(([u, v]) => [t.x + u * c - v * s, t.y + u * s + v * c])
 }
 
 /** The storeys read: an imported tower's storey outlines, or a parametric tower's floors; null for a drawn mass or an import without outlines. */
-function skyStoreys(t: Tower): SkyStorey[] | null {
+export function skyStoreys(t: Tower): SkyStorey[] | null {
   if (t.drawn) return null
   if (t.imported) {
     if (!readsStoreys(t)) return null
@@ -329,7 +329,7 @@ export function openBands(st: Pick<SkyStorey, 'area' | 'podium'>[]): [number, nu
 
 const dot = (p: P, u: P) => p[0] * u[0] + p[1] * u[1]
 /** Sorted, merged intervals. */
-function merge(iv: Iv[]): Iv[] {
+export function merge(iv: Iv[]): Iv[] {
   const s = iv.filter(([l, r]) => r > l).sort((a, b) => a[0] - b[0]), out: Iv[] = []
   for (const [l, r] of s) { const last = out[out.length - 1]; if (last && l <= last[1] + 1e-9) last[1] = Math.max(last[1], r); else out.push([l, r]) }
   return out
@@ -337,18 +337,18 @@ function merge(iv: Iv[]): Iv[] {
 /** Each ring's extent across the view (a line misses a plate when it passes outside its extent), merged. */
 const extents = (rings: P[][], u: P): Iv[] => merge(rings.map((r) => { let l = Infinity, h = -Infinity; for (const p of r) { const s = dot(p, u); if (s < l) l = s; if (s > h) h = s } return [l, h] as Iv }))
 /** a ∩ b. */
-function meet(a: Iv[], b: Iv[]): Iv[] {
+export function meet(a: Iv[], b: Iv[]): Iv[] {
   const out: Iv[] = []
   for (const [l, r] of a) for (const [m, n] of b) { const x = Math.max(l, m), y = Math.min(r, n); if (y - x > 1e-9) out.push([x, y]) }
   return merge(out)
 }
 /** a less b. */
-function cut(a: Iv[], b: Iv[]): Iv[] {
+export function cut(a: Iv[], b: Iv[]): Iv[] {
   let cur = a
   for (const [m, n] of b) cur = cur.flatMap(([l, r]): Iv[] => (n <= l || m >= r ? [[l, r]] : [...(m > l ? [[l, m] as Iv] : []), ...(n < r ? [[n, r] as Iv] : [])]))
   return cur.filter(([l, r]) => r - l > 1e-9)
 }
-const span = (a: Iv[]) => a.reduce((s, [l, r]) => s + r - l, 0)
+export const span = (a: Iv[]) => a.reduce((s, [l, r]) => s + r - l, 0)
 
 /** Inside a ring or within 5 cm of its edges. */
 function insideOrOn(p: P, r: P[]): boolean {
@@ -363,7 +363,7 @@ function insideOrOn(p: P, r: P[]): boolean {
 }
 
 /** Extent across the view of the part of a context prism's outline beyond the tower (p·v ≥ far), or null. */
-function behindExtent(ring: P[], u: P, v: P, far: number): Iv | null {
+export function behindExtent(ring: P[], u: P, v: P, far: number): Iv | null {
   const s: number[] = []
   for (let i = 0; i < ring.length; i++) {
     const a = ring[i], b = ring[(i + 1) % ring.length], da = dot(a, v) - far, db = dot(b, v) - far
@@ -374,9 +374,11 @@ function behindExtent(ring: P[], u: P, v: P, far: number): Iv | null {
 }
 
 /** One row of passing lines: its height span and the lines that pass, each with the share of sky it lets through (1: clear). */
-type SkyRow = { z0: number; z1: number; seg: { iv: Iv; w: number }[] }
+export type SkyRow = { z0: number; z1: number; seg: { iv: Iv; w: number }[] }
+/** One rectangle of passing lines in an opening: lateral extent across the view (m) and height span. */
+export interface SkyCell { l: number; r: number; z0: number; z1: number; w: number }
 /** Passing lines of one band's rows (bottom-up) grouped where they touch, within a row or from one row to the next; area at each line's share of sky. */
-function openingsOf(rows: SkyRow[], d: number): SkyOpening[] {
+export function openingsOf(rows: SkyRow[], d: number): (SkyOpening & { cells: SkyCell[] })[] {
   const nodes = rows.flatMap((r, row) => r.seg.filter((x) => x.w > 0 && x.iv[1] - x.iv[0] > 1e-9).map((x) => ({ row, iv: x.iv, w: x.w })))
   const up = nodes.map((_, i) => i)
   const find = (i: number): number => (up[i] === i ? i : (up[i] = find(up[i])))
@@ -388,7 +390,8 @@ function openingsOf(rows: SkyRow[], d: number): SkyOpening[] {
   nodes.forEach((n, i) => { const g = find(i); groups.set(g, [...(groups.get(g) ?? []), n]) })
   return [...groups.values()].map((g) => {
     const area = g.reduce((s, n) => s + (n.iv[1] - n.iv[0]) * (rows[n.row].z1 - rows[n.row].z0) * n.w, 0)
-    return { z0: Math.min(...g.map((n) => rows[n.row].z0)), z1: Math.max(...g.map((n) => rows[n.row].z1)), width: Math.max(...g.map((n) => n.iv[1])) - Math.min(...g.map((n) => n.iv[0])), area, arcmin2: arcmin2(area, d) }
+    return { z0: Math.min(...g.map((n) => rows[n.row].z0)), z1: Math.max(...g.map((n) => rows[n.row].z1)), width: Math.max(...g.map((n) => n.iv[1])) - Math.min(...g.map((n) => n.iv[0])), area, arcmin2: arcmin2(area, d),
+      cells: g.map((n) => ({ l: n.iv[0], r: n.iv[1], z0: rows[n.row].z0, z1: rows[n.row].z1, w: n.w })) }
   })
 }
 
@@ -471,7 +474,7 @@ export function skyThrough(t: Tower, o: SilhouetteOptions = {}): SkyThrough {
         if (hs > 0) rows.push({ z0: s.z0, z1: s.z0 + hs, seg: [...sky.map((iv) => ({ iv, w: ms })), ...litSeg(ms)] })
         if (hs < h) rows.push({ z0: s.z0 + hs, z1: s.z1, seg: [...sky.map((iv) => ({ iv, w: 1 })), ...litSeg(1)] })
       }
-      openings.push(...openingsOf(rows, d))
+      openings.push(...openingsOf(rows, d).map(({ cells: _cells, ...o }) => o))
     }
     openings.sort((x, y) => y.area - x.area)
     return { view: VIEWS[k], bearing: k * 45, cast, share: cast > 0 ? area / cast : 0, area, arcmin2: arcmin2(area, d), behind: ctx ? { area: behindArea, names: [...names] } : null, glass, seen, openings,
