@@ -36,7 +36,7 @@ const TEAM: Source = { label: 'Team assumption (research P12)' }
 const VBBL_TABLE: Source = { label: 'VBBL 2019 Table 3.1.17.1 (as used by the egress check)' }
 const VBBL_P9: Source = { label: 'VBBL 2019 Division B 9.9 (2 persons per bedroom or sleeping area, as read in research P12)', url: 'https://free.bcpublications.ca/civix/document/id/public/vbbl2019/2099100982' }
 const PNNL: Source = { label: 'PNNL prototype scorecards (US DOE), 90.1-2004 rows, as read in research P12', url: 'https://www.energycodes.gov/sites/default/files/2023-10/PNNL_Prototype_Scorecards.xlsx' }
-const LEED5: Source = { label: 'LEEDuser: NC-v5 EQc2 Occupant Experience (secondary source, research P12)', url: 'https://leeduser.buildinggreen.com/credit/NC-v5/EQc2' }
+const EP_DAYLIGHT: Source = { label: 'Environmental performance of tall buildings (EP, book notes 21 Nov): primary daylit zone within 6 m of the window', page: 'pp.199, 229–230' }
 const HOUSING_MIX: Source = { label: 'City of Vancouver Family Room: Housing Mix Policy for Rezoning Projects (not opened; from memory)' }
 
 export const DEFAULT_INTERIOR: InteriorInput = {
@@ -292,8 +292,9 @@ export function interiorCheck(t: Tower, floors: Floor[]): InteriorResult {
   }
   if (office) {
     rules.push(rule('in-lease', 'Office lease depth (facade to core)', `${office.leaseDepth.toFixed(1)} m`, '≤ about 12–14 m for a daylit, flexible plate (team)', office.leaseDepth <= 14 ? 'pass' : 'warn', 'team_assumption', TEAM))
-    rules.push(rule('in-6m', 'Office floor within 6 m of glazing', `${Math.round(office.within6 * 100)}%`, '≥ 30% (LEED v5 EQc2 option 5, path 3)', office.within6 >= 0.3 ? 'pass' : 'warn', 'unverified', LEED5, 'Secondary source; USGBC text not opened. Voluntary benchmark, not a by-law.'))
-    rules.push(rule('in-head', 'Within 3 × window head height', `${Math.round(office.withinHead * 100)}% (head at ${office.head.toFixed(1)} m)`, 'reference line 75% (team reading of the LEED views test)', office.withinHead >= 0.75 ? 'pass' : 'warn', 'team_assumption', LEED5))
+    // P1 #7 (21 Nov): the 6 m and 3 × head lines are one sourced daylight rule, judged in the Daylight screen (Plate depth).
+    rules.push(rule('in-6m', 'Office floor within 6 m of glazing (primary daylit zone)', `${Math.round(office.within6 * 100)}% (head at ${office.head.toFixed(1)} m)`, 'reported here; the daylight rule (Daylight › Plate depth) judges the deepest point against 6 m', 'pass', 'verified', EP_DAYLIGHT,
+      'Replaces the LEED v5 30% line and the 3 × head line (both secondary or team readings). The primary zone, the overcast 1.5 × clear height and the 2.5 × (head − 0.76 m) full depth are read together in the Daylight screen.'))
   }
   for (const p of publics) {
     const l = p.layout

@@ -35,8 +35,8 @@ export default function DaylightResults() {
   const r = useMemo(() => (t ? daylightScreen(t, towerFloors(t)) : null), [t])
   if (!t || !r) return null
   return (
-    <Section title={`Daylight screen · ${t.name}`} help="Distance from the glass on each use's typical floor, against the window head height (floor-to-floor minus the head drop).">
-      <Legend items={[...(Object.keys(BAND_STYLE) as (keyof typeof BAND_STYLE)[]).map((b) => ({ label: b === 'marginal' ? `marginal (≤ ${r.k} × head)` : b === 'deep' ? `deep (> ${r.k} × head)` : BAND_STYLE[b].label.toLowerCase(), color: BAND_COL[b] })), { label: 'core, corridor', color: '#ffffff', dashed: true, tip: 'Core or corridor: not counted' }]} />
+    <Section title={`Daylight screen · ${t.name}`} help="Distance from the glass on each use's typical floor, against three sourced daylight depths: 6 m, 1.5 × the clear height (overcast) and 2.5 × (window head − 0.76 m).">
+      <Legend items={[...(Object.keys(BAND_STYLE) as (keyof typeof BAND_STYLE)[]).map((b) => ({ label: b === 'marginal' ? 'marginal (within the most generous sourced depth)' : b === 'deep' ? 'deep (beyond every sourced depth)' : `${BAND_STYLE[b].label.toLowerCase()} (within the strictest)`, color: BAND_COL[b] })), { label: 'core, corridor', color: '#ffffff', dashed: true, tip: 'Core or corridor: not counted' }]} />
       <div className="mt-2 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
         {r.uses.map((u) => (
           <div key={u.use} className="min-w-0 rounded-md border border-line p-2" data-daylight-use={u.use} title={verdict(u)}>

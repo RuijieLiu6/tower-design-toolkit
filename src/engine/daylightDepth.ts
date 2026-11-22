@@ -1,20 +1,41 @@
 // Daylight screen (backlog item 36; research P02-M06, floor-plate depth-to-window): how much of each use's typical
 // floor lies within daylight reach of the facade, before any simulation. A geometric proxy only: glazing, neighbours,
-// blinds and climate are ignored (P02-M07 is the simulation). Every rule says where it comes from; the research has no
-// use-specific depth rule, so that line stays unresolved rather than invented.
+// blinds and climate are ignored (P02-M07 is the simulation). Every rule says where it comes from.
+// P1 #7 (21 Nov, book notes): the three depth rules that stood side by side (1 x / 2 x window head here, 6 m and
+// 3 x head in interior.ts) are one sourced reading: the primary daylit zone within 6 m of the glass (Environmental
+// performance pp.199, 229-230), about 1.5 x the clear height under overcast skies (p.204) and full daylight depth
+// 2.5 x (head - 0.76 m) (Allen & Iano p.151). The bands run from the strictest of the three to the most generous.
 import { DEFAULT_INTERIOR } from './interior'
 import { coreSideAt } from './massing'
 import type { Floor, Flag, RuleResult, RuleState, Source, Tower } from './types'
 
-/** Presets (all team assumptions in research P02-M06): reach factor k, rear-half reflectance Rb, share tiers. */
+/** Presets (team assumptions in research P02-M06): rear-half reflectance Rb, share tiers. `k` is kept for callers that
+ *  still pass it; the bands now come from the sourced depths below (DAYLIGHT_RULE), not from k × head. */
 export const DAYLIGHT = { k: 2, rb: 0.5, good: 0.75, bad: 0.4 }
+
+/** The sourced daylight depths (P1 #7): primary zone (m), overcast factor on the clear height, full-depth factor and
+ *  work-plane height (m) of the sidelight rule, and the over-lit UDI line (lux). */
+export const DAYLIGHT_RULE = { primary: 6, overcast: 1.5, full: 2.5, workPlane: 0.76, overlit: 1500 }
+
+/** Full daylight depth of a side window, 2.5 × (head − 0.76 m) (Allen & Iano p.151). */
+export const fullDepth = (head: number) => Math.max(0, DAYLIGHT_RULE.full * (head - DAYLIGHT_RULE.workPlane))
+/** Daylit depth under overcast skies, about 1.5 × the floor-to-ceiling height (EP p.204); the window head stands in for
+ *  the ceiling (team: glass taken up to the ceiling). */
+export const overcastDepth = (clear: number) => DAYLIGHT_RULE.overcast * clear
+/** The three sourced readings of daylit depth for a window head (m), and the band edges: daylit to the strictest,
+ *  marginal to the most generous. */
+export function sourcedDepths(head: number) {
+  const primary = DAYLIGHT_RULE.primary, overcast = overcastDepth(head), full = fullDepth(head)
+  return { primary, overcast, full, d1: Math.min(primary, overcast, full), d2: Math.max(primary, overcast, full) }
+}
 
 /** Uses the research counts as regularly occupied (P02-M06: "office, residential, hotel rooms"). */
 export const SCREENED = ['office', 'residential', 'hotel'] as const
 export type ScreenedUse = (typeof SCREENED)[number]
 
 const P02: Source = { label: 'Research P02-M06, floor-plate depth-to-window daylight screen (method)' }
-const ASHRAE: Source = { label: 'ASHRAE 90.1 sidelit daylight zones, 1 and 2 × window head height (recalled in research P02-M06, not opened)' }
+const EP: Source = { label: 'Environmental performance of tall buildings (EP, book notes 21 Nov): primary daylit zone within 6 m of the window; Grade 1 area ÷ usable area', page: 'pp.199, 229–230' }
+const EP_UDI: Source = { label: 'Environmental performance of tall buildings (EP): useful daylight illuminance bands, over 1,500 lux over-lit (blinds close)', page: 'p.198' }
 const LEED: Source = { label: 'LEED v4.1 sDA credit tiers 75 / 55 / 40%, as implemented in honeybee-radiance-postprocess leed.py (opened, research P02-S21)', url: 'https://github.com/ladybug-tools/honeybee-radiance-postprocess' }
 const BRE: Source = { label: 'BRE / BS 8206-2 limiting room depth, L/W + L/H ≤ 2 / (1 − Rb) (recalled in research P02-M06, not opened)' }
 const P12: Source = { label: 'Interior presets: window head = floor-to-floor − head drop (team assumption, research P12)' }
@@ -66,13 +87,21 @@ export interface UseScreen {
   depthShort: number
   d1: number
   d2: number
+  /** The sourced depths behind d1 and d2 (P1 #7): primary zone 6 m, overcast 1.5 × clear height, full 2.5 × (head − 0.76). */
+  depths: { primary: number; overcast: number; full: number }
+  /** Share of the occupied floor within the 6 m primary zone, and the deepest point from the glass (m). */
+  primary: number
+  deepest: number
+  /** Levels of this use's floors with a deck declared garden or loggia (deck use occupied or planted): edges count as glass. */
+  innerEdges: number[]
   shares: Record<DaylightBand, number>
   withinReach: number
   limit: { ratio: number; limit: number; facade: 'long' | 'short' }
   state: RuleState
 }
 
-export function screenUse(t: Tower, use: ScreenedUse, floors: Floor[], k = DAYLIGHT.k): UseScreen | null {
+/** The last argument (the old reach factor k) is ignored: the bands come from the sourced depths (P1 #7). */
+export function screenUse(t: Tower, use: ScreenedUse, floors: Floor[], ..._k: number[]): UseScreen | null {
   const fl = floors.filter((f) => f.use === use && !f.podium && !f.skyLobby)
   if (!fl.length) return null
   const f = fl[Math.floor(fl.length / 2)]
@@ -83,14 +112,19 @@ export function screenUse(t: Tower, use: ScreenedUse, floors: Floor[], k = DAYLI
   const plate: Plate = { W: t.width, D: t.depth, hole }
   const f2f = f.z1 - f.z0
   const head = Math.max(2.2, f2f - i.headDrop)
-  const d1 = head, d2 = k * head
+  const { primary: p6, overcast, full, d1, d2 } = sourcedDepths(head)
   const shares = bandShares(plate, d1, d2)
+  const occ = occupied(plate)
+  const primary = occ ? areaWithin(plate, p6) / occ : 0
+  const levels = new Set(fl.map((x) => x.level))
+  const innerEdges = [...new Set((t.deckUses ?? []).filter((d) => (d.use === 'occupied' || d.use === 'planted') && levels.has(d.level)).map((d) => d.level))].sort((a, b) => a - b)
   const withinReach = shares.daylit + shares.marginal
   const depthLong = (t.depth - hole) / 2, depthShort = (t.width - hole) / 2
   const long = limitingDepth(depthLong, t.width, head), short = limitingDepth(depthShort, t.depth, head)
   const limit = long.ratio >= short.ratio ? { ...long, facade: 'long' as const } : { ...short, facade: 'short' as const }
   const state: RuleState = withinReach >= DAYLIGHT.good ? 'pass' : withinReach >= DAYLIGHT.bad ? 'warn' : 'fail'
-  return { use, floors: fl.length, level: f.level, f2f, head, plate, depthLong, depthShort, d1, d2, shares, withinReach, limit, state }
+  const deepest = Math.max(depthLong, depthShort)
+  return { use, floors: fl.length, level: f.level, f2f, head, plate, depthLong, depthShort, d1, d2, depths: { primary: p6, overcast, full }, primary, deepest, innerEdges, shares, withinReach, limit, state }
 }
 
 const LABEL: Record<ScreenedUse, string> = { office: 'Office', residential: 'Homes', hotel: 'Hotel rooms' }
@@ -100,7 +134,7 @@ const rule = (id: string, label: string, value: string, threshold: string, state
 /** A one-line verdict per use, for the node card. */
 export function verdict(u: UseScreen): string {
   const word = u.state === 'pass' ? 'mostly daylit' : u.state === 'warn' ? 'partly deep' : 'mostly deep'
-  return `${LABEL[u.use]}: ${pct(u.withinReach)} of the occupied floor within daylight reach (${word}); deepest point ${Math.max(u.depthLong, u.depthShort).toFixed(1)} m from the glass against a reach of ${u.d2.toFixed(1)} m.`
+  return `${LABEL[u.use]}: ${pct(u.withinReach)} of the occupied floor within daylight reach (${word}); ${pct(u.primary)} within the 6 m primary zone; deepest point ${u.deepest.toFixed(1)} m from the glass against a reach of ${u.d2.toFixed(1)} m.`
 }
 
 export interface DaylightResult { uses: UseScreen[]; rules: RuleResult[]; k: number }
@@ -116,16 +150,22 @@ export function daylightScreen(t: Tower, floors: Floor[], k = DAYLIGHT.k): Dayli
     const L = LABEL[u.use]
     const to = u.use === 'office' ? 'core' : 'corridor'
     rules.push(rule(`dl-${u.use}-head`, `${L}: window head height`, `${u.head.toFixed(1)} m (floor-to-floor ${u.f2f.toFixed(2)} m, level ${u.level}, ${u.floors} floor${u.floors === 1 ? '' : 's'})`, 'floor-to-floor minus the head drop', 'pass', 'team_assumption', P12))
-    rules.push(rule(`dl-${u.use}-depth`, `${L}: depth from the glass to the ${to}`, `${u.depthLong.toFixed(1)} m from the long facades · ${u.depthShort.toFixed(1)} m from the short ones`,
-      `daylit ≤ ${u.d1.toFixed(1)} m (1 × head) · marginal ≤ ${u.d2.toFixed(1)} m (${k} × head) · deep beyond`, Math.max(u.depthLong, u.depthShort) <= u.d2 ? 'pass' : 'warn', 'unverified', ASHRAE,
-      `The ${k} × head reach factor is a team assumption (research P02-M06); the 1 × and 2 × zones mirror ASHRAE 90.1 sidelighting, recalled, not opened.`))
+    const edges = u.innerEdges.length ? `L${u.innerEdges.join(', L')}` : ''
+    rules.push(rule(`dl-${u.use}-depth`, `${L}: deepest point from the glass`, `${u.deepest.toFixed(1)} m to the ${to} (${u.depthLong.toFixed(1)} m from the long facades · ${u.depthShort.toFixed(1)} m from the short ones)`,
+      `≤ ${DAYLIGHT_RULE.primary} m: the primary daylit zone`, u.deepest <= DAYLIGHT_RULE.primary ? 'pass' : 'warn', 'verified', EP,
+      `The book's simple guideline; its rigorous version is by UDI (EP p.199). Measured on the typical floor's box plate to the ${to}.`
+      + (edges ? ` Garden or loggia decks at ${edges} (deck use): their edges count as an inner facade, which the box plate does not draw, so those floors read better than this.` : '')))
     rules.push(rule(`dl-${u.use}-share`, `${L}: occupied floor within daylight reach`, `${pct(u.withinReach)} (daylit ${pct(u.shares.daylit)} · marginal ${pct(u.shares.marginal)} · deep ${pct(u.shares.deep)})`,
       `≥ ${pct(DAYLIGHT.good)} good, < ${pct(DAYLIGHT.bad)} poor`, u.state, 'team_assumption', LEED,
-      'A distance proxy, not daylight: the LEED sDA tiers are borrowed from a simulation metric (team assumption). Run a climate-based simulation (P02-M07) before relying on it.'))
+      `Daylit to ${u.d1.toFixed(1)} m (the strictest sourced depth), marginal to ${u.d2.toFixed(1)} m (the most generous), deep beyond: see the daylight rule line. A distance proxy, not daylight: the LEED sDA tiers are borrowed from a simulation metric (team assumption). Run a climate-based simulation (P02-M07) before relying on it.`))
     rules.push(rule(`dl-${u.use}-limit`, `${L}: limiting room depth (second check)`, `L/W + L/H = ${u.limit.ratio.toFixed(2)} from the ${u.limit.facade} facades`, `≤ ${u.limit.limit.toFixed(1)} (Rb ${DAYLIGHT.rb}, team assumption)`,
       u.limit.ratio <= u.limit.limit ? 'pass' : 'warn', 'unverified', BRE, 'Treats the band between the glass and the core or corridor as one room as wide as the facade.'))
-    rules.push(rule(`dl-${u.use}-rule`, `${L}: a depth rule for this use`, 'none in the research', 'a sourced daylight depth for this use', 'unknown', 'unresolved', P02,
-      'Acceptable depth for offices versus bedrooms is a human judgement in the research; no rule is invented. The generic reach screen above applies meanwhile.'))
+    rules.push(rule(`dl-${u.use}-rule`, `${L}: primary daylit zone (within ${DAYLIGHT_RULE.primary} m)`, `${pct(u.primary)} of the usable area`,
+      'reported, no sourced share: compare variants (Grade 1 area ÷ usable area)', 'pass', 'verified', EP,
+      `One sourced reading in place of the 1 × / 2 × head, 6 m and 3 × head rules. Daylit depth at this window head (${u.head.toFixed(2)} m): primary zone ${u.depths.primary} m (EP pp.199, 229–230); overcast about ${u.depths.overcast.toFixed(1)} m, 1.5 × the clear height (EP p.204; Vancouver winters are overcast; the head stands in for the ceiling, team); full daylight depth ${u.depths.full.toFixed(1)} m, 2.5 × (${u.head.toFixed(2)} − 0.76) (Allen & Iano, The Architect’s Studio Companion, 6th ed., p.151). Each 0.1 m of window head adds 0.25 m of full depth: Storey height by use shows what that height costs the tower.`
+      + (edges ? ` Garden or loggia edges at ${edges} count as an inner facade (deck use).` : '')))
   }
+  rules.push(rule('dl-udi', 'Over-lit daylight (UDI)', 'not computed by the depth screen: the sDA and ASE tab counts useful daylight up to 3,000 lux', `over ${DAYLIGHT_RULE.overlit.toLocaleString('en-CA')} lux reads as over-lit, where occupants close the blinds`, 'unknown', 'verified', EP_UDI,
+    'UDI bands: under 200 lux none, 200–500 partial, 500–1,500 adequate, over 1,500 over-lit (EP p.198). Bright south and west faces may read better in a 3,000 lux count than occupants would find them.'))
   return { uses, rules, k }
 }

@@ -208,7 +208,10 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^in-feed$/, 'Once the unit mix is chosen, switch on "Use this layout for lifts, egress and economics" (Interior & activity programme).'],
   [/^in-keys$/, 'The hotel band is deeper than a room: a wider corridor, a deeper core or a slimmer plate tightens it (Massing, Schematic).'],
   [/^in-lease$/, 'Bring the core closer to the glass: a slimmer plate or a larger core (Massing, Schematic).'],
-  [/^dl-.*-(depth|share)$/, 'Bring more floor within daylight reach: a slimmer plate (width × depth in Massing), a smaller core, or a taller floor-to-floor (it raises the window head).'],
+  // P1 #7: the deepest point is judged against the 6 m primary daylit zone (EP pp.199, 229–230).
+  [/^dl-.*-depth$/, 'Bring every desk or room within about 6 m of glass: a slimmer plate (width × depth in Massing), a larger core or corridor ring in the deep middle, or a garden or loggia edge declared as a deck (Deck use) that opens an inner facade.'],
+  [/^dl-.*-share$/, 'Bring more floor within daylight reach: a slimmer plate (width × depth in Massing), a smaller core, or a taller floor-to-floor (it raises the window head; see Storey height by use for the height it costs).'],
+  [/^dl-udi$/, 'Run Daylight › sDA and ASE and read the hours over 1,500 lux on the bright faces: shading or a lower-transmittance glass there.'],
   [/^dl-.*-limit$/, 'Bring L/W + L/H under the limit: a shallower plate or a taller floor-to-floor (Massing).'],
   [/^mob-transit$/, 'Turn on the transit link to the station (Program step › Ground & public realm).'],
   [/^rain-(detention|first-stage)$/, 'Answer the rainwater pathway under Details: the volume shown is what an engineered pathway must store.'],
