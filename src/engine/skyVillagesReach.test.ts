@@ -49,3 +49,16 @@ describe('Shared levels by who can reach them (tool cycle 11, review R6-6)', () 
     expect(r.rules.find((x) => x.id === 'sv-homes')!.value).toMatch(/over 2 shared levels/)
   })
 })
+
+describe('the homes’ gap over the storeys the homes occupy', () => {
+  it('does not count the office storeys below the homes', () => {
+    const t = tower({ [homeMid]: 'amenity' })
+    const reach = line(t, 'sv-reach')!
+    const homes = levels(t, 'residential')
+    expect(reach.value).toMatch(new RegExp(`homes L${homes[0]}–L${homes[homes.length - 1]}`))
+    // The gap starts at the base below the homes only if nothing reached sits lower; it never spans the office stack alone.
+    const m = /largest gap (\d+) storeys \((.+?) → (.+?),/.exec(reach.value)!
+    expect(m).toBeTruthy()
+    expect(Number(m[1])).toBeLessThanOrEqual(homes.length + 1)
+  })
+})

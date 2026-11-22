@@ -214,17 +214,29 @@ export function skyVillages(t: Tower, floors: Floor[], o: SkyVillageOptions = {}
   const forHomes = reach ? shared.marks.filter((m) => homesReach(reach.get(m.level)!)) : shared.marks
   const notHomes = reach ? shared.marks.filter((m) => !homesReach(reach.get(m.level)!)) : []
   if (reach && homes > 0) {
-    const rg = gapsOf(shared.start, forHomes, shared.roof).largest
+    // The homes' gaps are measured over the storeys the homes occupy: from the last reached level at or below the lowest
+    // home storey to the first at or above the highest (else the base and the roof), so office storeys below do not count.
+    const homeLv = floors.filter((f) => !f.podium && f.use === 'residential').map((f) => f.level)
+    const lo = homeLv.length ? Math.min(...homeLv) : null, hi = homeLv.length ? Math.max(...homeLv) : null
+    const below = lo === null ? [] : forHomes.filter((m) => m.level <= lo)
+    const above = hi === null ? [] : forHomes.filter((m) => m.level >= hi)
+    const from0 = below.length ? below[below.length - 1] : shared.start
+    const to0 = above.length ? above[0] : shared.roof
+    // clipped to the homes' own storeys: no reached level within a storey of the homes' ends → the end home storey itself
+    const fl = (lv: number) => floors.find((f) => f.level === lv)
+    const from: Mark = lo !== null && from0.level < lo - 1 ? { level: lo, z: fl(lo)?.z0 ?? from0.z, what: ['lowest home storey'] } : from0
+    const to: Mark = hi !== null && to0.level > hi + 1 ? { level: hi + 1, z: fl(hi)?.z1 ?? to0.z, what: ['above the highest home storey'] } : to0
+    const rg = lo === null ? null : gapsOf(from, forHomes.filter((m) => m.level > from.level && m.level < to.level), to).largest
     const lounge = notHomes.filter((m) => m.what.includes('amenity'))
     const st = lounge.length || (rg && rg.storeys > GAP_MAX) ? 'warn' as const : 'pass' as const
     rules.push({
       id: 'sv-reach', label: 'Shared levels the homes’ lifts reach',
-      value: `${forHomes.length} of ${shared.marks.length} shared levels above the base${rg ? `; the homes’ largest gap ${gapText(rg)}` : ''}${notHomes.length ? `; not from the homes: ${notHomes.slice(0, 5).map((m) => `L${m.level} ${m.what[0]} (${whoText(reach.get(m.level)!)})`).join(', ')}${notHomes.length > 5 ? `, +${notHomes.length - 5} more` : ''}` : ''}`,
+      value: `${forHomes.length} of ${shared.marks.length} shared levels above the base${rg ? `; the homes’ largest gap ${gapText(rg)} (homes L${lo}–L${hi})` : ''}${notHomes.length ? `; not from the homes: ${notHomes.slice(0, 5).map((m) => `L${m.level} ${m.what[0]} (${whoText(reach.get(m.level)!)})`).join(', ')}${notHomes.length > 5 ? `, +${notHomes.length - 5} more` : ''}` : ''}`,
       threshold: `a residents’ lounge reached by the homes’ lifts; the homes’ shared levels ≤ ${GAP_MAX} storeys apart (precedent)`,
       state: st, flag: 'team_assumption',
       source: { label: 'The toolkit’s lift plan (engine/lifts.ts: each group’s stops and the floors that ride it); team rule, with the Ecocity spacing band (precedent)' },
       ...(specialist ? { specialist } : {}),
-      note: `A shared level counts for the homes where a lift group that the homes ride stops (a shuttle at its sky lobby, a local group at its floors), or where the public lifts stop (the sky room and its public stops), since residents can take those from the street. ${lounge.length ? `An amenity floor (a residents’ lounge by its use) that only other lifts reach: ${lounge.map((m) => `L${m.level}`).join(', ')}. ` : ''}Stairs between floors are not counted as reach. Homes per shared level counts only these levels.`,
+      note: `A shared level counts for the homes where a lift group that the homes ride stops (a shuttle at its sky lobby, a local group at its floors), or where the public lifts stop (the sky room and its public stops), since residents can take those from the street. ${lounge.length ? `An amenity floor (a residents’ lounge by its use) that only other lifts reach: ${lounge.map((m) => `L${m.level}`).join(', ')}. ` : ''}The homes’ gap is measured over the storeys the homes occupy (the office or hotel storeys below or above them do not count). Stairs between floors are not counted as reach. Homes per shared level counts only these levels.`,
     })
   }
 
