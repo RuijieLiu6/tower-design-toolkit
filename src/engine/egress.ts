@@ -64,6 +64,8 @@ export interface StoreyLoad {
   needMm: number
   /** Width each stair must have where it passes this storey: the largest need at or above it (mm). */
   stairMm: number
+  /** A posted load in use (Tower.postedLoads): the persons posted and the load the floor would have without it. */
+  posted?: { persons: number; table: number }
 }
 
 /**
@@ -72,6 +74,12 @@ export interface StoreyLoad {
  */
 function netOf(f: Floor, t: Tower): number {
   return Math.max(0, f.area - coreAreaAt(t, f.level))
+}
+
+/** The posted occupant load at a storey (Tower.postedLoads), or null: a finite number of persons, 0 or more. */
+export function postedAt(t: Pick<Tower, 'postedLoads'>, level: number): number | null {
+  const v = t.postedLoads?.[level] ?? (t.postedLoads as Record<string, number> | undefined)?.[String(level)]
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.round(v) : null
 }
 
 /**
@@ -497,8 +505,17 @@ export function storeyLoads(t: Tower, e: EgressPresets, li: LoadInputs): StoreyL
     else if (f.use === 'amenity' && c?.publicEgress !== undefined) { load = c.publicEgress; basis = 'amenity activities (interior programme)' }
     else if (f.use === 'amenity' || f.use === 'civic') { const k = Math.max(0.3, e.amenityFactor); load = net / k; basis = `${f.use === 'civic' ? 'civic' : 'amenity'}, ${k} m²/person` }
     else { load = 0; basis = 'plant (service space)' }
+    // A posted load (tool cycle 11): the persons the floor is designed for, on a permanent sign (3.1.17.1(1)(c), (2)).
+    // Homes and hotel rooms keep 2 persons per sleeping room; the public sky room keeps its own posted limit; plant stays 0.
+    const p = postedAt(t, f.level)
+    let posted: StoreyLoad['posted']
+    if (p !== null && load > 0 && !publicRoom && f.use !== 'residential' && f.use !== 'hotel') {
+      posted = { persons: p, table: load }
+      basis = `posted ${Math.round(p)} persons (${basis}: ${Math.round(load)})`
+      load = p
+    }
     const needMm = Math.max(STAIR_MIN_MM, (load * rate) / n)
-    return { level: f.level, z: f.z0, f2f: f.z1 - f.z0, use: f.use, podium: f.podium, skyLobby: !!f.skyLobby, publicRoom, net, load, basis, needMm, stairMm: needMm }
+    return { level: f.level, z: f.z0, f2f: f.z1 - f.z0, use: f.use, podium: f.podium, skyLobby: !!f.skyLobby, publicRoom, net, load, basis, needMm, stairMm: needMm, ...(posted ? { posted } : {}) }
   })
   // Width need not accumulate for floors one above the other (3.4.3.2.(4)), but a stair must be wide enough
   // for every storey it serves, so below a heavily loaded floor it keeps that floor's width down to grade.
@@ -787,6 +804,23 @@ export function egressCheck(t: Tower, e: EgressPresets = DEFAULT_EGRESS_PRESETS,
       flag: 'verified',
       source: BCBC_LOADS,
       note: `${drives ? `L${drives.level} (${word(drives)}) sets the exit stair width from there down (${fmt(drives.needMm)} mm). ` : ''}Unprogrammed amenity, civic and tenant sky-lobby floors at ${e.amenityFactor} m² per person (the lounge row; it was 4.6, the personal-services row, about 2.5 times fewer people); floors with an interior programme add up their activities (residents' lounge ${LOAD_FACTOR.lounge}). The public sky room keeps its own dining 1.2 or standing 0.4. BCBC 2024 text; VBBL 2025, which governs in Vancouver, is to confirm.`,
+    })
+  }
+  // Tool cycle 11: posted loads (3.1.17.1(1)(c), (2)), with the stair width each would need without its sign.
+  const postedFloors = storeys.filter((s) => s.posted)
+  if (postedFloors.length) {
+    const below = postedFloors.filter((s) => s.posted!.persons < s.posted!.table - 0.5)
+    const without = (s: StoreyLoad) => Math.max(STAIR_MIN_MM, (s.posted!.table * rate) / n)
+    rules.push({
+      id: `egress-posted-${t.id}`,
+      label: 'Posted occupant loads',
+      value: postedFloors.slice(0, 5).map((s) => `L${s.level}: ${fmt(s.posted!.persons)} posted (would be ${fmt(s.posted!.table)}; stairs ${fmt(s.needMm)} mm instead of ${fmt(without(s))} mm)`).join('; ') + (postedFloors.length > 5 ? `; ${postedFloors.length - 5} more` : ''),
+      threshold: 'the persons the floor is designed for, on a permanent sign; not under the Table load unless the floor is shown to hold fewer people',
+      state: below.length ? 'warn' : 'pass',
+      flag: 'verified',
+      source: { label: 'BC Building Code 2024, Division B, 3.1.17.1(1)(c) and (2) (VBBL 2025 to confirm)', page: 'p.3-104' },
+      ...(below.length ? { specialist: `A posted load below the Table load (${below.map((s) => `L${s.level}`).join(', ')}) rests on showing the floor will hold fewer people (3.1.17.1(1)(c)): a code consultant or fire engineer makes that case, and the sign stays posted.` } : {}),
+      note: `Each posted floor is sized for its posted persons: the stair width, the travel and the lift-lobby loads below it follow. ${below.length ? `${below.length} of ${postedFloors.length} posted below the Table load: a permanent sign and an accepted case. ` : 'All posted at or above the Table load: a designed load with its sign. '}Homes and hotel rooms keep 2 persons per sleeping room, and the public sky room keeps its own posted limit (Sky room).`,
     })
   }
   const linked = e.retailLinked ? storeys.find((s) => s.use === 'retail' && s.z >= 0.5 && /pedestrian way/.test(s.basis)) ?? null : null

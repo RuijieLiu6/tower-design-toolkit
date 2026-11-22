@@ -140,6 +140,13 @@ export interface Tower {
    */
   stairDoorFaces?: CoreFace[]
   /**
+   * Posted occupant loads by storey level (tool cycle 11, 21 Nov 2026): the number of persons a floor is designed for,
+   * on a permanent sign (BCBC 2024 3.1.17.1(1)(c), (2), p.3-104). Read by egress for every floor but homes and hotel
+   * rooms (2 persons per sleeping room) and the public sky room (its own posted limit). Below the Table load it rests on
+   * showing the floor will hold fewer people: a code consultant's case.
+   */
+  postedLoads?: Partial<Record<number, number>>
+  /**
    * Program: the community benefit the team declares under Higher Buildings Policy 2.1(g) (P1 #2; pp.3–4 of the 2026
    * text). Absent: not declared, and the benefit line stays open.
    */

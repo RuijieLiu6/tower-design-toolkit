@@ -63,6 +63,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
     : 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.')],
   [/^geometric$/, 'The core steps by more than 130% at one level: split it into smaller steps (each within 130%, Structure › Lateral & sway › Core steps), or carry the Type 3 irregularity in the dynamic analysis.'],
   // Egress & stairs
+  // Posted occupant loads (tool cycle 11, BCBC 2024 3.1.17.1(1)(c), (2)).
+  [/^egress-posted/, 'A posted load below the Table load needs a permanent sign (3.1.17.1(2)) and an accepted case that fewer people will use the floor (a code consultant or fire engineer); or post at the Table load and size the stairs for it (Egress › Posted loads).'],
   [/^stair-width/, 'Widen the exit stairs or add one (Schematic › Exit stairs), or lower the busiest floor\'s occupant load.'],
   [/^exits/, 'Add an exit stair so every floor has at least two (Schematic › Exit stairs).'],
   // P1 #11 (21 Nov): the smoke-path reading of the same exits (a code-consultant reading).
