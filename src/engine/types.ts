@@ -75,6 +75,11 @@ export interface Tower {
    * or other (all-water or in-suite). Sets the office shaft share (Allen & Iano p.192). Unset = all-air.
    */
   hvac?: HvacSystem
+  /**
+   * Plant that is not a storey (gap G54, reviews R6-1, R6-3): equipment on the open roof deck at the top of storey level
+   * n (a podium-roof plant), and 0 for a basement fan room. Each serves the plant reach like a plant floor between storeys.
+   */
+  plantDecks?: number[]
   /** Schematic: tower floor levels used as sky lobbies (transfer floors, counted as public amenity). */
   skyLobbies?: number[]
   /**

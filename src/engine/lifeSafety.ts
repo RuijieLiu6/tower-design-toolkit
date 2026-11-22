@@ -52,6 +52,17 @@ export const SERVICES_BOOK = {
 }
 export const HVAC_LABEL: Record<HvacSystem, string> = { 'all-air': 'All-air', 'air-water': 'Air-water', other: 'Other (all-water or in-suite)' }
 export const hvacOf = (t: Pick<Tower, 'hvac'>): HvacSystem => t.hvac ?? 'all-air'
+/**
+ * The plant reach and the HVAC system (gap G54): the book's reach (p.185) is for a fan room moving all the air; an
+ * air-water system ducts only the primary air (about 15–25% of the airflow, p.172) and needs less duct and fan space, but
+ * the book gives no reach for it, so the line keeps the same band and asks the mechanical engineer.
+ */
+export function reachHvacNote(t: Pick<Tower, 'hvac'>): string {
+  const h = hvacOf(t)
+  return h === 'all-air' ? 'HVAC all-air: the book’s reach applies as written. '
+    : `HVAC ${h === 'air-water' ? 'air-water: the ducts carry only the primary air (about 15–25% of the airflow, Allen & Iano p.172), so the fan rooms and ducts are smaller' : 'other (all-water or in-suite): little or no central air'}; the book gives no reach for it, so the band stays as for all-air and the mechanical engineer sets it. `
+}
+const reachSpecialist = (t: Pick<Tower, 'hvac'>, other?: string) => (hvacOf(t) === 'all-air' ? other : [other, 'Plant reach for a non all-air system: the mechanical engineer sets it (the book’s 25-storey reach is for all-air fan rooms).'].filter(Boolean).join(' '))
 
 /** Printed with every result of this node (P11-M05 method step 7). */
 export const NOT_CERTIFICATION = 'Early checklist, not code certification. Clauses read in VBBL 2019; VBBL 2025 is in force and unread, so every clause is flagged unverified until someone reads it.'
@@ -300,19 +311,26 @@ export interface PlantReach {
 
 /**
  * Fan-room reach (Allen & Iano p.185): every occupied storey, podium included, to the nearest plant floor or the roof
- * plant, assumed above the top storey unless the top storey is plant (team, as the plant-floor count). Basement plant
- * is not modelled.
+ * plant, assumed above the top storey unless the top storey is plant (team, as the plant-floor count). Plant that is not
+ * a storey (G54, `Tower.plantDecks`) counts too: a podium-roof plant on the deck above storey n sits between n and the
+ * storey above it, and 0 is a basement fan room below the lowest storey; a storey one step away is 1 storey from it.
  */
-export function plantReach(floors: Floor[]): PlantReach {
-  const plant = floors.map((f, i) => (f.use === 'mechanical' ? i : -1)).filter((i) => i >= 0)
-  const roof = floors.length && floors[floors.length - 1].use !== 'mechanical' ? floors.length : null
-  const sources = roof === null ? plant : [...plant, roof]
+export function plantReach(floors: Floor[], decks: number[] = []): PlantReach {
+  type Src = { at: number; from: string }
+  const sources: Src[] = floors.flatMap((f, i) => (f.use === 'mechanical' ? [{ at: i, from: `the L${f.level} plant floor` }] : []))
+  if (floors.length && floors[floors.length - 1].use !== 'mechanical') sources.push({ at: floors.length, from: 'the roof plant' })
+  for (const lv of decks) {
+    if (!Number.isFinite(lv)) continue
+    if (lv <= 0) { sources.push({ at: -0.5, from: 'the basement plant' }); continue }
+    const k = floors.findIndex((f) => f.level === lv)
+    if (k >= 0) sources.push({ at: k + 0.5, from: `the plant on the L${lv} roof` })
+  }
   let out: PlantReach = { storeys: 0, level: null, use: null, from: '' }
   floors.forEach((f, i) => {
     if (f.use === 'mechanical' || !sources.length) return
-    const j = sources.reduce((b, s) => (Math.abs(s - i) < Math.abs(b - i) ? s : b), sources[0])
-    const d = Math.abs(j - i)
-    if (d > out.storeys) out = { storeys: d, level: f.level, use: f.use, from: j === roof ? 'the roof plant' : `the L${floors[j].level} plant floor` }
+    const j = sources.reduce((b, s) => (Math.abs(s.at - i) < Math.abs(b.at - i) ? s : b), sources[0])
+    const d = Math.ceil(Math.abs(j.at - i) - 1e-9)
+    if (d > out.storeys) out = { storeys: d, level: f.level, use: f.use, from: j.from }
   })
   return out
 }
@@ -370,7 +388,7 @@ export function systemsEstimate(t: Tower, lifts: LiftResult, egress: EgressResul
   return {
     water, hydronic, plant: { hydronicBreaks, airFloors, min, max, modelled, podiumModelled, roofLevel, towerFloors: tower.length, suggestEvery, snapTo },
     risers, riserTotal, servicesNeeded: riserTotal + p.washroomsM2, emergency, generatorKw, generatorM2,
-    services, typical: typicalServices(services), reach: plantReach(floors),
+    services, typical: typicalServices(services), reach: plantReach(floors, t.plantDecks ?? []),
     baseM2: p.baseElectricalM2 + generatorM2 + p.controlRoomM2 + p.radioRoomM2,
   }
 }
@@ -419,8 +437,8 @@ export function servicesRules(t: Tower, sys: SystemsResult, liftPresets: LifeSaf
     id: 'plant-reach', label: 'Plant floor reach',
     value: R.level === null ? 'no occupied storeys' : `farthest coverage ${R.storeys} storeys (L${R.level} ${USE_WORD[R.use ?? 'office'].toLowerCase()}, from ${R.from})`,
     threshold: 'at most 13 storeys each way is usual; 14–25 check; over 25 fail', state: R.storeys <= SERVICES_BOOK.reachTypical ? 'pass' : R.storeys <= SERVICES_BOOK.reachMax ? 'warn' : 'fail',
-    flag: 'unverified', source: PLANT_REACH_SOURCE, ...(specialist ? { specialist } : {}),
-    note: 'Every occupied storey, the podium included, to the nearest plant floor. Roof plant is assumed above the top storey (team, as for the plant-floor count) and basement plant is not modelled, so low floors far from plant need a podium or basement fan room. A fan room usually serves 11–13 storeys each way and at most about 25 (US rule of thumb, unverified). In-suite or all-water systems for homes lean less on fan rooms.',
+    flag: 'unverified', source: PLANT_REACH_SOURCE, ...(reachSpecialist(t, specialist) ? { specialist: reachSpecialist(t, specialist) } : {}),
+    note: reachHvacNote(t) + (t.plantDecks?.length ? `Plant that is not a storey counts (plantDecks): ${t.plantDecks.map((l) => (l <= 0 ? 'a basement fan room' : `the L${l} roof`)).join(', ')}. ` : '') + 'Every occupied storey, the podium included, to the nearest plant floor. Roof plant is assumed above the top storey (team, as for the plant-floor count); a basement fan room or a podium-roof plant counts once declared (plantDecks), so low floors far from plant need one of them. A fan room usually serves 11–13 storeys each way and at most about 25 (US rule of thumb, unverified). In-suite or all-water systems for homes lean less on fan rooms.',
   })
   return lines
 }
