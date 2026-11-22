@@ -6,7 +6,7 @@ import { ACCEL_LIMIT, acrossWindAccel, ceRough, cornerReduction, DEFAULT_DAMPING
 import { towerCorners } from './corners'
 import { towerFloors } from './massing'
 import { slenderBand, KPF, SLENDER_FLAG } from './slenderBand'
-import { storeyWeights } from './storeyWeight'
+import { DEFAULT_WEIGHT_PRESETS, storeyWeights, type WeightPresets } from './storeyWeight'
 import { towerTwist } from './twist'
 
 const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.7 (2nd printing, 2025)', url: 'https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en' }
@@ -67,7 +67,8 @@ export interface WindProcedure {
   rules: RuleResult[]
 }
 
-export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS): WindProcedure {
+/** `wpr`: the storey-weight presets (slabs, walls) behind the building density and the core-alone frequency. */
+export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS): WindProcedure {
   const H = t.height
   let best = { w: Infinity, d: 0 }
   for (let deg = 0; deg < 180; deg += 10) { const e = effectiveWidth(t, deg); if (e.w < best.w) best = e }
@@ -107,7 +108,7 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS): 
   // else at the empirical central value and its lower bound (a_W rises as f1 falls, about f1^-1.3).
   const fs = f1 !== null ? [f1] : empirical ? [emp.central, emp.lower] : []
   if (fs.length) {
-    const density = storeyWeights(t).density
+    const density = storeyWeights(t, wpr).density
     const { inherent, supplemental, total: damping } = dampingOf(p)
     const preset = `team preset ${(DEFAULT_DAMPING * 100).toFixed(1)}%, the Commentary sample’s value; concrete 0.02, steel 0.01`
     const inherentText = `inherent ${inherent} (${inherent === DEFAULT_DAMPING ? preset : `team setting; ${preset}`})`

@@ -7,6 +7,7 @@ import { withBlocks } from './massing'
 import { importedTower, rect, type P } from './testStoreys'
 import { planAxis, towerTwist } from './twist'
 import type { Block, ImportedStorey, Tower } from './types'
+import { DEFAULT_WEIGHT_PRESETS } from './storeyWeight'
 import { windProcedure } from './windStructure'
 
 const turn = (r: P[], deg: number): P[] => { const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a); return r.map(([x, y]) => [x * c - y * s, x * s + y * c]) }
@@ -21,7 +22,8 @@ function twisted(n: number, ring: P[], angle: (k: number) => number): Tower {
   for (let k = 0; k < n; k++) push(turn(ring, angle(k)), false)
   return importedTower(storeys, { podiumTop: 12 })
 }
-const rule = (t: Tower, id: string) => windProcedure(t).rules.find((x) => x.id === id)
+// The use presets of slab thickness, so a turned plate weighs as the straight one (P1 #13 makes the slab follow the reach).
+const rule = (t: Tower, id: string) => windProcedure(t, undefined, { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use' }).rules.find((x) => x.id === id)
 const gs = (v: string) => [...v.matchAll(/(\d+\.\d)% g at/g)].map((m) => Number(m[1]))
 
 describe('G19: the twist read from the storey outlines', () => {

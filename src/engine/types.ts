@@ -96,6 +96,12 @@ export interface Tower {
   deckUses?: DeckUse[]
   /** Schematic: levels with outrigger or belt-truss floors (structure screening; the floor keeps its use). */
   outriggerFloors?: number[]
+  /**
+   * Schematic: a ring of interior columns at about half the core-to-facade reach on every tower storey whose reach is
+   * past one flat plate (9.1 m, Ching p.8), so the slab spans half the reach (P1 #13 floor reach; engine/storeyWeight.ts).
+   * Absent or false: the floor spans from the core to the facade unbroken, as the designs draw it.
+   */
+  columnRing?: boolean
   /** Schematic: one sky lobby opened to the public as a sky room (null = none). */
   skyRoom?: SkyRoom | null
   /**

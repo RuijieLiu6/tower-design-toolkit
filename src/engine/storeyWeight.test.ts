@@ -17,10 +17,12 @@ const A8 = importedTower(stack([
   { n: 20, f2f: 4, ring: shaft },
 ]), { podiumTop: 16 })
 const GARDEN = 25
+/** The use presets of slab thickness (0.20 / 0.25 m at any span), which the hand arithmetic below uses (P1 #13 made the span the default). */
+const BY_USE = { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use' as const }
 
 describe('G6: storey weight by use (R5 §3)', () => {
   it('reads the open garden storey as the heaviest, not 434% light', () => {
-    const r = structureCheck(A8, windProcedure(A8))
+    const r = structureCheck(A8, windProcedure(A8), BY_USE)
     const w = r.rules.find((x) => x.id === 'weight')!
     expect(w.label).toBe('Weight irregularity (Type 2)')
     expect(w.value).not.toMatch(/434%/)
@@ -35,10 +37,13 @@ describe('G6: storey weight by use (R5 §3)', () => {
     expect(g.W).toBeGreaterThan(1.5 * above.W)
     expect(w.value).toMatch(new RegExp(`between L(${GARDEN - 1} and L${GARDEN}|${GARDEN} and L${GARDEN + 1})$`))
     expect(w.state).toBe('warn') // a real Type 2 reading now, not an artefact
+    // With slabs from the span (13 m from the core face: about 0.29 m), the garden storey is still heavier than its neighbours.
+    const span = storeyWeights(A8).levels
+    expect(span.find((l) => l.level === GARDEN)!.W).toBeGreaterThan(1.5 * span.find((l) => l.level === GARDEN - 1)!.W)
   })
 
   it('builds each floor from its plate, its open deck, facade and core walls (equation 6.1)', () => {
-    const lv = storeyWeights(A8).levels
+    const lv = storeyWeights(A8, BY_USE).levels
     const q = (u: UseId) => USE_LOADS[u].slab * GAMMA_C + USE_LOADS[u].sdl + USE_LOADS[u].part
     const coreWalls = 4 * 24 * DEFAULT_WEIGHT_PRESETS.coreWall * GAMMA_C * 4
     // A typical tower floor: 2,500 m² of homes, 200 m of facade over 4 m, the core walls over 4 m.
@@ -112,20 +117,22 @@ describe('G21: storey-weight presets from the evidence input', () => {
     const base = { project: 'vtc' as const, towers: [A8], fsrTier: 2 as const, transitLink: false, liftPresets: s.liftPresets, egressPresets: s.egressPresets, publicRealm: s.publicRealm, cityInNature: s.cityInNature, windPresets: s.windPresets }
     const weight = (g: Record<string, unknown>) => (g['built.structure'] as RuleResult[][])[0].find((x) => x.id === 'weight')!
     const share = (r: RuleResult) => Number(/^(\d+)% by weight between L\d+ and L\d+$/.exec(r.value)![1])
-    const dflt = weight(evidenceGroups(base)), soil = weight(evidenceGroups({ ...base, weightPresets: { soilMm: 450 } }))
+    // the use presets of slab thickness, so the garden step governs (with slabs from the span the podium roof does)
+    const dflt = weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use' } })), soil = weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use', soilMm: 450 } }))
     expect(share(soil)).toBeLessThan(share(dflt))
     expect(dflt.note).toMatch(/planted: 600 mm of soil/)
     expect(soil.note).toMatch(/planted: 450 mm of soil, 7\.2 kPa/)
     // The same as the engine run with those presets; an empty or absent input is the default.
-    const engine = structureCheck(A8, windProcedure(A8, s.windPresets), { ...DEFAULT_WEIGHT_PRESETS, soilMm: 450 }).rules.find((x) => x.id === 'weight')!
+    const engine = structureCheck(A8, windProcedure(A8, s.windPresets), { ...BY_USE, soilMm: 450 }).rules.find((x) => x.id === 'weight')!
     expect(soil.value).toBe(engine.value)
-    expect(weight(evidenceGroups({ ...base, weightPresets: {} })).value).toBe(dflt.value)
-    expect(weight(evidenceGroups({ ...base, weightPresets: null })).value).toBe(dflt.value)
+    const none = weight(evidenceGroups(base))
+    expect(weight(evidenceGroups({ ...base, weightPresets: {} })).value).toBe(none.value)
+    expect(weight(evidenceGroups({ ...base, weightPresets: null })).value).toBe(none.value)
     // The garden storey alone is lighter, by the 150 mm of soil on its 1,924 m² deck.
     const g = (soilMm: number) => storeyWeights(A8, { ...DEFAULT_WEIGHT_PRESETS, soilMm }).levels.find((l) => l.level === GARDEN)!.W
     expect(g(600) - g(450)).toBeCloseTo(1924 * soilKpa(150), 6)
     // No planted decks at all: the garden deck is hard.
-    expect(share(weight(evidenceGroups({ ...base, weightPresets: { planted: 'none' } })))).toBeLessThan(share(soil))
+    expect(share(weight(evidenceGroups({ ...base, weightPresets: { slabFrom: 'use', planted: 'none' } })))).toBeLessThan(share(soil))
   })
 })
 
@@ -141,7 +148,7 @@ describe('G32: soil per deck from the deck-use input', () => {
     { n: 1, f2f: 4, ring: rect(40, 40) },
     { n: 16, f2f: 4, ring: inset },
   ])), ...(deckUses ? { deckUses } : {}) })
-  const lv = (t: Tower, level: number) => storeyWeights(t).levels.find((l) => l.level === level)!
+  const lv = (t: Tower, level: number) => storeyWeights(t, BY_USE).levels.find((l) => l.level === level)!
   const hardRes = 0.2 * GAMMA_C + HARD_DECK + SNOW_W, hardAm = 0.25 * GAMMA_C + HARD_DECK + SNOW_W
   const plantedAt = (mm: number) => PLANTED_SLAB * GAMMA_C + soilKpa(mm) + PLANTED_BUILDUP + SNOW_W
   const USES: Tower['deckUses'] = [{ level: 21, use: 'occupied' }, { level: 24, use: 'planted', soilMm: 600 }]
@@ -160,13 +167,13 @@ describe('G32: soil per deck from the deck-use input', () => {
     expect(after21.deckKind).toBe('hard')
     expect(before21.W - after21.W).toBeCloseTo(360 * (plantedAt(600) - hardAm), 6)
     // the same as no planting at all on that floor: paving only
-    expect(after21.W).toBeCloseTo(storeyWeights(C21(), { ...DEFAULT_WEIGHT_PRESETS, planted: 'none' }).levels.find((l) => l.level === 21)!.W, 6)
+    expect(after21.W).toBeCloseTo(storeyWeights(C21(), { ...BY_USE, planted: 'none' }).levels.find((l) => l.level === 21)!.W, 6)
   })
   it('each deck carries its own soil depth; absent, the presets’ depth', () => {
     const at = (soilMm?: number) => lv(C21([{ level: 24, use: 'planted', ...(soilMm != null ? { soilMm } : {}) }]), 24)
     expect(at(600).W - at(300).W).toBeCloseTo(360 * soilKpa(300), 6)
     expect(at().W).toBeCloseTo(at(DEFAULT_WEIGHT_PRESETS.soilMm).W, 6)
-    expect(storeyWeights(C21([{ level: 24, use: 'planted' }]), { ...DEFAULT_WEIGHT_PRESETS, soilMm: 450 }).levels.find((l) => l.level === 24)!.W).toBeCloseTo(at(450).W, 6)
+    expect(storeyWeights(C21([{ level: 24, use: 'planted' }]), { ...BY_USE, soilMm: 450 }).levels.find((l) => l.level === 24)!.W).toBeCloseTo(at(450).W, 6)
   })
   it('a facing picks the deck: the planted weight sits on the south deck', () => {
     const s = lv(C21([{ level: 24, facing: 'S', use: 'planted', soilMm: 600 }]), 24), n = lv(C21([{ level: 24, facing: 'N', use: 'planted', soilMm: 600 }]), 24)

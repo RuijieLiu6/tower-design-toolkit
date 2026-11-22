@@ -127,6 +127,17 @@ function CoreSteps({ t }: { t: Tower }) {
   )
 }
 
+/** P1 #13 floor reach: an interior column ring at about half the core-to-facade reach (Ching p.10), which halves the slab span. */
+function ColumnRing({ t }: { t: Tower }) {
+  const updateTower = useStore((s) => s.updateTower)
+  return (
+    <label className="mt-2 flex items-center gap-2 rounded-md border border-line p-2 text-meta" title="A ring of columns at about half the reach from the core to the facade, on storeys past one flat plate (9.1 m, Ching p.8): the slab spans half the reach and thins.">
+      <input type="checkbox" checked={!!t.columnRing} onChange={(e) => updateTower(t.id, { columnRing: e.target.checked || undefined })} aria-label="Interior column ring" />
+      <span className="font-semibold">Interior column ring</span><FlagChip flag="unverified" />
+    </label>
+  )
+}
+
 export default function StructurePanel() {
   const results = useStructures()
   return (
@@ -140,6 +151,7 @@ export default function StructurePanel() {
           <RuleRows rules={r.rules} />
           {(r.tower.imported || r.tower.coreCentre) && <CorePicker t={r.tower} core={r.weights.core} />}
           <CoreSteps t={r.tower} />
+          <ColumnRing t={r.tower} />
           <OutriggerPicker t={r.tower} placed={r.outriggers} />
           <h4 className="mb-1 mt-3 text-meta font-semibold text-slate-700" title="A shortlist, never a single best">Lateral systems at SC4 (shortlist)</h4>
           <ul className="grid min-w-0 gap-1">

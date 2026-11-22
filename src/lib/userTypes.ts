@@ -70,7 +70,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.form', type: 'designer', name: 'Sketch a tower and see how it does',
         goal: 'Shape a tower freely and read sun, wind, daylight, value and carbon as you go.',
         project: 'vtc', step: 'volume',
-        nodes: ['built.sun', 'built.wind-screen', 'built.silhouette', 'built.daylight-depth', 'built.f2f-use', 'built.fsr', 'built.economics', 'built.energy-carbon', 'built.wind-procedure'],
+        nodes: ['built.sun', 'built.wind-screen', 'built.silhouette', 'built.daylight-depth', 'built.f2f-use', 'built.fsr', 'built.economics', 'built.energy-carbon', 'built.wind-procedure', 'built.structure'],
         says: ['play with the form and massing', 'quick massing study', 'try shapes and see the results'],
       },
       {

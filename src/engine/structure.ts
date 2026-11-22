@@ -3,11 +3,17 @@
 // readings the research corrected are "unverified" here.
 import { coreStepsOf, towerFloors } from './massing'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
-import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, sameCore, SNOW_W, soilKpa, storeyCore, storeyWeights, worstWeightStep, type GravityReading, type WeightPresets, type WeightResult } from './storeyWeight'
+import { CREEP_PHI, DEFAULT_WEIGHT_PRESETS, FLAT_PLATE_MIN, FLAT_PLATE_REACH, GAMMA_C, gravityEccentricity, HARD_DECK, levelName, PLANTED_BUILDUP, PT_PLATE_REACH, PT_RATIO, sameCore, SLAB_MIN, SNOW_W, soilKpa, storeyCore, storeyWeights, USE_LOADS, worstWeightStep, type GravityReading, type StoreyWeight, type WeightPresets, type WeightResult } from './storeyWeight'
+import { USES } from './types'
+import { towerTwist } from './twist'
+import { TWIST_MIN } from './acrossWind'
 import { systemShortlist, type SystemFit, type WindProcedure } from './windStructure'
 
 const NBC: Source = { label: 'National Building Code of Canada 2020, Div B 4.1.8 (2nd printing, 2025)', url: 'https://nrc-publications.canada.ca/eng/view/ft/?id=515340b5-f4e0-4798-be69-692e4ec423e8&dp=2&dsl=en' }
 const TEAM: Source = { label: 'Team assumption (research P10 r1, editable)' }
+/** Book sources of the P1 structure nodes (single-pass reads, 21 Nov 2026: unverified). */
+export const CHING: Source = { label: 'Ching, Onouye & Zuberbuhler, Building Structures Illustrated (Wiley 2013), ch. 7 High-Rise Structures' }
+export const ALLEN_IANO: Source = { label: "Allen & Iano, The Architect's Studio Companion, 5th ed. (Wiley 2012; NBC 2010 / IBC 2009 base, an analogue)" }
 
 /** Downtown Vancouver hazard, site class X450 (Vs30 450 m/s), 2% in 50 years, from the NRCan 2020 hazard API (research P10, 21 Oct 2026). */
 export const DOWNTOWN_HAZARD = { site: 'X450', s02: 1.04, s10: 0.429 }
@@ -82,10 +88,14 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   const kg = (q: number) => q.toFixed(1)
   add('weight', 'Weight irregularity (Type 2)', stepped ? `${Math.round(step.ratio * 100)}% by weight between ${levelName(step.lower)} and ${levelName(step.upper)}` : 'uniform by weight',
     'storey weight ≤ 150% of the adjacent storey (a roof lighter than the floor below is exempt)', stepped && step.ratio > 1.5 ? 'warn' : 'pass', 'verified', { ...NBC, page: 'Table 4.1.8.6 Type 2; W per 4.1.8.2' },
-    `By floor area alone: ${byArea}. Weight of each floor = plate × (slab + superimposed dead load by use + 0.5 kPa partitions) + the open deck at that floor over the storey below (hard ${HARD_DECK} kPa, or planted: ${wpr.soilMm} mm of soil, ${kg(soilKpa(wpr.soilMm))} kPa, + ${PLANTED_BUILDUP} kPa build-up; 25% of snow, ${SNOW_W} kPa) + facade ${wpr.facadeKpa} kPa + core walls ${wpr.coreWall} m thick; the floor on grade is the base. Slabs, SDL, decks, facade and core walls are team presets (research R5 §3.3).`
+    `By floor area alone: ${byArea}. Weight of each floor = plate × (slab + superimposed dead load by use + 0.5 kPa partitions) + the open deck at that floor over the storey below (hard ${HARD_DECK} kPa, or planted: ${wpr.soilMm} mm of soil, ${kg(soilKpa(wpr.soilMm))} kPa, + ${PLANTED_BUILDUP} kPa build-up; 25% of snow, ${SNOW_W} kPa) + facade ${wpr.facadeKpa} kPa + core walls ${wpr.coreWall} m thick; the floor on grade is the base. ${wpr.slabFrom === 'use' ? 'Slabs by use (0.20 m homes and hotel, 0.25 m the rest)' : 'Tower slabs from each storey’s core-to-facade reach (see the floor reach line; podium slabs by use)'}; SDL, decks, facade and core walls are team presets (research R5 §3.3).`
     + (plantedDecks.length ? ` Planted deck${plantedDecks.length > 1 ? 's' : ''}: ${plantedDecks.map((l) => `${levelName(l)} (${Math.round(l.deck).toLocaleString('en-CA')} m², ${l.deckUse ? `deck-use input, ${l.deckUse.soilMm ?? wpr.soilMm} mm of soil` : l.garden ? 'open garden storey' : 'public amenity floor'})`).join(', ')}, each carried by its own floor.` : '')
     + (given.length ? ` Deck uses (the deck-use input) set the decks at ${given.map(levelName).join(', ')}: planted with their own soil, occupied or unused ones hard, whatever the storey's use (gap G32).` : '')
     + ' The podium-to-tower step usually triggers it: an irregular structure needs Vd ≥ 1.0 V.')
+
+  // Floor reach (P1 #13, NODE_LIST row 13): each tower storey's core-to-facade reach against one flat plate, and the slab
+  // its span needs, which the storey weights now carry.
+  rules.push(...floorReachLines(t, weights, wpr, north))
 
   // Off-centre gravity load and accidental torsion (gap G5, research R5 §2): weight centre of each tower level vs the core.
   const grav = gravityEccentricity(weights, H)
@@ -132,6 +142,59 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
   return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav }
+}
+
+/**
+ * Floor reach and the slab it needs (P1 #13): the worst tower storey's reach from the core face to the plate edge, on the
+ * core's axes and to the farthest corner, against one flat plate (Ching p.8) and a post-tensioned plate (Allen & Iano
+ * pp.118–119); and what the span-based slabs add to the dead load against the old use presets.
+ */
+export function floorReachLines(t: Tower, w: WeightResult, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS, north = 0): RuleResult[] {
+  const out: RuleResult[] = []
+  const m1 = (v: number) => v.toFixed(1)
+  const lv = w.levels.filter((l) => !l.roof && !l.podium && l.reach && l.reach.axial > 0)
+  const ring = !!t.columnRing
+  const span = (l: StoreyWeight) => (ring && l.reach!.axial > FLAT_PLATE_REACH ? l.reach!.axial / 2 : l.reach!.axial)
+  const far = lv.reduce<StoreyWeight | null>((a, b) => (!a || b.reach!.axial > a.reach!.axial ? b : a), null)
+  const corner = lv.reduce<StoreyWeight | null>((a, b) => (!a || b.reach!.corner > a.reach!.corner ? b : a), null)
+  const past = lv.filter((l) => l.reach!.axial > FLAT_PLATE_REACH), pastPT = lv.filter((l) => l.reach!.axial > PT_PLATE_REACH)
+  const worst = far ? span(far) : 0
+  const src = { ...CHING, page: 'pp.8, 10 (PDF pages); Allen & Iano pp.103, 113, 118–119; Dobson p.66 (City of Vancouver Vertical Studio deck, 15 Sep 2026)' }
+  const slabs = lv.map((l) => l.slab ?? 0).filter((x) => x > 0)
+  const cm = (v: number) => `${Math.round(v * 1000)} mm`
+  const sideNow = far?.coreSide ?? w.core.side
+  // Outside the rules of thumb (node contract): a plate that turns on a straight core, or a reach past a post-tensioned plate.
+  const tw = far ? towerTwist(t) : null
+  const specialist = [tw && tw.deg >= TWIST_MIN ? `the plate turns ${Math.round(tw.deg)}° on a straight core, so column lines lean or transfer` : '', pastPT.length && !ring ? `${pastPT.length} storeys reach past a post-tensioned plate (${PT_PLATE_REACH} m): a long-span floor needs an engineer's scheme` : ''].filter(Boolean).join('; ')
+  out.push({ ...(specialist ? { specialist } : {}), id: 'floor-reach', label: 'Floor reach: core to facade',
+    value: far ? `depth axial ${m1(far.reach!.axial)} m (${levelName(far)}), corner ${m1(corner!.reach!.corner)} m (${levelName(corner!)})${ring ? `; with the column ring, spans ≈ ${m1(worst)} m` : ''}` : 'no tower storeys',
+    threshold: `≤ ${FLAT_PLATE_REACH} m: one flat plate, 150–205 mm; to about ${PT_PLATE_REACH} m a post-tensioned plate at about L/${PT_RATIO[0]}–${PT_RATIO[1]}; beyond, an interior column ring or a long-span floor`,
+    state: !far ? 'unknown' : worst > FLAT_PLATE_REACH ? 'warn' : 'pass', flag: 'unverified', source: src,
+    note: !far ? 'No tower storey with a plate outside its core.' :
+      `Reach from the core face (each storey's own core; ${m1(sideNow)} m at ${levelName(far)}) to the plate edge on the core's axes, and from the core to the farthest corner of the outline. One flat plate reaches about ${FLAT_PLATE_MIN}–${FLAT_PLATE_REACH} m at 150–180 mm, 205 mm at most (Ching p.8); a post-tensioned plate about L/${PT_RATIO[0]}–${PT_RATIO[1]} up to about ${PT_PLATE_REACH} m, a conventional one about L/26–33 (Allen & Iano pp.118–119). `
+      + `${past.length} of ${lv.length} tower storeys reach past one flat plate${pastPT.length ? `, ${pastPT.length} past a post-tensioned plate` : ''}. `
+      + (ring ? `An interior column ring is declared (columnRing): past ${FLAT_PLATE_REACH} m the slab spans half the reach, so the worst span is about ${m1(worst)} m. ` : '')
+      + (worst > FLAT_PLATE_REACH ? `Past one flat plate: declare an interior column ring at about half the reach, or a long-span floor onto the perimeter columns, which pre-compresses them against uplift where outriggers pull (Ching p.10); post-tensioned beams for a ${m1(worst)} m span run about ${(worst / 24).toFixed(2)}–${(worst / 20).toFixed(2)} m deep (L/20–24; concrete beams L/16–18, girders L/12, or L/15 post-tensioned; Allen & Iano pp.103, 113). ` : '')
+      + 'The corner reach is the diagonal to the farthest plate corner: a corner column or a cantilever (no cantilever limit in these books). '
+      + (slabs.length ? `Slab carried into the storey weights: ${cm(Math.min(...slabs))}–${cm(Math.max(...slabs))} (L/${PT_RATIO[1]} of each storey's span, the thinner end of the range, at least ${cm(SLAB_MIN)}; L/${PT_RATIO[0]} is 12% thicker${pastPT.length ? `; past ${PT_PLATE_REACH} m the same ratio stands in for a long-span floor's weight, a team extrapolation` : ''}). ` : '')
+      + 'For comparison, the KPF office test fit in the City’s Higher Buildings review has a 12.5 m (41 ft) deep core and about 12.8 m from core to glass (Dobson p.66; analog, a 94 × 63 m block). Podium storeys are left out: their column grid is not modelled and their slab keeps the use preset. Book values read once: unverified.' })
+
+  // Dead load against the old use presets (0.20 m homes and hotel, 0.25 m the rest), by use, and the tower's weight.
+  if (lv.length && wpr.slabFrom !== 'use') {
+    const old = storeyWeights(t, { ...wpr, slabFrom: 'use' }, north)
+    const dl = (slab: number, u: StoreyWeight['use']) => slab * GAMMA_C + USE_LOADS[u].sdl + USE_LOADS[u].part
+    const byUse = new Map<StoreyWeight['use'], { n: number; now: number; was: number }>()
+    for (const l of lv) { const e = byUse.get(l.use) ?? { n: 0, now: 0, was: 0 }; e.n++; e.now += dl(l.slab ?? USE_LOADS[l.use].slab, l.use); e.was += dl(USE_LOADS[l.use].slab, l.use); byUse.set(l.use, e) }
+    const uses = [...byUse.entries()].sort((a, b) => (a[0] === 'residential' ? -1 : b[0] === 'residential' ? 1 : b[1].n - a[1].n))
+    const pc = (now: number, was: number) => { const x = Math.round((now / was - 1) * 100); return `${x >= 0 ? '+' : ''}${x}%` }
+    const [u0, e0] = uses[0]
+    const kpa = (v: number) => v.toFixed(1)
+    out.push({ id: 'floor-dead-load', label: 'Floor dead load from the span',
+      value: `${USES[u0].label.toLowerCase()} dead load ${pc(e0.now, e0.was)} (${kpa(e0.now / e0.n)} against ${kpa(e0.was / e0.n)} kPa); tower weight ${pc(w.total, old.total)}`,
+      threshold: 'a reading: the span-based slabs feed the storey weights (Type 2, e/D, sway, density and the frequency)', state: 'unknown', flag: 'unverified', source: { ...ALLEN_IANO, page: 'pp.118–119; Ching p.8' },
+      note: `Mean plate dead load (slab × ${GAMMA_C} kN/m³ + superimposed dead load + partitions) on the tower storeys, against the old slab presets (0.20 m homes and hotel, 0.25 m the rest, any span): ${uses.map(([u, e]) => `${USES[u].label.toLowerCase()} ${kpa(e.now / e.n)} against ${kpa(e.was / e.n)} kPa (${pc(e.now, e.was)}, ${e.n} storeys)`).join('; ')}. Seismic weight of the tower ${Math.round(w.total / 1000).toLocaleString('en-CA')} MN against ${Math.round(old.total / 1000).toLocaleString('en-CA')} MN with the old presets.${ring ? ' With the declared column ring the spans past one flat plate are halved.' : ' An interior column ring (columnRing) halves the spans past one flat plate and thins those slabs.'}` })
+  }
+  return out
 }
 
 export const SEISMIC_FALSE_ASSUMPTIONS = [{

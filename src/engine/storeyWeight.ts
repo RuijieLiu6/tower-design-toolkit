@@ -31,8 +31,14 @@ export interface WeightPresets {
   facadeKpa: number
   /** Core wall thickness (m). */
   coreWall: number
+  /**
+   * Floor slab thickness (P1 #13 floor reach): 'span' (default) from each tower storey's core-to-facade reach (post-
+   * tensioned plate about L/45, at least 150 mm); 'use' the old use presets (USE_LOADS slab: 0.20 m homes and hotel,
+   * 0.25 m the rest) whatever the span. Podium storeys keep the use presets either way (their column grid is not modelled).
+   */
+  slabFrom?: 'span' | 'use'
 }
-export const DEFAULT_WEIGHT_PRESETS: WeightPresets = { soilMm: 600, planted: 'gardens', facadeKpa: 0.6, coreWall: 0.6 }
+export const DEFAULT_WEIGHT_PRESETS: WeightPresets = { soilMm: 600, planted: 'gardens', facadeKpa: 0.6, coreWall: 0.6, slabFrom: 'span' }
 
 /** Reinforced normal-density concrete (kN/m³): common practice, unverified (R5 §3.3). */
 export const GAMMA_C = 24
@@ -50,6 +56,51 @@ export const USE_LOADS: Record<UseId, { slab: number; sdl: number; part: number 
   amenity: { slab: 0.25, sdl: 1.0, part: 0.5 },
   mechanical: { slab: 0.25, sdl: 3.5, part: 0 },
 }
+
+// --- Floor reach and slab from the span (P1 #13, NODE_LIST row 13; book values read once: unverified) ---------------
+/** One flat plate reaches about 7.6–9.1 m at 150–205 mm (Ching et al., Building Structures Illustrated, ch. 7, p.8). */
+export const FLAT_PLATE_REACH = 9.1
+export const FLAT_PLATE_MIN = 7.6
+/** Post-tensioned flat plate up to about 14 m at about L/40–45 (Allen & Iano, Architect's Studio Companion, 5th ed., pp.118–119). */
+export const PT_PLATE_REACH = 14
+export const PT_RATIO: [number, number] = [40, 45]
+/** Thinnest slab (m): Ching p.8's 150 mm. */
+export const SLAB_MIN = 0.15
+/**
+ * Slab thickness (m) for a span (m): the post-tensioned plate's L/45 (the thinner end of L/40–45, so the weight is a
+ * lower bound), never under 150 mm. Past 14 m the same ratio stands in for the weight of a long-span floor (team).
+ */
+export const slabForSpan = (L: number) => Math.max(SLAB_MIN, L / PT_RATIO[1])
+
+/** Reach from a storey's core to its plate edge (m): on the core's axes, and from the core to the farthest plate corner. */
+export interface Reach { axial: number; corner: number }
+
+/**
+ * The core-to-facade reach of one storey (tower frame): `axial`, the longest of the four rays from the core centre along
+ * the core's axes to the first crossing of the plate's outline, less half the core side; `corner`, the farthest outline
+ * vertex from the core square (a 50 m square plate on a 24 m core: 13.0 m and 18.4 m).
+ */
+export function floorReach(ring: [number, number][], core: { side: number; x: number; y: number }): Reach {
+  if (ring.length < 3 || !(core.side > 0)) return { axial: 0, corner: 0 }
+  const h = core.side / 2
+  let axial = 0
+  for (const [ux, uy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+    let first = Infinity
+    for (let i = 0; i < ring.length; i++) {
+      const [x0, y0] = ring[i], [x1, y1] = ring[(i + 1) % ring.length]
+      const ex = x1 - x0, ey = y1 - y0, den = ux * ey - uy * ex
+      if (Math.abs(den) < 1e-12) continue
+      const wx = x0 - core.x, wy = y0 - core.y
+      const d = (wx * ey - wy * ex) / den, u = (wx * uy - wy * ux) / den
+      if (u >= -1e-9 && u <= 1 + 1e-9 && d > h - 1e-6 && d < first) first = d
+    }
+    if (Number.isFinite(first)) axial = Math.max(axial, first - h)
+  }
+  let corner = 0
+  for (const [x, y] of ring) corner = Math.max(corner, Math.hypot(Math.max(0, Math.abs(x - core.x) - h), Math.max(0, Math.abs(y - core.y) - h)))
+  return { axial, corner }
+}
+
 /** 25% of the Vancouver roof snow load S = 1.64 kPa (NBC 4.1.6.2, Table C-2; C_b recalled), on exposed decks (kPa). */
 export const SNOW_W = 0.41
 /** Planted deck: slab (m), drainage, protection, membrane and topping (kPa); pavers on pedestals or roofing on hard decks (kPa). Team. */
@@ -88,6 +139,10 @@ export interface StoreyWeight {
   /** Extent of the floor slab along the tower's own x and y (m): the plate, or the plate below where a deck is carried. */
   dx: number
   dy: number
+  /** Slab thickness of this floor's plate (m): from its storey's reach, or the use preset (podium, or `slabFrom: 'use'`). */
+  slab?: number
+  /** Core-to-facade reach of this floor's storey (the roof: the top storey's), m. */
+  reach?: Reach
   /** The core of the storey above this floor (its own storey; the roof: the top storey's): centre in the tower frame and side (m). Absent: the tower's core (`WeightResult.core`). */
   coreX?: number
   coreY?: number
@@ -268,14 +323,22 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
   const cores = floors.map((f) => at(f.level))
   const coreKpm = (k: number) => 4 * cores[k].side * p.coreWall * GAMMA_C
   const coreC = (k: number): P => [cores[k].x, cores[k].y]
+  // Slab by storey (P1 #13): from the core-to-facade reach (a declared column ring halves it past one flat plate);
+  // podium storeys and `slabFrom: 'use'` keep the use presets.
+  const reach = floors.map((f, k) => floorReach(plates[k].ring, cores[k]))
+  const slabT = floors.map((f, k) => {
+    if (p.slabFrom === 'use' || f.podium || !(reach[k].axial > 0)) return USE_LOADS[f.use].slab
+    return slabForSpan(t.columnRing && reach[k].axial > FLAT_PLATE_REACH ? reach[k].axial / 2 : reach[k].axial)
+  })
   const plantedQ = PLANTED_SLAB * GAMMA_C + soilKpa(p.soilMm) + PLANTED_BUILDUP + SNOW_W
   const plantedAt = (mm: number | undefined) => PLANTED_SLAB * GAMMA_C + soilKpa(mm ?? p.soilMm) + PLANTED_BUILDUP + SNOW_W
   // deck uses by level (gap G32): the entries with no facing apply to the whole deck at their level
   const uses = (t.deckUses ?? []).filter((u) => u && Number.isFinite(u.level))
   const whole = (level: number) => uses.find((u) => u.level === level && (u.facing == null || u.facing.trim() === '')) ?? null
   const parts = uses.length ? deckPartsOf(t, north) : new Map<number, DeckPart[]>()
-  const hardQ = (u: UseId) => USE_LOADS[u].slab * GAMMA_C + HARD_DECK + SNOW_W
-  const plateQ = (u: UseId) => USE_LOADS[u].slab * GAMMA_C + USE_LOADS[u].sdl + USE_LOADS[u].part
+  // a hard deck spans over the storey below (its slab; by use: the storey's own use, as before); the plate is its own storey's
+  const hardQ = (k: number) => (p.slabFrom === 'use' ? USE_LOADS[floors[Math.min(n - 1, k + 1)].use].slab : slabT[k]) * GAMMA_C + HARD_DECK + SNOW_W
+  const plateQ = (k: number, u: UseId) => slabT[k] * GAMMA_C + USE_LOADS[u].sdl + USE_LOADS[u].part
   const perimOf = (i: number) => (garden[i] ? 0 : plates[i].perim)
   const levels: StoreyWeight[] = []
   const n = floors.length
@@ -294,7 +357,7 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
     const preset = deck > 0 && p.planted !== 'none' && (p.planted === 'all' || garden[i] || f.use === 'amenity')
     const deckC: P = below && deck > 0 ? [(below.area * below.c[0] - pl.area * pl.c[0]) / deck, (below.area * below.c[1] - pl.area * pl.c[1]) / deck] : pl.c
     // the deck's parts: by the deck-use input where it speaks to this level, else by the storey's use and the presets
-    const q = (u: DeckUse | null) => (u ? (u.use === 'planted' ? plantedAt(u.soilMm) : hardQ(f.use)) : preset ? plantedQ : hardQ(f.use))
+    const q = (u: DeckUse | null) => (u ? (u.use === 'planted' ? plantedAt(u.soilMm) : hardQ(i - 1)) : preset ? plantedQ : hardQ(i - 1))
     const all = whole(f.level), split = deck > 0 ? parts.get(f.level) ?? [] : []
     const dps: { w: number; c: P; planted: boolean; from: DeckUse | null }[] = []
     if (deck > 0) {
@@ -308,24 +371,25 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
     const given = dps.filter((x) => x.from)
     const soil = given.filter((x) => x.from!.use === 'planted').map((x) => x.from!.soilMm ?? p.soilMm)
     push([
-      { w: pl.area * plateQ(f.use), c: pl.c },
+      { w: pl.area * plateQ(i, f.use), c: pl.c },
       ...dps.map((x) => ({ w: x.w, c: x.c })),
       { w: below ? perimOf(i - 1) * hLow * p.facadeKpa : 0, c: below?.pc ?? pl.c },
       { w: perimOf(i) * hUp * p.facadeKpa, c: pl.pc },
       { w: i > 0 ? coreKpm(i - 1) * hLow : 0, c: i > 0 ? coreC(i - 1) : coreC(i) },
       { w: coreKpm(i) * hUp, c: coreC(i) },
-    ], { level: f.level, roof: false, z: f.z0, area: pl.area, deck, deckKind: deck > 0 ? (planted ? 'planted' : 'hard') : 'none', ...(given.length ? { deckUse: { soilMm: soil.length ? Math.max(...soil) : null } } : {}), garden: garden[i], podium: f.podium, transitional: transitional[i], onPodium: !f.podium && !transitional[i] && i > 0 && (floors[i - 1].podium || transitional[i - 1]), use: f.use,
+    ], { level: f.level, roof: false, z: f.z0, area: pl.area, deck, deckKind: deck > 0 ? (planted ? 'planted' : 'hard') : 'none', ...(given.length ? { deckUse: { soilMm: soil.length ? Math.max(...soil) : null } } : {}), garden: garden[i], podium: f.podium, transitional: transitional[i], onPodium: !f.podium && !transitional[i] && i > 0 && (floors[i - 1].podium || transitional[i - 1]), use: f.use, slab: slabT[i], reach: reach[i],
       dx: below && deck > 0 ? Math.max(pl.ext[0], below.ext[0]) : pl.ext[0], dy: below && deck > 0 ? Math.max(pl.ext[1], below.ext[1]) : pl.ext[1] }, i)
   }
   if (n) {
     const f = floors[n - 1], pl = plates[n - 1], h = Math.max(0, (f.z1 - f.z0) / 2)
     const u = whole(f.level + 1) ?? uses.find((x) => x.level === f.level + 1) ?? null
     const planted = u ? u.use === 'planted' : p.planted === 'all'
+    const roofQ = slabT[n - 1] * GAMMA_C + HARD_DECK + SNOW_W
     push([
-      { w: pl.area * (u ? (planted ? plantedAt(u.soilMm) : hardQ(f.use)) : planted ? plantedQ : hardQ(f.use)), c: pl.c },
+      { w: pl.area * (u ? (planted ? plantedAt(u.soilMm) : roofQ) : planted ? plantedQ : roofQ), c: pl.c },
       { w: perimOf(n - 1) * h * p.facadeKpa, c: pl.pc },
       { w: coreKpm(n - 1) * h, c: coreC(n - 1) },
-    ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', ...(u ? { deckUse: { soilMm: planted ? u.soilMm ?? p.soilMm : null } } : {}), garden: false, podium: f.podium, transitional: transitional[n - 1], onPodium: false, use: f.use, dx: pl.ext[0], dy: pl.ext[1] }, n - 1)
+    ], { level: f.level + 1, roof: true, z: f.z1, area: pl.area, deck: pl.area, deckKind: planted ? 'planted' : 'hard', ...(u ? { deckUse: { soilMm: planted ? u.soilMm ?? p.soilMm : null } } : {}), garden: false, podium: f.podium, transitional: transitional[n - 1], onPodium: false, use: f.use, slab: slabT[n - 1], reach: reach[n - 1], dx: pl.ext[0], dy: pl.ext[1] }, n - 1)
   }
   const total = levels.reduce((s, l) => s + l.W, 0)
   const volume = floors.reduce((s, f) => s + f.area * Math.max(0, f.z1 - f.z0), 0)

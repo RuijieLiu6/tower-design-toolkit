@@ -10,7 +10,8 @@ import { importedTower, rect, stack } from './testStoreys'
 import type { Tower } from './types'
 import { windProcedure } from './windStructure'
 
-const run = (t: Tower) => structureCheck(t, windProcedure(t))
+// The use presets of slab thickness (0.20 m homes at any span), which the hand arithmetic below uses (P1 #13 made the span the default).
+const run = (t: Tower) => structureCheck(t, windProcedure(t), { ...DEFAULT_WEIGHT_PRESETS, slabFrom: 'use' })
 const rule = (r: ReturnType<typeof run>, id: string) => r.rules.find((x) => x.id === id)!
 
 /** C7a in miniature: a podium under a 54 m tier on the core at (30, 0), then tiers that step and shift by `s` metres. */

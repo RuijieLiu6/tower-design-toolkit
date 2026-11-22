@@ -52,6 +52,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^gravity-net$/, (_st, v) => (/long term/.test(v) && Number((v.match(/≈ (\d+) mm long term/) ?? [])[1]) > 100
     ? 'Bring the tower’s weight back over the core (align the tiers, or shift the core under the heavy side); as built, plan a tie-down or outrigger strategy and a pre-set (camber), as at Vancouver House.'
     : 'Declare a pre-set (camber) of the floors for the structural reviewer; aligning the tiers over the core lowers the sway.')],
+  // Floor reach (P1 #13): past one flat plate.
+  [/^floor-reach$/, 'The floor reaches past one flat plate from the core: tick Interior column ring (Structure) for a ring at about half the reach, plan a long-span floor with post-tensioned beams onto the perimeter columns, or bring the plate edge closer to the core (Massing).'],
   [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],
   [/^continuity$/, (st) => (st === 'fail' ? 'An upper core stands outside the core below: move its centre or shrink it so it sits inside the lower core (Structure › Core steps), so its walls can run down to the foundation.'
     : 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.')],
