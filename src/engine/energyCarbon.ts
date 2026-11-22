@@ -2,7 +2,7 @@
 // carbon; P11-M04 low-carbon systems). Screening, not compliance: formal results need an EMG v3.0 energy model and a
 // listed whole-building LCA tool. Limits come from documents opened in research P04 r2 (two critique rounds, no final
 // gate); every intensity used to *estimate* the design is a team assumption or unverified, and says so.
-import { HBP_CBD_FT } from './hbpArea'
+import { HBP_CBD_FT, ceilingSpecialist } from './hbpArea'
 import { solarPosition } from './solar'
 import { sunVector } from './sun'
 import { readsStoreys, towerFloors, towerFootprint, towerMasses } from './massing'
@@ -452,7 +452,7 @@ const margin = (est: number, lim: number) => (Number.isFinite(lim) && lim > 0 ? 
 
 export function energyCarbonCheck(towers: Tower[], input: EnergyInput, ctx: { cars: number; northDeg: number; lat: number; lon: number; obstacles: Obstacle[]; shortlistSystem: SystemId; obstaclesKnown: boolean
   /** The site's Higher Buildings ceiling (engine/hbpArea.ts hbpCeiling); absent: the CBD's 600 ft. */
-  hbpCeiling?: { ft: number; basis: string } | null }): EnergyCarbonResult {
+  hbpCeiling?: { ft: number; basis: string; typed?: boolean } | null }): EnergyCarbonResult {
   const a = areas(towers)
   const wl = weightedLimits(a.byUse)
   const pick = (m: Metric) => input.regime === 'rezoning' ? wl.hbp[m] : input.regime === 'permit' ? wl.vbbl[m] : Math.min(wl.hbp[m], wl.vbbl[m])
@@ -494,8 +494,10 @@ export function energyCarbonCheck(towers: Tower[], input: EnergyInput, ctx: { ca
   // tower no longer passes by default. The site's ceiling comes from engine/hbpArea.ts when the caller has one.
   const ft = Math.max(0, ...towers.map((t) => t.height)) * 3.281
   const ceil = ctx.hbpCeiling ?? { ft: HBP_CBD_FT, basis: 'the CBD up to the view corridors, else up to 600 ft' }
-  op.push(rule('en-hbp-height', 'HBP height ceiling', `${Math.round(ft)} ft tallest vs ${Math.round(ceil.ft)} ft`, `Figure 1 ceiling: ${ceil.basis}; about 700 ft only on one identified site fronting W Georgia, Burrard or Granville (2.1(c) says “about”)`, ft <= ceil.ft ? 'pass' : 'warn', 'unverified', { ...HBP, page: '2.1(b)–(d); p.5 Figure 1; s.3' },
-    'The ceilings are a visual read of Figure 1’s low-resolution legend (unverified); Site limits › Relaxations & aviation reads the area on this site. Above every ceiling, the case rests on 2.1(a) (a significant skyline benchmark) and the review adds two international experts from 550 ft (s.3). The policy is under review and the VTC site is hypothetical.'))
+  const nearCeiling = ceilingSpecialist(ft, ceil.ft, ctx.hbpCeiling?.typed === true)
+  op.push({ ...rule('en-hbp-height', 'HBP height ceiling', `${Math.round(ft)} ft tallest vs ${Math.round(ceil.ft)} ft`, `Figure 1 ceiling: ${ceil.basis}; about 700 ft only on one identified site fronting W Georgia, Burrard or Granville (2.1(c) says “about”)`, ft <= ceil.ft ? 'pass' : 'warn', 'unverified', { ...HBP, page: '2.1(b)–(d); p.5 Figure 1; s.3' },
+    'The ceilings are a visual read of Figure 1’s low-resolution legend (unverified); Site limits › Relaxations & aviation reads the area on this site. Above every ceiling, the case rests on 2.1(a) (a significant skyline benchmark) and the review adds two international experts from 550 ft (s.3). The policy is under review and the VTC site is hypothetical.'),
+    ...(nearCeiling ? { specialist: nearCeiling } : {}) })
 
   // Embodied carbon
   const shortlistSystem = ctx.shortlistSystem

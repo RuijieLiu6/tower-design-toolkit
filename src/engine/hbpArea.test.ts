@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import data from '../data/higherBuildings.json'
 import { CITY_ORIGIN, useStore } from '../store'
 import { DEFAULT_ENERGY, energyCarbonCheck, type Obstacle } from './energyCarbon'
-import { FT, HBP_CEILINGS, HBP_ORIGIN, HBP_PARTS, hbpCeiling, hbpChecklist, hbpReading, hbpFootprint } from './hbpArea'
+import { FT, HBP_CEILINGS, HBP_ORIGIN, HBP_PARTS, NEAR_EDGE_M, hbpCeiling, hbpChecklist, hbpReading, hbpFootprint } from './hbpArea'
 import { RELAXATIONS, RELAX_AVIATION_FALSE_ASSUMPTIONS, relaxationChecklist } from './relaxAviation'
 import { CONES } from './viewCones'
 import type { Tower } from './types'
@@ -11,7 +11,7 @@ import type { Tower } from './types'
 const base = (): Tower => ({ ...useStore.getInitialState().towers.city[0] })
 /** A tower centred on an EPSG:26910 point (the project frame is EPSG:26910 minus CITY_ORIGIN). */
 const at = ([e, n]: readonly number[], patch: Partial<Tower> = {}): Tower => ({ ...base(), x: e - CITY_ORIGIN[0], y: n - CITY_ORIGIN[1], rotation: 0, width: 30, depth: 30, ...patch })
-const find = (rs: { id: string }[], id: string) => rs.find((r) => r.id === id) as { id: string; state: string; flag: string; value: string; threshold: string; note?: string } | undefined
+const find = (rs: { id: string }[], id: string) => rs.find((r) => r.id === id) as { id: string; state: string; flag: string; value: string; threshold: string; note?: string; specialist?: string } | undefined
 const off = { routeOn: false, ceilingFt: null, streets: null }
 /** Well inside the central core (the layer's label point). */
 const CBD = data.layers[0].labelAt
@@ -71,6 +71,21 @@ describe('Higher Buildings ceiling (Figure 1 legend, p.5)', () => {
     expect(find(hbpChecklist(t, 'city', CITY_ORIGIN, off), 'hbp-street')?.state).toBe('unknown')
     expect(find(hbpChecklist(t, 'city', CITY_ORIGIN, { ...off, streets: ['W Georgia St', 'Howe St'] }), 'hbp-street')).toMatchObject({ state: 'pass', value: 'fronts W Georgia St' })
     expect(find(hbpChecklist(t, 'city', CITY_ORIGIN, { ...off, streets: ['W Pender St'] }), 'hbp-street')?.state).toBe('warn')
+  })
+})
+
+describe('needs a specialist near an edge or a ceiling (node contract)', () => {
+  it('marks a footprint near the digitized edge and a top near a ceiling, and nothing well clear of both', () => {
+    const clear = hbpChecklist(at(CBD, { height: 150 }), 'city', CITY_ORIGIN, off)
+    expect(clear.every((l) => l.specialist === undefined)).toBe(true)
+    expect(hbpReading(hbpFootprint(at(CBD), CITY_ORIGIN)).clearOfBandM).toBeGreaterThan(NEAR_EDGE_M)
+    // A footprint straddling the central core's edge: across the edge, so the area line asks for the City's map.
+    const p = HBP_PARTS[0].ring[0]
+    const edge = at([p[0] + HBP_ORIGIN[0], p[1] + HBP_ORIGIN[1]])
+    expect(find(hbpChecklist(edge, 'city', CITY_ORIGIN, off), 'hbp-area')!.specialist).toMatch(/Figure 1 map/)
+    // 182 m is within 5% of 600 ft (182.9 m); a typed ceiling is the user's own figure, so no marker.
+    expect(find(hbpChecklist(at(CBD, { height: 182 }), 'city', CITY_ORIGIN, off), 'hbp-ceiling')!.specialist).toMatch(/within 5%/)
+    expect(find(hbpChecklist(at(CBD, { height: 182 }), 'city', CITY_ORIGIN, { ...off, ceilingFt: 600 }), 'hbp-ceiling')!.specialist).toBeUndefined()
   })
 })
 

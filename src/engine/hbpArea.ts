@@ -12,7 +12,7 @@
 import data from '../data/higherBuildings.json'
 import { towerFootprint } from './massing'
 import { siteRelation, toLocal, type PolicyPart, type SiteRelation } from './policyArea'
-import { normalizeRing, overlapArea, type Pt } from './site'
+import { distanceToRing, normalizeRing, overlapArea, type Pt } from './site'
 import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 
 export const HBP_SOURCE: Source = { label: 'City of Vancouver, Higher Buildings Policy (rev. 31 Mar 2026)', url: 'https://guidelines.vancouver.ca/policy-higher-buildings-for-rezonings.pdf' }
@@ -58,11 +58,17 @@ export interface HbpReading {
   share: number | null
   /** May the route enter QE View 3 here: only with the whole footprint inside the CBD outline. */
   qe3: 'yes' | 'no' | 'uncertain'
+  /** How far the footprint's outline lies beyond the nearest part's tolerance band (m; ≤ 0 = in the band or across the edge). */
+  clearOfBandM: number | null
 }
+
+/** Node contract (21 Nov): lines within this distance of a part's band, or this share of a ceiling, need the City's map (team assumption). */
+export const NEAR_EDGE_M = 5
+export const NEAR_CEILING = 0.05
 
 /** The footprint (the parts' local frame) against the policy area; null = the competition site. */
 export function hbpReading(footprint: Pt[] | null): HbpReading {
-  if (!footprint) return { where: 'assumed', part: null, nearestM: null, share: null, qe3: 'uncertain' }
+  if (!footprint) return { where: 'assumed', part: null, nearestM: null, share: null, qe3: 'uncertain', clearOfBandM: null }
   const ring = normalizeRing(footprint)
   const rel = siteRelation(ring, HBP_PARTS)
   let best: PolicyPart | null = null, bestA = 0
@@ -71,7 +77,29 @@ export function hbpReading(footprint: Pt[] | null): HbpReading {
   const part = pick ? { id: pick.id, label: pick.label, ceiling: HBP_CEILINGS[pick.id] } : null
   const cbd = part?.ceiling.cbd === true
   const qe3 = cbd && rel.relation === 'within' ? 'yes' : cbd && rel.relation !== 'outside' ? 'uncertain' : 'no'
-  return { where: rel.relation, part, nearestM: rel.nearest?.distanceM ?? null, share: rel.share, qe3 }
+  // The outline sampled every 1 m against every part's edge, less that part's band.
+  let clear = Infinity
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1])))
+    for (let k = 0; k < n; k++) {
+      const q: Pt = [a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n]
+      for (const p of HBP_PARTS) clear = Math.min(clear, distanceToRing(q, p.ring) - p.toleranceM)
+    }
+  }
+  return { where: rel.relation, part, nearestM: rel.nearest?.distanceM ?? null, share: rel.share, qe3, clearOfBandM: rel.relation === 'overlapping' ? Math.min(0, clear) : clear }
+}
+
+/** Why a line needs the City's map: the footprint near the digitized edge (node contract); undefined otherwise. */
+export function edgeSpecialist(r: HbpReading): string | undefined {
+  if (r.where === 'assumed' || r.clearOfBandM === null || r.clearOfBandM > NEAR_EDGE_M) return undefined
+  return r.clearOfBandM <= 0
+    ? 'The footprint reaches the band around the digitized edge or crosses it: check it on the City’s Figure 1 map.'
+    : `The footprint lies within ${NEAR_EDGE_M} m of the band around the digitized edge: check it on the City’s Figure 1 map.`
+}
+/** Why a ceiling line needs the City's figure: the top within 5% of a ceiling read from a low-resolution legend. */
+export function ceilingSpecialist(topFt: number, ceilingFt: number, typed = false): string | undefined {
+  if (typed || Math.abs(topFt - ceilingFt) > NEAR_CEILING * ceilingFt) return undefined
+  return `The top is within ${Math.round(NEAR_CEILING * 100)}% of a ceiling read from a low-resolution legend: confirm the figure on the City’s Figure 1.`
 }
 
 /** A tower's footprint in the parts' frame: project coordinates plus the project origin, less the parts' origin. */
@@ -89,11 +117,11 @@ export interface HbpOptions {
 }
 
 /** The ceiling in use and its basis, or null where none applies (outside the area, no typed value). */
-export function hbpCeiling(r: HbpReading, typedFt: number | null): { ft: number; basis: string; flag: Flag } | null {
-  if (typedFt !== null && typedFt > 0) return { ft: typedFt, basis: 'the site-specific ceiling you typed', flag: 'unverified' }
-  if (r.where === 'assumed') return { ft: HBP_CBD_FT, basis: 'assumed CBD site: up to the view corridors, else up to 600 ft', flag: 'team_assumption' }
+export function hbpCeiling(r: HbpReading, typedFt: number | null): { ft: number; basis: string; flag: Flag; typed: boolean } | null {
+  if (typedFt !== null && typedFt > 0) return { ft: typedFt, basis: 'the site-specific ceiling you typed', flag: 'unverified', typed: true }
+  if (r.where === 'assumed') return { ft: HBP_CBD_FT, basis: 'assumed CBD site: up to the view corridors, else up to 600 ft', flag: 'team_assumption', typed: false }
   if (r.where === 'outside' || !r.part) return null
-  return { ft: r.part.ceiling.ft, basis: r.part.ceiling.basis, flag: 'unverified' }
+  return { ft: r.part.ceiling.ft, basis: r.part.ceiling.basis, flag: 'unverified', typed: false }
 }
 
 const PRIMARY = /\b(W(EST)?\s+)?GEORGIA\b|\bBURRARD\b|\bGRANVILLE\b/i
@@ -107,8 +135,8 @@ export function hbpAreaLines(t: Tower, r: HbpReading, o: HbpOptions): RuleResult
   const H = t.imported ? t.imported.top : t.height
   const ft = H / FT
   const out: RuleResult[] = []
-  const add = (id: string, label: string, value: string, threshold: string, state: RuleState, flag: Flag, page: string, note: string) =>
-    out.push({ id, label, value, threshold, state, flag, source: { ...HBP_SOURCE, page }, note })
+  const add = (id: string, label: string, value: string, threshold: string, state: RuleState, flag: Flag, page: string, note: string, specialist?: string) =>
+    out.push({ id, label, value, threshold, state, flag, source: { ...HBP_SOURCE, page }, note, ...(specialist ? { specialist } : {}) })
   const name = r.part?.label ?? 'the policy area'
 
   // 1. Inside or outside (2.1(b)).
@@ -123,7 +151,7 @@ export function hbpAreaLines(t: Tower, r: HbpReading, o: HbpOptions): RuleResult
       : `on the edge of ${name}: the digitized boundary cannot settle it`
     const state: RuleState = r.where === 'within' ? 'pass' : r.where === 'uncertain' ? 'unknown' : r.where === 'outside' && o.routeOn ? 'fail' : 'warn'
     add('hbp-area', 'Higher Buildings area', value, areaT, state, 'unverified', 'p.3, 2.1(b); p.5 Figure 1',
-      `${r.where === 'outside' && o.routeOn ? 'The Higher Buildings route is switched on, but the policy opens only inside its areas. ' : ''}${BOUNDARY} ${NOT_APPROVAL}`)
+      `${r.where === 'outside' && o.routeOn ? 'The Higher Buildings route is switched on, but the policy opens only inside its areas. ' : ''}${BOUNDARY} ${NOT_APPROVAL}`, edgeSpecialist(r))
   }
 
   // 2. The ceiling (Figure 1 legend, p.5; identified sites 2.1(c)–(d)).
@@ -134,7 +162,8 @@ export function hbpAreaLines(t: Tower, r: HbpReading, o: HbpOptions): RuleResult
   else {
     const cm = c.ft * FT
     add('hbp-ceiling', 'Higher Buildings ceiling', `top ${r1(H)} m (${Math.round(ft)} ft) vs ceiling ${r1(cm)} m (${Math.round(c.ft)} ft)${r.where === 'assumed' ? ', assumed site' : ''}`,
-      `${ceilT}: ${c.basis}`, H <= cm + 1e-6 ? 'pass' : 'warn', c.flag, 'p.5 Figure 1 legend; p.3, 2.1(c)–(d)', CEILINGS_NOTE)
+      `${ceilT}: ${c.basis}`, H <= cm + 1e-6 ? 'pass' : 'warn', c.flag, 'p.5 Figure 1 legend; p.3, 2.1(c)–(d)', CEILINGS_NOTE,
+      ceilingSpecialist(ft, c.ft, c.typed || r.where === 'assumed') ?? edgeSpecialist(r))
   }
 
   // 3. About 700 ft only on W Georgia, Burrard or Granville (2.1(c)): asked once the top or the ceiling passes 600 ft.
