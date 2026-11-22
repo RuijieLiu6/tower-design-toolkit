@@ -181,7 +181,7 @@ See [the terrain update report](../04%20Tool%20Plan/TERRAIN_UPGRADE_2026-10-22.m
 | **Decision trace** (Trace tab): recorded iterations with every result and its evidence flag, what changed and what it did, restore, decisions with your own rationale; rule cards for the clauses the checks apply (unreviewed) | Built (review flow planned) |
 | **City in Nature ledger**: canopy, cover, habitat, rainwater, bird-safe glass and protected views, each with how binding its rule is, its flag and source; an evidence ledger, not a score | Built (values entered) |
 | **Wind procedure & structure** (NBC 2020 slenderness triggers, lateral-system shortlist at SC4) and **pedestrian wind study trigger** (analog cities' rules; no browser comfort map yet) | Built (screening) |
-| Shared node registry, review and comments | Planned v1 |
+| Shared node registry, review and comments; a reserved, empty `nation.*` namespace that only authors verified by a Nation can publish in (they may keep nodes private or withhold them; no Nation has used it and no engagement has happened; `src/lib/nationNamespace.ts`) | Planned v1 (namespace rule built) |
 
 ## Structure
 

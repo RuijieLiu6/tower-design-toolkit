@@ -17,6 +17,8 @@ import {
   parseRegistry, ratingSummary, REVIEW_LABEL, type FlagRecord, type RegistryIndex, type RegistryModule, type RegistryVersion, type Submission,
 } from '../../lib/registry'
 import { FlagChip } from '../ui'
+import Fold from '../Fold'
+import { NATION_NAMESPACE } from '../../lib/nationNamespace'
 
 interface Loaded { index: RegistryIndex; problems: string[]; flags: FlagRecord[]; ratings: Record<string, { up: number; down: number }> }
 
@@ -382,6 +384,13 @@ export default function CommunityDrawer({ open, onClose, onAddToCanvas }: { open
               {data && data.problems.length > 0 && <p className="mb-2 rounded bg-amber-50 px-2 py-1 text-meta text-amber-900">{data.problems.length} entr{data.problems.length > 1 ? 'ies were' : 'y was'} left out: {data.problems.join(' ')}</p>}
               <ul className="space-y-2">{data && list.map((m) => <Row key={m.id} m={m} data={data} onOpen={() => setOpenId(m.id)} />)}</ul>
               {data && !list.length && <p className="text-xs text-muted">No community node matches.</p>}
+              {/* The reserved Nation-governed namespace (lib/nationNamespace.ts): empty; its status in the summary, the rule one click away. */}
+              <div className="mt-4" data-testid="nation-namespace">
+                <Fold summary={<><b className="font-medium text-ink">{NATION_NAMESPACE.name}</b>: reserved and empty. No Nation has used it, and no engagement has happened.</>}>
+                  <p>{NATION_NAMESPACE.label}</p>
+                  <ul className="list-disc space-y-0.5 pl-4">{NATION_NAMESPACE.rules.map((r) => <li key={r}>{r}</li>)}</ul>
+                </Fold>
+              </div>
               {data?.index.note && <p className="mt-4 text-meta text-muted">{data.index.note}</p>}
             </div>
           </div>

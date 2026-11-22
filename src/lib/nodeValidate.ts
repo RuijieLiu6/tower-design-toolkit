@@ -9,6 +9,7 @@ import { VARIABLE_NAMES } from './layer0Summary'
 import { isCodeMetric, runPackage, runTests, type CommunityResult, type Fixture, type NodePackage, type TestOutcome, type ThresholdDef } from './nodePackages'
 import { checkCode } from './sandbox/sandbox'
 import { briefProblems } from './nodeIcons/brief'
+import { isNationId, NATION_REFUSAL } from './nationNamespace'
 import type { PackageIcon } from './nodeIcons/fromPackage'
 
 export const FIXTURES = (fixturesFile as unknown as { fixtures: Fixture[] }).fixtures
@@ -68,6 +69,9 @@ export function validatePackage(data: unknown): Report {
     return { ok: false, problems: [{ level: 'error', where: 'The package', message: 'should be one JSON object { … }, not a list or a single value.' }], tests: [], preview: [] }
   }
   const problems: Problem[] = []
+  // The reserved Nation-governed namespace (lib/nationNamespace.ts): the node builder never publishes there.
+  const id = (data as { id?: unknown }).id
+  if (typeof id === 'string' && isNationId(id)) return { ok: false, problems: [{ level: 'error', where: 'The id', message: `is under nation.*, a reserved namespace: ${NATION_REFUSAL}` }], tests: [], preview: [] }
   const { icon: rawIcon, ...rest } = data as NodePackage
   data = rest
   const pkg = rest as NodePackage

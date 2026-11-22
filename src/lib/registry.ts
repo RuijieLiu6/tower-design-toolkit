@@ -4,6 +4,7 @@
 import { CATEGORIES, type Category } from '../data/registry'
 import type { Flag } from '../engine/types'
 import type { NodePackage } from './nodePackages'
+import { isNationId, isNationVerified, namespaceGuard, type NationVerification } from './nationNamespace'
 
 export const REGISTRY_FORMAT = 'tower-studio-registry@1'
 /** Licences a package may declare (same list as the node package schema). */
@@ -32,7 +33,8 @@ export interface RegistryModule {
   kind: Kind
   category: Category
   stage: 'massing' | 'schematic' | 'present'
-  author: { name: string; github?: string }
+  /** `nationVerified`: the verified-author field, required for an id under the reserved nation.* namespace (lib/nationNamespace.ts). */
+  author: { name: string; github?: string; nationVerified?: NationVerification }
   licence: string
   summary: string
   review: Review
@@ -50,6 +52,8 @@ export const REVIEW_LABEL: Record<Review, string> = {
 }
 
 const ID = /^community\.[a-z0-9]+(-[a-z0-9]+)*\.[a-z0-9]+(-[a-z0-9]+)*$/
+/** The reserved Nation-governed namespace (lib/nationNamespace.ts): same shape, its own prefix, verified authors only. */
+const NATION_ID = /^nation\.[a-z0-9]+(-[a-z0-9]+)*\.[a-z0-9]+(-[a-z0-9]+)*$/
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
 const SHA = /^[0-9a-f]{64}$/
 const FLAGS: Flag[] = ['verified', 'team_assumption', 'unverified', 'unresolved', 'false_assumption']
@@ -78,7 +82,14 @@ export function parseRegistry(text: string): ParsedIndex {
     const where = `Module ${i + 1}${m?.id ? ` (${m.id})` : ''}`
     const bad = (msg: string) => { problems.push(`${where}: ${msg}`); return true }
     if (!m || typeof m !== 'object') { bad('is not an object'); return }
-    if (typeof m.id !== 'string' || !ID.test(m.id)) { bad('id must look like community.<handle>.<node-name>'); return }
+    if (typeof m.id === 'string' && isNationId(m.id)) {
+      // Reserved: refused unless the author carries the verified-author field; a private or withheld node is the
+      // Nation's choice and is left out of the listing without a problem line.
+      const g = namespaceGuard(m.id, m.author)
+      if (!g.ok) { bad(g.reason); return }
+      if (!NATION_ID.test(m.id)) { bad('id must look like nation.<nation-handle>.<node-name>'); return }
+      if (m.visibility === 'private' || m.visibility === 'withheld') return
+    } else if (typeof m.id !== 'string' || !ID.test(m.id)) { bad('id must look like community.<handle>.<node-name>'); return }
     if (seen.has(m.id)) { bad('id is listed twice'); return }
     if (typeof m.name !== 'string' || !m.name.trim()) { bad('needs a name'); return }
     if (!(m.category in CATEGORIES)) { bad(`category "${m.category}" is not one of the 13 categories`); return }
@@ -110,7 +121,7 @@ export function parseRegistry(text: string): ParsedIndex {
     seen.add(m.id)
     modules.push({
       id: m.id, name: m.name, kind: m.kind, category: m.category, stage: m.stage, licence: m.licence, review: m.review,
-      author: { name: typeof m.author?.name === 'string' ? m.author.name : 'Unknown author', ...(typeof m.author?.github === 'string' ? { github: m.author.github } : {}) },
+      author: { name: typeof m.author?.name === 'string' ? m.author.name : 'Unknown author', ...(typeof m.author?.github === 'string' ? { github: m.author.github } : {}), ...(isNationVerified(m.author?.nationVerified) ? { nationVerified: { nation: m.author.nationVerified.nation, verifiedBy: m.author.nationVerified.verifiedBy, date: m.author.nationVerified.date } } : {}) },
       summary: typeof m.summary === 'string' ? m.summary : '', tags: Array.isArray(m.tags) ? m.tags.filter((t: unknown) => typeof t === 'string') : [],
       forkedFrom: typeof m.forkedFrom === 'string' ? m.forkedFrom : null,
       versions: versions.sort((a, b) => compareSemver(b.version, a.version)),

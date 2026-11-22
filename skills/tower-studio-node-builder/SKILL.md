@@ -82,11 +82,13 @@ Limits: <…>
 
 Write the JSON following [references/node-package-contract.md](references/node-package-contract.md) and the schema [references/node-package.schema.json](references/node-package.schema.json). Use [references/example-node.json](references/example-node.json) as the model. Before you hand it over, check that:
 
-- the id is `community.<handle>.<node-name>` (lowercase, hyphens);
+- the id is `community.<handle>.<node-name>` (lowercase, hyphens); never `nation.…`, which is reserved (see below);
 - every formula uses only Layer 0 names, `params.<id>`, `PI` and the listed functions;
 - every name a formula reads is listed in `inputs`;
 - every threshold has a `flag` and a `source`; `verified` also has a `page` or `url`; `unresolved` and `info` have no numbers;
 - `good` and `bad` point the right way for the `direction`.
+
+**The reserved `nation.*` namespace.** It is kept for nodes published by authors verified by a Nation, such as the Musqueam, Squamish or Tsleil-Waututh Nation. Only such an author can publish there; the Nation and its authors may keep a node private or withhold it; no one else publishes, forks, copies or renames a node into it, and Tower Design Toolkit refuses any other id there. No Nation has used it and no engagement has happened. Never suggest it, and never write a node about a Nation's culture for someone else.
 
 ### Step 5: Test on the sample designs
 
