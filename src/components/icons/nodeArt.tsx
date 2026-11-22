@@ -120,6 +120,9 @@ const ART: Record<string, (c: Ctx) => ReactNode> = {
     {box(c, 3.6, 3.4, 3.05, 3.6, 1.6, 0.5)}{box(c, 3.2, 5.6, 3.05, 4.4, 3.5, 0.45, 'a')}
     {box(c, 9.6, 2.6, 1.7, 4, 1, 2.6, 'k')}{box(c, 9.6, 3.6, 1.7, 4, 2.2, 1.1, 'k')}{box(c, 10.2, 7.4, 1.7, 2.6, 2.6, 0.9)}
     {box(c, 12.4, 11.6, 1.7, 1, 1, 1, 'k')}<circle cx={iso(12.9, 12.1, 4.3)[0]} cy={iso(12.9, 12.1, 4.3)[1]} r={2.4} fill={tones('g', c.h)[1]} /></>,
+  // Storey height by use: three storeys in section, the middle one taller, a height bar beside them.
+  'built.f2f-use': (c) => <>{plate(c)}{box(c, 3, 3, 0.9, 9, 9, 3)}{box(c, 3, 3, 3.9, 9, 9, 4.6, 'a')}{box(c, 3, 3, 8.5, 9, 9, 3)}
+    {line(iso(13.5, 3, 3.9), iso(13.5, 3, 8.5), A(c, 2), 1.2)}<circle cx={iso(13.5, 3, 3.9)[0]} cy={iso(13.5, 3, 3.9)[1]} r={0.9} fill={A(c, 2)} /><circle cx={iso(13.5, 3, 8.5)[0]} cy={iso(13.5, 3, 8.5)[1]} r={0.9} fill={A(c, 2)} /></>,
   // Daylight screen: a window wall, warm light on the floor beside it, the deep middle in grey, the reach dashed.
   'built.daylight-depth': (c) => <>{plate(c)}{box(c, 2, 2, 0.9, 12, 12, 0.8)}
     {flat('#fff0b3', 1.72, [2, 2.6], [14, 2.6], [14, 6.4], [2, 6.4])}{flat('#fbf4da', 1.72, [2, 6.4], [14, 6.4], [14, 10], [2, 10])}{flat('#cdd2da', 1.72, [2, 10], [14, 10], [14, 14], [2, 14])}

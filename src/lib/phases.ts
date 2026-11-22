@@ -33,7 +33,7 @@ export const PHASES: Phase[] = [
   {
     id: 'program', name: 'Program', step: 'program', about: 'Stack the uses, test floor area and value, shape the ground and public space.',
     tools: ['program', 'ground', 'brief'],
-    nodes: ['built.fsr', 'built.economics', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.trips', 'built.mobility'],
+    nodes: ['built.fsr', 'built.f2f-use', 'built.economics', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sky-room', 'built.trips', 'built.mobility'],
   },
   {
     id: 'schematic', name: 'Schematic', step: 'plates', about: 'Core, lifts, stairs, structure, facade and energy: can it be built?',

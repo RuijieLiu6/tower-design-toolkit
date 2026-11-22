@@ -192,6 +192,12 @@ export const ALL_BUILT_NODES: NodeDef[] = [
     human: 'The unit mix and sizes, hotel brand standards, the workplace strategy, and how public and amenity floors are actually used across the day and year.',
     limits: 'Rectangular plates with a central core; units and keys are laid in four bands between a corridor ring and the facade. Presets are team assumptions; design densities (PNNL) are US prototype values, kept away from lift and egress sizing. The housing mix rule is recalled, not opened.',
     packet: 'P12' },
+  // P1 #8 (21 Nov, book notes): no check read a spec's storey height; A, B and C ran 4.0 m in places.
+  { id: 'built.f2f-use', name: 'Storey height by use', category: 'PROG', phase: 'basic', priority: 'core', status: 'built', projects: ['vtc', 'city'],
+    question: 'How tall is each use’s storey against a typical one, how much tower height does the difference spend, and what daylight depth does that height buy?', jury: ['design_excellence_20'],
+    human: 'Whether a tall storey is worth its height: ceiling height, daylight, services, the sales story and the height cap are traded by the team, not by a threshold.',
+    limits: 'Typical storeys: residential about 3.05 m (KPF test fits read second-hand in the City’s Vertical Studio deck, p.73); hotel 3.3 m and office 3.9 m (the Toolkit generator’s presets, corroborated by Allen & Iano’s floor sandwich, pp.206, 208): unverified. Pass within typical + 0.4 m (team). The daylight depth beside it is the daylight rule’s 2.5 × (head − 0.76 m) (Allen & Iano p.151) with the team head drop. Podium storeys, sky lobbies and other uses are not read.',
+    confidence: 'B', boundary: 'Typical downtown residential, hotel and office storeys: double-height, plant, amenity or civic storeys and non-Vancouver typologies sit outside the typical values.' },
   { id: 'built.daylight-depth', name: 'Daylight screen (plate depth)', category: 'SPAC', phase: 'advanced', priority: 'core', status: 'built', projects: ['vtc', 'city'],
     question: 'Which parts of each use’s typical floor lie beyond practical daylight reach of the facade, given the window head height, before any simulation is run?', jury: ['design_excellence_20', 'human_scale_40'],
     human: 'Where to put cores, services and non-daylit programme; acceptable depth for offices versus bedrooms; light wells, atria or double-height floors; occupant wellbeing beyond the metric.',

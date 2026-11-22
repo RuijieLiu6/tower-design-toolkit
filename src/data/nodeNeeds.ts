@@ -23,6 +23,7 @@ export const NODE_NEEDS: Record<string, NodeNeeds> = {
   'built.mobility': { reads: ['the floor areas by use', 'the street types around the site'], asks: ['loading, ramp and drop-off positions', 'truck arrivals, if known'] },
   'built.facade': { reads: ['each tower’s faces and floors', 'true north'], asks: ['the facade system', 'the share of bird-friendly glass'] },
   'built.interior': { reads: ['the typical floors of each use'], asks: ['the unit mix and sizes', 'the activities on public floors'] },
+  'built.f2f-use': { reads: ['each use’s storeys and their floor-to-floor heights', 'the window head drop'], asks: [] },
   'built.daylight-depth': { reads: ['the typical floor plates and the core', 'floor-to-floor heights'], asks: ['the window head drop'] },
   'built.view-from': { reads: ['the City buildings and terrain', 'your towers'], asks: ['a place to stand: a roof, a street point or a floor'] },
   'built.vista': { reads: ['the study site and its parcels', 'the view cones and the terrain'], asks: ['an address, a drawn site or a GeoJSON file'] },

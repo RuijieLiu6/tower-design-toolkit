@@ -54,7 +54,7 @@ export const USER_TYPES: UserType[] = [
         goal: "The competition block and its rules, with the public realm (40% of the jury's marks) first.",
         project: 'vtc', step: 'site',
         // 21 Nov (R10 juries: "not distinctive enough", no reading of the skyline): the silhouette reading joins the Form checks.
-        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.silhouette', 'built.sky-room'],
+        nodes: ['built.vtc-rules', 'built.fsr', 'built.pr-streetwall', 'built.pr-frontage', 'built.pr-ground', 'built.sun', 'built.wind-screen', 'built.silhouette', 'built.sky-room', 'built.f2f-use'],
         says: ['competition entry and boards', 'Vancouver Tall Challenge brief and rules', 'student competition deadline'],
       },
       {
@@ -68,7 +68,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.form', type: 'designer', name: 'Sketch a tower and see how it does',
         goal: 'Shape a tower freely and read sun, wind, daylight, value and carbon as you go.',
         project: 'vtc', step: 'volume',
-        nodes: ['built.sun', 'built.wind-screen', 'built.silhouette', 'built.daylight-depth', 'built.fsr', 'built.economics', 'built.energy-carbon', 'built.wind-procedure'],
+        nodes: ['built.sun', 'built.wind-screen', 'built.silhouette', 'built.daylight-depth', 'built.f2f-use', 'built.fsr', 'built.economics', 'built.energy-carbon', 'built.wind-procedure'],
         says: ['play with the form and massing', 'quick massing study', 'try shapes and see the results'],
       },
       {
@@ -118,7 +118,7 @@ export const USER_TYPES: UserType[] = [
         id: 'practitioner.rezoning', type: 'practitioner', name: 'Rezoning feasibility',
         goal: 'Height limits, view cones and their relaxations, density and the land value, before the first meeting.',
         project: 'city', step: 'site',
-        nodes: ['built.heights', 'built.viewcones', 'built.relax-aviation', 'built.vista', 'built.fsr', 'built.economics', 'built.solar-access'],
+        nodes: ['built.heights', 'built.viewcones', 'built.relax-aviation', 'built.vista', 'built.fsr', 'built.economics', 'built.solar-access', 'built.f2f-use'],
         says: ['rezoning enquiry', 'feasibility and pro forma', 'how tall and how much floor area', 'Higher Buildings Policy site'],
       },
       {
@@ -165,7 +165,7 @@ export const USER_TYPES: UserType[] = [
         id: 'planner.growth', type: 'planner', name: 'Density, transit and servicing',
         goal: 'Floor area and value, homes and keys per floor, trips and the station entrance, parking and loading.',
         project: 'city', step: 'program',
-        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior'],
+        nodes: ['built.fsr', 'built.economics', 'built.trips', 'built.mobility', 'built.interior', 'built.f2f-use'],
         says: ['density and FSR', 'transit and trips', 'parking and loading', 'community benefits'],
       },
     ],

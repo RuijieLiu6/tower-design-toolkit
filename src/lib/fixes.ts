@@ -212,6 +212,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // P1 #7: the deepest point is judged against the 6 m primary daylit zone (EP pp.199, 229–230).
   [/^dl-.*-depth$/, 'Bring every desk or room within about 6 m of glass: a slimmer plate (width × depth in Massing), a larger core or corridor ring in the deep middle, or a garden or loggia edge declared as a deck (Deck use) that opens an inner facade.'],
   [/^dl-.*-share$/, 'Bring more floor within daylight reach: a slimmer plate (width × depth in Massing), a smaller core, or a taller floor-to-floor (it raises the window head; see Storey height by use for the height it costs).'],
+  // P1 #8: a storey over typical + 0.4 m.
+  [/^f2f-(residential|hotel|office)$/, 'Lower this use’s floor-to-floor toward the typical value (Program › bands, storey height) to free height under the cap, or keep it and say on the boards what the height buys (daylight depth, ceilings, services).'],
   [/^dl-udi$/, 'Run Daylight › sDA and ASE and read the hours over 1,500 lux on the bright faces: shading or a lower-transmittance glass there.'],
   [/^dl-.*-limit$/, 'Bring L/W + L/H under the limit: a shallower plate or a taller floor-to-floor (Massing).'],
   [/^mob-transit$/, 'Turn on the transit link to the station (Program step › Ground & public realm).'],
