@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { economics, type EconInputs } from './economics'
-import { costBandReading, kpfCostBand, kpfReadings, KPF_OFFICE_LOT, officeStack, officeStackReading } from './kpfFeasibility'
+import { costBandReading, kpfCostBand, kpfReadings, KPF_OFFICE_LOT, officeStack, officeStackReading, slenderRiskReading } from './kpfFeasibility'
+import { slenderBand } from './slenderBand'
 import { gfaByUse } from './massing'
 import type { Tower } from './types'
 import { extraOutput, type ExtraInputs } from '../lib/extraLive'
@@ -59,7 +60,7 @@ describe('beside the residual, never in it', () => {
     const towers = [box({ height: 285, width: 45, depth: 45 })]
     const r = economics(towers, inp)
     expect(r.readings).toEqual(kpfReadings(towers))
-    expect(r.readings.map((x) => x.id)).toEqual(['kpf-office-t', 'kpf-cost-t'])
+    expect(r.readings.map((x) => x.id)).toEqual(['kpf-office-t', 'kpf-cost-t', 'kpf-slender-t'])
     expect(r.readings.every((x) => x.state === 'unknown')).toBe(true)
     // The live node output keeps the residual's own state; the readings sit beside it as items.
     const x = { econ: r } as unknown as ExtraInputs
@@ -67,6 +68,24 @@ describe('beside the residual, never in it', () => {
     const without = extraOutput('built.economics', { econ: { ...r, readings: [] } } as unknown as ExtraInputs)!
     expect(out.state).toBe(without.state)
     expect(out.headline).toBe(without.headline)
-    expect(out.items.map((i) => i.id)).toEqual(['econ-rlv', 'kpf-office-t', 'kpf-cost-t'])
+    expect(out.items.map((i) => i.id)).toEqual(['econ-rlv', 'kpf-office-t', 'kpf-cost-t', 'kpf-slender-t'])
+  })
+})
+
+describe('KPF slenderness band in the developer view (node placement, 21 Nov)', () => {
+  it('reads the same band as the wind procedure, reported only', () => {
+    const tall = box({ height: 285, width: 32, depth: 45 })
+    const r = slenderRiskReading(tall)
+    const b = slenderBand(285, 32)
+    expect(b.risk).toBe(true)
+    expect(r.value).toContain(b.value)
+    expect(r.value.startsWith('In the higher-risk band')).toBe(true)
+    expect(r.state).toBe('unknown')
+    expect(r.flag).toBe('unverified')
+    expect(r.source.page).toContain('29–34')
+  })
+  it('says when the tower lies outside the band (under 244 m, or under 8:1)', () => {
+    expect(slenderRiskReading(box({ height: 200, width: 20, depth: 45 })).value.startsWith('Outside the higher-risk band')).toBe(true)
+    expect(slenderRiskReading(box({ height: 285, width: 45, depth: 45 })).value.startsWith('Outside the higher-risk band')).toBe(true)
   })
 })

@@ -4,8 +4,11 @@
 //   825,000 sf (76,600 m²) gross (KPF pp.6–8; Dobson, Vertical Studio deck, pp.66, 72). An analog tied to that block.
 // - Cost against height: relative to a 300 ft tower, 800 ft 1.7–2.1×, 900 ft 2.1–3.0×, 1,000 ft and over 1.5–4.1×,
 //   from New York cost data; KPF calls the correlation poor (pp.27–28).
-// Both unverified (read once from the book notes), confidence B, state unknown.
+// - Slenderness band (node placement, 21 Nov): KPF's higher-risk band, 800 ft (244 m) or more and 8:1 or more (pp.29–34),
+//   the wind procedure's own reading (engine/slenderBand.ts) shown again here for sales and cost risk.
+// All unverified (read once from the book notes), confidence B, state unknown.
 import { floorAreasByUse, towerFloors } from './massing'
+import { KPF as KPF_SLENDER_SOURCE, SLENDER_FLAG, slenderBand } from './slenderBand'
 import type { RuleResult, Source, Tower } from './types'
 
 const FT = 0.3048
@@ -88,7 +91,27 @@ export function costBandReading(t: Tower): RuleResult {
   }
 }
 
-/** Every reading for a design, tower by tower: the office stack, then the cost band. */
+/**
+ * KPF's slenderness band for one tower, in the developer's view: the same reading as the wind procedure's band line
+ * (engine/slenderBand.ts, base slenderness), reported beside the residual. State unknown: the Check stays in Structure.
+ */
+export function slenderRiskReading(t: Tower): RuleResult {
+  const b = slenderBand(t.height, Math.min(t.width, t.depth))
+  return {
+    id: `kpf-slender-${t.id}`, label: `Slenderness, KPF higher-risk band (${t.name})`,
+    value: `${b.risk ? 'In the higher-risk band' : 'Outside the higher-risk band'}: ${b.value}`,
+    threshold: 'Reported beside the residual, never in it: KPF marks 800 ft (244 m) or more AND 8:1 or more as the band where dampers, cost and sales risk climb',
+    state: 'unknown', flag: SLENDER_FLAG, source: KPF_SLENDER_SOURCE,
+    note: [
+      b.note,
+      'The wind procedure (Structure) carries the same reading as its line of record, with its Check at 8:1; here it is shown for cost and sales risk only.',
+      `Confidence ${KPF_READINGS_CONFIDENCE} (sourced industry rule of thumb).`,
+    ].join(' '),
+    ...(b.specialist ? { specialist: b.specialist } : {}),
+  }
+}
+
+/** Every reading for a design, tower by tower: the office stack, the cost band, then the slenderness band. */
 export function kpfReadings(towers: Tower[]): RuleResult[] {
-  return towers.flatMap((t) => [officeStackReading(t), costBandReading(t)])
+  return towers.flatMap((t) => [officeStackReading(t), costBandReading(t), slenderRiskReading(t)])
 }
