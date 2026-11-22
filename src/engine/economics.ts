@@ -7,8 +7,9 @@
 import { chargeSchedule, COST_LEDGER, costRange, heightPremium, NO_CHARGES, CHARGE_LEDGER, SF as SQFT, type AccTreatment, type ChargeLine, type ChargeParts, type CRow, type Premium } from './costCharges'
 import { conceptCosts, type ConceptCost, type ConceptInputs } from './conceptCost'
 import { floorCounts } from './interior'
+import { kpfReadings } from './kpfFeasibility'
 import { netToGrossAt, towerFloors } from './massing'
-import type { Flag, Tower, UseId } from './types'
+import type { Flag, RuleResult, Tower, UseId } from './types'
 
 export interface Row { value: number; unit: string; flag: Flag; source: string; note?: string; low?: number; high?: number }
 
@@ -188,6 +189,12 @@ export interface EconResult {
    * their contingency, soft cost, finance, profit and CAC. The fields above stay the reading without them.
    */
   concept: ConceptCost & { cost: number; profit: number; rlvBefore: number; cac: number; rlvAfter: number; verdict: Verdict }
+  /**
+   * Readings beside the residual (developer lens, 21 Nov; engine/kpfFeasibility.ts): the office stack against KPF's lot
+   * test and KPF's cost band against height, tower by tower. Reported lines (state unknown, unverified); they never
+   * enter the residual, the cost or the verdict above.
+   */
+  readings: RuleResult[]
 }
 
 const ZERO = (): Record<UseId, { gfa: number; value: number; cost: number }> => ({ retail: { gfa: 0, value: 0, cost: 0 }, office: { gfa: 0, value: 0, cost: 0 }, hotel: { gfa: 0, value: 0, cost: 0 }, residential: { gfa: 0, value: 0, cost: 0 }, civic: { gfa: 0, value: 0, cost: 0 }, amenity: { gfa: 0, value: 0, cost: 0 }, mechanical: { gfa: 0, value: 0, cost: 0 } })
@@ -318,6 +325,7 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
     },
     charges: { ...schedule, perM2: gfa ? (cityCharges + regionalCharges) / gfa : 0 },
     concept: { ...cc, cost: withConcept.cost, profit: withConcept.profit, rlvBefore: withConcept.rlvBefore, cac: withConcept.cac, rlvAfter: withConcept.rlvAfter, verdict: withConcept.verdict },
+    readings: kpfReadings(towers),
   }
 }
 

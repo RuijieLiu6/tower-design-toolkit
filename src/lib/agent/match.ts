@@ -19,8 +19,10 @@ export interface Reading {
 
 const WORDS: Record<UserTypeId, string[]> = {
   designer: ['student', 'studio', 'competition', 'vtc', 'tall challenge', 'resident', 'citizen', 'neighbour', 'neighbor', 'neighbourhood', 'community', 'curious', 'beginner', 'workshop', 'co-design', 'codesign', 'learn', 'school', 'university', 'my street', 'not an architect', 'hobby', 'first time'],
-  practitioner: ['architect', 'practice', 'firm', 'client', 'rezoning', 'feasibility', 'permit', 'design team', 'project architect', 'schematic', 'pro forma', 'developer', 'office'],
+  practitioner: ['architect', 'practice', 'firm', 'client', 'rezoning', 'feasibility', 'permit', 'design team', 'project architect', 'schematic', 'office'],
   planner: ['planner', 'planning', 'city of vancouver', 'reviewer', 'reviewing', 'review', 'policy', 'urban designer', 'guidelines', 'staff', 'municipal', 'council', 'application', 'applications'],
+  // 21 Nov: the developer's words ("pro forma" and "developer" moved here from the practitioner's list).
+  developer: ['developer', 'development manager', 'feasibility', 'pro forma', 'proforma', 'land value', 'land residual', 'residual', 'investor', 'investment', 'owner', 'owns', 'real estate', 'lender', 'appraiser', 'pencil out', 'leasing', 'sales risk', 'yield'],
   engineer: ['engineer', 'engineering', 'structural', 'mechanical', 'consultant', 'sustainability', 'energy', 'carbon', 'elevator', 'lifts', 'vertical transportation', 'life safety', 'fire', 'wind', 'seismic', 'mep', 'envelope', 'facade'],
 }
 

@@ -13,6 +13,7 @@ describe('reading what a visitor types', () => {
     expect(r.types[0].type).toBe('planner')
     expect(readText('I am a student in a design studio', null).types[0].type).toBe('designer')
     expect(readText('our architecture practice has a rezoning', null).types[0].type).toBe('practitioner')
+    expect(readText("I'm a developer and need the land residual for my pro forma", null).types[0].type).toBe('developer')
     expect(readText('hello there', null).confident).toBe(false)
   })
 

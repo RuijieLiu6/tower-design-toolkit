@@ -8,6 +8,7 @@ import type { ConeResult } from '../../engine/cityInNature'
 import { cityInNatureFrom } from '../../engine/natureSources'
 import { claimsLines, type MotifReader, type Nation, type NationRecord } from '../../engine/culture'
 import { DEFAULT_ECON } from '../../engine/economics'
+import { kpfReadings } from '../../engine/kpfFeasibility'
 import { egressCheck, type EgressPresets } from '../../engine/egress'
 import { DEFAULT_FACADE, facadeCheck, type FacadeInput } from '../../engine/facade'
 import { interiorCheck } from '../../engine/interior'
@@ -142,7 +143,8 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.mobility': mobilityCheck(towers, DEFAULT_MOBILITY, { project: i.project, transitLink: i.transitLink, homeM2: i.liftPresets.homeM2, hotelM2PerKey: i.liftPresets.hotelM2PerKey }).rules,
     'built.facade': facade.rules,
     'built.silhouette': towers.map((t) => silhouetteReading(t, { northDeg: north, distance: i.silhouetteDistance, context: skyContext(towers, t, i.silhouetteContext), glassT: i.silhouetteGlassT, screens: i.silhouetteScreens }).rules),
-    'built.economics': DEFAULT_ECON,
+    // The assumption ledger, and the readings beside the residual (KPF office lot test, cost band against height).
+    'built.economics': [DEFAULT_ECON, kpfReadings(towers)],
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),
     'built.f2f-use': towers.map((t) => f2fUse(t, towerFloors(t)).rules),

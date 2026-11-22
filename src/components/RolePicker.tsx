@@ -9,7 +9,7 @@ import { navigate } from '../lib/route'
 import { useStore } from '../store'
 
 export const ROLE_ICON: Record<Role, LucideIcon> = TYPE_ICONS
-const ORDER: Role[] = ['designer', 'practitioner', 'planner', 'engineer', 'explore']
+const ORDER: Role[] = ['designer', 'practitioner', 'planner', 'engineer', 'developer', 'explore']
 
 /** Apply after the saved project is restored, or the restore would switch the preset's checks straight back. */
 function pick(r: Role, go: boolean) {

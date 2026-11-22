@@ -11,7 +11,7 @@ import { useEconStore, type OverrideKey } from '../lib/econStore'
 import { useStore, useTowers } from '../store'
 import { FlagChip, Section, StateChip } from './ui'
 import Help from './Help'
-import { Fold, HBars, MethodFold, PairBars } from './ResultViz'
+import { Fold, HBars, MethodFold, PairBars, RuleRows } from './ResultViz'
 
 const STATE: Record<Verdict, RuleState> = { works: 'pass', marginal: 'warn', fails: 'fail', 'land-needed': 'unknown', incomplete: 'unknown' }
 
@@ -44,6 +44,8 @@ export default function EconomicsResults() {
           </div>
           <p className="mt-1.5 truncate text-meta text-muted" data-testid="value-freshness" title={`Computed for the current model (revision ${modelRevision(towers)}) · after costs, ${Math.round(presets.profitOnCost.value * 100)}% profit and the CAC · ${money(r.rlvPerM2)} per m² of ${Math.round(r.gfa).toLocaleString()} m² gross`}>Computed for the current model (revision {modelRevision(towers)}) · after costs, {Math.round(presets.profitOnCost.value * 100)}% profit and the CAC · {money(r.rlvPerM2)} per m² of {Math.round(r.gfa).toLocaleString()} m² gross</p>
         </div>
+        {/* Beside the residual, never in it (developer lens, 21 Nov): KPF's office lot test and cost band against height. */}
+        <div className="mt-2" data-testid="value-beside"><RuleRows rules={r.readings} title="Beside the residual: reported, never in it" /></div>
         <Waterfall r={r} />
       </Section>
 

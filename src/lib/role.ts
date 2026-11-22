@@ -24,7 +24,7 @@ export interface RolePreset {
 
 const fromType = (id: UserTypeId, coming: string[] = []): RolePreset => {
   const t = userType(id), p = t.presets[0]
-  return { id, label: t.name, short: t.name.replace(/ (architect|or City reviewer|or consultant)$/, ''), blurb: t.who, project: p.project, nodes: p.nodes, coming }
+  return { id, label: t.name, short: t.name.replace(/ (architect|or City reviewer|or consultant|or feasibility)$/, ''), blurb: t.who, project: p.project, nodes: p.nodes, coming }
 }
 
 export const ROLE_PRESETS: Record<Role, RolePreset> = {
@@ -32,6 +32,7 @@ export const ROLE_PRESETS: Record<Role, RolePreset> = {
   practitioner: fromType('practitioner', ['Rezoning package', 'Design review prep', 'Consultant hand-off']),
   planner: fromType('planner'),
   engineer: fromType('engineer'),
+  developer: fromType('developer'),
   explore: {
     id: 'explore', label: 'Just exploring', short: 'Exploring',
     blurb: 'Keeps the current library and checks as they are.',
@@ -40,7 +41,7 @@ export const ROLE_PRESETS: Record<Role, RolePreset> = {
 }
 
 const KEY = 'ts.role'
-const ROLES: Role[] = ['designer', 'practitioner', 'planner', 'engineer', 'explore']
+const ROLES: Role[] = ['designer', 'practitioner', 'planner', 'engineer', 'developer', 'explore']
 const read = (): Role | null => {
   try {
     const v = localStorage.getItem(KEY)

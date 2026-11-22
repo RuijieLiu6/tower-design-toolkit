@@ -350,3 +350,12 @@ export const CorePlan = make('CorePlan', square + p('M9.5 9.5H14.5V14.5H9.5ZM9.5
 export const Monitor = make('Monitor', p('M3.5 4.5H20.5V16H3.5ZM12 16V19.5M7.5 19.5H16.5M12 6.8L15 8.3V11.7L12 13.2L9 11.7V8.3ZM9 8.3L12 9.8L15 8.3M12 9.8V13.2'))
 /** Design development: a drafting compass (facade, systems and details drawn out). */
 export const DraftingCompass = make('DraftingCompass', '<circle cx="12" cy="5.5" r="1.8"/>' + p('M12 2V3.7M11.2 7.1L5.5 20.5M12.8 7.1L18.5 20.5M6.8 15.6C10 17.8 14 17.8 17.2 15.6'))
+// Drawn for the Developer or feasibility user type and its three starting workflows (lib/userTypes.ts, 21 Nov).
+/** Developer or feasibility: a stack of coins. */
+export const Coins = make('Coins', '<ellipse cx="9.5" cy="6.5" rx="6" ry="2.5"/>' + p('M3.5 6.5V10.5C3.5 11.9 6.2 13 9.5 13C12.8 13 15.5 11.9 15.5 10.5V6.5M3.5 10.5V14.5C3.5 15.9 6.2 17 9.5 17M15.5 13.5C18.5 13.5 20.5 14.6 20.5 15.5C20.5 16.9 18 18 15 18C12 18 9.5 16.9 9.5 15.5C9.5 14.6 11.5 13.5 15.5 13.5ZM9.5 15.5V19C9.5 20.4 12 21.5 15 21.5C18 21.5 20.5 20.4 20.5 19V15.5'))
+/** Does a tower pay on this site: a banknote. */
+export const Banknote = make('Banknote', p('M2.5 6.5H21.5V17.5H2.5ZM5.5 9.5V14.5M18.5 9.5V14.5') + '<circle cx="12" cy="12" r="2.8"/>')
+/** Office stack and employment floor area: a percent sign (the floor area share against the 9.0 FSR). */
+export const Percent = make('Percent', p('M18.5 5.5L5.5 18.5') + '<circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>')
+/** Height, slenderness and cost: a rising line with its arrow. */
+export const TrendingUp = make('TrendingUp', p('M3 18L9.5 11.5L13.5 15.5L21 8M15.5 8H21V13.5'))

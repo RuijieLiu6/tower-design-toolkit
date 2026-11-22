@@ -45,6 +45,8 @@ export function extraOutput(id: string, x: ExtraInputs): NodeOutput | null {
           { id: 'econ-rlv', label: 'Land residual after CAC', value: money(e.rlvAfter), threshold: e.land != null ? `≥ land price ${money(e.land)}` : 'land price needed', state, flag: 'unverified', source: { label: 'Program Value Visualizer method and Vancouver 2026 pack (research P08)' },
             ...(e.concept.lines.length ? { note: `Without the concept's own costs; with them (open storeys, damper, public lifts, trees, team assumptions to confirm): ${money(e.concept.rlvAfter)}.` } : {}) },
           ...(e.concept.lines.length ? [conceptItem(e)] : []),
+          // Beside the residual, never in it (developer lens): KPF's office lot test and cost band against height.
+          ...(e.readings ?? []).map(item),
         ],
       }
     }

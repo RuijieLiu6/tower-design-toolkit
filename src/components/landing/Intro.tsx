@@ -54,12 +54,13 @@ const ROLES: { id: RoleId; label: string }[] = [
   { id: 'practitioner', label: 'practitioner architects' },
   { id: 'planner', label: 'planners and city reviewers' },
   { id: 'engineer', label: 'engineers and consultants' },
+  { id: 'developer', label: 'developers and feasibility teams' },
   { id: 'custom', label: 'you, node by node' },
 ]
 /** The compact preset line under the assistant: each starts that user type's first preset (Undo brings the board back). */
 const QUICK: { id: RoleId; label: string }[] = [
   { id: 'designer', label: 'Student' }, { id: 'practitioner', label: 'Architect' }, { id: 'planner', label: 'Planner' },
-  { id: 'engineer', label: 'Engineer' }, { id: 'custom', label: 'Build your own' },
+  { id: 'engineer', label: 'Engineer' }, { id: 'developer', label: 'Developer' }, { id: 'custom', label: 'Build your own' },
 ]
 const roleIcon = (r: RoleId) => (r === 'custom' ? TYPE_ICONS.explore : TYPE_ICONS[r])
 const presetOf = (r: RoleId): Preset | null => (r === 'custom' ? null : USER_TYPES.find((t) => t.id === r)?.presets[0] ?? null)

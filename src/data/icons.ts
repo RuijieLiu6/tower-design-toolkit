@@ -15,6 +15,7 @@ import {
   Aperture, BelowGrade, Building as BuildingIcon, Camera, ChartColumn, ClipboardList, Cloud, Columns3, CorePlan, Cuboid, FileCheck2, FileImage,
   FileJson, FileUp, Footprints, GitCommitHorizontal, GraduationCap, Grid2x2, Hammer, HardHat, ImagePlus, LandPlot, Layers2, LayoutGrid,
   LayoutPanelTop, MapPinned, SquareDashed, ScrollText, CircleCheckBig, Ban, GitCompareArrows, Network, Package, Axis3d, MessageSquare, MessagesSquare, Image as ImageIcon, PencilLine, PenTool, Recycle, Rows3,
+  Banknote, Coins, Percent, TrendingUp,
   PlayCircle, Droplets, Waves, Thermometer, Gauge, Spline, CalendarClock, SolarPanel, CloudRain, WindPerson, AirVent, Blinds, DaylightGrid, WindowSky, FormBox, Skyline, StoreyHeight, Ruler, Scissors, ShieldCheck, Tags, TowerHeight, TowerOnSite, TowerStack, TowerSun, Wand2, Waypoints, Workflow,
 } from '../components/icons'
 import type { Category } from './registry'
@@ -68,7 +69,7 @@ export const LOGIC_ICONS: Record<string, LucideIcon> = { 'logic.all-pass': Circl
 export const LIBRARY_TAB_ICONS = { L0: Axis3d, LOGIC: Network, MINE: Package } as const
 
 /** Who the visitor is (the landing page's agent, the top bar's role). */
-export const TYPE_ICONS = { designer: GraduationCap, practitioner: HardHat, planner: ShieldCheck, engineer: Wrench, explore: Compass } as const
+export const TYPE_ICONS = { designer: GraduationCap, practitioner: HardHat, planner: ShieldCheck, engineer: Wrench, developer: Coins, explore: Compass } as const
 
 /** The landing page's ways to design a workflow. */
 export const WAY_ICONS = { ask: MessageSquare, presets: Tags, phases: GitCommitHorizontal, graph: Workflow, import: FileJson, node: Puzzle } as const
@@ -79,6 +80,7 @@ export const PRESET_ICONS: Record<string, LucideIcon> = {
   'practitioner.rezoning': Scale, 'practitioner.schematic': BuildingIcon, 'practitioner.permit': FileCheck2,
   'planner.views': Telescope, 'planner.public': Sun, 'planner.growth': Building2,
   'engineer.structure': Hammer, 'engineer.vertical': Layers, 'engineer.sustainability': Recycle,
+  'developer.feasibility': Banknote, 'developer.office': Percent, 'developer.height': TrendingUp,
   /** The workflow the landing page's agent builds from a design concept (components/landing/Agent.tsx). */
   concept: Feather,
 }

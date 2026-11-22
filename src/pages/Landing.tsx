@@ -102,7 +102,7 @@ export default function Landing() {
         <main className="flex min-h-[calc(100svh-6rem)] flex-col items-center justify-center gap-9 py-10">
           <div className="grid justify-items-center gap-3 text-center">
             <h2 className="max-w-[20ch] text-balance text-display-sm md:text-display">One tower model. Every analysis a node. You decide.</h2>
-            <p className="max-w-[36rem] text-pretty text-body text-muted">For anyone shaping a tall building in Vancouver: students and curious citizens, architects, planners and engineers.</p>
+            <p className="max-w-[36rem] text-pretty text-body text-muted">For anyone shaping a tall building in Vancouver: students and curious citizens, architects, planners, engineers and developers.</p>
           </div>
           <Agent onResult={(r) => {
             setResult(r); setActive(null)

@@ -1,6 +1,7 @@
 // Who is designing, and how they might start (Ruijie, 6 Nov: "a platform which designers of different focus could use …
 // start the page with a landing page with a natural language model agent to help the tool define its users, and for each
-// user type … create at least 3 preset nodes combination and workflows to begin with"). Four user types, each with
+// user type … create at least 3 preset nodes combination and workflows to begin with"). Five user types (the fifth,
+// Developer or feasibility, since 21 Nov: "the entry IS the toolkit — different people design with it"), each with
 // starting workflows: a project, the step it opens on and the analysis nodes switched on (only built nodes, and only
 // those that run on that project). A preset is a starting point: every node can be switched on or off afterwards, in
 // the guided app or as a graph in Customize. The agent (lib/agent) matches what a visitor types to these words.
@@ -8,7 +9,7 @@ import { create } from 'zustand'
 import type { StepId } from './step'
 import { canonicalNodes } from '../data/registry'
 
-export type UserTypeId = 'designer' | 'practitioner' | 'planner' | 'engineer'
+export type UserTypeId = 'designer' | 'practitioner' | 'planner' | 'engineer' | 'developer'
 
 export interface Preset {
   id: string
@@ -211,6 +212,46 @@ export const USER_TYPES: UserType[] = [
         project: 'city', step: 'plates',
         nodes: ['built.energy-carbon', 'built.facade', 'built.daylight-depth', 'built.city-in-nature', 'built.solar-access', 'built.life-safety'],
         says: ['energy and carbon targets', 'embodied carbon', 'sustainability and green building', 'daylight and glazing'],
+      },
+    ],
+  },
+  {
+    // 21 Nov (Ruijie: "the entry IS the toolkit — different people design with it"): the people who ask whether a tower
+    // pays and holds together. Every workflow reads the land residual with the KPF lines beside it (office stack against
+    // the lot test, cost band against height: engine/kpfFeasibility.ts), the storey height by use and the wind
+    // procedure's slenderness band with KPF's higher-risk band (800 ft and 8:1). The residual stays an indicative
+    // estimate, not an appraisal.
+    id: 'developer', name: 'Developer or feasibility', who: 'Developers, owners and analysts testing whether a tower pays',
+    says: [
+      "I'm a developer looking at a downtown site",
+      'We are running a feasibility study for a tower',
+      'I build the pro forma and need the land residual',
+      'Does an office tower pencil out on this lot?',
+      'our company owns a lot and wants to know what it can build',
+      'development manager testing density and value',
+      'real estate investor weighing height against cost',
+    ],
+    presets: [
+      {
+        id: 'developer.feasibility', type: 'developer', name: 'Does a tower pay on this site',
+        goal: 'A real Vancouver site: the land residual against the land price, density, the cost of height and the office stack beside it.',
+        project: 'city', step: 'site',
+        nodes: ['built.economics', 'built.fsr', 'built.f2f-use', 'built.wind-procedure', 'built.viewcones', 'built.relax-aviation'],
+        says: ['pro forma and land residual', 'does it pencil out', 'land value and density on a real site', 'feasibility before buying a site'],
+      },
+      {
+        id: 'developer.office', type: 'developer', name: 'Office stack and employment floor area',
+        goal: 'How much office the tower stacks against the 9.0 non-residential FSR and KPF’s office tower on a Vancouver lot, with storey heights and lifts.',
+        project: 'vtc', step: 'program',
+        nodes: ['built.economics', 'built.vtc-rules', 'built.fsr', 'built.f2f-use', 'built.core-lifts', 'built.wind-procedure'],
+        says: ['office tower and leasing', 'employment space and non-residential FSR', 'how much office fits in one tower'],
+      },
+      {
+        id: 'developer.height', type: 'developer', name: 'Height, slenderness and cost',
+        goal: 'How tall and slender before cost and sales risk climb: KPF’s higher-risk band (800 ft and 8:1) and its cost band against height, beside the residual.',
+        project: 'vtc', step: 'volume',
+        nodes: ['built.wind-procedure', 'built.economics', 'built.f2f-use', 'built.fsr', 'built.vtc-rules'],
+        says: ['how tall is worth building', 'slender tower, damper and cost', 'cost of height', 'supertall risk and sales'],
       },
     ],
   },
