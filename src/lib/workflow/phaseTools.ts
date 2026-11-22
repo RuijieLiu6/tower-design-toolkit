@@ -60,6 +60,8 @@ export const NODE_CONTROLS: Record<string, string[]> = {
   'built.fsr': ['program'], 'built.economics': ['program'], 'built.interior': ['program'],
   'built.pr-streetwall': ['ground'], 'built.pr-frontage': ['ground'], 'built.pr-ground': ['ground'], 'built.sky-room': ['ground'],
   'built.core-lifts': ['core'], 'built.egress': ['core'], 'built.life-safety': ['core'], 'built.structure': ['anatomy'],
+  // Node placement (21 Nov): Storey height by use acts in place (Use typical, the storey height per use).
+  'built.f2f-use': ['f2f-use-set'],
   // Sun & Wind Studio tools (components/sw/sw.tool.tsx): their settings and the towers' façade zones.
   'built.sw-shadow': ['sw-sun-set'], 'built.sw-sun-faces': ['sw-hour-set'], 'built.sw-pv': ['sw-pv-set', 'facade-zones'],
   'built.sw-wind-comfort': ['sw-wind-set'], 'built.sw-wind-height': ['sw-wind-set'], 'built.sw-rain-water': ['sw-rain-set'], 'built.sw-rain-faces': ['sw-rain-set'],
