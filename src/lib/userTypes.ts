@@ -62,7 +62,8 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.neighbourhood', type: 'designer', name: 'What a tower would mean for my street',
         goal: 'A real Vancouver site: the views it blocks, the shadows it casts and how tall the City lets it go.',
         project: 'city', step: 'site',
-        nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.relax-aviation', 'built.solar-access', 'built.sun', 'built.wind-screen'],
+        // 21 Nov (P1 #3): open space and the sun on the design's own square.
+        nodes: ['built.view-from', 'built.viewcones', 'built.heights', 'built.relax-aviation', 'built.solar-access', 'built.sun', 'built.wind-screen', 'built.pr-ground'],
         says: ['shadows on my street and park', 'would it block the mountain views', 'how tall can a tower be here', 'impact on my neighbourhood'],
       },
       {
@@ -160,7 +161,8 @@ export const USER_TYPES: UserType[] = [
         id: 'planner.public', type: 'planner', name: 'Shadows, wind and public space',
         goal: 'New shadow on parks and plazas, wind at street level, sky room access and nature.',
         project: 'city', step: 'volume',
-        nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.sky-room', 'built.city-in-nature'],
+        // 21 Nov (P1 #3): open space and the sun on the design's own square.
+        nodes: ['built.solar-access', 'built.sun', 'built.wind-study', 'built.wind-screen', 'built.sky-room', 'built.city-in-nature', 'built.pr-ground'],
         says: ['shadow on parks', 'solar access guidelines', 'pedestrian wind', 'public realm review'],
       },
       {

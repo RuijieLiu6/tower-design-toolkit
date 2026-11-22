@@ -51,6 +51,8 @@ export function useResults() {
   // Only while the node is on: its last result stays in the store after it is switched off.
   const solarOn = useStore((s) => nodeOn(s, SOLAR_NODE))
   const solarLines = solarOn && solarOut && solarOut.project === project ? solarOut.lines : null
+  // P1 #3: sun on the design's own square, from the same run.
+  const solarSquare = solarOn && solarOut && solarOut.project === project ? solarOut.square ?? null : null
   // The wind screen as a value-stable summary (each caller of useWindScreen gets its own object, which would defeat the
   // shared cache): the levels of the zones that reach the ground.
   const windResult = useWindScreen()
@@ -62,7 +64,7 @@ export function useResults() {
   // The public sky room's terrace wind, from Wind on terraces and roofs while it is on (research R5 §1).
   const skyTerraces = swOn.split(',').includes('built.sw-wind-height') ? (swOut['built.sw-wind-height']?.data as { skyTerraces?: Record<string, SkyTerraceLine> } | undefined)?.skyTerraces ?? null : null
 
-  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound, swRules, skyTerraces], () => {
+  return useMemo(() => sharedResult([towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, solarSquare, windGround, citySite, streetsFound, swRules, skyTerraces], () => {
     // An engine that throws must not take the app down (about 16 components read these results): its check gets an
     // empty result and the reason, and the results panel shows an error state for it (components/ResultState.tsx).
     const errors: Record<string, string> = {}
@@ -87,7 +89,7 @@ export function useResults() {
     const ctx = project === 'city' ? streetsCtx(citySite, streetsFound) : null
     const streetwall = attempt('built.pr-streetwall', () => (vtc ? streetwallCheck(towers, publicRealm, neighbours) : project === 'city' && towers.length ? cityStreetwallCheck(towers, ctx, cityRing, publicRealm.openPublicShare) : null), null)
     const frontage = attempt('built.pr-frontage', () => (vtc ? frontageCheck(towers, publicRealm) : project === 'city' && towers.length ? cityFrontageCheck(towers, ctx) : null), null)
-    const cross = { solar: solarLines, wind: windGround === null ? null : { zones: windGround.split(',').filter(Boolean).map((level) => ({ level: level as 'low' | 'medium' | 'high', kind: 'ground', z: 0 })), note: SCREEN_LABEL } }
+    const cross = { solar: solarLines, square: solarSquare, wind: windGround === null ? null : { zones: windGround.split(',').filter(Boolean).map((level) => ({ level: level as 'low' | 'medium' | 'high', kind: 'ground', z: 0 })), note: SCREEN_LABEL } }
     // Real Vancouver: open space over the study site, sun and wind; the link, frontage runs and station lines from its streets.
     const groundPlane = attempt('built.pr-ground', () => (vtc ? groundPlaneCheck(towers, publicRealm, cross) : project === 'city' && towers.length ? cityGroundPlaneCheck(towers, cityRing, publicRealm, cross, ctx) : null), null)
     // Optional fields, so code that builds a results object by hand (tests, workflows) need not supply them.
@@ -98,5 +100,5 @@ export function useResults() {
       errors?: Record<string, string>
     } = { fsr, rules, cones, lifts, egress, skyRooms, streetwall, frontage, groundPlane, ...swRules, ...(Object.keys(errors).length ? { errors } : {}) }
     return out
-  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, windGround, citySite, streetsFound, swRules, skyTerraces])
+  }), [towers, project, fsrTier, transitLink, ground, liftPresets, egressPresets, publicRealm, neighbours, cityStudyArea, cityRing, solarLines, solarSquare, windGround, citySite, streetsFound, swRules, skyTerraces])
 }

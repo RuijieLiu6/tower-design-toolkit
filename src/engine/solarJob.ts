@@ -7,8 +7,8 @@ import { dayWindow, solarPosition, studyWindow, type StudyWindow } from './solar
 import { emptyOccluders, gridOver, mergeOccluders, type Occluders, type Pt } from './shadow'
 import { cenotaphSpace, centroidOf, cityBaseline, distanceTo, elevationOf, liftOccluders, MISSING_SPACES, SPACES_SOURCE, table1Spaces, unknownNear, type CityInput } from './solarCity'
 import {
-  evaluateSpace, ruleForClass, ruleState, RULES, solarRuleResults, summariseHours, sunHoursMap, towerOccluders, vtcOccluders, vtcSpaces,
-  type CitySummary, type Interval, type Reading, type SpaceResult, type SunHours,
+  evaluateSpace, ruleForClass, ruleState, RULES, solarRuleResults, squareSun, summariseHours, sunHoursMap, towerOccluders, vtcOccluders, vtcSpaces,
+  type CitySummary, type Interval, type Reading, type SpaceResult, type SquareSun, type SunHours,
 } from './solarRules'
 
 import type { MapDate } from './solarDates'
@@ -38,6 +38,11 @@ export interface SolarJobInput {
    * when the area would need more than MAX_MAP_CELLS of them.
    */
   bounds?: MapBounds
+  /**
+   * The design's own square (P1 #3): its largest clear rectangle of open ground, as a ring in the project frame
+   * (publicRealm openSpace().largest, or cityOpenSpace().largestRing on Real Vancouver). Absent: not read.
+   */
+  square?: Pt[] | null
 }
 
 export type MapBounds = [number, number, number, number]
@@ -82,6 +87,8 @@ export interface SolarJobOutput {
   /** The map's area as computed, [x0, y0, x1, y1], and whether the user set it. */
   bounds: MapBounds
   custom: boolean
+  /** Sun on the design's own square (P1 #3), when a square was given. */
+  square?: SquareSun | null
   ms: number
 }
 
@@ -176,6 +183,8 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
   }
 
   const lines = solarRuleResults(results, i.readings, { project: i.project, towers: i.towers, hours, city: cityInfo })
+  // P1 #3: the design's own square, with the map's baseline (context) and the design's towers.
+  const square = i.square && i.square.length >= 3 ? squareSun(i.square, base, prop, { northDeg }) : null
   if (cenotaph) {
     const m2 = (v: number) => `${Math.round(v).toLocaleString('en-CA')} m²`
     lines.push({
@@ -196,6 +205,6 @@ export function runSolarJob(i: SolarJobInput): SolarJobOutput {
         z: elevation.get(r.space.id) ?? zb,
       }
     }),
-    project: i.project, map, planeZ: zb, mapTerrain, centre, bounds, custom: !!i.bounds, ms: Date.now() - t0,
+    project: i.project, map, planeZ: zb, mapTerrain, centre, bounds, custom: !!i.bounds, square, ms: Date.now() - t0,
   }
 }

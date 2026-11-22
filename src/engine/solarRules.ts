@@ -5,7 +5,7 @@
 import type { VtcContext } from '../context'
 import { bandCounts, blockSpans } from './blocks'
 import type { RuleResult, RuleState, Source, Tower } from './types'
-import { clockLabel, instants, selfTest, solarPosition, sunDirection, type StudyWindow } from './solar'
+import { bcUtcOffset, clockLabel, instants, selfTest, solarPosition, studyWindow, sunDirection, utcAt, type StudyWindow } from './solar'
 import { cellCentre, emptyOccluders, footprintMask, gridOver, meshTris, polygonMask, shadowMask, type Grid, type Occluders, type Prism, type Pt } from './shadow'
 
 export const GUIDELINE: Source = {
@@ -311,6 +311,42 @@ export function summariseHours(m: SunHours, centre: Pt, radius: number) {
   }
   const a = g.cell * g.cell
   return { area: cells * a, meanProposal: cells ? sumP / cells : 0, meanBaseline: cells ? sumB / cells : 0, lostArea: lost * a, lostOneHourArea: lostOneHour * a }
+}
+
+// ---- Sun on the design's own square (P1 #3, 21 Nov) ----------------------------------------------------------------
+
+/** 21 Dec, 11:00–14:00 on BC clocks: the winter window the Placemaking critique's sunny courtyard reading uses (p.49). */
+export function winterSquareWindow(year = 2026): StudyWindow {
+  const off = bcUtcOffset(utcAt(year, 12, 21, 12, 0, -7))
+  return { id: 'dec21-11-14', label: '21 Dec, 11:00–14:00', startUtc: utcAt(year, 12, 21, 11, 0, off), endUtc: utcAt(year, 12, 21, 14, 0, off), offsetH: off, clockText: '11 am to 2 pm' }
+}
+/** Hours of direct sun a square cell needs to count as sunny (team reading of PM p.49). */
+export const SQUARE_SUN_HOURS = 2
+
+export interface SquareSunDay { label: string; possible: number; meanHours: number; share2h: number }
+export interface SquareSun { area: number; ring: Pt[]; sep: SquareSunDay; dec: SquareSunDay }
+
+/**
+ * Sun on the design's own square (its largest clear rectangle of open ground, publicRealm openSpace().largest): the
+ * hours of direct sun on each cell with the context and the design, from the same shadow masks and hour grid as the
+ * sun-hours map, on 22 Sep 10–16 PT and 21 Dec 11–14, and the share of the square with at least 2 hours.
+ */
+export function squareSun(ring: Pt[], base: Occluders, prop: Occluders, o: EvalOptions): SquareSun | null {
+  if (ring.length < 3) return null
+  const xs = ring.map((p) => p[0]), ys = ring.map((p) => p[1])
+  const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys))
+  const g = gridOver(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), o.cell ?? (span > 120 ? 2 : 1))
+  const inside = polygonMask([ring], g)
+  let n = 0
+  for (let k = 0; k < inside.length; k++) n += inside[k]
+  if (!n) return null
+  const day = (win: StudyWindow): SquareSunDay => {
+    const m = sunHoursMap(base, prop, g, win, { ...o, cache: undefined })
+    let sum = 0, sunny = 0
+    for (let k = 0; k < inside.length; k++) if (inside[k]) { sum += m.proposal[k]; if (m.proposal[k] >= SQUARE_SUN_HOURS - 1e-6) sunny++ }
+    return { label: win.label, possible: m.possible, meanHours: sum / n, share2h: sunny / n }
+  }
+  return { area: n * g.cell * g.cell, ring, sep: day(studyWindow('equinox')), dec: day(winterSquareWindow()) }
 }
 
 // ---- Results for the node -----------------------------------------------------------------------------------------

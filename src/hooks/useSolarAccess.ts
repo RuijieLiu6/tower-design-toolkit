@@ -5,6 +5,9 @@ import { create } from 'zustand'
 import type { VtcContext } from '../context'
 import type { MapBounds, MapDate, SolarJobInput, SolarJobOutput } from '../engine/solarJob'
 import type { Reading } from '../engine/solarRules'
+import { cityOpenSpace, DEFAULT_PUBLIC_REALM, openSpace } from '../engine/publicRealm'
+import type { Pt } from '../engine/shadow'
+import type { Tower } from '../engine/types'
 import { contextOccluders } from '../lib/interchange/converters'
 import { useCityModel, type CityModel } from '../lib/cityModel'
 import { loadVtcContext, useVtcSource } from '../lib/vtcContextSource'
@@ -72,6 +75,20 @@ function run(input: Omit<SolarJobInput, 'ctx' | 'city'>, ctx: VtcContext | null,
   w.postMessage(msg)
 }
 
+/**
+ * The design's own square for the solar run (P1 #3): its largest clear rectangle of open ground as a ring in the project
+ * frame: the competition block's (publicRealm openSpace) or the Real Vancouver study site's (cityOpenSpace). Null when
+ * there is none or no site.
+ */
+export function designSquare(project: 'vtc' | 'city', towers: Tower[], cityRing: Pt[] | null): Pt[] | null {
+  if (!towers.length) return null
+  if (project === 'vtc') {
+    const L = openSpace(towers, DEFAULT_PUBLIC_REALM).largest
+    return L ? [[L.x0, L.y0], [L.x1, L.y0], [L.x1, L.y1], [L.x0, L.y1]] : null
+  }
+  return cityRing && cityRing.length >= 3 ? cityOpenSpace(towers, cityRing, 1).largestRing : null
+}
+
 /** Live solar-access result while the node is switched on (or while `force`, e.g. the node sits on the Customize canvas). */
 export function useSolarAccess(force = false) {
   const towers = useTowers()
@@ -80,6 +97,7 @@ export function useSolarAccess(force = false) {
   // Existing buildings from an uploaded model join the baseline (lib/interchange, converter 3).
   const model = useStore((s) => s.models[s.project])
   const cityModel = useCityModel((s) => s.model)
+  const cityRing = useStore((s) => (s.project === 'city' ? s.citySite?.ring ?? null : null)) as Pt[] | null
   const on = useStore((s) => force || nodeOn(s, SOLAR_NODE))
   const { mapDate, readings } = useSolar()
   const area = useSolar((s) => s.areas[project])
@@ -95,7 +113,9 @@ export function useSolarAccess(force = false) {
     const geometry = towers.map((t) => [t.id, t.x, t.y, t.rotation, t.width, t.depth, t.height, t.podiumHeight, t.podiumWidth, t.podiumDepth, t.f2f, t.imported?.meshId ?? '', JSON.stringify(t.blocks ?? null)])
     const modelContext = model ? contextOccluders(model) : undefined
     const mkey = model && modelContext?.prisms.length ? `+${model.id}:${modelContext.prisms.length}` : ''
-    const key = JSON.stringify({ project, geometry, readings, mapDate, area: area ?? null, ground: project === 'city' ? ground : 0, mkey, cityModel: project === 'city' ? cityModel : '', vtc: project === 'vtc' ? vtcVersion : 0 })
+    // P1 #3: the design's own square, read on the same run (its sun hours on 22 Sep and 21 Dec).
+    const square = designSquare(project, towers, cityRing)
+    const key = JSON.stringify({ project, geometry, readings, mapDate, area: area ?? null, ground: project === 'city' ? ground : 0, mkey, cityModel: project === 'city' ? cityModel : '', vtc: project === 'vtc' ? vtcVersion : 0, square })
     if (key === useSolar.getState().key) return
     useSolar.setState({ key })
     clearTimeout(timer)
@@ -103,7 +123,7 @@ export function useSolarAccess(force = false) {
       fired = true
       const go = (ctx: VtcContext | null) => {
         if (cancelled) { if (useSolar.getState().key === key) useSolar.setState({ key: '' }); return }
-        run({ project, towers, readings, mapDate, ...(area ? { bounds: area } : {}), groundElevation: ground, ctxKey: (project === 'city' ? `city-layers:${cityModel}` : ctx ? `vtc-model:${vtcVersion}` : 'none') + mkey, ...(modelContext?.prisms.length ? { modelContext } : {}) }, project === 'vtc' ? ctx : null, cityModel)
+        run({ project, towers, readings, mapDate, ...(area ? { bounds: area } : {}), ...(square ? { square } : {}), groundElevation: ground, ctxKey: (project === 'city' ? `city-layers:${cityModel}` : ctx ? `vtc-model:${vtcVersion}` : 'none') + mkey, ...(modelContext?.prisms.length ? { modelContext } : {}) }, project === 'vtc' ? ctx : null, cityModel)
       }
       go(project === 'vtc' ? useVtcSource.getState().ctx : null)
     }, 250)
@@ -112,7 +132,7 @@ export function useSolarAccess(force = false) {
       // Unmounted before the run started: let the next caller start it.
       if (!fired && useSolar.getState().key === key) { clearTimeout(timer); useSolar.setState({ key: '' }) }
     }
-  }, [on, towers, project, mapDate, readings, area, ground, model, cityModel, vtcVersion])
+  }, [on, towers, project, mapDate, readings, area, ground, model, cityModel, vtcVersion, cityRing])
 
   return { ...state, on }
 }

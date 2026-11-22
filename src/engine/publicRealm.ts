@@ -936,6 +936,8 @@ export interface GroundCross {
   solar?: RuleResult[] | null
   /** The pedestrian wind screen's risk zones (screening, not CFD). */
   wind?: { zones: { level: 'low' | 'medium' | 'high'; kind: string; z: number }[]; note: string } | null
+  /** Sun on the design's own square (P1 #3), from the Solar access & sun hours run (engine/solarRules.ts squareSun). */
+  square?: { area: number; sep: { label: string; meanHours: number; share2h: number }; dec: { label: string; meanHours: number; share2h: number } } | null
 }
 const FLAG_RANK: Record<string, number> = { false_assumption: 0, unresolved: 1, unverified: 2, team_assumption: 3, verified: 4 }
 const weakestFlag = (flags: string[]) => flags.reduce((w, f) => ((FLAG_RANK[f] ?? 2) < (FLAG_RANK[w] ?? 2) ? f : w), 'verified') as RuleResult['flag']
@@ -944,13 +946,36 @@ const weakestFlag = (flags: string[]) => flags.reduce((w, f) => ((FLAG_RANK[f] ?
 export function sunLine(solar: RuleResult[] | null | undefined): RuleResult {
   const threshold = 'Downtown Peninsula Solar Access Guidelines (22 Sep, 10:00–16:00)'
   const source = { label: 'Solar Access Guidelines, memo RTS 16506 Appendix A (2025), via the Solar access & sun hours node' }
-  if (!solar || !solar.length) return { id: 'pr-sun', label: 'Sun on the open space and shadow on protected parks', value: 'Switch on Solar access & sun hours', threshold, state: 'unknown', flag: 'unresolved', source }
+  // P1 #3 (21 Nov): this line reads the protected spaces and the open spaces the base map draws, never the design's own
+  // square (see squareSunLine); its label said "the open space" and could be read as the square.
+  const label = 'Sun on protected and base-map open spaces'
+  if (!solar || !solar.length) return { id: 'pr-sun', label, value: 'Switch on Solar access & sun hours', threshold, state: 'unknown', flag: 'unresolved', source }
   const n = (s: RuleState) => solar.filter((l) => l.state === s).length
   const fail = n('fail'), warn = n('warn'), unknown = n('unknown'), pass = n('pass')
   const state: RuleState = fail ? 'fail' : warn ? 'warn' : unknown ? 'unknown' : 'pass'
   const parts = [pass && `${pass} pass`, warn && `${warn} to check`, fail && `${fail} fail`, unknown && `${unknown} open`].filter(Boolean)
-  return { id: 'pr-sun', label: 'Sun on the open space and shadow on protected parks', value: `${parts.join(', ')} of ${solar.length} solar lines`, threshold, state, flag: weakestFlag(solar.map((l) => l.flag)), source,
-    note: 'Read from the Solar access & sun hours node: each of its lines keeps its own source and flag there.' }
+  return { id: 'pr-sun', label, value: `${parts.join(', ')} of ${solar.length} solar lines`, threshold, state, flag: weakestFlag(solar.map((l) => l.flag)), source,
+    note: 'Read from the Solar access & sun hours node: the Table-1 protected spaces and the plazas and links the base map draws, each line keeping its own source and flag there. The design\'s own square has its line below.' }
+}
+
+/** Placemaking critique on the shared square that towers are cut to keep in sun (book notes placemaking-critique.md). */
+const PM_SQUARE = { label: 'Placemaking critique (towers cut so the shared courtyard gets sun; book notes placemaking-critique.md)', page: 'p.49' }
+/**
+ * Sun on the design's own square (P1 #3): the share of its largest clear rectangle of open ground with at least 2 h of
+ * direct sun on 22 Sep 10–16 and 21 Dec 11–14, from the Solar access & sun hours run. Described, never judged.
+ */
+export function squareSunLine(sq: GroundCross['square'], hasSquare: boolean): RuleResult {
+  const threshold = 'described, not judged: share of the square with ≥ 2 h of sun (team reading of the sunny shared courtyard)'
+  if (!hasSquare) return { id: 'pr-square-sun', label: 'Sun on this design\'s square', value: 'No clear open rectangle on the site', threshold, state: 'unknown', flag: 'team_assumption', source: PM_SQUARE }
+  if (!sq) return { id: 'pr-square-sun', label: 'Sun on this design\'s square', value: 'Switch on Solar access & sun hours', threshold, state: 'unknown', flag: 'team_assumption', source: PM_SQUARE,
+    note: 'Read on the largest clear rectangle of open ground (the POPS line) with the same shadow masks and hour grid as the sun-hours map.' }
+  const pct = (v: number) => `${Math.round(v * 100)}%`
+  return {
+    id: 'pr-square-sun', label: 'Sun on this design\'s square',
+    value: `Square ≥ 2 h: ${pct(sq.sep.share2h)} on ${sq.sep.label} (mean ${sq.sep.meanHours.toFixed(1)} h), ${pct(sq.dec.share2h)} on ${sq.dec.label} (mean ${sq.dec.meanHours.toFixed(1)} h)`,
+    threshold, state: 'unknown', flag: 'team_assumption', source: PM_SQUARE,
+    note: `The largest clear rectangle of open ground, ${fmt(sq.area)} m² (the POPS line), with the context and this design casting shadow, sampled every 15 min. The 2 h mark and the two windows are the team's reading of the critique; no City rule sets sun on a private open space. Trees, canopies and reflected light are not counted.`,
+  }
 }
 
 /** The ground-plane line for wind, from the wind screen's zones that reach the ground (podium-roof zones are left out). */
@@ -1048,6 +1073,7 @@ export function groundPlaneCheck(towers: Tower[], input: PublicRealmInput, cross
     note: 'G4.4.2a also pulls in the station plaza fit-out checklist G4.4.1 a–h (paving, seating, shade, weather protection, integrated equipment): a manual evidence list.',
   }))
   rules.push(sunLine(cross.solar))
+  rules.push(squareSunLine(cross.square ?? null, !!os.largest))
   rules.push(windLine(cross.wind))
   return { rules, open: os, link, longestGap }
 }
@@ -1272,6 +1298,7 @@ export function cityGroundPlaneCheck(towers: Tower[], ring: Pt[] | null, input: 
     }
   }
   rules.push(sunLine(cross.solar))
+  if (popsRing) rules.push(squareSunLine(cross.square ?? null, true))
   rules.push(windLine(cross.wind))
   // The open field stays null so the 3D overlay (drawn for the competition block) skips Real Vancouver; the rings are for the panel's plan.
   return { rules, open: null, link: null, longestGap, pops: popsRing, plaza: plazaRing, linkRing, linkThrough }

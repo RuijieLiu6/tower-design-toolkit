@@ -111,6 +111,10 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^pr-streets$/, 'Choose a study site in the Site step: the street rules read its streets and their measured widths.'],
   [/^pr-sun$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on Solar access & sun hours to test the shadow on public space.'
     : 'Open Solar access & sun hours to see which spaces get new shadow; moving, turning or slimming the tower changes it.')],
+  // P1 #3 (21 Nov): sun on the design's own square, described not judged.
+  [/^pr-square-sun$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on Solar access & sun hours to read the sun on your square.'
+    : /^No clear/.test(v) ? 'Free a clear open rectangle on the site (the POPS line) to have a square to read.'
+    : 'To bring more sun to the square, move it south of the tower or step, slim or turn the tower above it (Massing).')],
   [/^pr-wind$/, (_st, v) => (/^Switch on/.test(v) ? 'Switch on the pedestrian wind screen; a wind tunnel study settles it.'
     : 'Open Pedestrian wind: massing screen to see where: a podium step or canopy under the windward face and softer corners lower its risk; a wind tunnel study settles it.')],
   // Relaxations & aviation (research C01-M06; node audit 7 Nov: the generic "Needs …; now …" read as broken English).
