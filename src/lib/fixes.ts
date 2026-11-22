@@ -145,14 +145,14 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Each instruction restates the rule's own note; none adds a threshold.
   [/^relax-limit/, 'Lower the top under the lowest binding cone (View-cone height check says by how much), move the tower out of the cone (Place on map), or, if the site may use a relaxation route, switch it on under Details › Relaxations to see the limit with it.'],
   [/^relax-hbp/, (_st, v) => (/not applied/.test(v) ? 'The route enters QE View 3 only inside the CBD outline: move the tower into it (Place on map) or keep the top under the view. The Higher Buildings area line says where the footprint stands.'
-    : 'Switch on the Higher Buildings Policy route under Details › Relaxations to see the limit with it. The Higher Buildings area line says whether the footprint lies in a Figure 1 area; the City confirms it.')],
+    : 'Switch on the Higher Buildings Policy route under Details › Relaxations to see the limit with it. Higher Buildings Policy says whether the footprint lies in a Figure 1 area; the City confirms it.')],
   // Higher Buildings area and ceiling (book node #1, 21 Nov; HBP 2.1(b)–(d), p.5 Figure 1).
   [/^hbp-area/, (st, v) => (st === 'fail' ? 'The route opens only inside a Figure 1 area: move the tower into one (Place on map), choose a study site inside it (Site step), or switch the Higher Buildings route off under Details › Relaxations.'
     : /^partly/.test(v) ? 'Part of the footprint lies outside the area: move or turn the tower so the whole footprint sits inside it (Place on map).'
     : 'A higher building needs a Figure 1 area: move the tower into one (Place on map) or choose a study site inside it (Site step); outside it, the base zoning and the view cones govern.')],
-  [/^hbp-ceiling/, 'Lower the top to the area’s ceiling (Height in Massing), or argue the excess under 2.1(a) as a skyline benchmark on the boards; the review then adds two international experts (s.3). Type a site-specific ceiling under Details › Relaxations if the City has given one.'],
+  [/^hbp-ceiling/, 'Lower the top to the area’s ceiling (Height in Massing), or argue the excess under 2.1(a) as a skyline benchmark on the boards; the review then adds two international experts (s.3). Type a site-specific ceiling in Higher Buildings Policy if the City has given one.'],
   [/^hbp-street/, 'About 700 ft is open only to a site fronting W Georgia, Burrard or Granville: choose a study site on one of them (Site step), or lower the top to the area’s ceiling (Height in Massing).'],
-  [/^en-hbp-height/, 'Lower the top to the site’s Figure 1 ceiling (Height in Massing), or argue the excess under 2.1(a) as a skyline benchmark on the boards; Relaxations & aviation reads the ceiling on a Real Vancouver site.'],
+  [/^en-hbp-height/, 'Lower the top to the site’s Figure 1 ceiling (Height in Massing), or argue the excess under 2.1(a) as a skyline benchmark on the boards; Higher Buildings Policy reads the ceiling on a Real Vancouver site.'],
   [/^relax-eds/, (st) => (st === 'fail' ? 'Only a site of 8,000 m² or more may use this route: a larger study site (Site step), or another route.'
     : st === 'unknown' ? 'Choose a study site in the Site step, or type the parcel area under Details › Relaxations, to test the 8,000 m² size.'
     : 'The site is large enough: switch the route on under Details › Relaxations; the views to the Lions still bind.')],
