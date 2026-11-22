@@ -3,6 +3,7 @@
 // Design and Development Guidelines (CDDG, Council report RTS 18459 Appendix A, approved 28 Jul 2026, final text not
 // yet posted), so every clause value carries that caveat; presets without a source are team assumptions.
 // Research: 04 Tool Plan/research/modules-completion/P06/revise-r2_P06.json (single pass since 22 Oct).
+import { KPF, SLENDER, SLENDER_FLAG, slenderBand } from './slenderBand'
 import { storeyOutline, towerFloors, towerFootprint, towerMasses, type OutlinePart } from './massing'
 import { againstStreet, distanceToStreet, extentAlong, spanOn, type CityLinkInput, type SiteStreet, type StreetEdge, type StreetSetting } from './siteStreets'
 import { storeySlabs } from './sw/decks'
@@ -528,10 +529,13 @@ export function towerFormRules(towers: Tower[], neighbours: Neighbour[] = [], op
         note: `A rule of thumb in the CDDG, not a standard: about ${fmt(0.6 * f.frontage)} m on this ${fmt(f.frontage)} m frontage (our arithmetic). The frontage is the study site's on that street, not the whole block's.`,
       }))
     }
-    const slender = t.height / Math.max(1, Math.min(t.width, t.depth))
+    // P1 #9 (21 Nov): the CDDG tip keeps its meaning (warn under 6:1); KPF's bands add the upper Check at 8:1 or more.
+    const band = slenderBand(t.height, Math.min(t.width, t.depth))
     rules.push(rule({
-      id: `pr-slender-${t.id}`, label: `Tower slenderness: ${t.name}`, value: `${f1(slender)} : 1 (height to width)`,
-      threshold: '6:1 to 8:1 or more for tall towers (CDDG tip)', state: slender >= 6 ? 'pass' : 'warn', flag: 'team_assumption', source: cddg('design tip, section 2.3'),
+      id: `pr-slender-${t.id}`, label: `Tower slenderness: ${t.name}`, value: band.value,
+      threshold: `6:1 to 8:1 or more for tall towers (CDDG tip); Check at ${SLENDER.damper}:1 or more (KPF)`, state: band.ratio < SLENDER.cddg || band.state === 'warn' ? 'warn' : 'pass', flag: SLENDER_FLAG, source: { ...KPF, label: `${cddg('design tip, section 2.3').label}; ${KPF.label}` },
+      note: `The CDDG tip (a design tip, not a standard) asks for 6:1 or more; KPF finds 5–6.67 most efficient (p.11), so 5–6 answers the tip with efficiency. ${band.note}`,
+      ...(band.specialist ? { specialist: band.specialist } : {}),
     }))
   }
 

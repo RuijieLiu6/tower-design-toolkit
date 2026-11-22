@@ -68,7 +68,7 @@ export const USER_TYPES: UserType[] = [
         id: 'designer.form', type: 'designer', name: 'Sketch a tower and see how it does',
         goal: 'Shape a tower freely and read sun, wind, daylight, value and carbon as you go.',
         project: 'vtc', step: 'volume',
-        nodes: ['built.sun', 'built.wind-screen', 'built.silhouette', 'built.daylight-depth', 'built.fsr', 'built.economics', 'built.energy-carbon'],
+        nodes: ['built.sun', 'built.wind-screen', 'built.silhouette', 'built.daylight-depth', 'built.fsr', 'built.economics', 'built.energy-carbon', 'built.wind-procedure'],
         says: ['play with the form and massing', 'quick massing study', 'try shapes and see the results'],
       },
       {
@@ -151,7 +151,7 @@ export const USER_TYPES: UserType[] = [
         id: 'planner.views', type: 'planner', name: 'Views and the Higher Buildings Policy',
         goal: 'Which protected views the proposal enters, how far, and which relaxation routes could apply.',
         project: 'city', step: 'site',
-        nodes: ['built.viewcones', 'built.relax-aviation', 'built.vista', 'built.view-from', 'built.heights', 'built.solar-access', 'built.city-in-nature'],
+        nodes: ['built.viewcones', 'built.relax-aviation', 'built.vista', 'built.view-from', 'built.heights', 'built.solar-access', 'built.city-in-nature', 'built.wind-procedure'],
         says: ['protected view cones', 'Higher Buildings Policy', 'height review', 'skyline and mountain views'],
       },
       {

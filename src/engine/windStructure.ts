@@ -5,6 +5,7 @@ import type { Flag, RuleResult, RuleState, Source, Tower } from './types'
 import { ACCEL_LIMIT, acrossWindAccel, ceRough, cornerReduction, DEFAULT_DAMPING, f1Empirical, Q10, Q50, speedOf, ST_HIGH, ST_LOW, TWIST_MIN, twistReduction, twistSway, vortexSpeed } from './acrossWind'
 import { towerCorners } from './corners'
 import { towerFloors } from './massing'
+import { slenderBand, KPF, SLENDER_FLAG } from './slenderBand'
 import { storeyWeights } from './storeyWeight'
 import { towerTwist } from './twist'
 
@@ -156,9 +157,11 @@ export function windProcedure(t: Tower, p: WindPresets = DEFAULT_WIND_PRESETS): 
       + ` For the same mass, +${Math.round(sway * 100)}% sway is about ${Math.round(fDrop * 100)}% off the first frequency (f ∝ √stiffness, an inference), inside the ±50% band the acceleration line already screens.`
       + (outriggers ? ` Outriggers are placed here (${outriggers} floor${outriggers > 1 ? 's' : ''}): their mega-columns are the part the twist moves.` : ''))
   }
-  const slender = aspect > 10 ? 'fail' : aspect > 7 ? 'warn' : 'pass'
-  add('super-slender', 'Super-slender band', `${aspect.toFixed(2)} : 1`, 'up to 7; above 10 expect tuned mass dampers, shaping or windbreak floors', slender, 'team_assumption', TEAM,
-    'No sourced threshold; precedent only (432 Park Avenue, about 15:1, two dampers and windbreak floors).')
+  // P1 #9 (21 Nov): the band is KPF's, on the base slenderness (height ÷ narrowest base width), not the effective width.
+  const band = slenderBand(H, Math.min(t.width, t.depth))
+  add('super-slender', 'Slenderness band (base)', band.value, band.threshold, band.state, SLENDER_FLAG, KPF,
+    `${band.note} The NBC line above uses the height-weighted effective width (${aspect.toFixed(2)}:1); this one the base width, as KPF does.`)
+  if (band.specialist) rules[rules.length - 1].specialist = band.specialist
 
   const tunnelBy = aspect > 6 ? 'slenderness over 6' : f1 !== null && f1 <= 0.25 ? 'f1 at or below 0.25 Hz' : f1 === null && H >= p.tunnelDefaultHeight ? `height of ${p.tunnelDefaultHeight} m or more with no model frequency (team default)` : ''
   return { tower: t, H, w, d, aspect, acrossWind, procedure: tunnelBy ? 'tunnel' : 'dynamic', trigger: tunnelBy || 'dynamically sensitive (height over 60 m)', rules }
@@ -188,8 +191,8 @@ export function systemShortlist(t: Tower, wp: WindProcedure): SystemFit[] {
     reason: H > 40 ? `${H.toFixed(0)} m is above the 40 m SC4 cap` : 'within the 40 m cap', flag: 'unverified', source: { ...TABLE_4189, page: 'SC4 height limits' } })
   out.push({ id: 'diagrid', name: 'Diagrid or mega-frame', route: 'Not a listed SFRS: alternative solution (equivalence) with peer review; unlisted systems take Rd = Ro = 1.0',
     fit: 'check', reason: 'Possible only through the equivalence route; "other" SFRS are not permitted at SC3–SC4.', flag: 'unverified', source: { ...TABLE_4189, page: 'Commentary J paras 213–214' } })
-  out.push({ id: 'timber', name: 'Mass timber lateral system', route: 'Timber SFRS limited to 20 m at SC4; prescriptive timber stops at 18 storeys / 76 m', fit: 'out',
-    reason: 'A supertall lateral system must be concrete, steel or composite; timber can stay in a separated podium building.', flag: 'unverified', source: { label: 'BC Building Code 2024 3.2.2.93; NBC 2020 Table 4.1.8.9 (as read in research P10)' } })
+  out.push({ id: 'timber', name: 'Mass timber lateral system', route: 'Timber SFRS limited to 20 m at SC4; encapsulated mass timber stops at 12 storeys / 50 m (BCBC 2024 Revision 1)', fit: 'out',
+    reason: 'A supertall lateral system must be concrete, steel or composite; timber can stay in a separated podium building.', flag: 'unverified', source: { label: 'BC Building Code 2024 Revision 1: encapsulated mass timber (Groups C and D) to 12 storeys and 50 m; NBC 2020 Table 4.1.8.9 (as read in research P10)', page: 'BCBC pp.3-125, 3-131' } })
   return out
 }
 

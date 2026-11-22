@@ -90,7 +90,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^pr-separation/, 'Move the towers further apart (the separation lines in the view show by how much).'],
   [/^pr-plate/, 'Reduce the tower floorplate (width × depth in Massing).'],
   [/^pr-dim/, 'Keep the tower\'s longest side within 29 m (Massing).'],
-  [/^pr-slender/, 'Make the tower more slender: a narrower plate, or taller.'],
+  // P1 #9: under 6:1 is the CDDG tip; 8:1 or more is KPF's damper line.
+  [/^pr-slender/, (_st, v) => (parseFloat(v) >= 8 ? 'Past KPF’s damper line (8:1): widen the base toward the 5–6.67 efficient band, or declare a damper and its cost (Structure › Wind procedure).' : 'Make the tower more slender toward the CDDG’s 6:1 (a narrower plate, or taller), or argue KPF’s 5–6.67 efficient band on the boards.')],
   [/^pr-stepback$/, 'Step the tower back from the streetwall (move or narrow the tower block).'],
   // Node audit (7 Nov): continuity is how much of the podium face sits on the property line, not its height.
   [/^pr-continuity/, 'Bring the podium face to the property line along more of this street (move or widen the podium block in Massing).'],
@@ -138,7 +139,7 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
     : 'Over the limit at the low end of the frequency range: get the engineer’s model frequency (enter it under Details) and keep damping, softer corners or a taper in reserve.')],
   [/^twist$/, 'The twist softens the frame: carry the wind in a straight core (the loss is the perimeter’s), or tell the structural engineer the outrigger or perimeter frame sways this much more; a smaller twist costs less (about +12% at 90°).'],
   [/^vortex$/,'Vortex lock-in is possible within design winds: the wind tunnel test checks it; a wider plate, a stiffer structure (higher f1), or corner and section changes along the height move the critical speed.'],
-  [/^super-slender$/, 'Very slender: expect tuned mass dampers, shaping or windbreak floors (precedent, no sourced threshold); a wider base lowers it.'],
+  [/^super-slender$/, '8:1 or more: KPF expects a tuned mass damper, with cost and sales risk: widen the base toward 5–6.67, or declare the damper (supplementary damping, Structure › Wind procedure) and justify it by the across-wind acceleration line.'],
   [/^trigger-/, 'Plan a wind study at the level this analog city asks for; Vancouver has no numeric trigger, and a wind engineer sets the scope.'],
   // Pedestrian wind comfort (Sun & Wind Studio port, 16 Nov): her strategies, each as the move to make; the informational lines say what they report.
   [/^calm-ground$/, (st) => (st === 'unknown' ? 'Load the context buildings (the competition context, or the City layers of a study site): on open ground the result is optimistic.'
