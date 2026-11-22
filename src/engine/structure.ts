@@ -209,7 +209,7 @@ export function coreLines(t: Tower, c: CoreStiffness, H: number, outriggers: num
 export function floorReachLines(t: Tower, w: WeightResult, wpr: WeightPresets = DEFAULT_WEIGHT_PRESETS, north = 0): RuleResult[] {
   const out: RuleResult[] = []
   const m1 = (v: number) => v.toFixed(1)
-  const lv = w.levels.filter((l) => !l.roof && !l.podium && l.reach && l.reach.axial > 0)
+  const lv = w.levels.filter((l) => !l.roof && !l.podium && !l.transitional && l.reach && l.reach.axial > 0)
   const ring = !!t.columnRing
   const span = (l: StoreyWeight) => (ring && l.reach!.axial > FLAT_PLATE_REACH ? l.reach!.axial / 2 : l.reach!.axial)
   const far = lv.reduce<StoreyWeight | null>((a, b) => (!a || b.reach!.axial > a.reach!.axial ? b : a), null)
@@ -234,7 +234,7 @@ export function floorReachLines(t: Tower, w: WeightResult, wpr: WeightPresets = 
       + (worst > FLAT_PLATE_REACH ? `Past one flat plate: declare an interior column ring at about half the reach, or a long-span floor onto the perimeter columns, which pre-compresses them against uplift where outriggers pull (Ching p.10); post-tensioned beams for a ${m1(worst)} m span run about ${(worst / 24).toFixed(2)}–${(worst / 20).toFixed(2)} m deep (L/20–24; concrete beams L/16–18, girders L/12, or L/15 post-tensioned; Allen & Iano pp.103, 113). ` : '')
       + 'The corner reach is the diagonal to the farthest plate corner: a corner column or a cantilever (no cantilever limit in these books). '
       + (slabs.length ? `Slab carried into the storey weights: ${cm(Math.min(...slabs))}–${cm(Math.max(...slabs))} (L/${PT_RATIO[1]} of each storey's span, the thinner end of the range, at least ${cm(SLAB_MIN)}; L/${PT_RATIO[0]} is 12% thicker${pastPT.length ? `; past ${PT_PLATE_REACH} m the same ratio stands in for a long-span floor's weight, a team extrapolation` : ''}). ` : '')
-      + 'For comparison, the KPF office test fit in the City’s Higher Buildings review has a 12.5 m (41 ft) deep core and about 12.8 m from core to glass (Dobson p.66; analog, a 94 × 63 m block). Podium storeys are left out: their column grid is not modelled and their slab keeps the use preset. Book values read once: unverified.' })
+      + 'For comparison, the KPF office test fit in the City’s Higher Buildings review has a 12.5 m (41 ft) deep core and about 12.8 m from core to glass (Dobson p.66; analog, a 94 × 63 m block). Podium storeys and the wider one- or two-storey run just above them are left out: their column grid is not modelled and their slab keeps the use preset. Book values read once: unverified.' })
 
   // Dead load against the old use presets (0.20 m homes and hotel, 0.25 m the rest), by use, and the tower's weight.
   if (lv.length && wpr.slabFrom !== 'use') {

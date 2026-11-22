@@ -344,10 +344,10 @@ export function storeyWeights(t: Tower, p: WeightPresets = DEFAULT_WEIGHT_PRESET
   const coreKpm = (k: number) => 4 * cores[k].side * wallAt(p, (floors[k].z0 + floors[k].z1) / 2, Htop) * GAMMA_C
   const coreC = (k: number): P => [cores[k].x, cores[k].y]
   // Slab by storey (P1 #13): from the core-to-facade reach (a declared column ring halves it past one flat plate);
-  // podium storeys and `slabFrom: 'use'` keep the use presets.
+  // podium storeys, the transitional run just above them (the podium's top in all but name) and `slabFrom: 'use'` keep the use presets.
   const reach = floors.map((f, k) => floorReach(plates[k].ring, cores[k]))
   const slabT = floors.map((f, k) => {
-    if (p.slabFrom === 'use' || f.podium || !(reach[k].axial > 0)) return USE_LOADS[f.use].slab
+    if (p.slabFrom === 'use' || f.podium || transitional[k] || !(reach[k].axial > 0)) return USE_LOADS[f.use].slab
     return slabForSpan(t.columnRing && reach[k].axial > FLAT_PLATE_REACH ? reach[k].axial / 2 : reach[k].axial)
   })
   const plantedQ = PLANTED_SLAB * GAMMA_C + soilKpa(p.soilMm) + PLANTED_BUILDUP + SNOW_W
