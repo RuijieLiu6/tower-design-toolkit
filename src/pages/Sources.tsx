@@ -156,7 +156,7 @@ export default function Sources() {
   const cityStreets = useSiteStreets(true).result
   const cityArea = projectSiteArea('city', studyArea, citySite).area
   // The engagement ledger stays in this browser (lib/cultureStore.ts); its records, board text and AI-use log feed the claims guard and log lines.
-  const culture = useCultureStore(useShallow((c) => ({ records: c.records, claimsText: c.claimsText, prov: c.prov })))
+  const culture = useCultureStore(useShallow((c) => ({ records: c.records, claimsText: c.claimsText, prov: c.prov, motifReader: c.motifReader })))
   // City in Nature reads what its panel reads (node built.nature-inputs): the Facade node's settings, and on Real Vancouver
   // the view-cone results, which exist for the open project only.
   const facadeSettings = useFacadeStore(useShallow((f) => ({ system: f.system, wwr: f.wwr, treated: f.treated, vegetation: f.vegetation, vlt: f.vlt, shgc: f.shgc })))

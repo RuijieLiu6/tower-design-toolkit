@@ -7,11 +7,11 @@ import { FlagChip, Section } from './ui'
 import { Caveat, MethodFold } from './ResultViz'
 
 export function useCultureGate() {
-  const { records, claimsText, contactAck, eligibility } = useCultureStore()
+  const { records, claimsText, contactAck, eligibility, motifReader } = useCultureStore()
   return useMemo(() => {
-    const findings = lintClaims(claimsText, records)
+    const findings = lintClaims(claimsText, records, motifReader)
     return { findings, gate: exportGate(records, findings, contactAck, eligibility) }
-  }, [records, claimsText, contactAck, eligibility])
+  }, [records, claimsText, contactAck, eligibility, motifReader])
 }
 
 export default function CultureResults() {
@@ -42,18 +42,22 @@ export default function CultureResults() {
       <Section title="Claims check">
         <textarea value={s.claimsText} onChange={(e) => s.set({ claimsText: e.target.value })} rows={5} placeholder="Paste board text or the project narrative. Each sentence that names a Nation (or Nations in general) is checked against the status you declared."
           className="w-full rounded-md border border-line bg-panel p-2 text-xs" aria-label="Board or narrative text" />
+        <label className="mt-1.5 flex flex-wrap items-center gap-1.5 text-meta text-muted" title="Motif wording (inspired by, evokes, echoes, draws on, homage) fails until a person has read it. Record who read it and when; the tool never judges the meaning.">Motif wording read by
+          <input value={s.motifReader.name} onChange={(e) => s.set({ motifReader: { ...s.motifReader, name: e.target.value } })} placeholder="name, role" aria-label="Motif wording read by" className="w-36 rounded border border-line bg-panel px-1.5 py-0.5 text-ink" />
+          <input type="date" value={s.motifReader.date ?? ''} onChange={(e) => s.set({ motifReader: { ...s.motifReader, date: e.target.value } })} aria-label="Date read" className="rounded border border-line bg-panel px-1.5 py-0.5 text-ink" />
+        </label>
         {s.claimsText.trim() && <Highlighted text={s.claimsText} findings={findings} />}
         <ul className="mt-2 grid gap-1.5">
           {findings.map((f, i) => (
             <li key={i} className={`rounded border px-2 py-1 text-meta ${f.pass ? 'border-emerald-200 bg-emerald-50/60' : 'border-red-200 bg-red-50/60'}`}>
-              <div className="flex items-center gap-1.5"><b>"{f.phrase}"</b><span className="text-muted">· {f.rule.label} · {f.general ? 'Nations in general' : f.nations.join(', ')}</span><span className={`ml-auto text-meta font-semibold ${f.pass ? 'text-emerald-800' : 'text-red-800'}`}>{f.pass ? 'Allowed' : 'Not allowed'}</span></div>
+              <div className="flex items-center gap-1.5"><b>"{f.phrase}"</b><span className="text-muted">· {f.rule.label} · {f.general ? 'Nations in general' : f.nations.length ? f.nations.join(', ') : 'form and ornament'}</span><span className={`ml-auto text-meta font-semibold ${f.pass ? 'text-emerald-800' : 'text-red-800'}`}>{f.pass ? 'Allowed' : 'Not allowed'}</span></div>
               <div className="text-meta text-slate-700">{f.reason}</div>
             </li>
           ))}
           {s.claimsText.trim() && !findings.length && <li className="text-meta text-emerald-800">No claim wording found. This is a phrase check, not a review of meaning.</li>}
         </ul>
         <details className="mt-2 text-meta text-muted"><summary className="cursor-pointer hover:text-ink">The {CLAIM_RULES.length} stage A rules</summary>
-          <ul className="mt-1 grid gap-1">{CLAIM_RULES.map((r) => <li key={r.id}><b className="text-ink">{r.label}</b> ({r.need === 'banned' ? 'never in a competition entry' : `needs N${r.need}`}): {r.why}</li>)}</ul>
+          <ul className="mt-1 grid gap-1">{CLAIM_RULES.map((r) => <li key={r.id}><b className="text-ink">{r.label}</b> ({r.need === 'banned' ? 'never in a competition entry' : r.needsReader ? `needs a person’s read, and N${r.need} for a Nation it touches` : `needs N${r.need}`}): {r.why}</li>)}</ul>
         </details>
       </Section>
 

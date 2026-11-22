@@ -71,7 +71,22 @@ export interface ClaimRule {
   /** Fires only when the sentence names a Nation or Indigenous peoples in general. */
   needsNation: boolean
   why: string
+  /**
+   * Motif wording (node built.claims-coverage): fires only when this also matches the sentence (a Nation, Salish, a
+   * language, a cultural practice, or form and ornament), and passes only once a person's read is recorded.
+   */
+  context?: RegExp
+  needsReader?: boolean
 }
+
+// Motif wording (node built.claims-coverage, completes gap G26). Borrowing motifs as "context" is the method Al-Kodmany's
+// Ch.4 describes (Placemaking with Tall Buildings, pp.87–89, 110–111: tiers and star plans taken as identity); in
+// Vancouver that route leads to appropriation, so the wording needs N4 for each Nation it touches and a person's read.
+// English words only; Nation-language names stay in the stage B registry.
+const LANGUAGE_RE = /\b(?:languages?|place[- ]?names?|oral\s+histor(?:y|ies)|legends?|stories|story)\b/i
+const PRACTICE_RE = /\b(?:weav(?:e|es|ing)|woven|weavers?|baskets?|basketry|carv(?:e|ed|es|ing|ings)|canoes?|totems?|longhouses?|house\s*posts?|formline|spindle\s+whorls?|blankets?|regalia|potlatch|cedar\s+(?:bark|hats?|boxes?)|bentwood)\b/i
+const FORM_RE = /\b(?:forms?|shapes?|ornament(?:s|al|ation)?|patterns?|motifs?|fa[cç]ades?|crowns?|silhouettes?|profiles?|cladding|screens?|textures?|geometr(?:y|ies)|massing|tops?|spires?)\b/i
+export const MOTIF_RE = /\b(?:inspired\s+by|inspiration\s+from|evok(?:es|ed|ing|e)|evocative\s+of|echo(?:es|ed|ing)?|draw(?:s|n|ing)?\s+(?:on|from|upon)|drew\s+(?:on|from|upon)|(?:pays?|paying|paid)\s+homage|homage\s+to|a\s+nod\s+to|reminiscent\s+of)\b/gi
 
 /** Stage A phrase list (P07-M01, frozen): an unreviewed platform rule with no cultural content. */
 export const CLAIM_RULES: ClaimRule[] = [
@@ -83,13 +98,18 @@ export const CLAIM_RULES: ClaimRule[] = [
     why: 'Collaboration phrases on the stage A ban list are barred from N0 to N3.' },
   { id: 'engagement', label: 'Engagement wording', re: /\b(?:spoke|speaking|talked|talking|met|meeting|meetings|conversations?|engaged|engaging|engagement|worked)\s+with\b|\bengagement\s+(?:of|from)\b/gi, need: 3, needsNation: true,
     why: 'Wording that says people took part needs at least N3 (a conversation with a recorded counterpart) for that Nation; N1 desk research never supports it.' },
+  { id: 'motif', label: 'Motif wording (borrowed form)', re: MOTIF_RE, need: 4, needsNation: false, needsReader: true,
+    context: new RegExp(`${LANGUAGE_RE.source}|${PRACTICE_RE.source}|${FORM_RE.source}`, 'i'),
+    why: 'Saying a form is inspired by, evokes, echoes, draws on or pays homage to a Nation, its language or a cultural practice borrows motifs as context (Al-Kodmany, Placemaking with Tall Buildings, pp.87–89, 110–111, read as a warning). It needs N4 for each Nation it touches and a person’s read recorded in Engagement & claims; the tool never judges the meaning.' },
   { id: 'fpic', label: 'Free, prior and informed consent', re: /\bfree,?\s+prior,?\s+and\s+informed\s+consent\b|\bFPIC\b/gi, need: 'banned', needsNation: false,
     why: 'A hypothetical competition entry has no real project, so FPIC cannot be claimed (P07-M02 lock).' },
 ]
 
 const NATION_RE: Record<Nation, RegExp> = { Musqueam: /\bmusqueam\b/i, Squamish: /\bsquamish\b/i, 'Tsleil-Waututh': /\btsleil-?\s?waututh\b/i }
 // English names only. Nation-language names come from each Nation's own page in stage B (P07-M05 registry), never typed here.
-const GENERAL_RE = /\b(?:first\s+nations?|host\s+nations?|nations?|indigenous|aboriginal|MST)\b/i
+// "Salish" (Coast Salish) names the wider cultural and language family, so it is checked against all three Nations
+// (node built.claims-coverage). "United Nations" is not a Nation reference (it used to hit and check against all three).
+const GENERAL_RE = /\b(?:first\s+nations?|host\s+nations?|(?<!\bunited\s+)nations?|indigenous|aboriginal|MST|(?:coast\s+)?salish)\b/i
 
 export interface ClaimFinding {
   rule: ClaimRule
@@ -113,8 +133,16 @@ function sentences(text: string): { s: string; start: number }[] {
   return out
 }
 
-/** Scans board or narrative text for wording above each Nation's declared status. Regex only, no AI verdict. */
-export function lintClaims(text: string, records: Record<Nation, NationRecord>): ClaimFinding[] {
+/** A person's read of the motif wording (node built.claims-coverage): who read it and when. Empty name = none recorded. */
+export interface MotifReader { name: string; date?: string }
+const readerOk = (r?: MotifReader | null): r is MotifReader => !!r && !!r.name.trim()
+
+/**
+ * Scans board or narrative text for wording above each Nation's declared status. Regex only, no AI verdict. Motif
+ * wording is checked in every sentence, whether or not it names a Nation: against the Nations it touches (those named;
+ * all three for Salish, Nations in general, a language or a cultural practice), and always needing a person's read.
+ */
+export function lintClaims(text: string, records: Record<Nation, NationRecord>, reader?: MotifReader | null): ClaimFinding[] {
   const out: ClaimFinding[] = []
   for (const { s, start } of sentences(text)) {
     const named = NATIONS.filter((n) => NATION_RE[n].test(s))
@@ -122,11 +150,23 @@ export function lintClaims(text: string, records: Record<Nation, NationRecord>):
     const nations = named.length ? named : general ? [...NATIONS] : []
     for (const rule of CLAIM_RULES) {
       if (rule.needsNation && !nations.length) continue
+      if (rule.context && !nations.length && !rule.context.test(s)) continue
+      // A language or a cultural practice beside motif wording touches all three Nations even when none is named.
+      const touched = rule.needsReader && !nations.length && (LANGUAGE_RE.test(s) || PRACTICE_RE.test(s)) ? [...NATIONS] : nations
       rule.re.lastIndex = 0
       let m: RegExpExecArray | null
       while ((m = rule.re.exec(s))) {
         let pass: boolean, reason: string
         if (rule.need === 'banned') { pass = false; reason = rule.why }
+        else if (rule.needsReader) {
+          const low = touched.filter((n) => records[n].status < 4 || !records[n].reference.trim())
+          const read = readerOk(reader)
+          pass = read && low.length === 0
+          reason = pass && readerOk(reader) ? `Allowed: read by ${reader.name.trim()}${reader.date ? ` (${reader.date})` : ''}${touched.length ? `; ${touched.join(', ')} at N4 with a reference` : ''}.`
+            : `${[...(low.length ? [`${low.join(', ')} ${low.length === 1 ? 'is' : 'are'} below N4 (or has no reference)`] : []), ...(read ? [] : ['no person’s read is recorded'])].join('; ')}. ${rule.why}`
+          out.push({ rule, phrase: m[0], start: start + m.index, end: start + m.index + m[0].length, sentence: s.trim(), nations: touched, general: general || (touched.length > 0 && !named.length), pass, reason })
+          continue
+        }
         else {
           const low = nations.filter((n) => records[n].status < (rule.need as number) || (rule.need === 4 && !records[n].reference.trim()))
           pass = low.length === 0 && nations.length > 0
@@ -170,26 +210,34 @@ export function fullRecords(r: Partial<Record<Nation, Partial<NationRecord>>> = 
   return Object.fromEntries(NATIONS.map((n) => [n, { ...DEFAULT_RECORD, ...(r[n] ?? {}) }])) as Record<Nation, NationRecord>
 }
 
+const MOTIF_SOURCE: Source = { label: 'Al-Kodmany, Placemaking with Tall Buildings (Routledge 2026), Ch.4: motifs borrowed as context, read as a warning; rule from Research P07-M01 (person’s read, D22)', page: 'pp.87–89, 110–111' }
+
 const clip = (s: string, n = 140) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
 
 /** Claims-lint summary, one line per flagged phrase, and one line per Nation's record. */
-export function claimsLines(text: string | string[], partial: Partial<Record<Nation, Partial<NationRecord>>> = {}): RuleResult[] {
+export function claimsLines(text: string | string[], partial: Partial<Record<Nation, Partial<NationRecord>>> = {}, reader?: MotifReader | null): RuleResult[] {
   const records = fullRecords(partial)
   const board = Array.isArray(text) ? text.join('\n') : text
-  const findings = board.trim() ? lintClaims(board, records) : []
+  const findings = board.trim() ? lintClaims(board, records, reader) : []
   const bad = findings.filter((f) => !f.pass)
   const out: RuleResult[] = [{
     id: 'cc-lint', label: 'Claims lint: wording above each Nation’s declared status',
     value: !board.trim() ? 'no board text to check' : bad.length ? `${bad.length} phrase${bad.length > 1 ? 's' : ''} above status: ${[...new Set(bad.map((f) => `"${f.phrase}"`))].join(', ')}` : `no wording above status (${findings.length} engagement phrase${findings.length === 1 ? '' : 's'} found, all allowed)`,
     threshold: 'no engagement, consultation, approval or collaboration wording above the status declared for each Nation it names (N0–N4)',
     state: !board.trim() ? 'unknown' : bad.length ? 'fail' : 'pass', flag: 'team_assumption', source: GUARD,
-    note: 'Regex only, no AI verdict: a sentence is checked when it names a Nation, or the Nations or Indigenous peoples in general (then against all three). The phrase list is the frozen stage A list.',
+    note: 'Regex only, no AI verdict: a sentence is checked when it names a Nation, Salish, or the Nations or Indigenous peoples in general (then against all three; "United Nations" does not count). Motif wording (inspired by, evokes, echoes, draws on, homage) is checked in every sentence about a Nation, a language, a cultural practice or form and ornament, and needs a person’s read. The phrase list is the stage A list plus the motif rule (21 Nov).',
   }]
-  findings.forEach((f, k) => out.push({
-    id: `cc-claim-${k}`, label: `"${f.phrase}" (${f.rule.label})`, value: clip(f.sentence),
-    threshold: f.rule.need === 'banned' ? 'never in a competition entry' : `${f.nations.join(', ')} at N${f.rule.need} or above${f.rule.need === 4 ? ' with a reference' : ''}`,
-    state: f.pass ? 'pass' : 'fail', flag: 'team_assumption', source: GUARD, note: f.reason,
-  }))
+  let c = 0, mo = 0
+  for (const f of findings) {
+    const motif = !!f.rule.needsReader
+    out.push({
+      id: motif ? `cc-motif-${mo++}` : `cc-claim-${c++}`, label: `"${f.phrase}" (${f.rule.label})`, value: clip(f.sentence),
+      threshold: f.rule.need === 'banned' ? 'never in a competition entry' : motif ? `a person’s read recorded${f.nations.length ? `, and ${f.nations.join(', ')} at N4 with a reference` : ''}` : `${f.nations.join(', ')} at N${f.rule.need} or above${f.rule.need === 4 ? ' with a reference' : ''}`,
+      state: f.pass ? 'pass' : 'fail', flag: motif ? 'verified' : 'team_assumption', source: motif ? MOTIF_SOURCE : GUARD, note: f.reason,
+      // Node contract: whether a form borrows a motif lies outside a phrase check; until a person has read it, say so.
+      ...(motif && !readerOk(reader) ? { specialist: 'Whether this form borrows a motif needs a person’s read (and, for a Nation, its own decision); the phrase check cannot judge it' } : {}),
+    })
+  }
   for (const n of NATIONS) {
     const r = records[n], issues = recordIssues(r)
     out.push({

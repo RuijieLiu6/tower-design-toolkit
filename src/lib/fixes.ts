@@ -232,6 +232,7 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Engagement & claims guard and AI-use log (lines from data, gap G15)
   [/^cc-lint$/, (st) => (st === 'fail' ? 'Rewrite the flagged wording to what each Nation’s declared status allows (the fixed statements in Engagement & claims), or record the engagement that supports it; never claim engagement that did not happen.'
     : 'Paste the board and narrative text into Engagement & claims so the guard can check it.')],
+  [/^cc-motif-\d+$/, 'Have a person read this motif wording and record their name in Engagement & claims (Motif wording read by); if it names a Nation, its language or a practice, it also needs that Nation’s written permission (N4). Or describe the form by what it does (light, wind, the route, the view) instead of what it borrows.'],
   [/^cc-claim-\d+$/, 'Rewrite this sentence to the wording the Nation’s declared status allows, or record the engagement (evidence, counterpart, date, reference) that supports it in Engagement & claims.'],
   [/^cc-record-/, (st) => (st === 'warn' ? 'Complete this Nation’s record for its declared status in Engagement & claims: the evidence, counterpart, date and reference the level needs.'
     : 'Confirm this Nation’s status in Engagement & claims once the team has checked it is true.')],

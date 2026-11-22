@@ -6,7 +6,7 @@
 import { VTC_NORTH_DEG } from '../../context'
 import type { ConeResult } from '../../engine/cityInNature'
 import { cityInNatureFrom } from '../../engine/natureSources'
-import { claimsLines, type Nation, type NationRecord } from '../../engine/culture'
+import { claimsLines, type MotifReader, type Nation, type NationRecord } from '../../engine/culture'
 import { DEFAULT_ECON } from '../../engine/economics'
 import { egressCheck, type EgressPresets } from '../../engine/egress'
 import { DEFAULT_FACADE, facadeCheck, type FacadeInput } from '../../engine/facade'
@@ -40,6 +40,8 @@ export interface CultureInput {
   claimsText: string | string[]
   /** AI-use log entries (engine/provenance.ts ProvEntry); fields left out take the log's new-entry defaults. Absent = nothing logged. */
   prov?: Partial<ProvEntry>[]
+  /** The person who read the motif wording (node built.claims-coverage). Absent or no name: motif wording fails. */
+  motifReader?: MotifReader | null
 }
 
 export interface EvidenceInput {
@@ -144,6 +146,6 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     // Higher Buildings area and ceiling (book node #1): both projects; the competition site reads as an assumed site.
     'built.relax-aviation': towers.map((t) => [...hbpChecklist(t, i.project, CITY_ORIGIN, { routeOn: false, ceilingFt: null, streets: i.cityStreets?.streets.map((s) => s.name) ?? null }),
       ...(i.project === 'city' ? relaxationChecklist(t, [], 15, i.studyArea ?? null, CITY_ORIGIN) : []), ...aviationChecklist(t, i.project === 'city' ? [t.x + CITY_ORIGIN[0], t.y + CITY_ORIGIN[1]] : null)]),
-    ...(i.culture ? { 'built.culture-claims': claimsLines(i.culture.claimsText, i.culture.records), 'built.provenance': provenanceLines(i.culture.prov ?? []) } : {}),
+    ...(i.culture ? { 'built.culture-claims': claimsLines(i.culture.claimsText, i.culture.records, i.culture.motifReader), 'built.provenance': provenanceLines(i.culture.prov ?? []) } : {}),
   }
 }

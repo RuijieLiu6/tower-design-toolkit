@@ -2,7 +2,7 @@
 // (research P07-M01, M07). Private: kept in this browser only (localStorage `ts.culture`), never in a project file
 // or an export. The eligibility records in particular are never exported.
 import { create } from 'zustand'
-import { DEFAULT_RECORD, NATIONS, type Nation, type NationRecord } from '../engine/culture'
+import { DEFAULT_RECORD, NATIONS, type MotifReader, type Nation, type NationRecord } from '../engine/culture'
 import type { ProvEntry } from '../engine/provenance'
 
 interface CultureState {
@@ -13,6 +13,8 @@ interface CultureState {
   verifiedOn: string
   eligibility: { authors: boolean; associate: boolean; instructor: boolean }
   prov: ProvEntry[]
+  /** Who read the motif wording, and when (node built.claims-coverage): motif lines fail until a name is recorded. */
+  motifReader: MotifReader
   setRecord: (n: Nation, patch: Partial<NationRecord>) => void
   set: (patch: Partial<Omit<CultureState, 'set' | 'setRecord' | 'addProv' | 'updateProv' | 'removeProv'>>) => void
   addProv: () => void
@@ -32,6 +34,7 @@ export const useCultureStore = create<CultureState>((set) => ({
   verifiedOn: saved.verifiedOn ?? '',
   eligibility: saved.eligibility ?? { authors: false, associate: false, instructor: false },
   prov: saved.prov ?? [],
+  motifReader: saved.motifReader ?? { name: '', date: '' },
   setRecord: (n, patch) => set((s) => ({ records: { ...s.records, [n]: { ...s.records[n], ...patch } } })),
   set: (patch) => set(patch),
   addProv: () => set((s) => ({ prov: [...s.prov, { id: `p${Date.now().toString(36)}`, element: '', kind: 'image', involvement: 'none', tool: '', toolGenerative: false, date: new Date().toISOString().slice(0, 10), humanContribution: '', decidedBy: 'person', cultural: false, reviewer: '', licence: '', sourceIds: '' }] })),
@@ -41,6 +44,6 @@ export const useCultureStore = create<CultureState>((set) => ({
 
 useCultureStore.subscribe((s) => {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ records: s.records, claimsText: s.claimsText, contactAck: s.contactAck, verifiedBy: s.verifiedBy, verifiedOn: s.verifiedOn, eligibility: s.eligibility, prov: s.prov }))
+    localStorage.setItem(KEY, JSON.stringify({ records: s.records, claimsText: s.claimsText, contactAck: s.contactAck, verifiedBy: s.verifiedBy, verifiedOn: s.verifiedOn, eligibility: s.eligibility, prov: s.prov, motifReader: s.motifReader }))
   } catch { /* private mode: the ledger lives for this session only */ }
 })
