@@ -13,7 +13,7 @@
 // band about every 25 (Park pp.49, 70–71, 151, 157); VC-PE has six sky gardens about every 30 m and SkyVille about 80 homes
 // per village (Al-Kodmany pp.139, 219). Pass up to 25 storeys, Check above: the team's reading of that band. Unverified.
 import { DEFAULT_INTERIOR, towerHomes } from './interior'
-import { DEFAULT_LIFT_PRESETS, publicStopFloors } from './lifts'
+import { DEFAULT_LIFT_PRESETS, publicStopFloors, type Rise } from './lifts'
 import { DECK_MIN_AREA, DECK_MIN_WIDTH, deckUseOf, towerDecks, type Deck } from './sw/decks'
 import type { Floor, RuleResult, Source, Tower } from './types'
 
@@ -138,9 +138,32 @@ export interface SkyVillagesResult { planted: LevelList; shared: LevelList; home
 export interface SkyVillageOptions {
   /** True north, degrees clockwise from the project frame's +y (deck facings in the deck-use input). */
   north?: number
+  /**
+   * The lift plan's rises (engine/lifts.ts liftCheck): which floors each group stops at and whose floors ride it. With
+   * them, a shared level counts for the homes only where the homes' lifts (or the public lifts) stop (tool cycle 11).
+   */
+  rises?: LiftReach[]
   /** Home size for the homes count where the interior has no layout (lift presets' `homeM2`). */
   homeM2?: number
 }
+
+/** What the reach reading needs from a lift rise. */
+export type LiftReach = Pick<Rise, 'id' | 'label' | 'cls' | 'floors' | 'base' | 'riders'>
+
+/** Who reaches a level by lift: the uses of the floors whose people ride a group that stops there, and 'public' for public lifts. */
+export function reachAt(rises: LiftReach[], level: number): Set<string> {
+  const who = new Set<string>()
+  for (const r of rises) {
+    const stops = r.floors.some((f) => f.level === level) || r.base?.level === level
+    if (!stops) continue
+    if (r.cls === 'public') who.add('public')
+    for (const f of r.riders) if (f.level !== level) who.add(f.use)
+  }
+  return who
+}
+const homesReach = (who: Set<string>) => who.has('residential') || who.has('public')
+const WHO: Record<string, string> = { office: 'office', hotel: 'hotel', residential: 'homes', retail: 'retail', amenity: 'amenity', civic: 'civic', public: 'public' }
+const whoText = (who: Set<string>) => (who.size ? `${[...who].filter((w) => w !== 'mechanical').map((w) => WHO[w] ?? w).join(' and ')} lifts only` : 'no lift stops there')
 
 export function skyVillages(t: Tower, floors: Floor[], o: SkyVillageOptions = {}): SkyVillagesResult {
   const p = plantedLevels(t, floors, o.north ?? 0)
@@ -186,16 +209,35 @@ export function skyVillages(t: Tower, floors: Floor[], o: SkyVillageOptions = {}
     note: `Shared levels: the podium (the base), civic floors (public rooms), amenity floors (residents’ lounges), sky lobbies with shared rooms (the interior’s amenity rooms${(t.interior ?? DEFAULT_INTERIOR).amenity.some((a) => a.share > 0) ? '' : ': none set, so plain sky lobbies do not count'}; the public sky room) and the public stops on the sky room’s lifts. The schemes pair a sky lobby with refuge and plant about every 25 storeys (Park p.49). ${precedent}`,
   })
 
+  // Shared levels by who can reach them (tool cycle 11, review R6-6): only where the homes' lifts or the public lifts stop.
+  const reach = o.rises ? new Map(shared.marks.map((m) => [m.level, reachAt(o.rises!, m.level)])) : null
+  const forHomes = reach ? shared.marks.filter((m) => homesReach(reach.get(m.level)!)) : shared.marks
+  const notHomes = reach ? shared.marks.filter((m) => !homesReach(reach.get(m.level)!)) : []
+  if (reach && homes > 0) {
+    const rg = gapsOf(shared.start, forHomes, shared.roof).largest
+    const lounge = notHomes.filter((m) => m.what.includes('amenity'))
+    const st = lounge.length || (rg && rg.storeys > GAP_MAX) ? 'warn' as const : 'pass' as const
+    rules.push({
+      id: 'sv-reach', label: 'Shared levels the homes’ lifts reach',
+      value: `${forHomes.length} of ${shared.marks.length} shared levels above the base${rg ? `; the homes’ largest gap ${gapText(rg)}` : ''}${notHomes.length ? `; not from the homes: ${notHomes.slice(0, 5).map((m) => `L${m.level} ${m.what[0]} (${whoText(reach.get(m.level)!)})`).join(', ')}${notHomes.length > 5 ? `, +${notHomes.length - 5} more` : ''}` : ''}`,
+      threshold: `a residents’ lounge reached by the homes’ lifts; the homes’ shared levels ≤ ${GAP_MAX} storeys apart (precedent)`,
+      state: st, flag: 'team_assumption',
+      source: { label: 'The toolkit’s lift plan (engine/lifts.ts: each group’s stops and the floors that ride it); team rule, with the Ecocity spacing band (precedent)' },
+      ...(specialist ? { specialist } : {}),
+      note: `A shared level counts for the homes where a lift group that the homes ride stops (a shuttle at its sky lobby, a local group at its floors), or where the public lifts stop (the sky room and its public stops), since residents can take those from the street. ${lounge.length ? `An amenity floor (a residents’ lounge by its use) that only other lifts reach: ${lounge.map((m) => `L${m.level}`).join(', ')}. ` : ''}Stairs between floors are not counted as reach. Homes per shared level counts only these levels.`,
+    })
+  }
+
   // Homes per shared level.
   if (homes > 0) {
-    const n = shared.marks.length
+    const n = forHomes.length
     rules.push({
       id: 'sv-homes', label: 'Homes per shared level',
       value: n ? `about ${Math.round(homes).toLocaleString('en-CA')} homes over ${n} shared level${n > 1 ? 's' : ''} above the base: about ${Math.round(homes / n)} per level` : `about ${Math.round(homes).toLocaleString('en-CA')} homes and no shared level above the base`,
       threshold: `reported beside SkyVille, about ${SKYVILLE_HOMES} homes per village (precedent); Check only with no shared level above the base`,
       state: n ? 'pass' : 'warn', flag: 'unverified', source: SKY_VILLAGE_SOURCES.pm,
       ...(specialist ? { specialist } : {}),
-      note: 'Homes as the lift check counts them (the interior layout, else floor area ÷ home size). Every shared level above the base is counted for every home, wherever it sits in the stack, and office or hotel floors are not netted out: a first reading. SkyVille is about 960 homes in three 47-storey towers (Al-Kodmany p.219); a precedent, not a target.',
+      note: (reach ? `Shared levels the homes’ lifts reach only (${notHomes.length ? `${notHomes.length} other${notHomes.length > 1 ? 's' : ''} left out` : 'all of them'}). ` : '') + 'Homes as the lift check counts them (the interior layout, else floor area ÷ home size). Every shared level above the base is counted for every home, wherever it sits in the stack, and office or hotel floors are not netted out: a first reading. SkyVille is about 960 homes in three 47-storey towers (Al-Kodmany p.219); a precedent, not a target.',
     })
   }
   return { planted: pl, shared, homes, rules }

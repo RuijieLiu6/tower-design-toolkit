@@ -64,6 +64,8 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^geometric$/, 'The core steps by more than 130% at one level: split it into smaller steps (each within 130%, Structure › Lateral & sway › Core steps), or carry the Type 3 irregularity in the dynamic analysis.'],
   // Egress & stairs
   // Posted occupant loads (tool cycle 11, BCBC 2024 3.1.17.1(1)(c), (2)).
+  // Shared levels by reach (tool cycle 11).
+  [/^sv-reach/, 'Give the homes’ lifts a stop at the shared floor, or a shared floor inside the homes’ stack (Core & lifts › rises; Program › floors); a floor only office or hotel lifts reach is their tenants’ level, not the residents’.'],
   [/^egress-posted/, 'A posted load below the Table load needs a permanent sign (3.1.17.1(2)) and an accepted case that fewer people will use the floor (a code consultant or fire engineer); or post at the Table load and size the stairs for it (Egress › Posted loads).'],
   [/^stair-width/, 'Widen the exit stairs or add one (Schematic › Exit stairs), or lower the busiest floor\'s occupant load.'],
   [/^exits/, 'Add an exit stair so every floor has at least two (Schematic › Exit stairs).'],

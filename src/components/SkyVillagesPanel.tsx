@@ -6,6 +6,7 @@ import { towerFloors } from '../engine/massing'
 import { USES } from '../engine/types'
 import { trueNorthDeg } from '../lib/northView'
 import { useStore, useTowers } from '../store'
+import { useResults } from '../hooks/useResults'
 import { Section, StateChip } from './ui'
 import { Fold, RuleRows } from './ResultViz'
 
@@ -33,7 +34,10 @@ export default function SkyVillagesPanel() {
   const project = useStore((s) => s.project)
   const homeM2 = useStore((s) => s.liftPresets.homeM2)
   const t = towers.find((x) => x.id === selected) ?? towers[0]
-  const r = useMemo(() => (t ? skyVillages(t, towerFloors(t), { north: trueNorthDeg(project), homeM2 }) : null), [t, project, homeM2])
+  // The lift plan's groups, so a shared level counts for the homes only where their lifts stop (tool cycle 11).
+  const lifts = useResults().lifts
+  const rises = lifts.find((l) => l.tower.id === t?.id)?.rises
+  const r = useMemo(() => (t ? skyVillages(t, towerFloors(t), { north: trueNorthDeg(project), homeM2, rises }) : null), [t, project, homeM2, rises])
   if (!t || !r) return null
   const top = Math.max(1, r.planted.roof.z)
   const y = (z: number) => TOP + (1 - z / top) * (H - TOP - BOT)

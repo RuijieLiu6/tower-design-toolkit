@@ -151,7 +151,7 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
     'built.interior': towers.map((t) => interiorCheck(t, towerFloors(t)).rules),
     'built.daylight-depth': towers.map((t) => daylightScreen(t, towerFloors(t)).rules),
     'built.f2f-use': towers.map((t) => f2fUse(t, towerFloors(t)).rules),
-    'built.sky-villages': towers.map((t) => skyVillages(t, towerFloors(t), { north, homeM2: i.liftPresets.homeM2 }).rules),
+    'built.sky-villages': towers.map((t, k) => skyVillages(t, towerFloors(t), { north, homeM2: i.liftPresets.homeM2, rises: lifts[k].rises }).rules),
     // Higher Buildings area and ceiling (book node #1; its own node since 21 Nov): both projects, the competition site an assumed site.
     'built.hbp': towers.map((t) => hbpChecklist(t, i.project, CITY_ORIGIN, { routeOn: false, ceilingFt: null, streets: i.cityStreets?.streets.map((s) => s.name) ?? null })),
     'built.relax-aviation': towers.map((t) => [
