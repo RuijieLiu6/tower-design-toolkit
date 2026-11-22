@@ -1093,6 +1093,22 @@
             "minimum": 1
           }
         },
+        "carries": {
+          "type": "array",
+          "maxItems": 100,
+          "description": "Declared carries (tool cycle 12): what holds up a storey that overhangs the column lines below. loggia: the columns of the storey under an open band continue through its open storeys (from, the lowest; default the storey below) and carry level; transfer: the columns of level start on a transfer girder or truss; hung: storeys level to to hang from a truss above.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "level"],
+            "properties": {
+              "kind": { "enum": ["loggia", "transfer", "hung"] },
+              "level": { "type": "integer", "minimum": 1 },
+              "from": { "type": "integer", "minimum": 1 },
+              "to": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
         "imported": {
           "type": "object",
           "description": "Imported massing (storeys sliced from a model). The mesh itself is not in the file."

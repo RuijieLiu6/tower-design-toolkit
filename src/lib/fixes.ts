@@ -67,6 +67,12 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   [/^p-delta$/, 'Gravity on the swayed core adds more than 10% to its sway: stiffen the core (thicker base walls, a larger core, outriggers) or lighten the upper storeys.'],
   // Floor reach (P1 #13): past one flat plate.
   [/^floor-reach$/, 'The floor reaches past one flat plate from the core: tick Interior column ring (Structure › Floors & spans) for a ring at about half the reach, plan a long-span floor with post-tensioned beams onto the perimeter columns, or bring the plate edge closer to the core (Massing).'],
+  // No column starts, the slab cantilever and column stops (tool cycle 12, engine/continuity.ts).
+  [/^column-starts$/, (_st, v) => (/would start/.test(v)
+    ? 'A storey overhangs the column lines below: pull it back within 3 m (Massing), carry the overhang on columns that continue from below (declare a loggia carry under Structure › Floors & spans), or declare the transfer, belt or hung truss that carries it and have the engineer design it.'
+    : 'Columns start on a declared transfer, belt or hung truss: keep it only if the form needs it, and have the engineer design that storey for the started columns\' load; pulling the storey back over the column lines below removes it.')],
+  [/^cantilever$/, 'The slab edge cantilevers more than 3 m past the column lines: bring the edge back (Massing), extend the column ring or the columns below it, or have the engineer show the cantilever\'s deflection and vibration.'],
+  [/^column-stops$/, 'A column line stops off a belt: move the step to a belt or outrigger storey, or add one at the step (Structure › Lateral & sway › Outrigger floors), or declare the carry the stopped columns end on (Structure › Floors & spans).'],
   [/^core-ratio$/, 'Trim the core (Schematic › Core & floors) or enlarge the plate.'],
   [/^continuity$/, (st) => (st === 'fail' ? 'An upper core stands outside the core below: move its centre or shrink it so it sits inside the lower core (Structure › Lateral & sway › Core steps), so its walls can run down to the foundation.'
     : 'Model the core in the imported massing, or confirm with the engineer that the core walls run to the foundation.')],
@@ -76,7 +82,7 @@ const FIXES: [RegExp, string | ((state: RuleState, value: string) => string)][] 
   // Shared levels by reach (tool cycle 11).
   [/^sv-reach/, 'Give the homes’ lifts a stop at the shared floor, or a shared floor inside the homes’ stack (Core & lifts › rises; Program › floors); a floor only office or hotel lifts reach is their tenants’ level, not the residents’.'],
   // Sloped columns, Type 10 (tool cycle 11).
-  [/^sloped-columns/, 'Keep the perimeter columns vertical inside the turning slab edges (cantilevered corners; an interior column ring helps, Structure › Floors & spans), slow the turn per storey, or carry Type 10: the engineer designs the sloped columns for vertical ground motion and the floor thrusts.'],
+  [/^sloped-columns/, 'Keep the perimeter columns vertical inside the turning slab edges (cantilevered corners; an interior column ring helps, Structure › Floors & spans), slow the turn or the slope per storey, or carry Type 10: the engineer designs the sloped columns for vertical ground motion and the floor thrusts.'],
   [/^egress-posted/, 'A posted load below the Table load needs a permanent sign (3.1.17.1(2)) and an accepted case that fewer people will use the floor (a code consultant or fire engineer); or post at the Table load and size the stairs for it (Egress › Posted loads).'],
   [/^stair-width/, 'Widen the exit stairs or add one (Schematic › Exit stairs), or lower the busiest floor\'s occupant load.'],
   [/^exits/, 'Add an exit stair so every floor has at least two (Schematic › Exit stairs).'],

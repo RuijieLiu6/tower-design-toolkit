@@ -13,6 +13,7 @@ import { towerTwist } from './twist'
 import { floorOutline } from './corners'
 import { TWIST_MIN } from './acrossWind'
 import { systemShortlist, type SystemFit, type WindProcedure } from './windStructure'
+import { columnContinuity, continuityLines, GRADUAL_RUN, LEAN_MOVE_MAX, type ContinuityReading } from './continuity'
 
 /** Type 10 (sloped columns): inclined more than 2° from vertical (BCBC 2024 Table 4.1.8.6; NBC 2020 the same). */
 export const TYPE10_DEG = 2
@@ -66,6 +67,8 @@ export interface StructureResult {
   gravity: GravityReading
   /** The core alone as a cantilever: first frequency and P-Δ (P1 #10). */
   core: CoreStiffness
+  /** Column starts, stops, cantilevers and the facade's lean, storey by storey (tool cycle 12, engine/continuity.ts). */
+  continuity: ContinuityReading
 }
 
 /**
@@ -77,7 +80,7 @@ export type StructureTab = 'seismic' | 'lateral' | 'floors'
 export const STRUCTURE_TABS: { id: StructureTab; tab: string; lines: string[] }[] = [
   { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'sloped-columns', 'geometric', 'core-ratio'] },
   { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers', 'lateral-change', 'aperture-core', 'aperture-sky', 'aperture-bridge'] },
-  { id: 'floors', tab: 'Floors & spans', lines: ['floor-reach', 'floor-dead-load'] },
+  { id: 'floors', tab: 'Floors & spans', lines: ['floor-reach', 'floor-dead-load', 'column-starts', 'cantilever', 'column-stops'] },
 ]
 /** The tab a structure line shows under (unlisted lines: the first). */
 export const structureTabOf = (lineId: string): StructureTab => STRUCTURE_TABS.find((g) => g.lines.includes(lineId))?.id ?? STRUCTURE_TABS[0].id
@@ -148,21 +151,30 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
     + ' The podium-to-tower step usually triggers it: an irregular structure needs Vd ≥ 1.0 V.')
 
   // Sloped columns, Type 10 (tool cycle 11; BCBC 2024 Table 4.1.8.6, read by two readers): perimeter columns that follow
-  // a turning plate lean by the turn times their distance from the axis over the storey height.
+  // a turning plate lean by the turn times their distance from the axis over the storey height; columns that follow a
+  // tapering, leaning or morphing facade lean by its move per storey (tool cycle 12, engine/continuity.ts).
+  const cont = columnContinuity(t, { floors, weights, north })
   const lean = slopedColumnLean(t, floors)
-  const leanState: RuleState = lean && lean.deg > TYPE10_DEG ? 'warn' : 'pass'
+  const slope = cont.lean
+  const bySlope = !!slope && (!lean || slope.deg > lean.deg)
+  const leanDeg = bySlope ? slope!.deg : lean?.deg ?? 0
+  const leanState: RuleState = leanDeg > TYPE10_DEG ? 'warn' : 'pass'
   rules.push({
     id: 'sloped-columns', label: 'Sloped columns (Type 10)',
-    value: lean ? `perimeter columns that follow the turning facade lean about ${lean.deg.toFixed(1)}° at L${lean.level} (${lean.r.toFixed(1)} m from the axis, ${lean.turn.toFixed(1)}° in a ${lean.h.toFixed(2)} m storey)` : 'no turning plate read: perimeter columns can stay vertical',
+    value: bySlope ? `perimeter columns that follow the sloping facade lean about ${slope!.deg.toFixed(1)}° at L${slope!.level} (the outline moves ${slope!.move.toFixed(2)} m in a ${slope!.h.toFixed(2)} m storey)${lean ? `; following the turn, ${lean.deg.toFixed(1)}°` : ''}`
+      : lean ? `perimeter columns that follow the turning facade lean about ${lean.deg.toFixed(1)}° at L${lean.level} (${lean.r.toFixed(1)} m from the axis, ${lean.turn.toFixed(1)}° in a ${lean.h.toFixed(2)} m storey)` : 'no turning plate or sloping facade read: perimeter columns can stay vertical',
     threshold: `a gravity column inclined more than ${TYPE10_DEG}° from vertical is irregularity Type 10: design for vertical ground motion and the thrusts at the floors (4.1.8.10(10))`,
     state: leanState, flag: 'verified', source: TYPE10_SOURCE,
-    ...(leanState === 'warn' ? { specialist: `Sloped gravity columns past ${TYPE10_DEG}° (Type 10): the structural engineer keeps the perimeter columns vertical inside the turning slab edges (cantilevered corners) or designs the sloped columns for vertical ground motion and the floor thrusts.` } : {}),
-    note: 'The lean is read for a perimeter column at the outline’s farthest corner that follows the facade from storey to storey (the turn per storey read from the storey outlines, engine/twist.ts). Columns kept vertical inside the turning edges do not lean: the corners then cantilever (floor reach reads the corner). Leans from a tapering or leaning plate are not read yet.',
+    ...(leanState === 'warn' ? { specialist: `Sloped gravity columns past ${TYPE10_DEG}° (Type 10): the structural engineer keeps the perimeter columns vertical inside the moving slab edges (cantilevered corners and edges; see the column-starts line) or designs the sloped columns for vertical ground motion and the floor thrusts.` } : {}),
+    note: 'The lean is read for a perimeter column at the outline’s farthest corner that follows the facade from storey to storey (the turn per storey read from the storey outlines, engine/twist.ts). Columns kept vertical inside the turning edges do not lean: the corners then cantilever (floor reach reads the corner). '
+      + `A tapering, leaning or morphing facade is read too (tool cycle 12, engine/continuity.ts): its deepest move from one storey to the next over the height between their mid-heights, on runs of at least ${GRADUAL_RUN} storeys that each move up to ${LEAN_MOVE_MAX} m (team); a larger move is a step, where columns stop or start (Floors & spans). The larger of the two readings decides.`,
   })
 
   // Floor reach (P1 #13, NODE_LIST row 13): each tower storey's core-to-facade reach against one flat plate, and the slab
   // its span needs, which the storey weights now carry.
   rules.push(...floorReachLines(t, weights, wpr, north))
+  // No column starts, the slab cantilever and where column lines stop (tool cycle 12, R7 tool 2).
+  rules.push(...continuityLines(cont))
 
   // Off-centre gravity load and accidental torsion (gap G5, research R5 §2): weight centre of each tower level vs the core.
   const grav = gravityEccentricity(weights, H)
@@ -224,7 +236,7 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   rules.push(...lateralChangeLines(t, weights, { north, rules, floors }))
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
-  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav, core }
+  return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav, core, continuity: cont }
 }
 
 /** Outrigger levels placed on tower storeys. */

@@ -37,6 +37,21 @@ export interface Band {
 /** The storeys an interior column ring serves (levels, inclusive); a missing end runs to the bottom or the top. */
 export interface ColumnRingRange { from?: number; to?: number }
 
+/**
+ * A declared carry (`Tower.carries`, tool cycle 12): what holds up storey `level` where it overhangs the storey below.
+ * - 'loggia': the columns of the storey under an open band continue, free-standing, through its open storeys (`from`,
+ *   the lowest open storey, up to the storey below `level`; default: the storey below) and carry `level` (tower C's
+ *   loggia roofs). No column starts.
+ * - 'transfer': the columns of `level` start on a transfer girder or truss at its floor.
+ * - 'hung': storeys `level` to `to` (default `level`) hang from a truss above them.
+ */
+export interface StructureCarry {
+  kind: 'loggia' | 'transfer' | 'hung'
+  level: number
+  from?: number
+  to?: number
+}
+
 export interface Tower {
   id: string
   name: string
@@ -130,6 +145,12 @@ export interface Tower {
    * cycle 11, review R6-5) limits the ring to those storeys, e.g. only the turning top: { from: 40 } or { from, to }.
    */
   columnRing?: boolean | ColumnRingRange
+  /**
+   * Structure: how storeys that overhang the storey below are held up (tool cycle 12, the "no column starts" reader,
+   * engine/continuity.ts). Each entry names the carried storey by its level. Absent or empty: nothing declared, and every
+   * overhang past the cantilever limit reads as a column that would start.
+   */
+  carries?: StructureCarry[]
   /** Schematic: one sky lobby opened to the public as a sky room (null = none). */
   skyRoom?: SkyRoom | null
   /**

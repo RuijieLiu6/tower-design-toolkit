@@ -7,7 +7,8 @@ import { CONTINUITY_RULE, windProcedure, type Fit } from '../engine/windStructur
 import { storeyCore, type CoreCentre } from '../engine/storeyWeight'
 import { coreSide, coreStepsOf, coreTopZ, floorsAboveCore, towerFloors } from '../engine/massing'
 import { aperturesOf, levelRuns } from '../engine/openingField'
-import type { Aperture, CoreStep, Tower } from '../engine/types'
+import type { Aperture, CoreStep, StructureCarry, Tower } from '../engine/types'
+import { CANTILEVER_MAX, LOGGIA_MAX_OPEN, type ColumnStart } from '../engine/continuity'
 import { VTC_NORTH_DEG } from '../context'
 import { useStore, useTowers } from '../store'
 import { FalseAssumptions } from './WindStructurePanel'
@@ -244,11 +245,66 @@ function ColumnRing({ t }: { t: Tower }) {
   )
 }
 
+const CARRY_KINDS: { id: StructureCarry['kind']; label: string; tip: string }[] = [
+  { id: 'loggia', label: 'Loggia', tip: 'The columns of the storey under an open band continue, free-standing, through its open storeys and carry this storey: no column starts' },
+  { id: 'transfer', label: 'Transfer', tip: 'This storey’s columns start on a transfer girder or truss at its floor: declared and costed' },
+  { id: 'hung', label: 'Hung', tip: 'These storeys hang from a truss above them: declared and costed' },
+]
+
+/**
+ * Declared carries (tool cycle 12, the "no column starts" reader): what holds up a storey that overhangs the column
+ * lines below. Each edit applies at once (Ctrl+Z undoes it); a suggested loggia is one click.
+ */
+function Carries({ t, starts }: { t: Tower; starts: ColumnStart[] }) {
+  const updateTower = useStore((s) => s.updateTower)
+  const list = t.carries ?? []
+  const set = (next: StructureCarry[]) => updateTower(t.id, { carries: next.length ? next : undefined })
+  const edit = (k: number, patch: Partial<StructureCarry>) => set(list.map((c, i) => (i === k ? { ...c, ...patch } : c)))
+  const suggest = starts.filter((s) => s.suggest && !list.some((c) => c.level === s.level)).map((s) => s.suggest!)
+  const open = starts.find((s) => !s.carry && !s.ring)
+  const num = (label: string, value: number | undefined, on: (v: number | undefined) => void, tip: string, placeholder = '') => (
+    <label className="flex items-center gap-1 text-muted" title={tip}>{label}
+      <input type="number" min={1} step={1} value={value ?? ''} placeholder={placeholder} aria-label={`Carry ${label}`}
+        onChange={(e) => { const v = e.target.value === '' ? undefined : Math.max(1, Math.round(Number(e.target.value))); if (v === undefined || Number.isFinite(v)) on(v) }}
+        className="w-14 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums text-ink outline-none focus:border-accent" />
+    </label>
+  )
+  return (
+    <div className="mt-2 rounded-md border border-line p-2 text-meta" data-testid="carries">
+      <div className="flex items-center justify-between gap-2"><span className="font-semibold" title={`What holds up a storey that reaches more than ${CANTILEVER_MAX} m past the column lines below`}>Declared carries</span><FlagChip flag="team_assumption" /></div>
+      {list.length === 0 && <div className="mt-1 text-muted">None declared.</div>}
+      {list.map((c, k) => (
+        <div key={k} className="mt-1.5 flex flex-wrap items-center gap-2">
+          <select value={c.kind} onChange={(e) => edit(k, { kind: e.target.value as StructureCarry['kind'] })} aria-label="Carry kind" title={CARRY_KINDS.find((x) => x.id === c.kind)?.tip}
+            className="rounded border border-line bg-panel px-1 py-0.5 text-ink outline-none focus:border-accent">
+            {CARRY_KINDS.map((x) => <option key={x.id} value={x.id} title={x.tip}>{x.label}</option>)}
+          </select>
+          {num('L', c.level, (v) => v && edit(k, { level: v }), 'The storey it carries (the one that overhangs)')}
+          {c.kind === 'loggia' && num('open from L', c.from, (v) => edit(k, { from: v }), `The lowest open storey the columns cross (blank: the storey below); more than ${LOGGIA_MAX_OPEN} needs ties`, String(c.level - 1))}
+          {c.kind === 'hung' && num('to L', c.to, (v) => edit(k, { to: v }), 'The highest hung storey (blank: this storey only)', String(c.level))}
+          <button type="button" onClick={() => set(list.filter((_, i) => i !== k))} className="rounded border border-line px-2 py-0.5 hover:border-accent hover:text-accent" aria-label={`Remove the carry of L${c.level}`}>Remove</button>
+        </div>
+      ))}
+      <div className="mt-1.5 flex flex-wrap items-center gap-1">
+        <button type="button" onClick={() => set([...list, { kind: 'loggia', level: open?.level ?? 2 }])} className="rounded border border-line px-2 py-0.5 hover:border-accent hover:text-accent">Add a carry</button>
+        {suggest.map((s) => (
+          <button key={s.level} type="button" onClick={() => set([...list, s])} title={`The columns of L${s.from! - 1} continue through the open storeys and carry L${s.level}`}
+            className="rounded border border-dashed border-line px-2 py-0.5 text-muted hover:border-accent hover:text-accent">
+            Loggia {s.from === s.level - 1 ? `L${s.from}` : `L${s.from}–L${s.level - 1}`} → L{s.level}
+          </button>
+        ))}
+      </div>
+      <MethodFold title="About declared carries"><p>A storey whose outline reaches more than {CANTILEVER_MAX} m (team) past the column lines below would start new columns. A loggia carry says the columns of the storey under an open band continue through it to carry the storey above, so no column starts (the stop at its roof counts as on the carry). A transfer or hung storeys say the columns start on a girder or truss, or hang from one: still a start, but declared, for the engineer to design. Outrigger and belt floors (Lateral &amp; sway) and the column ring are read as carries too.</p></MethodFold>
+    </div>
+  )
+}
+
 /**
  * Structure in three tabs (node placement, 21 Nov 2026), picked in the results strip beside Wind procedure
  * (lib/leadViews.ts): System & seismic (category, route, irregularities, the shortlist), Lateral & sway (core alone,
  * P-Δ, off-centre weight and sustained sway, core steps, outriggers) and Floors & spans (floor reach, dead load from the
- * span, the column ring). The lines keep their ids; each shows under one tab (engine/structure.ts STRUCTURE_TABS).
+ * span, the column ring, column starts and stops, the declared carries). The lines keep their ids; each shows under one
+ * tab (engine/structure.ts STRUCTURE_TABS).
  */
 export default function StructurePanel() {
   const results = useStructures()
@@ -288,6 +344,7 @@ export default function StructurePanel() {
             {tab === 'floors' && <>
               <RuleRows rules={rules} />
               <ColumnRing t={r.tower} />
+              <Carries t={r.tower} starts={r.continuity.starts} />
             </>}
           </Section>
         )

@@ -109,6 +109,16 @@ describe('project file: deterministic export and import', () => {
     ;(f.towers.vtc[0] as unknown as Record<string, unknown>).deckUses = [{ level: 46, use: 'lawn' }]
     expect(readProject(JSON.stringify(f)).ok).toBe(false)
   })
+  it('keeps a tower\'s declared carries (tool cycle 12); a kind it does not know is refused', () => {
+    const carries = [{ kind: 'loggia' as const, level: 57, from: 55 }, { kind: 'transfer' as const, level: 30 }, { kind: 'hung' as const, level: 70, to: 72 }]
+    useStore.getState().updateTower('t1', { carries })
+    const r = readProject(exportProject(pickDesign(useStore.getState())))
+    expect(r.ok).toBe(true)
+    expect(toDesign(r.file!).towers.vtc[0].carries).toEqual(carries)
+    const f = file()
+    ;(f.towers.vtc[0] as unknown as Record<string, unknown>).carries = [{ kind: 'prop', level: 30 }]
+    expect(readProject(JSON.stringify(f)).ok).toBe(false)
+  })
   it('keeps a tower\'s further public levels (G43); a visitor share above 1 is refused', () => {
     const stops = [{ level: 25, visitorShare: 0.9 }, { level: 72, visitorShare: 0.6, free: false, hoursOpen: 12, label: 'restaurant' }]
     useStore.getState().updateTower('t1', { publicStops: stops })
