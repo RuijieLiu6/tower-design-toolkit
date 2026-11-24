@@ -145,6 +145,10 @@ export interface Tower {
    * cycle 11, review R6-5) limits the ring to those storeys, e.g. only the turning top: { from: 40 } or { from, to }.
    */
   columnRing?: boolean | ColumnRingRange
+  /** A declared diagrid on the storey outlines (gap G79, engine/diagrid.ts): module in storeys, the aimed member angle. */
+  diagrid?: import('./diagrid').DiagridSpec
+  /** The designer's own estimates for this model (gap G81, engine/estimateCheck.ts), read beside the engine's numbers. */
+  estimates?: import('./estimateCheck').DesignEstimates
   /**
    * Structure: how storeys that overhang the storey below are held up (tool cycle 12, the "no column starts" reader,
    * engine/continuity.ts). Each entry names the carried storey by its level. Absent or empty: nothing declared, and every

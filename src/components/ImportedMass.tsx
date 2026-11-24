@@ -6,6 +6,7 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { towerFloors } from '../engine/massing'
+import DiagridLines from './DiagridLines'
 import { coreBoxes } from '../engine/storeyWeight'
 import { USES, type ImportedStorey, type Tower, type UseId } from '../engine/types'
 import { useImportStore, useMeshEntry, type MeshEntry } from '../lib/import/store'
@@ -97,6 +98,7 @@ export default function ImportedMass({ t, baseZ, xray }: { t: Tower; baseZ: numb
           {problems.flipped && <mesh geometry={problems.flipped}><meshBasicMaterial color="#b8137a" side={THREE.DoubleSide} transparent opacity={0.85} depthTest={false} /></mesh>}
         </>
       )}
+      {t.diagrid && <DiagridLines t={t} visible clip={null} />}
       <group position={[0, 0, m.top + 10]}>
         <Label hoverKey={t.id} text={`${t.name} · ${t.height.toFixed(0)} m${t.drawn ? "" : " · imported"}${unresolved ? ' · north unresolved' : ''}`} position={[0, 0, 0]}
           color={unresolved ? '#5c3d00' : '#ffffff'} background={unresolved ? '#fdf4dd' : 'rgba(32,38,48,0.9)'} size={0.017} bold />

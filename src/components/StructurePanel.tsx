@@ -59,6 +59,40 @@ function OutriggerPicker({ t, placed }: { t: Tower; placed: number[] }) {
   )
 }
 
+/**
+ * Declare a diagrid (gap G79): its module (storeys a member rises between node rings) and the member angle aimed for.
+ * The grid is laid on the storey outlines and drawn on the model; the lines above read it. Each edit applies at once
+ * (Ctrl+Z undoes it).
+ */
+function DiagridPicker({ t }: { t: Tower }) {
+  const updateTower = useStore((s) => s.updateTower)
+  const d = t.diagrid
+  const set = (patch: Partial<NonNullable<Tower['diagrid']>>) => updateTower(t.id, { diagrid: { module: 6, ...(d ?? {}), ...patch } })
+  const num = (label: string, value: number | undefined, min: number, max: number, on: (v: number | undefined) => void, tip: string, placeholder = '') => (
+    <label className="flex items-center gap-1 text-muted" title={tip}>{label}
+      <input type="number" min={min} max={max} step={1} value={value ?? ''} placeholder={placeholder} aria-label={`Diagrid ${label}`}
+        onChange={(e) => { if (e.target.value === '') return on(undefined); const v = Math.round(Number(e.target.value)); if (Number.isFinite(v)) on(Math.max(min, Math.min(max, v))) }}
+        className="w-14 rounded border border-line bg-panel px-1 py-0.5 text-right tabular-nums text-ink outline-none focus:border-accent" />
+    </label>
+  )
+  return (
+    <div className="mt-2 grid gap-1.5 rounded-md border border-line p-2 text-meta" data-testid="diagrid">
+      <label className="flex items-center gap-2" title="A triangulated perimeter grid laid on the storey outlines, drawn on the model; read in the lines above">
+        <input type="checkbox" checked={!!d} onChange={(e) => updateTower(t.id, { diagrid: e.target.checked ? { module: 6 } : undefined })} aria-label="Diagrid" />
+        <span className="font-semibold">Diagrid</span><FlagChip flag="unverified" />
+      </label>
+      {d && (
+        <div className="flex flex-wrap items-center gap-2">
+          {num('module', d.module, 1, 20, (v) => v && set({ module: v }), 'Storeys a member rises between two node rings')}
+          {num('angle °', d.angle, 30, 85, (v) => set({ angle: v }), 'The member angle aimed for (from horizontal); the grid takes the whole number of bays nearest it', '65')}
+          {num('from L', d.fromLevel, 1, 400, (v) => set({ fromLevel: v }), 'First diagrid storey (blank: the first tower storey)', 'base')}
+          {num('to L', d.toLevel, 1, 400, (v) => set({ toLevel: v }), 'Last diagrid storey (blank: the top storey)', 'top')}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** An imported model carries no core: where the structure checks place it (read from the model), or a centre you type. */
 function CorePicker({ t, core }: { t: Tower; core: CoreCentre }) {
   const updateTower = useStore((s) => s.updateTower)
@@ -340,6 +374,7 @@ export default function StructurePanel() {
               <CoreTop t={r.tower} />
               <Openings t={r.tower} />
               <OutriggerPicker t={r.tower} placed={r.outriggers} />
+              <DiagridPicker t={r.tower} />
             </>}
             {tab === 'floors' && <>
               <RuleRows rules={rules} />

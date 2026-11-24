@@ -68,3 +68,18 @@ describe('economics (Program Value Visualizer method)', () => {
     expect(off.regionalCharges).toBe(0)
   })
 })
+
+describe('economics summary lines (G86)', () => {
+  it('reports the program value and every other output as lines, carrying the result numbers unchanged', () => {
+    const r = economics([box({ height: 200, bands: [{ use: 'office', share: 0.5 }, { use: 'residential', share: 0.5 }] })], inp)
+    const by = Object.fromEntries(r.summary.map((l) => [l.id, l]))
+    expect(Object.keys(by)).toEqual(['econ-value', 'econ-hard', 'econ-cost', 'econ-profit', 'econ-rlv-before', 'econ-cac', 'econ-rlv-after', 'econ-rlv-concept'])
+    const exact = (id: string) => Number(/Exact: C\$([−-]?[\d,]+)/.exec(by[id].note!)![1].replace(/,/g, '').replace('−', '-'))
+    expect(exact('econ-value')).toBe(Math.round(r.value))
+    expect(exact('econ-cost')).toBe(Math.round(r.cost))
+    expect(exact('econ-rlv-after')).toBe(Math.round(r.rlvAfter))
+    expect(exact('econ-rlv-concept')).toBe(Math.round(r.concept.rlvAfter))
+    for (const l of r.summary) { expect(l.state).toBe('unknown'); expect(l.flag).toBe('unverified'); expect(l.source.label).toMatch(/Program Value Visualizer/) }
+    expect(by['econ-value'].note).toMatch(/residential/)
+  })
+})

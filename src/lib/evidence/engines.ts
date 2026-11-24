@@ -32,6 +32,7 @@ import { structureCheck } from '../../engine/structure'
 import { DEFAULT_WEIGHT_PRESETS, type WeightPresets } from '../../engine/storeyWeight'
 import type { Tower } from '../../engine/types'
 import { SITE, vtcRules, type FsrTier } from '../../engine/vtcRules'
+import { estimateLines } from '../../engine/estimateCheck'
 import { windProcedure, windStudyRules, type WindPresets } from '../../engine/windStructure'
 import type { ModelTree, NatureInput } from '../../engine/cityInNature'
 
@@ -143,7 +144,8 @@ export function evidenceGroups(i: EvidenceInput): Record<string, unknown> {
   const weightPresets: WeightPresets = { ...DEFAULT_WEIGHT_PRESETS, ...given, ...('coreWall' in given && !('coreWallBands' in given) ? { coreWallBands: null } : {}) }
   const wind = towers.map((t) => windProcedure(t, i.windPresets, weightPresets))
   return {
-    'built.vtc-rules': vtc ? vtcRules(towers, { fsrTier: i.fsrTier, transitLink: i.transitLink }) : [],
+    // the designer's own estimates beside the engine's readings (gap G81), when a tower carries them
+    'built.vtc-rules': [...(vtc ? vtcRules(towers, { fsrTier: i.fsrTier, transitLink: i.transitLink }) : []), ...towers.flatMap((t) => estimateLines(t, t.estimates, vtc ? SITE.area : null))],
     'built.core-lifts': lifts.map((l) => l.rules),
     'built.egress': egress.map((e) => e.rules),
     'built.life-safety': towers.map((t, k) => lifeSafety(t, lifts[k], egress[k], { transitLink: i.transitLink, liftPresets: i.liftPresets, presets: i.systemsPresets ?? DEFAULT_SYSTEMS_PRESETS, entrances: vtc ? Object.values(i.publicRealm.frontage).reduce((n, f) => n + f.entrances, 0) : null }).rules),

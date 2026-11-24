@@ -10,6 +10,7 @@ import { MAGNETIC_DECLINATION, STREET_GRID_NORTH } from '../lib/import/pipeline'
 import { resliceTower, setTowerNorth, tagStoreys, useImportStore, useMeshEntry } from '../lib/import/store'
 import { useStore } from '../store'
 import { HealthList } from './ImportHealth'
+import EstimatePanel from './EstimatePanel'
 import { FlagChip, Section } from './ui'
 import { fieldUnit, useUnits } from '../lib/units'
 
@@ -108,6 +109,8 @@ export default function ImportedPanel({ t }: { t: Tower }) {
         </div>
         <p className="mt-1 text-meta text-muted">Tags are the designer's call (P14-M04); plates under 25 m² start as "no floor" (spire or crown, team assumption).</p>
       </Section>
+
+      <EstimatePanel t={t} />
 
       <Section title="Geometry health" right={entry && <button onClick={() => useImportStore.setState({ showProblems: !showProblems })} className="flex items-center gap-1 text-meta text-accent hover:underline">{showProblems ? <EyeOff size={12} /> : <Eye size={12} />}{showProblems ? 'Hide' : 'Show'} in 3D</button>}>
         {entry?.health.length ? <HealthList items={entry.health} compact /> : <p className="text-meta text-muted">{m.health.block + m.health.warn ? `${m.health.warn} warning(s) at import.` : 'No problems at import.'} Re-import to see the full report.</p>}

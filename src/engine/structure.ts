@@ -15,6 +15,7 @@ import { TWIST_MIN } from './acrossWind'
 import { systemShortlist, type SystemFit, type WindProcedure } from './windStructure'
 import { columnContinuity, continuityLines, GRADUAL_RUN, LEAN_MOVE_MAX, type ContinuityReading } from './continuity'
 import { openStoreyLines, openStoreys, type OpenStoreyReading } from './openStorey'
+import { diagridLines } from './diagrid'
 
 /** Type 10 (sloped columns): inclined more than 2° from vertical (BCBC 2024 Table 4.1.8.6; NBC 2020 the same). */
 export const TYPE10_DEG = 2
@@ -82,7 +83,7 @@ export interface StructureResult {
 export type StructureTab = 'seismic' | 'lateral' | 'floors'
 export const STRUCTURE_TABS: { id: StructureTab; tab: string; lines: string[] }[] = [
   { id: 'seismic', tab: 'System & seismic', lines: ['seismic-category', 'period', 'dynamic', 'continuity', 'weight', 'sloped-columns', 'geometric', 'soft-storey', 'weak-storey', 'open-discontinuity', 'core-ratio'] },
-  { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers', 'lateral-change', 'aperture-core', 'aperture-sky', 'aperture-bridge'] },
+  { id: 'lateral', tab: 'Lateral & sway', lines: ['core-alone', 'p-delta', 'gravity-offset', 'gravity-net', 'outriggers', 'lateral-change', 'aperture-core', 'aperture-sky', 'aperture-bridge', 'diagrid', 'diagrid-angle', 'diagrid-route', 'diagrid-stiffness', 'diagrid-panels'] },
   { id: 'floors', tab: 'Floors & spans', lines: ['floor-reach', 'floor-dead-load', 'column-starts', 'cantilever', 'column-stops'] },
 ]
 /** The tab a structure line shows under (unlisted lines: the first). */
@@ -245,6 +246,8 @@ export function structureCheck(t: Tower, wp: WindProcedure, wpr: WeightPresets =
   // The lateral-system change at the core top (tool cycle 12; engine/lateralChange.ts), read after every other line so
   // it can name an open-storey soft / weak storey check if the tool has one.
   rules.push(...lateralChangeLines(t, weights, { north, rules, floors }))
+  // a declared diagrid (gap G79): its geometry, angle against slenderness, code route, and what is not assessed
+  rules.push(...diagridLines(t, floors))
 
   const systems = systemShortlist(t, wp).map((s) => (s.id === 'outriggers' && outriggers.length ? { ...s, fit: 'shortlist' as const, reason: `You placed outriggers at ${outriggers.map((l) => `L${l}`).join(', ')}. ${s.reason}` } : s))
   return { tower: t, Ta, seismicCategory: 'SC4', outriggers, rules, systems, weights, gravity: grav, core, continuity: cont, open }

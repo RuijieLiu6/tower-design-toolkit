@@ -32,6 +32,7 @@ import DrawTools from './draw/DrawTools'
 import { DrawChrome } from './draw/ToolPanel'
 import { useHiddenTowers } from '../lib/hiddenTowers'
 import OutriggerFloors from './OutriggerFloors'
+import DiagridLines from './DiagridLines'
 import PlanDrawing from './PlanDrawing'
 import PublicRealmOverlay from './PublicRealmOverlay'
 import EnergyOverlay from './EnergyOverlay'
@@ -488,6 +489,7 @@ function TowerMesh({ t, baseZ, xray, vista = false }: { t: Tower; baseZ: number;
       <LiftShafts t={t} top={top} clip={clip} groupRef={(g) => { shafts.current = g }} />
       <ExitStairs t={t} clip={clip} groupRef={(g) => { stairs.current = g }} />
       <OutriggerFloors t={t} floors={floors} visible={xray && !explode} clip={clip} />
+      <DiagridLines t={t} floors={floors} visible={!explode} clip={clip} />
       {xray && !explode && floors.filter((f) => f.skyLobby).map((f) => {
         const isPublic = t.skyRoom?.level === f.level
         const sb = spanAt(spans, (f.z0 + f.z1) / 2)?.block

@@ -195,6 +195,12 @@ export interface EconResult {
    * enter the residual, the cost or the verdict above.
    */
   readings: RuleResult[]
+  /**
+   * The outputs as reported lines (gap G86): program value, costs, profit, the residual before and after the CAC, and
+   * with the concept's own costs, each with its basis. Reported (state unknown), never a pass or fail; they carry the
+   * numbers above, unchanged, so any reader that walks the result's lines (a run file, a board) can quote them.
+   */
+  summary: RuleResult[]
 }
 
 const ZERO = (): Record<UseId, { gfa: number; value: number; cost: number }> => ({ retail: { gfa: 0, value: 0, cost: 0 }, office: { gfa: 0, value: 0, cost: 0 }, hotel: { gfa: 0, value: 0, cost: 0 }, residential: { gfa: 0, value: 0, cost: 0 }, civic: { gfa: 0, value: 0, cost: 0 }, amenity: { gfa: 0, value: 0, cost: 0 }, mechanical: { gfa: 0, value: 0, cost: 0 } })
@@ -317,7 +323,7 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
     sources: { acc: `${p.accCommercial.source}; ${p.accResidential2.source}`, dcl: p.dcl.source, udcl: p.udclCommercial.source, metro: p.metroNonRes.source, translink: p.translinkOffice.source },
   })
   const anyAbove = basis === 'research' && construction.some((x) => x.premium.above > 0)
-  return {
+  const out: EconResult = {
     floors, gfa, value, hard, soft, cityCharges, regionalCharges, finance, cost, profit, rlvBefore, landCurrent, land, cac, employmentOnly, rlvAfter, verdict, averaged, rlvPerM2: gfa ? rlvAfter / gfa : 0, byUse,
     construction: {
       basis, residentialBase: resBaseId, towers: construction, sourcedShare: gfa ? sourced / gfa : 0, contingencyRate: c, contingency, estimate: hard + contingency,
@@ -326,7 +332,28 @@ export function economics(towers: Tower[], inp: EconInputs, p: EconPresets = DEF
     charges: { ...schedule, perM2: gfa ? (cityCharges + regionalCharges) / gfa : 0 },
     concept: { ...cc, cost: withConcept.cost, profit: withConcept.profit, rlvBefore: withConcept.rlvBefore, cac: withConcept.cac, rlvAfter: withConcept.rlvAfter, verdict: withConcept.verdict },
     readings: kpfReadings(towers),
+    summary: [],
   }
+  out.summary = summaryLines(out)
+  return out
+}
+
+const PVV_METHOD = { label: 'Program Value Visualizer method and Vancouver 2026 pack (research P08)' }
+/** The result's outputs as reported lines (G86): the numbers of the result, nothing recomputed. */
+export function summaryLines(r: Omit<EconResult, 'summary'>): RuleResult[] {
+  const n = (v: number) => Math.round(v).toLocaleString('en-CA')
+  const line = (id: string, label: string, v: number, note: string): RuleResult => ({ id, label, value: money(v), threshold: 'reported (indicative estimate)', state: 'unknown', flag: 'unverified', source: PVV_METHOD, note: `${note} Exact: C$${n(v)}.` })
+  const uses = (Object.entries(r.byUse) as [UseId, { gfa: number; value: number; cost: number }][]).filter(([, v]) => v.gfa > 0)
+  return [
+    line('econ-value', 'Program value (gross development value)', r.value, `Market value of every floor's area at its use's value per m² (${n(r.gfa)} m² gross${r.gfa ? `, ${money(r.value / r.gfa)} per m²` : ''}). By use: ${uses.map(([u, v]) => `${u} ${money(v.value)} on ${n(v.gfa)} m²`).join('; ') || 'none'}.`),
+    line('econ-hard', 'Hard cost', r.hard, `Construction cost before contingency (${r.construction.basis} basis${r.averaged ? `; ${r.averaged} floors at the project average` : ''}).`),
+    line('econ-cost', 'Total development cost', r.cost, `Hard cost, contingency, soft cost (${money(r.soft)}), city charges (${money(r.cityCharges)}), regional charges (${money(r.regionalCharges)}) and finance (${money(r.finance)}).`),
+    line('econ-profit', 'Developer profit', r.profit, "Profit on cost at the pack's rate."),
+    line('econ-rlv-before', 'Land residual before the CAC', r.rlvBefore, 'Program value less total cost and profit.'),
+    line('econ-cac', 'Community amenity contribution (CAC)', r.cac, r.employmentOnly ? 'No homes: no CAC.' : "The pack's share of the lift over the current-zoning land value."),
+    line('econ-rlv-after', 'Land residual after the CAC', r.rlvAfter, `The verdict reads this: ${r.verdict}${r.land != null ? ` against a land price of ${money(r.land)}` : ' (no land price)'}; ${money(r.rlvPerM2)} per m² gross.`),
+    line('econ-rlv-concept', "Land residual with the concept's own costs", r.concept.rlvAfter, `Adds the concept's own costs (team-assumption unit costs, to confirm): verdict ${r.concept.verdict}.`),
+  ]
 }
 
 /**
