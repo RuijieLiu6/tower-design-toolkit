@@ -7,8 +7,9 @@
 // kept as they are; the base plate and shaft height the form starts from are kept on the tower (`form.base`), so
 // changing a slider re-shapes from the same base instead of compounding.
 import type { Block } from './types'
+import { scaleAt, swellLaw } from './scaleLaw'
 
-export type FormType = 'none' | 'taper' | 'twist' | 'tiered' | 'stacked'
+export type FormType = 'none' | 'taper' | 'swell' | 'twist' | 'tiered' | 'stacked'
 export interface FormParam { key: string; label: string; min: number; max: number; step: number; def: number; fmt: (v: number) => string }
 const pct = (v: number) => `${Math.round(v * 100)}%`
 
@@ -23,11 +24,17 @@ export const FORM_PARAMS: Record<string, FormParam> = {
   blocks: { key: 'blocks', label: 'Blocks', min: 2, max: 6, step: 1, def: 3, fmt: (v) => String(v) },
   shift: { key: 'shift', label: 'Block shift', min: 0, max: 0.5, step: 0.01, def: 0.15, fmt: (v) => `${pct(v)} of plate` },
   blockTaper: { key: 'blockTaper', label: 'Block shrink toward top', min: 0, max: 0.35, step: 0.01, def: 0.1, fmt: pct },
+  // Swelling shaft (gap G78, Study 4 C): the plate widens to a peak and narrows again, one smooth curve (engine/scaleLaw.ts).
+  swellAt: { key: 'swellAt', label: 'Widest at', min: 0.2, max: 0.8, step: 0.05, def: 0.5, fmt: (v) => `${pct(v)} of the shaft` },
+  swellScale: { key: 'swellScale', label: 'Widest plate scale', min: 1, max: 1.5, step: 0.01, def: 1.15, fmt: pct },
+  swellTop: { key: 'swellTop', label: 'Top plate scale', min: 0.5, max: 1.2, step: 0.01, def: 0.9, fmt: pct },
+  swellTwist: { key: 'swellTwist', label: 'Total twist', min: 0, max: 180, step: 5, def: 0, fmt: (v) => `${v}°` },
 }
 
 export const FORM_TYPES: Record<FormType, { name: string; blurb: string; params: string[] }> = {
   none: { name: 'Plain box', blurb: 'A straight extrusion of the plate.', params: [] },
   taper: { name: 'Tapered shaft', blurb: 'The plate shrinks with height toward the top plate scale.', params: ['taper', 'profile'] },
+  swell: { name: 'Swelling shaft', blurb: 'The plate widens to a peak part-way up and narrows again: one smooth curve, base to top.', params: ['swellAt', 'swellScale', 'swellTop', 'swellTwist'] },
   twist: { name: 'Twisting tower', blurb: 'Each plate rotates about the centre as the tower rises.', params: ['twist', 'twistTaper'] },
   tiered: { name: 'Set-back tiers', blurb: 'Stepped volumes on a broad base; each tier steps in.', params: ['tiers', 'setback', 'align'] },
   stacked: { name: 'Shifted stack', blurb: 'Blocks slide off one another; the shifts leave terraces.', params: ['blocks', 'shift', 'blockTaper'] },
@@ -37,6 +44,7 @@ export const FORM_TYPES: Record<FormType, { name: string; blurb: string; params:
 export const FORM_ICON: Record<FormType, string> = {
   none: '<rect x="7" y="2" width="12" height="34"/>',
   taper: '<polygon points="4,36 22,36 17,2 9,2"/>',
+  swell: '<path d="M7,36 C1,24 1,14 9,2 L17,2 C25,14 25,24 19,36 Z"/>',
   twist: '<polygon points="6,36 20,36 18,2 8,2"/><path d="M8,2 C15,12 6,22 12,36" style="fill:none"/>',
   tiered: '<polygon points="3,36 23,36 23,24 20,24 20,14 17,14 17,5 11,5 11,14 8,14 8,24 3,24"/>',
   stacked: '<rect x="4" y="27" width="14" height="9"/><rect x="9" y="18" width="14" height="9"/><rect x="4" y="9" width="14" height="9"/><rect x="9" y="1" width="14" height="8"/>',
@@ -57,6 +65,7 @@ export function formBlocks(type: FormType, p: Record<string, number>, base: Form
   const plate = (t: number) => {
     let w = W, d = D, cx = 0, cy = 0, rot = 0
     if (type === 'taper') { const s = 1 - (1 - q.taper) * Math.pow(t, q.profile); w = W * s; d = D * s }
+    else if (type === 'swell') { const s = scaleAt(swellLaw(q.swellAt, q.swellScale, q.swellTop), t); w = W * s; d = D * s; rot = q.swellTwist * t }
     else if (type === 'twist') { const s = 1 - (1 - q.twistTaper) * t; w = W * s; d = D * s; rot = q.twist * t }
     else if (type === 'tiered') { let k = 0; while (k < tierB.length - 1 && t > tierB[k]) k++; const s = Math.pow(1 - q.setback, k); w = W * s; d = D * s; cx = q.align * (W - w) / 2; cy = q.align * (D - d) / 2 }
     else if (type === 'stacked') {

@@ -1,5 +1,5 @@
 // Tower forms in the Typology tab (16 Nov, Sinnie): dtmass's Tapered shaft, Twisting tower, Set-back tiers and Shifted
-// stack as her silhouette tiles, each with her sliders, shaping the selected tower's shaft above its podium live
+// stack as her silhouette tiles, plus the Swelling shaft (gap G78), each with her sliders, shaping the selected tower's shaft above its podium live
 // (engine/towerForms.ts, lib/towerForm.ts). With no tower yet, picking a form places the starting tower first. A drawn
 // or imported mass keeps its own geometry. Each pick and each slider drag is one Undo step.
 import { useStore, useTowers } from '../../store'
@@ -26,7 +26,7 @@ export default function TowerForms() {
   return (
     <section data-testid="tower-forms" aria-labelledby="tower-forms-head" className="px-3 py-2">
       <h4 id="tower-forms-head" className="text-control font-semibold text-ink">Tower form{t ? <span className="font-normal text-muted"> · {t.name}</span> : null}</h4>
-      <div role="radiogroup" aria-label="Tower form" className="mt-1.5 grid grid-cols-5 gap-1">
+      <div role="radiogroup" aria-label="Tower form" className="mt-1.5 grid grid-cols-3 gap-1">
         {TYPES.map((k) => (
           <button key={k} type="button" role="radio" aria-checked={type === k} data-form={k} disabled={!shapeable} title={`${FORM_TYPES[k].name}: ${FORM_TYPES[k].blurb}`} onClick={() => pick(k)}
             className={`flex flex-col items-center gap-0.5 rounded-md border px-0.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${type === k ? 'border-accent bg-accent/[0.08]' : 'border-line bg-panel hover:border-accent'}`}>
