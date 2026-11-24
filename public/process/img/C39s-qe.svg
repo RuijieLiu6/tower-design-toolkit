@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" width="360" height="420" font-family="Inter, Arial, sans-serif" font-size="12">
+<rect width="360" height="420" fill="#d9dde0"/>
+<rect x="0" y="105.9" width="360" height="314.1" fill="#9aa39b"/>
+<line x1="0" x2="360" y1="105.9" y2="105.9" stroke="#5d675f" stroke-dasharray="4 3"/>
+<text x="6" y="101.9" fill="#3b423c">ridge line +243.2 m (1.70°)</text>
+<polygon points="122.6,366.0 238.6,366.0 238.6,360.9 122.6,360.9" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="122.6,360.9 238.6,360.9 238.6,345.5 122.6,345.5" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="139.2,345.5 220.8,345.5 220.8,171.7 139.2,171.7" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="139.5,171.7 220.5,171.7 220.5,167.4 139.5,167.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="140.1,167.4 219.9,167.4 219.9,163.1 140.1,163.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="140.7,163.1 219.3,163.1 219.3,159.4 140.7,159.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="141.2,159.4 218.8,159.4 218.8,155.8 141.2,155.8" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="141.7,155.8 218.3,155.8 218.3,152.1 141.7,152.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="142.2,152.1 217.8,152.1 217.8,148.4 142.2,148.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="142.7,148.4 217.3,148.4 217.3,144.7 142.7,144.7" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="143.3,144.7 216.7,144.7 216.7,140.4 143.3,140.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="143.9,140.4 216.1,140.4 216.1,136.1 143.9,136.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="144.4,136.1 215.6,136.1 215.6,131.9 144.4,131.9" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="145.0,131.9 215.0,131.9 215.0,128.2 145.0,128.2" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="145.5,128.2 214.5,128.2 214.5,124.5 145.5,124.5" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="146.0,124.5 214.0,124.5 214.0,120.8 146.0,120.8" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="146.5,120.8 213.5,120.8 213.5,117.1 146.5,117.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="147.1,117.1 212.9,117.1 212.9,113.4 147.1,113.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="147.6,113.4 212.4,113.4 212.4,109.1 147.6,109.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="148.2,109.1 211.8,109.1 211.8,105.4 148.2,105.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="148.7,105.4 211.3,105.4 211.3,101.7 148.7,101.7" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="149.2,101.7 210.8,101.7 210.8,98.1 149.2,98.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="149.7,98.1 210.3,98.1 210.3,94.4 149.7,94.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="150.2,94.4 209.8,94.4 209.8,90.7 150.2,90.7" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="150.7,90.7 209.3,90.7 209.3,87.0 150.7,87.0" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="151.2,87.0 208.8,87.0 208.8,83.3 151.2,83.3" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="151.7,83.3 208.3,83.3 208.3,79.6 151.7,79.6" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="152.3,79.6 207.7,79.6 207.7,75.3 152.3,75.3" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="152.9,75.3 207.1,75.3 207.1,71.1 152.9,71.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="153.5,71.1 206.5,71.1 206.5,66.8 153.5,66.8" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="154.1,66.8 205.9,66.8 205.9,62.5 154.1,62.5" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="154.7,62.5 205.3,62.5 205.3,58.2 154.7,58.2" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="155.3,58.2 204.7,58.2 204.7,53.9 155.3,53.9" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="155.9,53.9 204.1,53.9 204.1,49.7 155.9,49.7" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="156.5,49.7 203.5,49.7 203.5,45.4 156.5,45.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<rect x="312.4" y="384.0" width="23.6" height="4" fill="#1f5fa8"/>
+<text x="336" y="380.0" text-anchor="end" fill="#1f3f66">overcast line 16′ ≈ 22 m</text>
+<text x="24" y="412" fill="#2b2f33">C39s · from Queen Elizabeth Park, 4.73 km at 357.1°</text>
+</svg>

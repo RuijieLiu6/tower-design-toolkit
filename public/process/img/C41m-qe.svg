@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" width="360" height="420" font-family="Inter, Arial, sans-serif" font-size="12">
+<rect width="360" height="420" fill="#d9dde0"/>
+<rect x="0" y="109.2" width="360" height="310.8" fill="#9aa39b"/>
+<line x1="0" x2="360" y1="109.2" y2="109.2" stroke="#5d675f" stroke-dasharray="4 3"/>
+<text x="6" y="105.2" fill="#3b423c">ridge line +243.2 m (1.70°)</text>
+<polygon points="123.3,366.0 237.8,366.0 237.8,360.9 123.3,360.9" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="123.3,360.9 237.8,360.9 237.8,345.7 123.3,345.7" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="139.7,345.7 220.3,345.7 220.3,143.2 139.7,143.2" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="139.7,143.2 216.8,143.2 216.8,131.1 139.7,131.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="139.7,131.1 210.4,131.1 210.4,101.4 139.7,101.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="146.7,101.4 210.4,101.4 210.4,70.5 146.7,70.5" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="146.7,70.5 210.4,70.5 210.4,49.3 146.7,49.3" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="159.4,49.3 197.4,49.3 197.4,45.1 159.4,45.1" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="162.7,70.5 194.1,70.5 194.1,66.2 162.7,66.2" fill="#d9dde0"/>
+<polygon points="162.7,66.2 194.1,66.2 194.1,62.0 162.7,62.0" fill="#d9dde0"/>
+<polygon points="162.7,62.0 194.1,62.0 194.1,57.8 162.7,57.8" fill="#d9dde0"/>
+<polygon points="162.7,57.8 194.1,57.8 194.1,53.6 162.7,53.6" fill="#d9dde0"/>
+<polygon points="162.7,53.6 194.1,53.6 194.1,49.3 162.7,49.3" fill="#d9dde0"/>
+<rect x="312.7" y="384.0" width="23.3" height="4" fill="#1f5fa8"/>
+<text x="336" y="380.0" text-anchor="end" fill="#1f3f66">overcast line 16′ ≈ 22 m</text>
+<text x="24" y="412" fill="#2b2f33">C41m · from Queen Elizabeth Park, 4.73 km at 357.1°</text>
+</svg>

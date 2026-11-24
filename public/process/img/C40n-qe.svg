@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" width="360" height="420" font-family="Inter, Arial, sans-serif" font-size="12">
+<rect width="360" height="420" fill="#d9dde0"/>
+<rect x="0" y="105.9" width="360" height="314.1" fill="#9aa39b"/>
+<line x1="0" x2="360" y1="105.9" y2="105.9" stroke="#5d675f" stroke-dasharray="4 3"/>
+<text x="6" y="101.9" fill="#3b423c">ridge line +243.2 m (1.70°)</text>
+<polygon points="122.6,366.0 238.6,366.0 238.6,360.9 122.6,360.9" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="122.6,360.9 238.6,360.9 238.6,345.5 122.6,345.5" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="140.9,345.5 219.1,345.5 219.1,167.4 140.9,167.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="140.9,167.4 219.1,167.4 219.1,106.0 140.9,106.0" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="153.8,106.0 206.2,106.0 206.2,79.6 153.8,79.6" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<polygon points="155.1,79.6 204.9,79.6 204.9,45.4 155.1,45.4" fill="#4b5560" stroke="#4b5560" stroke-width="0.6"/>
+<rect x="312.4" y="384.0" width="23.6" height="4" fill="#1f5fa8"/>
+<text x="336" y="380.0" text-anchor="end" fill="#1f3f66">overcast line 16′ ≈ 22 m</text>
+<text x="24" y="412" fill="#2b2f33">C40n · from Queen Elizabeth Park, 4.73 km at 357.1°</text>
+</svg>

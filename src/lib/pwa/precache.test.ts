@@ -27,6 +27,10 @@ describe('offline precache', () => {
     expect(precacheList(built).some((f) => /web-ifc|rhino3dm|\.wasm$/.test(f))).toBe(false)
   })
 
+  it('leaves the design process page and its images to first use', () => {
+    expect(precacheList([...built, 'process/index.html', 'process/img/A37c.jpg', 'process/img/studies/downtown-axo-sheet.jpg'])).toEqual(precacheList(built))
+  })
+
   it('names the cache after the files and their content', () => {
     const a = cacheName([{ file: 'index.html', hash: '1' }, { file: 'data/x.bin', hash: '2' }])
     expect(a).toMatch(/^tower-studio-[0-9a-f]{8}$/)

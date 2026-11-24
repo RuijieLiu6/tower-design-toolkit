@@ -27,7 +27,7 @@
 // Keyboard: floating nodes are buttons (Enter threads one); threaded nodes are buttons (← → move it along the string,
 // Delete takes it off); the role menu is a listbox. Reduced motion: nothing drifts, sways or alternates; all still works.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowRight, BookOpen, ChevronDown, FilePlus, FileUp, PackagePlus, Play, Tags, Trash2, Undo2, X } from '../icons'
+import { ArrowRight, BookOpen, ChevronDown, FilePlus, FileUp, History, PackagePlus, Play, Tags, Trash2, Undo2, X } from '../icons'
 import WorkflowAssistant from './WorkflowAssistant'
 import { NodeTile } from '../NodeTile'
 import { nodeWord } from '../../data/nodeWords'
@@ -1208,8 +1208,11 @@ export default function Intro({ onEnter, reduced = false }: { onEnter: () => voi
         <button type="button" onClick={exploreNodes} className="pointer-events-auto mt-2 flex items-center gap-1 rounded-lg px-2 py-1 text-control text-ink outline-none hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-accent">Explore nodes<ArrowRight size={14} aria-hidden /></button>
       </div>
 
-      {/* elsewhere: the research, importing a model, making a node of your own */}
+      {/* elsewhere: the design process (every tower iteration and the team studies), the research, importing a model,
+          making a node of your own */}
       <nav aria-label="More" className="absolute bottom-3 right-4 z-10 flex items-center gap-1 text-meta text-muted">
+        <a href={`${import.meta.env.BASE_URL}process/index.html`} data-testid="intro-process" title="Every tower iteration, the team studies and what we learnt from them"
+          className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><History size={13} aria-hidden />Design process</a>
         <button type="button" onClick={onEnter} data-testid="intro-enter" className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><BookOpen size={13} aria-hidden />Research</button>
         <button type="button" onClick={openImport} className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><FileUp size={13} aria-hidden />Import a model</button>
         <button type="button" onClick={openNodeBuilder} className="flex items-center gap-1 rounded-lg px-2 py-1 outline-none hover:bg-white/60 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"><PackagePlus size={13} aria-hidden />Build a node</button>
