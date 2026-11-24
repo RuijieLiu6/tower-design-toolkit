@@ -12,7 +12,7 @@ import { creditedDataUrl, sceneCredit } from '../lib/credit'
  * surfaces (cone volumes, ghosted overlays, height surfaces). A massing-only capture leaves them out, so an image model
  * gets buildings and ground only (the first AI test render, 3 Nov, redrew a capture full of labels and cone volumes).
  */
-function isOverlay(o: Object3D): boolean {
+export function isOverlay(o: Object3D): boolean {
   const x = o as Object3D & { isSprite?: boolean; isLine?: boolean; isLineSegments2?: boolean; isPoints?: boolean; isMesh?: boolean; material?: Material | Material[] }
   // drei <Line> is a LineSegments2, a mesh in three's eyes.
   if (o.userData.overlay || x.isSprite || x.isLine || x.isLineSegments2 || x.isPoints) return true

@@ -711,10 +711,13 @@ function SelectedBuildings({ data, hidden }: { data: CityData; hidden: ReadonlyS
   )
 }
 
+/** Marks city buildings for the presentation render (components/PresentRender.tsx): drawn as context, not ground. */
+const CONTEXT_TAG = { presentContext: true }
+
 /** One chunk of Vista's buildings, with the parts hidden under the design left out of its draw range. */
 function BuildingChunk({ geom, ranges, hidden, material, castShadow }: { geom: THREE.BufferGeometry; ranges: [number, number, number][]; hidden: ReadonlySet<number>; material: THREE.Material; castShadow: boolean }) {
   useHiddenParts(geom, ranges, hidden)
-  return <mesh geometry={geom} material={material} castShadow={castShadow} receiveShadow />
+  return <mesh geometry={geom} material={material} castShadow={castShadow} receiveShadow userData={CONTEXT_TAG} />
 }
 
 /** The City model (comparison): LiDAR 2022 roof parts in clay, the City's 2009 heights a shade off. */
@@ -734,7 +737,7 @@ function CityBuildings({ data, look, ghost, hidden }: { data: CityData; look: Lo
   return (
     <>
       {meshes.map((m, k) => m.geom && (
-        <mesh key={k} geometry={m.geom} castShadow={!ghost} receiveShadow>
+        <mesh key={k} geometry={m.geom} castShadow={!ghost} receiveShadow userData={CONTEXT_TAG}>
           <meshStandardMaterial color={k ? look.older : look.context} roughness={0.92} metalness={0} transparent opacity={ghost ? 0.45 : 1} depthWrite={!ghost} />
         </mesh>
       ))}

@@ -38,6 +38,7 @@ import EnergyOverlay from './EnergyOverlay'
 import WindScreenOverlay from './WindScreenOverlay'
 import WindComfortOverlay from './WindComfortOverlay'
 import HiResCapture from './HiResCapture'
+import PresentRender from './PresentRender'
 import SolarOverlay from './SolarOverlay'
 import SolarEnvelopeOverlay from './SolarEnvelopeOverlay'
 import RelaxationMasks from './RelaxationMasks'
@@ -710,6 +711,7 @@ export default function Viewport() {
             camera={{ position: project === 'vtc' ? toThree(...orientReq({ position: [520, -640, 430], target: [0, 0, 60] }).position).toArray() : toThree(...orientReq({ position: [...VISTA_OVERVIEW.position], target: [...VISTA_OVERVIEW.target] }).position).toArray(), fov: project === 'vtc' ? BASE_FOV : VISTA_OVERVIEW.fov, near: 1, far: 40000 }}>
             <color attach="background" args={[look.background]} />
             <HiResCapture />
+            <PresentRender />
             <BvhWarmup />
             <RenderPacer />
             <ShadowCache />

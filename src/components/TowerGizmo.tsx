@@ -75,7 +75,7 @@ export function TowerMover({ t, baseZ, children }: { t: Tower; baseZ: number; ch
   const moving = useTowerEdit((s) => s.drag?.id === t.id || s.proposal?.id === t.id)
   return (
     <>
-      <group ref={setGroup} {...hoverHandlers(t.id)}>{children}</group>
+      <group ref={setGroup} userData={{ designTower: t.id }} {...hoverHandlers(t.id)}>{children}</group>
       <SelectionOutline t={t} baseZ={baseZ} />
       {moving && <Ghost t={t} />}
     </>
