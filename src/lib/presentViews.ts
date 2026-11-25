@@ -112,3 +112,111 @@ export function viewpointsFor(site: P2, maxKm = 8): { vp: Viewpoint; inCone: boo
 
 /** A view's file-safe id. */
 export const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+// ---------------------------------------------------------------- hero views in Real Vancouver (24 Nov)
+// Candidate views for the board's main image: the design on the default Real Vancouver site seen from real places.
+// Every camera position comes from the toolkit's own data, never placed by eye: a City view-cone origin (its Lv as the
+// eye level), a street-centre-line crossing from the City's streets (public/data/city_streets.json), Vista's place label
+// for Coal Harbour, or a stated bearing and distance from the tower (the aerial). The lens is set from how tall the frame
+// should be at the tower (`frame` × its height); the aim from where the tower should sit in it (`aim`: the height on the
+// tower, as a share of its height, at the frame's centre).
+
+export type HeroFrom =
+  | { kind: 'cone'; cone: string }
+  | { kind: 'viewpoint'; id: string }
+  | { kind: 'point'; at: P2; eyeAboveGround: number; source: string }
+  | { kind: 'bearing'; bearing: number; distance: number; aboveGround: number }
+
+export interface HeroView {
+  id: string
+  label: string
+  from: HeroFrom
+  /** Frame height at the tower, as a multiple of the tower's height (sets the lens). */
+  frame: number
+  /** Height on the tower (share of its height) at the frame's centre. */
+  aim: number
+  /** Horizontal offset of the aim point from the tower (m, model frame), to set the tower off centre. */
+  shift?: P2
+  /**
+   * Walk from the given place in this direction (model frame, 10 m steps, up to 1.5 km) to the first point where the
+   * drawn surface is the sea (at or below 0.3 m), and stand there: the water's edge, eye 1.6 m above the sea.
+   */
+  toWater?: P2
+  note: string
+}
+
+const coneOrigin = (id: string): { at: P2; eye: number; name: string } | null => {
+  const c = CONES.find((k) => k.id === id)
+  return c ? { at: cityFrame(c.ring[0]), eye: c.Lv, name: c.name } : null
+}
+
+export const HERO_VIEWS: HeroView[] = [
+  { id: 'charleson', label: 'From Charleson Seawall, across False Creek to the mountains', from: { kind: 'cone', cone: 'B1' }, frame: 2.1, aim: 0.5,
+    note: 'South shore of False Creek, the origin of the City\'s protected views B1/B2 (Lv 4.48 m as the eye). Looks north over the water, the downtown skyline and the North Shore terrain.' },
+  { id: 'olympic-pier', label: 'From the Olympic Village shipyard pier, across False Creek', from: { kind: 'cone', cone: 'G1' }, frame: 2.1, aim: 0.5,
+    note: 'South-east shore of False Creek, the origin of the City\'s protected views G1/G2 (Lv 6 m). Looks north-west over the water and the skyline.' },
+  { id: 'qe-park', label: 'From Queen Elizabeth Park, long lens', from: { kind: 'cone', cone: '3.2.3' }, frame: 2.0, aim: 0.55,
+    note: 'The City\'s skyline viewpoint (protected views 3.2.1–3.2.4, Lv 124.6 m). A long lens: the city stacks up and the North Shore rises behind.' },
+  { id: 'cambie-bridge', label: 'From the Cambie Bridge', from: { kind: 'cone', cone: 'E' }, frame: 2.0, aim: 0.5,
+    note: 'On the Cambie Bridge, the origin of the City\'s protected view E (Lv 17.95 m). Looks north-west across the creek mouth into downtown.' },
+  { id: 'lonsdale-quay', label: 'From Lonsdale Quay, across the inlet', from: { kind: 'viewpoint', id: 'lonsdale-quay' }, toWater: [0, -1], frame: 2.2, aim: 0.5,
+    note: 'North Shore, across Burrard Inlet (the toolkit\'s named skyline viewpoint, an approximate team pick, eye about 5 m). Moved south to the edge of the water. Looks south-west at the downtown skyline; the mountains are behind the camera.' },
+  { id: 'coal-harbour', label: 'From Coal Harbour, looking south', from: { kind: 'point', at: [-280.5, 1157.4], eyeAboveGround: 1.6, source: 'Vista place label "Coal Harbour" (public/data/vista_labels.json)' }, toWater: [0, 1], frame: 1.9, aim: 0.5,
+    note: 'From the edge of the water north of the Coal Harbour label point, eye 1.6 m above the sea. Looks south-east into downtown; the mountains are behind the camera.' },
+  { id: 'aerial-se', label: 'Low aerial from the south-east', from: { kind: 'bearing', bearing: 135, distance: 1400, aboveGround: 380 }, frame: 2.4, aim: 0.42,
+    note: 'A drone-height view: 1.4 km south-east of the tower, 380 m above its ground. Looks north-west over downtown to the inlet and the North Shore.' },
+  { id: 'pender-richards', label: 'Street level on West Pender at Richards', from: { kind: 'point', at: [455.3, 330.5], eyeAboveGround: 1.6, source: 'crossing of the RICHARDS ST and W PENDER ST centre lines (public/data/city_streets.json)' }, frame: 1.3, aim: 0.45,
+    note: 'Two blocks south-east of the site along West Pender, 1.6 m eye height at the crossing of the street centre lines. Looks north-west along the street; the tower stands beside it.' },
+]
+
+/** A hero view's camera for the design centred at `centre` (city frame), its ground and height. `groundAt` reads the drawn surface. */
+export function heroShot(v: HeroView, centre: P2, ground: number, top: number, groundAt: (p: P2) => number | null): (PerspectiveShot & { eyeNote: string }) | null {
+  let at: P2, z: number, eyeNote: string
+  if (v.from.kind === 'viewpoint') {
+    const id = v.from.id
+    const vp = ALL_VIEWPOINTS.find((x) => x.id === id)
+    if (!vp) return null
+    at = cityFrame(vp.at); z = vp.eye; eyeNote = `${vp.name} (${vp.kind === 'named' ? 'named viewpoint, approximate team pick' : 'City view-cone origin'}), eye ${vp.eye} m`
+  } else if (v.from.kind === 'cone') {
+    const o = coneOrigin(v.from.cone)
+    if (!o) return null
+    at = o.at; z = o.eye; eyeNote = `City view-cone ${v.from.cone} origin (${o.name}), eye at its Lv ${o.eye} m (geodetic)`
+  } else if (v.from.kind === 'point') {
+    at = v.from.at; const g = groundAt(at) ?? ground; z = g + v.from.eyeAboveGround; eyeNote = `${v.from.source}; ground ${g.toFixed(1)} m as drawn + ${v.from.eyeAboveGround} m`
+  } else {
+    const b = (v.from.bearing * Math.PI) / 180
+    at = [centre[0] + v.from.distance * Math.sin(b), centre[1] + v.from.distance * Math.cos(b)]; z = ground + v.from.aboveGround
+    eyeNote = `${v.from.bearing}° (grid) and ${v.from.distance} m from the tower, ${v.from.aboveGround} m above its ground`
+  }
+  if (v.toWater) {
+    const l = Math.hypot(...v.toWater) || 1
+    for (let k = 0; k <= 150; k++) {
+      const q: P2 = [at[0] + (v.toWater[0] / l) * 10 * k, at[1] + (v.toWater[1] / l) * 10 * k]
+      const g = groundAt(q)
+      if (g != null && g <= 0.3) { at = q; z = Math.max(0, g) + EYE; eyeNote += `; walked ${10 * k} m to the water's edge, eye 1.6 m above the sea`; break }
+    }
+  }
+  const aimXY: P2 = [centre[0] + (v.shift?.[0] ?? 0), centre[1] + (v.shift?.[1] ?? 0)]
+  const d = Math.hypot(aimXY[0] - at[0], aimXY[1] - at[1])
+  const fov = (2 * Math.atan((v.frame * top) / 2 / d) * 180) / Math.PI
+  return { kind: 'perspective', position: [at[0], at[1], z], target: [aimXY[0], aimXY[1], ground + top * v.aim], fov: Math.min(75, Math.max(1, fov)), eyeNote }
+}
+
+/**
+ * Looking up at the tower from the street (Board 4): eye 1.6 m at `from`, turned toward the tower's centre and pitched up
+ * by `pitch` degrees; `fov` is the vertical field of view (a portrait frame shows the street at the bottom and the top of
+ * the tower near the top).
+ */
+export function upShot(from: P2, eyeZ: number, toward: P2, pitch = 43, fov = 96): PerspectiveShot {
+  const dx = toward[0] - from[0], dy = toward[1] - from[1], l = Math.hypot(dx, dy) || 1
+  const r = (pitch * Math.PI) / 180, k = 10
+  return { kind: 'perspective', position: [from[0], from[1], eyeZ], target: [from[0] + (dx / l) * k * Math.cos(r), from[1] + (dy / l) * k * Math.cos(r), eyeZ + k * Math.sin(r)], fov }
+}
+
+/**
+ * Board 4's street camera on the competition site: the far (south) sidewalk of the retail high street, west of the
+ * middle of the block (about 110 m from a tower on the east half), the same point for every tower; it turns to the tower.
+ */
+export const BOARD4_FROM: P2 = [-56, S.yMin - row('south') + 3.5]
+/** Figures in front of the Board 4 camera (model frame, competition site), on the block's own sidewalk and the far one. */
+export const BOARD4_PEOPLE: P2[] = [[-38, S.yMin - 2.8], [-30, S.yMin - 2.2], [-20, S.yMin - 1.8], [-12, S.yMin - 2.5], [-47, S.yMin - row('south') + 5]]

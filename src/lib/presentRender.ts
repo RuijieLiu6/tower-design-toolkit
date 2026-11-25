@@ -27,14 +27,50 @@ export interface RenderStyle {
   noContext?: boolean
   /** Return the label mask instead of the drawing (towers red, figures green): for checking occlusion. */
   debugMask?: boolean
+  /**
+   * Layers to render from the one camera, pixel-aligned (hero renders, 24 Nov). Default ['line'].
+   *  - line: the board drawing above;
+   *  - shaded: a calm clay render (sun with cast shadows, sky light, distance haze, water as a flat pale plane, sky left
+   *    transparent), no lines;
+   *  - edges: the line pass alone on transparent (crease edges, the design's ink outline, the figures), to lay over shaded;
+   *  - mask: the design towers alone, white on black (where they are seen, after anything in front);
+   *  - depth: distance from the eye, white near to black at `depthFar`, transparent where nothing is drawn.
+   */
+  passes?: RenderPass[]
+  /** Shaded: unit vector toward the sun in the model frame (x east, y north, z up); see lib/presentViews.ts sunFor. */
+  sun?: [number, number, number]
+  /** Shaded: where cast shadows are computed (model frame) and how far around it (m). Default: the shot's target, 1200 m. */
+  shadowAt?: [number, number, number]
+  shadowRadius?: number
+  /** Shaded: haze from `near` to fully hazed at `far` (m from the eye); colour default BOARD.paper. Omit for none. */
+  haze?: { near: number; far: number; color?: string; max?: number }
+  /** Depth: the distance (m) drawn black. Default: 3 × the distance to the target. */
+  depthFar?: number
+  /** Height of the ground the figures stand on (model frame z). Default: the scene's own (0 on the competition site). */
+  peopleZ?: number
 }
 
+export type RenderPass = 'line' | 'shaded' | 'edges' | 'mask' | 'depth'
+/** Clay colours of the shaded pass (greys of the board palette, water a pale blue-grey). */
+export const CLAY = { tower: '#fbfbfa', context: '#eceae6', ground: '#dedcd6', water: '#e9eef1', sky: '#ffffff', bounce: '#cfccc4' } as const
+
 export interface RenderRequest { shot: Shot; width: number; height: number; style: RenderStyle }
-export interface RenderResult { dataUrl: string; width: number; height: number; /** Pixels of the design towers in the frame (0: not visible). */ towerPixels: number; ms: number }
+export interface RenderResult {
+  dataUrl: string; width: number; height: number; /** Pixels of the design towers in the frame (0: not visible). */ towerPixels: number; ms: number
+  /** Every requested pass as a PNG data URL (the first is also `dataUrl`). */
+  layers?: Partial<Record<RenderPass, string>>
+  /** Depth pass: the distance drawn black (m). */
+  depthFar?: number
+}
 
 type Renderer = (r: RenderRequest) => RenderResult
 let renderer: Renderer | null = null
 export function setPresentRenderer(fn: Renderer | null) { renderer = fn }
+/** The drawn ground under a model-frame point (terrain, streets, water; not buildings or the design), from the 3D view. */
+let probe: ((x: number, y: number) => number | null) | null = null
+type Bounds = { min: [number, number, number]; max: [number, number, number] }
+let towerBounds: (() => Bounds | null) | null = null
+export function setGroundProbe(fn: typeof probe, bounds: typeof towerBounds) { probe = fn; towerBounds = bounds }
 /** Renders the current 3D view's scene from the shot, or null when no 3D view is mounted. */
 export function presentRender(r: RenderRequest): RenderResult | null { return renderer ? renderer(r) : null }
 
@@ -154,6 +190,22 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
     async aim(shot: { position: [number, number, number]; target: [number, number, number]; fov?: number }) {
       const { useStore } = await import('../store')
       useStore.setState({ cameraRequest: { position: shot.position, target: shot.target, fov: shot.fov } })
+    },
+    /** Height of the drawn ground at a model-frame point (null where nothing is drawn). */
+    groundAt: (x: number, y: number) => (probe ? probe(x, y) : null),
+    /** The drawn design towers' bounds (model frame), or null. */
+    towerBox: () => (towerBounds ? towerBounds() : null),
+    /** A competition-frame point placed as the design is placed on the default Real Vancouver site (lib/defaultSite.ts). */
+    async cityPoint(p: [number, number]) {
+      const { DEFAULT_CITY_SITE, competitionToCity } = await import('./defaultSite')
+      const [t] = competitionToCity([{ x: p[0], y: p[1], rotation: 0 } as never], DEFAULT_CITY_SITE.ring as [number, number][])
+      return [t.x, t.y]
+    },
+    /** Unit vector toward the sun at a UTC instant (ISO), in a frame whose north is `northDeg` clockwise from +y. */
+    async sun(iso: string, northDeg = 0) {
+      const { solarPosition, sunDirection } = await import('../engine/solar')
+      const p = solarPosition(Date.parse(iso))
+      return { dir: sunDirection(p, northDeg), altitude: p.altitude, azimuth: p.azimuth }
     },
     async toVtc() { const { useStore } = await import('../store'); useStore.getState().setProject('vtc') },
     async state() {
