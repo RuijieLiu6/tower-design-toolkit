@@ -24,6 +24,18 @@ const [W, H] = arg('size', '1600x1867').split('x').map(Number)
 const PASSES = arg('passes', 'line,shaded').split(',')
 const SUN = arg('sun', '2026-09-21T22:00:00Z') // 21 September 2026, 15:00 PDT
 const BG = arg('bg', 'transparent')
+// Per-view lens and aim overrides: --frame qe-park=1.7:0.45,aerial-se=2:0.4 (frame × tower height at the tower : aim share).
+const FRAMES = Object.fromEntries((arg('frame', '') || '').split(',').filter(Boolean).map((s) => { const [id, v] = s.split('='); const [f, a] = v.split(':').map(Number); return [id, { frame: f, aim: a }] }))
+// Board 4 camera override: --b4 x,y,pitch,fov (competition frame; the city version carries the point with the design).
+const B4 = (arg('b4', '') || '').split(',').filter(Boolean).map(Number)
+// Where a model point falls in the frame (0 top / left, 1 bottom / right) for a perspective shot.
+const project = (cam, w, h, pt) => {
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm = (a) => { const l = Math.hypot(...a); return a.map((x) => x / l) }
+  const f = norm(sub(cam.target, cam.position)), r = norm(cross(f, [0, 0, 1])), u = cross(r, f)
+  const d = sub(pt, cam.position), z = dot(d, f), t = Math.tan((cam.fov * Math.PI) / 360)
+  return { x: 0.5 + dot(d, r) / z / (t * (w / h)) / 2, y: 0.5 - dot(d, u) / z / t / 2 }
+}
 if (!FILE) { console.error('--project <file> is required'); process.exit(2) }
 fs.mkdirSync(OUT, { recursive: true })
 
@@ -92,9 +104,9 @@ fs.mkdirSync(OUT, { recursive: true })
   if (want.includes('board4-vtc')) {
     const c = await centreOf(main)
     console.log('design centre (competition frame)', c[0].toFixed(1), c[1].toFixed(1), 'tower record', main.x, main.y)
-    const v = await p.evaluate(async ([tx, ty]) => { const m = await window.__tdtRender.views(); return { shot: m.upShot(m.BOARD4_FROM, m.EYE, [tx, ty]), people: m.BOARD4_PEOPLE } }, c)
+    const v = await p.evaluate(async ([tx, ty, b4]) => { const m = await window.__tdtRender.views(); const from = b4.length ? [b4[0], b4[1]] : m.BOARD4_FROM; return { shot: b4.length ? m.upShot(from, m.EYE, [tx, ty], b4[2], b4[3]) : m.upShot(from, m.EYE, [tx, ty]), people: m.BOARD4_PEOPLE } }, [...c, B4])
     const r = await shoot(v.shot, { background: BG, outline, people: v.people, depthFar: 600, passes: PASSES.filter((x) => x !== 'shaded') })
-    save('board4-vtc', r, { camera: v.shot, label: 'Board 4: the retail high street, looking up at the tower (competition site)', note: 'Eye 1.6 m on the far (south) sidewalk of the retail high street west of the middle of the block, turned to the tower, pitched up 43°, vertical lens 96°. Competition base model as context. Figures 1.75 m.' })
+    save('board4-vtc', r, { camera: v.shot, label: 'Board 4: the retail high street, looking up at the tower (competition site)', note: B4.length ? `Eye 1.6 m at (${B4[0]}, ${B4[1]}) on the competition site, turned to the tower, pitched up ${B4[2]}°, vertical lens ${B4[3]}° (--b4).` : 'Eye 1.6 m on the far (south) sidewalk of the retail high street west of the middle of the block, turned to the tower, pitched up 43°, vertical lens 96°. Competition base model as context. Figures 1.75 m.' })
   }
 
   const heroes = want.filter((v) => all.includes(v))
@@ -110,23 +122,25 @@ fs.mkdirSync(OUT, { recursive: true })
     const sun = await p.evaluate((iso) => window.__tdtRender.sun(iso, 0), SUN)
     console.log('sun', SUN, `altitude ${sun.altitude.toFixed(1)}°, azimuth ${sun.azimuth.toFixed(1)}°`)
     for (const id of heroes) {
-      const v = await p.evaluate(async ([id, cx, cy, ground, top]) => {
+      const v = await p.evaluate(async ([id, cx, cy, ground, top, over]) => {
         const m = await window.__tdtRender.views()
-        const hv = m.HERO_VIEWS.find((h) => h.id === id)
+        const hv0 = m.HERO_VIEWS.find((h) => h.id === id)
+        const hv = hv0 && over ? { ...hv0, ...over } : hv0
         // A first aim so the city loads around the view, then the ground under the eye is read from what is drawn.
         const shot = m.heroShot(hv, [cx, cy], ground, top, (q) => window.__tdtRender.groundAt(q[0], q[1]))
         return { hv, shot }
-      }, [id, t.x, t.y, city.ground, top])
+      }, [id, t.x, t.y, city.ground, top, FRAMES[id] ?? null])
       if (!v.shot) { console.log('no camera for', id); continue }
       await p.evaluate((s) => window.__tdtRender.aim(s), v.shot)
       await p.waitForTimeout(4000)
       await p.waitForFunction(() => !document.querySelector('[data-testid="map-loading"]'), null, { timeout: 300000 }).catch(() => {})
       await p.waitForTimeout(8000)
       // Read again now that the ground near the eye has loaded in detail.
-      const shot = await p.evaluate(async ([id, cx, cy, ground, top]) => {
+      const shot = await p.evaluate(async ([id, cx, cy, ground, top, over]) => {
         const m = await window.__tdtRender.views()
-        return m.heroShot(m.HERO_VIEWS.find((h) => h.id === id), [cx, cy], ground, top, (q) => window.__tdtRender.groundAt(q[0], q[1]))
-      }, [id, t.x, t.y, city.ground, top])
+        const hv0 = m.HERO_VIEWS.find((h) => h.id === id)
+        return m.heroShot(over ? { ...hv0, ...over } : hv0, [cx, cy], ground, top, (q) => window.__tdtRender.groundAt(q[0], q[1]))
+      }, [id, t.x, t.y, city.ground, top, FRAMES[id] ?? null])
       const { eyeNote, ...cam } = shot
       const d = Math.hypot(cam.target[0] - cam.position[0], cam.target[1] - cam.position[1], cam.target[2] - cam.position[2])
       // Shadows around the tower and toward the eye; haze from just short of the tower to 40 km past it.
@@ -134,21 +148,24 @@ fs.mkdirSync(OUT, { recursive: true })
       const shadowAt = [t.x + (cam.position[0] - t.x) * towardEye, t.y + (cam.position[1] - t.y) * towardEye, city.ground]
       const style = { background: BG, outline, passes: PASSES, sun: sun.dir, shadowAt, shadowRadius: Math.max(1000, d * 0.6 + 400), haze: { near: d * 0.55, far: d + 40000 }, depthFar: d * 4 }
       const r = await shoot(cam, style)
-      save(id, r, { camera: cam, eye: eyeNote, label: v.hv.label, note: v.hv.note, lens: { verticalFovDeg: +cam.fov.toFixed(2), horizontalFovDeg: +(2 * Math.atan(Math.tan((cam.fov * Math.PI) / 360) * (W / H)) * 180 / Math.PI).toFixed(2), equivalentFocalMm35: +(18 / Math.tan(Math.max(cam.fov, 2 * Math.atan(Math.tan((cam.fov * Math.PI) / 360) * (W / H)) * 180 / Math.PI) * Math.PI / 360)).toFixed(0) }, sun: { utc: SUN, altitudeDeg: +sun.altitude.toFixed(1), azimuthDeg: +sun.azimuth.toFixed(1) }, haze: style.haze, siteNote: 'Design on the default Real Vancouver site (Granville / W Pender / Howe / Dunsmuir), turned to its street grid, grade 23.4 m from the site (lib/defaultSite.ts, unverified). The competition block itself is hypothetical and has no place in the city.' })
+      // Where the tower's top and foot fall in the frame (at its drawn centre; 0 = top edge, 1 = bottom edge).
+      const topAt = project(cam, W, H, [t.x, t.y, city.ground + top]).y, footAt = project(cam, W, H, [t.x, t.y, city.ground]).y
+      console.log(id, `top at ${(topAt * 100).toFixed(1)} % of the frame height, foot at ${(footAt * 100).toFixed(1)} %`)
+      save(id, r, { frameOverride: FRAMES[id] ?? null, towerTopAtPctOfHeight: +(topAt * 100).toFixed(1), towerFootAtPctOfHeight: +(footAt * 100).toFixed(1), camera: cam, eye: eyeNote, label: v.hv.label, note: v.hv.note, lens: { verticalFovDeg: +cam.fov.toFixed(2), horizontalFovDeg: +(2 * Math.atan(Math.tan((cam.fov * Math.PI) / 360) * (W / H)) * 180 / Math.PI).toFixed(2), equivalentFocalMm35: +(18 / Math.tan(Math.max(cam.fov, 2 * Math.atan(Math.tan((cam.fov * Math.PI) / 360) * (W / H)) * 180 / Math.PI) * Math.PI / 360)).toFixed(0) }, sun: { utc: SUN, altitudeDeg: +sun.altitude.toFixed(1), azimuthDeg: +sun.azimuth.toFixed(1) }, haze: style.haze, siteNote: 'Design on the default Real Vancouver site (Granville / W Pender / Howe / Dunsmuir), turned to its street grid, grade 23.4 m from the site (lib/defaultSite.ts, unverified). The competition block itself is hypothetical and has no place in the city.' })
     }
     if (want.includes('board4-city')) {
-      const v = await p.evaluate(async ([cx, cy]) => {
+      const v = await p.evaluate(async ([cx, cy, b4]) => {
         const h = window.__tdtRender, m = await h.views()
-        const from = await h.cityPoint(m.BOARD4_FROM)
+        const from = await h.cityPoint(b4.length ? [b4[0], b4[1]] : m.BOARD4_FROM)
         const people = await Promise.all(m.BOARD4_PEOPLE.map((q) => h.cityPoint(q)))
         return { from, people, cx, cy }
-      }, [t.x, t.y])
+      }, [t.x, t.y, B4])
       await p.evaluate((s) => window.__tdtRender.aim(s), { position: [v.from[0], v.from[1], city.ground + 60], target: [t.x, t.y, city.ground + 100] })
       await p.waitForTimeout(4000)
       await p.waitForFunction(() => !document.querySelector('[data-testid="map-loading"]'), null, { timeout: 300000 }).catch(() => {})
       await p.waitForTimeout(8000)
       const g = (await p.evaluate(([x, y]) => window.__tdtRender.groundAt(x, y), v.from)) ?? city.ground
-      const shot = await p.evaluate(async ([from, z, to]) => (await window.__tdtRender.views()).upShot(from, z, to), [v.from, g + 1.6, [t.x, t.y]])
+      const shot = await p.evaluate(async ([from, z, to, b4]) => { const m = await window.__tdtRender.views(); return b4.length ? m.upShot(from, z, to, b4[2], b4[3]) : m.upShot(from, z, to) }, [v.from, g + 1.6, [t.x, t.y], B4])
       const r = await shoot(shot, { background: BG, outline, people: v.people, peopleZ: g, depthFar: 600, passes: PASSES.filter((x) => x !== 'shaded') })
       save('board4-city', r, { camera: shot, label: 'Board 4 camera idea in Real Vancouver: the street beside the default site, looking up', note: `The competition camera point carried with the design onto the default site (the same turn and shift), eye 1.6 m above the drawn ground (${g.toFixed(1)} m). Real Vancouver buildings as context.` })
     }
