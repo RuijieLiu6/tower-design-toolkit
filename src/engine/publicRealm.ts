@@ -99,9 +99,16 @@ type Pt = [number, number]
 /** One plan part of a tower: its outline, any holes in it (a courtyard), its height and what it is. */
 interface Mass { poly: Pt[]; holes: Pt[][]; height: number; base: number; kind: 'podium' | 'tower'; tower: Tower }
 
-/** Plan outlines of a tower's blocks above the podium (an imported mass: its hull). */
+/**
+ * Plan outlines of a tower's blocks above the podium. An imported tower read storey by storey: the true outline of every
+ * tower storey (geometry QA, docs/geometry-qa.md: the typical storey alone missed a tier shifted toward a neighbour, a
+ * false pass on separation); without storey outlines, its hull.
+ */
 function shafts(t: Tower): [number, number][][] {
-  if (t.imported) return [towerFootprint(t)]
+  if (t.imported) {
+    const o = storeyOutline(t, 'tower')
+    return o?.length ? o.map((pg) => pg[0]) : [towerFootprint(t)]
+  }
   const up = towerMasses(t).filter((m) => !m.podium)
   return up.length ? up.map((m) => m.ring) : [towerFootprint(t)]
 }
